@@ -64,6 +64,73 @@ export function slackAndCut(HW, post, origin) {
     HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(10); HW.skipTalk();
 }
 
+/* the top's three pairs and the end (src/75_greatspool.js, SpoolTop): whatever Gran says between them, said */
+const settle = HW => { for (let i = 0; i < 12; i++) { HW.step(5); HW.skipTalk(); } };
+/* cut a great thread at its post: beside it, or from below or above it where the floor's gone */
+export function cutPost(HW, post) {
+    const a = HW.G.map, p = HW.player(), left = post.tx < a.find('theSpool').tx;
+    for (const [x, y, d] of [[post.tx + (left ? 1 : -1), post.ty, left ? 'left' : 'right'], [post.tx, post.ty + 1, 'up'], [post.tx, post.ty - 1, 'down']]) {
+        if (a.kind(x, y).pit || a.kind(x, y).solid) continue;
+        for (let k = 0; k < 5 && !HW.walkTo(x, y); k++) { HW.step(20); HW.skipTalk(); }
+        if (p.tx !== x || p.ty !== y) continue;
+        HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(10); HW.skipTalk();
+        return HW.Progress.flag('great:' + post.house);
+    }
+    return false;
+}
+/* the middle pair: Gran throws at wherever you're standing. Stand on the thread, step off as it comes down (its shadow
+   first), and it lands on the thread and is dragged along it: slack */
+export function junkAndCut(HW, post) {
+    const a = HW.G.map, p = HW.player(), drum = a.find('theSpool');
+    for (let tries = 0; tries < 10 && post.slack <= 0; tries++) {
+        const [tx, ty] = post.tiles[tries % 3];
+        if (a.at(tx, ty)) { HW.step(40); continue; }
+        for (let k = 0; k < 5 && !HW.walkTo(tx, ty); k++) { HW.step(20); HW.skipTalk(); }
+        if (p.tx !== tx || p.ty !== ty) continue;
+        for (let i = 0; i < 400 && !drum.toss; i++) HW.step(1);
+        if (!drum.toss || drum.toss.tx !== tx || drum.toss.ty !== ty) { for (let i = 0; i < 200 && drum.toss; i++) HW.step(1); continue; }
+        const off = [[tx, ty + 1], [tx + 1, ty], [tx - 1, ty], [tx, ty - 1]].find(([x, y]) => !a.kind(x, y).solid && !a.kind(x, y).pit && !a.at(x, y) && !post.tiles.some(([u, v]) => u === x && v === y));
+        HW.walkTo(...off);
+        for (let i = 0; i < 160 && post.slack <= 0; i++) HW.step(1);
+    }
+    assert.ok(post.slack > 0, 'what Gran threw came down on the thread and was dragged along it: slack');
+    assert.ok(cutPost(HW, post), 'cut at its post');
+}
+/* the last pair, the floor gone from under them: a crate thrown off its shelf (not into the dark) is wound north when its
+   patience runs out, out over the dark on its thread, across the great thread: dragged along it, slack */
+export function darkAndCut(HW, post) {
+    const a = HW.G.map, p = HW.player(), cols = post.tiles.map(q => q[0]);
+    const crate = a.ents.find(e => e.kind === 'crate' && !e.removed && !e.hiddenYank && !e.stowed && e.ret && e.tx === e.ret.mx && e.ty === e.ret.my && cols.includes(e.tx));
+    assert.ok(crate, 'a crate on its shelf, under the thread\'s line');
+    for (let k = 0; k < 5 && !HW.walkTo(crate.tx, crate.ty - 1); k++) HW.step(20);
+    HW.face('down'); HW.press('act', 1); HW.step(20);
+    assert.ok(p.carry, 'carrying it');
+    for (let k = 0; k < 5 && !HW.walkTo(crate.ret.mx, crate.ret.my); k++) HW.step(20);
+    HW.face('up'); HW.press('act', 1); HW.step(30);
+    for (let i = 0; i < 600 && post.slack <= 0; i++) HW.step(1);
+    assert.ok(post.slack > 0, 'wound north over the dark on its thread, across the great thread: slack');
+    assert.ok(cutPost(HW, post), 'cut at its post');
+}
+/* the end: Linnet has one of Gran's hands; take the other (beside her, facing her, the action button held) */
+export function holdGransHand(HW) {
+    const a = HW.G.map;
+    for (let i = 0; i < 4000 && !a.climax; i++) { HW.skipTalk(); HW.step(1); }
+    assert.ok(a.climax, 'Linnet has one of her hands');
+    const g = a.ents.find(e => e.who === 'gran'), l = a.climax.linnet, s = l.tx < g.tx ? 1 : -1;
+    for (let k = 0; k < 5 && !HW.walkTo(g.tx + s, g.ty); k++) HW.step(20);
+    HW.face(s > 0 ? 'left' : 'right'); HW.hold('act'); HW.step(200); HW.release(); HW.step(2);
+}
+/* all of it: the crates for the lowest pair, what Gran throws for the middle, the dark for the last; then her hand */
+export function spoolTop(HW, origin) {
+    const post = h => HW.G.map.ents.find(e => e.kind === 'greatpost' && e.house === h);
+    for (const h of ['slumber', 'marionette']) slackAndCut(HW, post(h), origin);
+    settle(HW);
+    for (const h of ['mill', 'belfry']) junkAndCut(HW, post(h));
+    settle(HW);
+    for (const h of ['tidy', 'kiln']) darkAndCut(HW, post(h));
+    holdGransHand(HW);
+}
+
 export const LEG1 = (HW, chain) => {
     const ok = (c, m) => { assert.ok(c, m + ` (at ${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty})`); };
     const walk = (x, y, m) => {
@@ -1334,8 +1401,10 @@ export const LEG9 = (HW, chain) => {
     ok(HW.player().ty === g('climb', 0, 1)[1] && !(HW.Stats.c['climb:hit'] > 0), 'up the Climb, never caught');
     HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk();
     ok(HW.Progress.flag('spool_met'), 'Gran at the Spool');
-    HW.G.cheats.god = true;     /* (the junk only knocks you about; this keeps the walk tidy) */
-    for (const post of HW.G.map.ents.filter(e => e.kind === 'greatpost')) slackAndCut(HW, post, G.top);
+    HW.G.cheats.god = true;     /* (what Gran throws only knocks you about; this keeps the walk tidy) */
+    /* three pairs: the lowest with the crates, the middle with what she throws, the last over the dark; then the end is
+       Gran's other hand, held (no menu) */
+    spoolTop(HW, G.top);
     for (let i = 0; i < 120 && !HW.Progress.flag('unwound'); i++) { HW.skipTalk(); HW.step(20); }
     ok(HW.Progress.flag('unwound'), 'the Unwinding');
     for (let i = 0; i < 400 && (HW.G.hideHud || HW.G.credits); i++) { HW.skipTalk(); HW.step(20); }

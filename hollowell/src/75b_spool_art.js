@@ -131,8 +131,14 @@ const SpoolArt = {
             if (j.z <= 0) { Gfx.alpha(0.25); Gfx.rect(j.x - cx - 5, j.y - cy + 4, 10, 2, PAL.ink); Gfx.alpha(1); }
             Gfx.alpha(0.85); Gfx.img(im, j.x - cx - 8, j.y - cy - 10 - j.z); Gfx.alpha(1);
         }
-        /* Gran's throw, on its way: up off the drum and down onto its shadow */
+        /* (at the top) things on their way into the drum, up in the air: dragged along a great thread, or high over your
+           head off the walls; and Gran's throw, up off the drum and down onto its shadow */
         const d = a.find('theSpool'), t = d && d.toss;
+        if (d) for (const j of d.junk) {
+            const im = (j.thing && j.thing.sprite()) || spr(j.look) || spr('crate');
+            if (j.high) { Gfx.alpha(0.2); Gfx.rect(j.x - cx - 5, j.y - cy + 3, 10, 2, PAL.ink); Gfx.alpha(1); }
+            if (im) Gfx.img(im, j.x - cx - 8, j.y - cy - 12 - (j.high ? 14 : 0));
+        }
         if (t && t.t > t.tell - 22) {
             const im = spr(t.look), k = (t.t - (t.tell - 22)) / 22, x0 = d.x + 32, y0 = d.y + 30, x1 = t.tx * T + 8, y1 = t.ty * T + 8;
             const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 26;
@@ -166,12 +172,6 @@ const SpoolArt = {
         if (turn) for (let i = 0; i < 28; i += 3) { const ph = (turn * 0.6 + i * 9) % 64; Gfx.alpha(0.5); Gfx.rect(x + ph, y + i, 4, 1, '#ffffff'); Gfx.alpha(1); }
         Gfx.rect(x - 5, y - 7, 74, 7, PAL.ink); Gfx.rect(x - 4, y - 6, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y - 6, 72, 1, '#f7d64a');
         Gfx.rect(x - 5, y + 28, 74, 7, PAL.ink); Gfx.rect(x - 4, y + 29, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y + 29, 72, 1, '#f7d64a');
-        /* things on their way into the drum: dragged along a great thread, or (high over your head) off the walls */
-        for (const j of d.junk) {
-            const im = (j.thing && j.thing.sprite()) || spr(j.look) || spr('crate');
-            if (j.high) { Gfx.alpha(0.2); Gfx.rect(j.x - cx - 5, j.y - cy + 3, 10, 2, PAL.ink); Gfx.alpha(1); }
-            if (im) Gfx.img(im, j.x - cx - 8, j.y - cy - 12 - (j.high ? 14 : 0));
-        }
     },
     /* a thing Gran threw, lying where it came down: her thread on it, up to the drum, pulled tight as she takes it back */
     thrown(e, cx, cy) {
@@ -188,14 +188,8 @@ const SpoolArt = {
         Gfx.rect(x + 1, y - 13, 14, 3, '#c9a24a'); Gfx.rect(x + 1, y + 13, 14, 3, '#c9a24a'); Gfx.rect(x + 2, y - 13, 12, 1, '#f7d64a');
         if (e.cut) { Gfx.line(x + 8, y - 6, x + 14, y + 4, shade(col, -0.4)); return; }
         const s = e.area.find('theSpool'); if (!s) return;
-        /* still in Gran's hands: it runs to her fist, wound round it, and hums there */
-        const gran = e.held && e.area.ents.find(n => n.who === 'gran' && !n.removed);
-        if (gran) {
-            const left = e.tx < gran.tx, hx = gran.px + (left ? 3 : 13) - cx, hy = gran.py + 5 - cy;
-            Gfx.line(x + 8, y - 6, hx, hy, col); Gfx.line(x + 8, y - 5, hx, hy + 1, shade(col, -0.3));
-            Gfx.rect(hx - 2, hy - 1, 4, 3, PAL.ink); Gfx.rect(hx - 1, hy, 2, 1, col);
-            return;
-        }
+        /* still in Gran's hands: drawn with her (SpoolArt.hands), from the post to her fist */
+        if (e.held && e.area.ents.some(n => n.who === 'gran' && !n.removed)) return;
         /* free: to the drum's near side, low */
         const x1 = s.x + (e.tx < s.tx ? 1 : 63) - cx, y1 = s.y + 22 - cy;
         if (e.slack > 0) {
@@ -207,6 +201,25 @@ const SpoolArt = {
             Gfx.line(x + 8, y - 6, x1, y1, col); Gfx.line(x + 8, y - 5, x1, y1 + 1, shade(col, -0.3));
             const k = ((G.t * 0.02) + e.tx * 0.13) % 1;
             Gfx.rect(Math.round(x + 8 + (x1 - x - 8) * k) - 1, Math.round(y - 6 + (y1 - y + 6) * k) - 1, 2, 2, shade(col, 0.6));
+        }
+    },
+    /* the great threads still in Gran's hands: from each post to her fist, taut, a shimmer running in to her; each fist
+       wound round thick with them (drawn over her, as she's drawn) */
+    hands(g, cx, cy) {
+        const held = g.area.ents.filter(e => e.kind === 'greatpost' && e.held);
+        for (const side of [true, false]) {
+            const mine = held.filter(e => (e.tx < g.tx) === side); if (!mine.length) continue;
+            const hx = g.px + (side ? 2 : 14) - cx, hy = g.py + 4 - cy;
+            for (const e of mine) {
+                const col = KNOT_COL[e.house], x = e.tx * T + 8 - cx, y = e.ty * T - 6 - cy;
+                Gfx.line(x, y, hx, hy, col); Gfx.line(x, y + 1, hx, hy + 1, shade(col, -0.3));
+                const k = ((G.t * 0.02) + e.tx * 0.13 + e.ty * 0.07) % 1;
+                Gfx.rect(Math.round(x + (hx - x) * k) - 1, Math.round(y + (hy - y) * k) - 1, 2, 2, shade(col, 0.6));
+            }
+            /* the fist: a ball of thread, a stripe of each colour round it */
+            Gfx.rect(hx - 3, hy - 3, 7, 7, PAL.ink);
+            for (let i = 0; i < 5; i++) Gfx.rect(hx - 2, hy - 2 + i, 5, 1, KNOT_COL[mine[i % mine.length].house]);
+            Gfx.rect(hx - 1, hy - 2, 1, 1, '#ffffff');
         }
     },
     /* a Knot of the Wander, tied in its Maker's thread, the thread running up into the drum's face */

@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
-import { slackAndCut } from './legs.mjs';
+import { spoolTop, holdGransHand } from './legs.mjs';
 
 const R = { top: [20, 0], slumber: [0, 11], climb: [20, 11], mario: [40, 11], mill: [0, 22], hub: [20, 22], belfry: [40, 22], tidy: [0, 33], foot: [20, 33], kiln: [40, 33] };
 const at = (r, x, y) => [R[r][0] + x, R[r][1] + y];
@@ -83,15 +83,16 @@ function atTop() {
 
 const finish = HW => { for (let i = 0; i < 120 && !HW.Progress.flag('unwound'); i++) { HW.skipTalk(); HW.step(20); } for (let i = 0; i < 400 && (HW.G.hideHud || HW.G.credits); i++) { HW.skipTalk(); HW.step(20); } };
 
-test('the top: six great threads cut, Gran lets go; the Unwinding, the credits, and the free valley after', () => {
+test('the top: six great threads cut, in three pairs, Gran lets go; the Unwinding, the credits, and the free valley after', () => {
     const HW = atTop();
     assert.ok(HW.Progress.flag('spool_met'));
     HW.G.cheats.god = true;
-    /* too taut to cut, at first */
-    const posts = HW.G.map.ents.filter(e => e.kind === 'greatpost');
-    go(HW, 'top', 2, 2); HW.face('left'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
-    assert.ok(!HW.Progress.flag('great:tidy'), 'taut');
-    for (const post of posts) slackAndCut(HW, post, R.top);
+    /* too taut to cut, at first (and the higher four are in Gran's hands) */
+    go(HW, 'top', 2, 8); HW.face('left'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    assert.ok(!HW.Progress.flag('great:slumber'), 'taut');
+    go(HW, 'top', 2, 2); HW.face('left'); HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    assert.ok(!HW.Progress.flag('great:tidy'), 'held');
+    spoolTop(HW, R.top);
     assert.ok(HOUSES.every(h => HW.Progress.flag('great:' + h)), 'all six');
     finish(HW);
     assert.ok(HW.Progress.flag('unwound'), 'the Unwinding');
@@ -109,6 +110,7 @@ test('a save in the middle of the end: the top room takes it up again', () => {
     const H2 = loadGame(); H2.global('Game').load(H2.Save.migrate(JSON.parse(JSON.stringify(s)))); H2.step(5);
     H2.warp('greatspool', ...at('top', 9, 9)); H2.step(30);
     assert.ok(H2.G.map.ents.some(e => e.who === 'gran'), 'Gran is there');
+    holdGransHand(H2);
     finish(H2);
     assert.ok(H2.Progress.flag('unwound'), 'and the end goes on');
     noErrors(H2);
@@ -163,11 +165,12 @@ test('the Drift: no falling home (you climb out where you fell); its map is draw
     noErrors(HW);
 });
 
-test('Linnet\'s bracelet shown to Gran at the Spool: she lets three great threads go herself', () => {
+test('Linnet\'s bracelet shown to Gran at the Spool: she lets a pair of the great threads go herself (the middle pair), and the room goes quiet', () => {
     const HW = atTop();
     HW.Inv.items.bracelet = 1;
     const gran = HW.G.map.ents.find(e => e.who === 'gran');
     HW.global('Script').run(HW.global('Story').talk(gran), { name: 'talk' }); HW.step(3); HW.skipTalk(0);
-    assert.equal(HOUSES.filter(h => HW.Progress.flag('great:' + h)).length, 3, 'three let go');
+    assert.deepEqual(HOUSES.filter(h => HW.Progress.flag('great:' + h)).sort(), ['belfry', 'mill'], 'the middle pair, let go');
+    assert.ok(HW.Progress.flag('bracelet_top'), 'shown');
     noErrors(HW);
 });

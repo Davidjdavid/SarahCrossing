@@ -18,6 +18,8 @@ export function listen(HW, fn) {
 function carry(HW, preset) {
     const c = JSON.parse(JSON.stringify(HW.Stats.c)), f = JSON.parse(JSON.stringify(HW.Progress.flags)), frames = HW.Stats.playFrames;
     HW.preset(preset); HW.step(10); HW.skipTalk();
+    /* (a preset starts a new game, which marks what it keeps from then: the Wander carried on keeps its own marks) */
+    for (const k of Object.keys(HW.Stats.c)) if ((k.startsWith('aft:') || k === 'tally') && !(k in c)) delete HW.Stats.c[k];
     Object.assign(HW.Stats.c, c); HW.Stats.playFrames += frames;
     for (const [k, v] of Object.entries(f)) if (!(k in HW.Progress.flags)) HW.Progress.flags[k] = v;
 }
@@ -27,12 +29,12 @@ const add = (HW, k, n) => { HW.Stats.c[k] = (HW.Stats.c[k] || 0) + n; };
 
 /* spec: { kept (default true), old: 'early' | 'late' | 'done' (a save from before this was kept: loaded first in Act II,
    in Act IV after the Shears, or after the end), falls: {place: n}, faints, fog, bell, granLean, budges: {who: n},
-   s01, waited, idle (frames), tuck, gate, hold, notes, peep, cuts: [who | [who, notYets]], self (not-yets at the fog),
+   s01, waited, homeward (flights to the Bedroll), idle (frames), tuck, gate, hold, notes, peep, cuts: [who | [who, notYets]], self (not-yets at the fog),
    reloads (a save and load between stretches), after: fn(HW) (in the free valley, before the bench) } */
 export function wander(spec = {}) {
     const HW = loadGame(), p = () => HW.player(), S = HW.global('Shears');
-    /* Act II: the Bell, Gran by the Well, the fog */
-    HW.preset('afterD4'); HW.step(10); HW.skipTalk();
+    /* Act II (after the Festival): the Bell, Gran by the Well, the fog */
+    HW.preset('afterD5'); HW.step(10); HW.skipTalk();
     if (spec.kept !== false) HW.Stats.c.tally = 1;
     if (spec.old) { for (const k of Object.keys(HW.Stats.c)) if (k.startsWith('aft:')) delete HW.Stats.c[k]; delete HW.Stats.c.tally; }
     if (spec.old === 'early') reload(HW);
@@ -56,6 +58,7 @@ export function wander(spec = {}) {
         for (let k = 0; k < spec.fog; k++) { HW.Story.fogPull(p()); for (let i = 0; i < 300 && (p().state !== 'normal' || HW.Script.blocking()); i++) { HW.skipTalk(); HW.step(1); } }
     }
     if (spec.waited) add(HW, 'waited', spec.waited);
+    if (spec.homeward) add(HW, 'homeward', spec.homeward);
     if (spec.idle) { HW.step(spec.idle); HW.Stats.playFrames += 60 * 60 * 60 * 9; for (const r of Object.values(HW.Stats.rooms)) r.t += 60 * 60 * 40; }
     if (spec.reloads) reload(HW);
     /* Act III, as the game notes it */
@@ -110,14 +113,14 @@ export function cellar(HW, choice = 0) {
 /* the trajectories the tests (and a person reading them) compare: the straight way through; everything found; changing
    your mind; sitting about; doing things out of turn; play that pulls two ways at once; never falling */
 export const WANDERS = {
-    straight: { falls: { millrace: 7, 'hollow:millwater': 3, tidy: 2 }, faints: 1, cuts: [] },
+    straight: { falls: { millrace: 7, 'hollow:millwater': 3, tidy: 2 }, faints: 1, homeward: 41, cuts: [] },
     explorer: { falls: { kiln: 9, slumber: 6, 'hollow:heights': 4 }, faints: 3, fog: 11, bell: 4, granLean: 2, budges: { burr: 6, quill: 3, tuck: 5 }, s01: true, waited: 2,
-        tuck: 5, gate: true, hold: true, notes: 8, peep: true, self: 1,
+        homeward: 74, tuck: 5, gate: true, hold: true, notes: 8, peep: true, self: 1,
         cuts: ['arlo', 'quill', 'hob', 'rosa', 'thimble', 'seam', 'mabel', 'burr', 'nell', 'otto', 'bea', 'tuck', 'ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'] },
-    reviser: { falls: { belfry: 5 }, fog: 2, self: 3, cuts: [['rosa', 2], ['tess', 1], 'arlo'] },
-    idler: { falls: { tidy: 8, kiln: 6 }, faints: 2, fog: 1, waited: 9, idle: 3000, cuts: [] },
-    outoforder: { falls: { marionette: 4 }, gate: true, bell: 2, cuts: ['tess', 'tuck'] },
-    twoways: { falls: { slumber: 11 }, tuck: 4, hold: true, budges: { burr: 9 }, fog: 4, cuts: ['burr'] },
-    neverfell: { budges: { bea: 2 }, notes: 6,
+    reviser: { falls: { belfry: 5 }, fog: 2, homeward: 26, self: 3, cuts: [['rosa', 2], ['tess', 1], 'arlo'] },
+    idler: { falls: { tidy: 8, kiln: 6 }, faints: 2, fog: 1, waited: 9, homeward: 30, idle: 3000, cuts: [] },
+    outoforder: { falls: { marionette: 4 }, gate: true, bell: 2, homeward: 19, cuts: ['tess', 'tuck'] },
+    twoways: { falls: { slumber: 11 }, tuck: 4, hold: true, budges: { burr: 9 }, fog: 4, homeward: 33, cuts: ['burr'] },
+    neverfell: { budges: { bea: 2 }, notes: 6, homeward: 22,
         cuts: ['arlo', 'quill', 'hob', 'rosa', 'thimble', 'seam', 'mabel', 'nell', 'otto', 'bea', 'tuck', 'ives', 'bram', 'ambrose', 'tess', 'mallow', 'gundry'] },
 };

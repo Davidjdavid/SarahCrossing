@@ -28618,9 +28618,9 @@ SPAWN.shuttle = (x, y, p) => Progress.flag('loom_shuttle') ? new Ent('none') : n
 
 /* ---------------- the Weaver ----------------
    It keeps the First Spinner's loom, and learns, in three beats:
-   1. it hangs in its web over the loom's well, held by four anchor threads tied to four great posts: cut each at its
-      post (its silk binds you: the Shears snip you free; caught again while bound, the silk tightens) and down it comes
-      into the well, tangled in the old warp at the bottom: knock it.
+   1. it hangs in its web over the loom's well, held by four anchor threads, each holding its own way (below): read each
+      and cut it (its silk binds you: the Shears snip you free; caught again while bound, the silk tightens), and down it
+      comes into the well, tangled in the old warp at the bottom: knock it.
    2. it climbs the loom to the breast-beam over the well's head and hangs by one thread of its own: no anchors to cut.
       It comes down the well for you and drops (its shadow first), crouches there a moment with its thread lying slack,
       then hauls itself home up the well, its thread pulled tight. A thread pulled tight can be cut anywhere along it
@@ -28631,7 +28631,7 @@ SPAWN.shuttle = (x, y, p) => Progress.flag('loom_shuttle') ? new Ent('none') : n
       from below, it's hauled down its own well toward you, and hangs there dazed, low over the well, before it climbs
       home: cut it at the thing itself (or its thread, on the way home) while it's over the well.
    Nothing to set up again between beats: the posts stay bare once cut; it climbs to its new perch by itself. */
-/* Its blows (TELL[8], the last and hardest): silk spat after it rears back, its belly aglow (bound, the Shears cut you
+/* Its blows (TELL[8], the last and hardest): silk spat after it rears back (in its web, swung back), its belly aglow (bound, the Shears cut you
    free; caught again while bound, a heart and a half; two at once in the last beat); a warp thread under Wren plucked
    taut, the column lit first, then snapping down it (a heart and a half; two columns from the second beat); its drop
    from the breast-beam (its shadow first: two hearts); and in the last beat, silk moths shaken down out of the web. Each
@@ -28642,28 +28642,135 @@ const WV = {
     webZ: 30, perchZ: 8, fall: 4, down: 240,
     perchWait: 60, aim: 44, dropSp: 5, bottom: 46, climb: 1.15,
     drag: 5, hang: 84, scurry: 3, reach: 14,
+    swing: 13, swingSp: 2, swingHold: 18, tautAt: 8,       /* (1) rearing back in its web: how far, how fast, how long after it spits; how far pulls the long thread tight */
 };
-/* its four great posts: the web's anchor threads are tied to their tops (cut one at its post) */
+/* (1) the web's four anchor threads, three tied to great posts and one up to the loom itself. Each holds in its own way,
+   by the Loom's own rules, and is read where it's tied:
+   - plain: tied to its post and drawn tight: cut it at the post (or anywhere along it);
+   - slack: tied long, it hangs slack, and a slack thread only slides off the blades (the Hanging Gallery's rule); but
+     rearing back to spit, the Weaver swings away from whoever it's spitting at, and the thread on her side is pulled tight;
+   - asleep: wound up in a cocoon of grey silk and laid to sleep on its post, as the Weaver keeps things (the Larder's
+     note): the blades can't find the thread in it, and only a bell wakes it; woken, its silk unwinds back up into the web
+     and the knot's bare;
+   - loom: tied up on the loom itself, into the cloth over the well's head, out of the blades' reach; but it's drawn
+     tight down over the well, and a tight thread can be cut anywhere along it: from the well's rim.
+   A thread is cut where it's seen over the floor in front of Wren, or its shadow is; never in the middle of the web,
+   which hangs up out of reach. */
+const ANCHOR_LINE = {
+    slack: 'Hanging slack like that, it only slides off the blades.',
+    asleep: "Wound round and round in grey silk, and fast asleep. The blades can't find the thread in there.",
+    loom: "That one's tied up on the loom, out of the blades' reach.",
+};
+const AnchorWays = {
+    /* drawn tight? (the long one only while the Weaver's swung away from it; the cocoon's not while it sleeps) */
+    taut(w) {
+        if (this.cut) return false;
+        if (this.way === 'asleep') return !this.sleeping;
+        if (this.way === 'slack') return this.stretch(w) >= WV.tautAt;
+        return true;
+    },
+    /* how far the Weaver's swung away from this one, along the line from where it's tied to the middle of the web */
+    stretch(w) { const [fx, fy] = this.foot, ux = w.web[0] - fx, uy = w.web[1] - fy, d = Math.hypot(ux, uy) || 1; return ((w.sx || 0) * ux + (w.sy || 0) * uy) / d; },
+    /* where it meets the Weaver: in the web round it (the loom's thread: the tip of its back) */
+    end(w) { return [w.x, w.y - w.z - (this.way === 'loom' ? 20 : 8)]; },
+    /* does its thread run over that tile, as it's seen or by its shadow on the floor, clear of the web's middle? */
+    over(tx, ty, w) {
+        if (this.cut) return false;
+        const cx = tx * T + 8, cy = ty * T + 8;
+        for (const [a, b, r] of [[this.top, this.end(w), 16], [this.foot, [w.x, w.y], 22]]) {
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+            for (let s = 0; s <= len - r; s += 3) { const x = a[0] + (b[0] - a[0]) * s / len, y = a[1] + (b[1] - a[1]) * s / len; if (Math.abs(x - cx) <= 8.5 && Math.abs(y - cy) <= 8.5) return true; }
+        }
+        return false;
+    },
+    /* the Shears at it (at its post, or along it): cut, or said why not */
+    snipBy(w, atPost) {
+        if (this.taut(w)) { Shears.cut(this); Stats.count('boss:weaver:anchor:' + this.way); return true; }
+        UI.toast(atPost && this.way === 'asleep' ? ANCHOR_LINE.asleep : ANCHOR_LINE.slack, 150); Sfx.play('hitthing', 0.5);
+        if (atPost && this.way === 'asleep') Fx.text(this.top[0], this.top[1] - 8, 'z', '#e8e0ff');
+        return true;
+    },
+    tie() { this.cut = false; this.cuttable = true; this.sleeping = this.sleeper = this.tiedOff = this.way === 'asleep'; this.unwind = 0; },
+    onCut() { if (this.cut) return; this.cut = true; this.cuttable = false; this.sleeping = this.sleeper = this.tiedOff = false; this.unwind = 0; Fx.ring(this.top[0], this.top[1], '#e4ecf5'); },
+    /* its thread, from where it's tied to the Weaver: tight and straight (pulled tight, the long one shivers, bright); slack,
+       a sag that sways; asleep, grey and low, into its cocoon */
+    drawThread(w, cx, cy) {
+        if (this.cut) return;
+        const [ax, ay] = this.top, [bx, by] = this.end(w);
+        if (!this.taut(w)) {
+            const k = this.way === 'slack' ? clamp(1 - this.stretch(w) / WV.tautAt, 0, 1) : 0.5, sag = 3 + 9 * k, n = 9;
+            let lx = ax, ly = ay;
+            for (let i = 1; i <= n; i++) {
+                const u = i / n, x = lerp(ax, bx, u), y = lerp(ay, by, u) + Math.sin(u * Math.PI) * (sag + Math.sin(G.t / 17 + this.tx) * k * 1.5);
+                Gfx.line(lx - cx, ly - cy, x - cx, y - cy, this.way === 'asleep' ? '#8a94a4' : '#aab7c8'); lx = x; ly = y;
+            }
+            return;
+        }
+        const pulled = this.way === 'slack', sh = pulled && (G.t >> 1) % 2 ? 1 : 0;
+        Gfx.line(bx - cx, by - cy, ax - cx, ay - cy + sh, pulled ? '#ffffff' : '#e4ecf5');
+        Gfx.line(bx - cx, by - cy + 1, ax - cx, ay - cy + 1 + sh, '#9aa8b8');
+    },
+    /* tatters of silk left hanging where it was tied */
+    drawTatters(x, y) {
+        const sw = Math.round(Math.sin((G.t + this.tx * 13) / 25));
+        Gfx.line(x - 1, y, x - 2 + sw, y + 7, '#c8d0dc'); Gfx.line(x + 1, y, x + 2 + sw, y + 5, '#aab7c8');
+    },
+};
+/* its great posts: an anchor thread tied to each one's top */
 class Anchor extends GridThing {
-    constructor(tx, ty, p = {}) { super('anchor', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); this.cuttable = true; this.cut = false; }
+    constructor(tx, ty, p = {}) { super('anchor', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, way: 'plain' }, p)); this.tie(); }
     get top() { return [this.tx * T + 8, this.ty * T - 25]; }
-    onCut() { if (this.cut) return; this.cut = true; this.cuttable = false; Fx.ring(this.top[0], this.top[1], '#e4ecf5'); }
-    tie() { this.cut = false; this.cuttable = true; }
+    get foot() { return [this.tx * T + 8, this.ty * T + 8]; }
+    /* asleep in its cocoon, it hears a ring as anything does (within a bell's reach) and wakes: its silk unwinds back up
+       into the web, and the knot's bare */
+    hear(x, y) {
+        if (!this.sleeping || this.cut || Math.hypot(this.tx * T + 8 - x, this.ty * T + 8 - y) > Bells.REACH * T + 4) return;
+        this.sleeping = this.sleeper = this.tiedOff = false; this.unwind = 36;
+        Sfx.play('twang'); Fx.poof(this.top[0], this.top[1] + 2); Stats.count('boss:weaver:woke');
+        if (!Progress.flag('weaver_cocoon')) { Progress.set('weaver_cocoon'); G.pendingToast = 'At the bell the cocoon stirs, and its silk unwinds back up into the web. Under it, a knot.'; }
+    }
+    /* the stick on its cocoon: asleep, and nothing moves it but a bell */
+    onStruck() { Sfx.play('hitthing'); if (this.sleeping) UI.toast(Return.sleepLine(this)); }
+    tick() { if (this.unwind > 0) this.unwind--; }
     sprite() { return spr('greatpost'); }
     draw(cx, cy) {
         const im = spr('greatpost'), x = this.tx * T - cx, y = this.ty * T - cy;
         Gfx.alpha(0.3); Gfx.rect(x + 1, y + 13, 14, 3, PAL.ink); Gfx.alpha(1);
         if (im) Gfx.img(im, x, y + 16 - im.height);
-        const [tx, ty] = this.top;
-        if (!this.cut) { Gfx.rect(tx - cx - 2, ty - cy - 1, 4, 3, '#e4ecf5'); Gfx.rect(tx - cx - 1, ty - cy, 2, 1, '#ffffff'); }
-        else {
-            /* tatters of silk left hanging from its ring */
-            const sw = Math.round(Math.sin((G.t + this.tx * 13) / 25));
-            Gfx.line(tx - cx - 1, ty - cy, tx - cx - 2 + sw, ty - cy + 7, '#c8d0dc'); Gfx.line(tx - cx + 1, ty - cy, tx - cx + 2 + sw, ty - cy + 5, '#aab7c8');
+        const tx = this.top[0] - cx, ty = this.top[1] - cy;
+        if (this.cut) { this.drawTatters(tx, ty); return; }
+        Gfx.rect(tx - 2, ty - 1, 4, 3, '#e4ecf5'); Gfx.rect(tx - 1, ty, 2, 1, '#ffffff');
+        /* (the long one: its spare thread hangs in a loop under the knot) */
+        if (this.way === 'slack') { Gfx.line(tx - 1, ty + 2, tx - 2, ty + 7, '#aab7c8'); Gfx.line(tx - 2, ty + 7, tx + 1, ty + 8, '#aab7c8'); Gfx.line(tx + 1, ty + 8, tx + 1, ty + 2, '#c8d0dc'); }
+        /* wound in its cocoon (a sleeper's z drifts up off it); woken, the cocoon unwinding, its silk running off up toward
+           the middle of the web */
+        const co = spr('cocoon');
+        if (co && (this.sleeping || this.unwind > 0)) {
+            const k = this.sleeping ? 1 : this.unwind / 36, r = this.area.roomAt(this.tx, this.ty);
+            if (!this.sleeping && r) {
+                const wx = r.x * T + 160 - cx, wy = r.y * T + 58 - cy;
+                for (let i = 0; i < 3; i++) Gfx.line(tx + (i - 1) * 2, ty - 4, lerp(tx, wx, 1 - k) + (i - 1) * 3, lerp(ty - 4, wy, 1 - k) - i * 2, i === 1 ? '#ffffff' : '#c8d0dc');
+            }
+            Gfx.alpha(k); Gfx.img(co, tx - 7, ty - 13 + Math.round((1 - k) * 4)); Gfx.alpha(1);
         }
     }
 }
+Object.assign(Anchor.prototype, AnchorWays);
 SPAWN.anchor = (x, y, p) => new Anchor(x, y, p);
+/* the one tied up on the loom, into its cloth over the well's head (no post: under it there's only the well) */
+class LoomAnchor extends Ent {
+    constructor(tx, ty, p = {}) { super('anchor', Object.assign({ way: 'loom' }, p)); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.tie(); }
+    get top() { return [this.tx * T, this.ty * T + 8]; }
+    get foot() { return [this.tx * T, this.ty * T + 24]; }
+    get sortY() { return this.y + 40; }
+    draw(cx, cy) {
+        const [x, y] = this.top;
+        if (this.cut) { this.drawTatters(x - cx, y - cy); return; }
+        Gfx.rect(x - cx - 2, y - cy - 1, 5, 3, '#e4ecf5'); Gfx.rect(x - cx - 1, y - cy, 3, 1, '#ffffff'); Gfx.rect(x - cx - 2, y - cy + 2, 5, 1, '#5a6070');
+    }
+}
+Object.assign(LoomAnchor.prototype, AnchorWays);
+SPAWN.loomanchor = (x, y, p) => new LoomAnchor(x, y, p);
 
 class Weaver extends Ent {
     constructor(tx, ty, p = {}) {
@@ -28672,6 +28779,7 @@ class Weaver extends Ent {
         this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true; this.shots = [];
         this.z = WV.webZ; this.path = null; this.L = 0; this.s = 0; this.lowZ = 0; this.told = 1; this.bindT = 0;
         this.puff = 0; this.warpT = 90; this.mothT = 120;
+        this.sx = 0; this.sy = 0; this.away = [0, 0]; this.swingT = 0;     /* (1) swung back in its web, away from Wren */
     }
     onAdd(area) {
         const r = this.room = area.roomAt(this.tx, this.ty);
@@ -28718,13 +28826,20 @@ class Weaver extends Ent {
         if (here && !busy) { this.warp(p); if (this.beat === 3) this.moths(p); }
         for (const e of a.ents.slice()) if (e.weaverMoth && !e.alive && e.yarnT > 50) a.remove(e);
         switch (this.state) {
-            case 'web':
-                this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ + Math.sin(this.t / 30) * 3;
+            case 'web': {
+                /* rearing back to spit, it swings back in its web away from Wren, and holds there a moment after */
+                if (this.swingT > 0) this.swingT--;
+                const k = this.swingT > 0 ? WV.swing : 0;
+                this.sx = approach(this.sx, this.away[0] * k, WV.swingSp); this.sy = approach(this.sy, this.away[1] * k, WV.swingSp);
+                this.x = this.web[0] + this.sx; this.y = this.web[1] + this.sy; this.z = WV.webZ + Math.sin(this.t / 30) * 3;
                 if (here && this.st % WV.spit[1] === 20) this.rear();
                 if (this.anchors().every(n => n.cut)) { this.state = 'fall'; this.st = 0; Sfx.play('fall'); }
                 break;
+            }
             case 'fall':
                 this.z = Math.max(0, this.z - WV.fall);
+                /* (cut loose from its web mid-swing, it drops back over the middle of the well) */
+                if (this.beat === 1) { this.sx = approach(this.sx, 0, 2); this.sy = approach(this.sy, 0, 2); this.x = this.web[0] + this.sx; this.y = this.web[1] + this.sy; }
                 if (this.z <= 0) this.landIn();
                 break;
             case 'down':
@@ -28821,6 +28936,7 @@ class Weaver extends Ent {
     /* back as it was before she came in: in its web, tied in at all four posts, the warp in its well */
     reset() {
         this.state = 'sleep'; this.st = 0; this.hp = 3; this.knocks = 0; this.told = 1; this.path = null; this.shots = []; this.flash = 0; this.puff = 0; this.warpT = 90; this.mothT = 120;
+        this.sx = this.sy = 0; this.swingT = 0;
         for (const e of this.area.ents.slice()) if (e.weaverMoth) this.area.remove(e);
         this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ;
         for (const n of this.anchors()) n.tie();
@@ -28830,9 +28946,10 @@ class Weaver extends Ent {
     }
     arrive() {
         if (this.beat === 1) {
+            /* (as they were: the long one left long, the cocoon wound up and laid to sleep again) */
             const ans = this.anchors();
             if (ans.some(n => n.cut)) { for (const n of ans) n.tie(); Sfx.play('twang'); Fx.text(this.x, this.y - this.z - 30, 'it spins new anchors!', '#e4ecf5'); }
-            this.state = 'web';
+            this.state = 'web'; this.sx = this.sy = 0; this.swingT = 0;
         } else this.state = 'perch';
         this.st = 0;
     }
@@ -28863,7 +28980,8 @@ class Weaver extends Ent {
     /* the Shears at its thread: at the thing itself (when it's low enough to reach), or anywhere along the thread while it's
        pulled tight (hauling itself home); lying slack, the blades slide off */
     snip(p) {
-        if (!this.alive || this.beat < 2) return false;
+        if (!this.alive) return false;
+        if (this.beat < 2) return this.snipAnchor(p);
         const f = p.front();
         if (!this.path) {
             if (this.state === 'perch' || this.state === 'aim') { if (!this.covers(f.tx, f.ty)) return false; UI.toast("It's up on the breast-beam, out of reach of the blades.", 120); return true; }
@@ -28875,6 +28993,18 @@ class Weaver extends Ent {
         this.cutThread();
         return true;
     }
+    /* (1) the Shears at one of its anchors: at a post (whatever its own way says), or along a thread in front of Wren (if
+       more than one runs there, one that'll cut); facing the loom where the fourth is tied: out of reach */
+    snipAnchor(p) {
+        if (this.state !== 'web') return false;
+        const a = this.area, f = p.front(), o = a.at(f.tx, f.ty);
+        if (o && o.kind === 'anchor') return o.cut ? false : o.snipBy(this, true);
+        const ans = this.anchors().filter(n => n.over(f.tx, f.ty, this));
+        if (ans.length) return (ans.find(n => n.taut(this)) || ans[0]).snipBy(this, false);
+        const up = this.anchors().find(n => n.way === 'loom' && !n.cut);
+        if (up && a.kind(f.tx, f.ty).solid && f.ty <= up.ty + 1 && Math.abs(f.tx * T + 8 - up.top[0]) <= 2 * T) { UI.toast(ANCHOR_LINE.loom, 150); Sfx.play('hitthing', 0.5); return true; }
+        return false;
+    }
     cutThread() {
         Sfx.play('snip'); Fx.ring(this.x, this.y - this.z - 6, '#e4ecf5'); Stats.count('cuts'); Stats.count('boss:weaver:cut');
         this.path = null;
@@ -28883,7 +29013,14 @@ class Weaver extends Ent {
         this.state = 'land'; this.st = 0;
         if (!Progress.flag('weaver_feet')) { Progress.set('weaver_feet'); G.pendingToast = 'It lands on its feet on the stone, and scuttles straight back up the loom on a fresh thread.'; }
     }
-    rear() { this.puff = tellFor(8, this.beat); Sfx.play('warn'); }
+    rear() {
+        this.puff = tellFor(8, this.beat); Sfx.play('warn');
+        /* (1) in its web it swings back, away from her (staying over its well), and holds there till after it's spat */
+        if (this.state === 'web') {
+            const p = G.player, dx = this.web[0] - p.x, dy = this.web[1] - p.y, d = Math.hypot(dx, dy) || 1;
+            this.away = [clamp(dx / d, -0.9, 0.9), dy / d]; this.swingT = this.puff + WV.swingHold;
+        }
+    }
     spit(p, off = 0) {
         if (p.state !== 'normal') return;
         const sx = this.x, sy = this.y - this.z - 6, sp = WV.spitSp[this.beat], a = Math.atan2(p.y - 6 - sy, p.x - sx) + off;
@@ -28981,15 +29118,20 @@ class Weaver extends Ent {
             return;
         }
         const x = this.x - cx, y = this.y - cy, top = y - this.z;
-        /* beat 1: its anchor threads to the posts' tops, the web between them, and a few rings of web round it */
-        if (this.state === 'web' || (this.state === 'fall' && this.beat === 1) || (this.state === 'climb' && this.beat === 1)) {
-            const ans = this.anchors();
-            for (let i = 0; i < ans.length; i++) {
-                const m = ans[i], n = ans[(i + 1) % ans.length];
+        /* beat 1: the web between where its anchors are tied (torn where one's cut), each anchor's thread (the loom's is
+           drawn over it, from its back), and a few rings of web round it */
+        const inWeb = this.beat === 1 && (this.state === 'web' || this.state === 'fall' || this.state === 'climb');
+        if (inWeb) {
+            const ans = this.anchors(), wy = this.web[1] - WV.webZ, at = n => Math.atan2(n.top[1] - wy, n.top[0] - this.web[0]);
+            const ring = ans.slice().sort((m, n) => at(m) - at(n));
+            for (let i = 0; i < ring.length; i++) {
+                const m = ring[i], n = ring[(i + 1) % ring.length];
                 if (!m.cut && !n.cut) { Gfx.alpha(0.3); Gfx.line(m.top[0] - cx, m.top[1] - cy, n.top[0] - cx, n.top[1] - cy, '#e4ecf5'); Gfx.alpha(1); }
             }
-            for (const n of ans) if (!n.cut && this.state === 'web') { Gfx.line(x, top - 8, n.top[0] - cx, n.top[1] - cy, '#e4ecf5'); Gfx.line(x, top - 7, n.top[0] - cx, n.top[1] - cy + 1, '#9aa8b8'); }
-            if (this.state === 'web') { Gfx.alpha(0.35); for (const rr of [16, 26]) for (let a = 0; a < 12; a++) { const t0 = a / 12 * Math.PI * 2, t1 = (a + 1) / 12 * Math.PI * 2; Gfx.line(x + Math.cos(t0) * rr, top - 8 + Math.sin(t0) * rr * 0.6, x + Math.cos(t1) * rr, top - 8 + Math.sin(t1) * rr * 0.6, '#e4ecf5'); } Gfx.alpha(1); }
+            if (this.state === 'web') {
+                for (const n of ans) if (n.way !== 'loom') n.drawThread(this, cx, cy);
+                Gfx.alpha(0.35); for (const rr of [16, 26]) for (let a = 0; a < 12; a++) { const t0 = a / 12 * Math.PI * 2, t1 = (a + 1) / 12 * Math.PI * 2; Gfx.line(x + Math.cos(t0) * rr, top - 8 + Math.sin(t0) * rr * 0.6, x + Math.cos(t1) * rr, top - 8 + Math.sin(t1) * rr * 0.6, '#e4ecf5'); } Gfx.alpha(1);
+            }
         }
         /* beats 2 and 3: its own thread, along the floor back to the well's head and up to the breast-beam, bright and
            straight when pulled tight, dim and wavering when slack */
@@ -29028,6 +29170,8 @@ class Weaver extends Ent {
                 const sh = this.state === 'hung' ? ((this.t >> 2) % 2 ? 1 : -1) : 0;
                 Gfx.img(im, x - im.width / 2 + sh, top - im.height + 10);
             }
+            /* (1) its thread up to the loom, from the tip of its back */
+            if (inWeb && this.state === 'web') for (const n of this.anchors()) if (n.way === 'loom') n.drawThread(this, cx, cy);
             /* rearing back to spit: its belly aglow */
             if (this.puff > 0) { const k = 1 - this.puff / tellFor(8, this.beat); Tells.glow(x, top - 2, k, '#e4ecf5'); Tells.bang(x, top - 30); }
             /* (3) eyes gone red: it won't come down */
@@ -29077,14 +29221,14 @@ const LoomFoes = {
     *weaverIntro(w) {
         const r = w.room, at = [r.x + 9, r.y + 4, 60];
         yield 20;
-        yield* say(null, "In front of the old loom, over the dark well where the finished cloth should run down, the Weaver hangs in a web strung to four great posts: grey, many-legged, very old, spinning. It has been keeping this loom for the First Spinner since she stopped coming.", { focus: at });
+        yield* say(null, "In front of the old loom, over the dark well where the finished cloth should run down, the Weaver hangs in a web strung to three great posts and up into the loom itself: grey, many-legged, very old, spinning. It has been keeping this loom for the First Spinner since she stopped coming.", { focus: at });
         yield* say(null, 'It does not want the cloth finished. It does not want anything to change at all.', { focus: at });
     },
     *weaverBeat(w, n) {
         const r = w.room, at = [r.x + 9, r.y + 2, 40];
         yield 30;
         if (n === 2) {
-            yield* say(null, 'The Weaver drags itself out of its well and up the loom, trailing one grey thread, and crouches on the breast-beam over the well\'s head. The four posts stand bare, hung with tatters.', { focus: at });
+            yield* say(null, 'The Weaver drags itself out of its well and up the loom, trailing one grey thread, and crouches on the breast-beam over the well\'s head. Its anchors hang in tatters.', { focus: at });
             yield* say(null, 'It spins no new anchors. It hangs by a thread of its own now, and watches you.', { focus: at });
         } else yield* say(null, 'This time it hauls the old warp up out of the well after it, winding it round and round the breast-beam, and clings there, high on the loom, spitting. It won\'t come down again of its own accord.', { focus: at });
     },
@@ -30461,14 +30605,14 @@ const SpoolTop = {
         if (p.grip) p.release();
         yield 24;
         yield* say('gran', "{cross}No. No more of that.");
-        for (const e of this.crates(a)) {
+        for (const e of this.crates(G.map)) {
             if (e.stowed) continue;
             if (!e.hiddenYank) Pull.fx.push({ im: e.sprite(), x: e.tx * T, y: e.ty * T, col: e.ret.color, t: 0 });
             this.stow(e); Sfx.play('twang', 0.5);
             yield 8;
         }
         yield 16;
-        Progress.set('gs_s1'); this.loose(a, 1);
+        Progress.set('gs_s1'); this.loose(G.map, 1);
         yield 30;
         yield* say('gran', "{worried}Keep back from them, love. Please.");
         if (s) s.tossWait = 30;
@@ -30483,8 +30627,10 @@ const SpoolTop = {
         if (p.carry && p.carry.kind === 'gsjunk') p.carry.takeBack();
         this.hush(a);
         yield 24;
-        /* (anybody standing where the floor's going steps off it first) */
-        if (this.DARK.some(([x, y]) => r.x + x === p.tx && r.y + y === p.ty)) yield* walkTo(p, p.tx, r.y + 3);
+        /* (anybody standing where the floor's going steps off it first; a Bedroll laid there turns up in her pack) */
+        const going = (x, y) => this.DARK.some(([u, v]) => r.x + u === x && r.y + v === y);
+        if (going(p.tx, p.ty)) yield* walkTo(p, p.tx, r.y + 3);
+        if (Inv.bedroll && Inv.bedroll.area === a.id && going(Inv.bedroll.tx, Inv.bedroll.ty)) Bedroll.lost('Your Bedroll went down into the dark with the floor... and turned up, rolled, in your pack.');
         Progress.set('gs_s2'); this.loose(a, 2);
         yield 24;
         G.shake = 4; Sfx.play('rumble');
@@ -30734,8 +30880,8 @@ const GreatSpool = {
             if (s && !gran) gran = a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
             if (gran) gran.noBudge = gran.noPull = true;
             const st = SpoolTop.stage(), here = !!top && r === top && p.state === 'normal' && !Script.blocking() && !Cam.busy;
-            /* (an older save that showed her the bracelet: she'd have let the middle pair go already) */
-            if (st === 1 && SpoolTop.quiet()) for (const h of SPOOL_PAIRS[1]) Progress.set('great:' + h);
+            /* (an older save that showed her the bracelet, when it let three go: she'd have let the middle pair go) */
+            if (SpoolTop.quiet() && !SpoolTop.done(1)) for (const h of SPOOL_PAIRS[1]) Progress.set('great:' + h);
             else if (here && st === 1 && !Progress.flag('gs_s1')) Script.run(SpoolTop.changeCrates(), { name: 'gschange' });
             else if (here && st === 2 && !Progress.flag('gs_s2')) Script.run(SpoolTop.changeDark(), { name: 'gschange' });
             if (here && st >= 3 && !a.climax) Script.run(this.finale(), { name: 'finale' });
@@ -30801,7 +30947,7 @@ const GreatSpool = {
             linnet.dir = linnet.tx < gran.tx ? RIGHT : linnet.tx > gran.tx ? LEFT : UP; linnet.fixedFace = true;
             gran.dir = DOWN; gran.fixedFace = true;
             yield 16;
-            Ending.hands = this.handsOf([linnet, gran]); Sfx.play('click');
+            Ending.hands = this.handsOf(linnet, gran); Sfx.play('click');
             yield 30;
             yield* say('gran', "{sad}Linnet.");
             yield* say(null, "Linnet takes one of her mother's hands off the Spool. The other's still on it.");
@@ -30816,17 +30962,20 @@ const GreatSpool = {
         const c = a.climax, p = G.player, gran = a.ents.find(e => e.who === 'gran');
         if (!gran || !c.linnet || c.linnet.removed || Script.blocking() || Cam.busy || p.state !== 'normal') return;
         const facing = p.adjacentTo(gran);
+        gran.noGrip = true;
         if (facing && !c.told) { c.told = true; UI.toast('Hold [act] to take her hand.', 240); }
-        /* (a hold, not a tap: the Gloves take hold by themselves; without them, held a moment) */
-        if (!p.grip && facing && !p.carry && Input.down('act')) { if (++c.down >= 8) { p.grip = gran; gran.heldBy = p; } } else c.down = 0;
+        /* (a hold, not a tap, and pressed for it: a button still down from the last words doesn't count) */
+        if (facing && Input.pressed('act')) c.armed = true;
+        if (!Input.down('act')) c.armed = false;
+        if (p.grip !== gran && c.armed && facing && !p.carry) { if (++c.down >= 8) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } } else c.down = 0;
         if (p.grip === gran) {
-            if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf([c.linnet, gran, p]); }
+            if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf(c.linnet, gran, p); UI.toasts = UI.toasts.filter(t => !/take her hand/.test(t.s)); }
             c.h++;
             /* (she tries twice: her hand pulls back toward the Spool) */
             if (c.h === 40 || c.h === 100) { Sfx.play('tug'); gran.dir = UP; G.shake = Math.max(G.shake, 2); }
             if (c.h === 52 || c.h === 112) gran.dir = DOWN;
             if (c.h >= 160) { a.climax = null; Script.run(this.letGo(gran, c.linnet), { name: 'finale' }); }
-        } else if (c.h) { c.h = 0; gran.dir = DOWN; Ending.hands = this.handsOf([c.linnet, gran]); }
+        } else if (c.h) { c.h = 0; gran.dir = DOWN; Ending.hands = this.handsOf(c.linnet, gran); }
     },
     *letGo(gran, linnet) {
         const a = G.map, p = G.player;
@@ -30839,12 +30988,12 @@ const GreatSpool = {
         const sx = linnet.tx < gran.tx ? gran.tx + 1 : gran.tx - 1, k = a.kind(sx, gran.ty);
         if ((p.tx !== sx || p.ty !== gran.ty) && !a.at(sx, gran.ty) && !k.solid && !k.pit) yield* walkTo(p, sx, gran.ty);
         p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
-        Ending.hands = this.handsOf([linnet, gran, p]);
+        Ending.hands = this.handsOf(linnet, gran, p);
         yield 100;
         yield* Ending.unwinding();
     },
-    /* hands held, left to right */
-    handsOf(l) { const x = e => e === G.player ? e.x - 8 : e.px; return l.slice().sort((u, v) => x(u) - x(v)); },
+    /* hands held, left to right: Gran in the middle, Linnet on her side, Wren (if she has Gran's hand) on the other */
+    handsOf(linnet, gran, p) { const l = linnet.tx < gran.tx; return p ? (l ? [linnet, gran, p] : [p, gran, linnet]) : (l ? [linnet, gran] : [gran, linnet]); },
 };
 
 /* ---------------- the Great Pull, up in the town ---------------- */
@@ -30974,10 +31123,17 @@ CONTENT_INIT.push(initGreatSpool);
         return talk0.call(this, npc);
     };
 }
-/* Gran and Linnet at the Spool don't budge when leant on; Gran held doesn't come away with you */
+/* Gran and Linnet at the Spool don't budge when leant on; Gran held doesn't come away with you. Whatever great threads
+   she's still holding are drawn with her, wound round her fists */
 {
     const push0 = NPC.prototype.onPushed;
     NPC.prototype.onPushed = function (p, d) { if (this.noBudge) return false; return push0.call(this, p, d); };
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        const r = draw0.call(this, cx, cy);
+        if (this.who === 'gran' && this.area && this.area.id === 'greatspool' && Progress.flag('spool_met') && !Progress.flag('unwound')) SpoolArt.hands(this, cx, cy);
+        return r;
+    };
 }
 /* while the Pull goes on, nobody with a thread is indoors or down below: they're all out at the Well, or holding on */
 {
@@ -31152,8 +31308,14 @@ const SpoolArt = {
             if (j.z <= 0) { Gfx.alpha(0.25); Gfx.rect(j.x - cx - 5, j.y - cy + 4, 10, 2, PAL.ink); Gfx.alpha(1); }
             Gfx.alpha(0.85); Gfx.img(im, j.x - cx - 8, j.y - cy - 10 - j.z); Gfx.alpha(1);
         }
-        /* Gran's throw, on its way: up off the drum and down onto its shadow */
+        /* (at the top) things on their way into the drum, up in the air: dragged along a great thread, or high over your
+           head off the walls; and Gran's throw, up off the drum and down onto its shadow */
         const d = a.find('theSpool'), t = d && d.toss;
+        if (d) for (const j of d.junk) {
+            const im = (j.thing && j.thing.sprite()) || spr(j.look) || spr('crate');
+            if (j.high) { Gfx.alpha(0.2); Gfx.rect(j.x - cx - 5, j.y - cy + 3, 10, 2, PAL.ink); Gfx.alpha(1); }
+            if (im) Gfx.img(im, j.x - cx - 8, j.y - cy - 12 - (j.high ? 14 : 0));
+        }
         if (t && t.t > t.tell - 22) {
             const im = spr(t.look), k = (t.t - (t.tell - 22)) / 22, x0 = d.x + 32, y0 = d.y + 30, x1 = t.tx * T + 8, y1 = t.ty * T + 8;
             const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 26;
@@ -31187,12 +31349,6 @@ const SpoolArt = {
         if (turn) for (let i = 0; i < 28; i += 3) { const ph = (turn * 0.6 + i * 9) % 64; Gfx.alpha(0.5); Gfx.rect(x + ph, y + i, 4, 1, '#ffffff'); Gfx.alpha(1); }
         Gfx.rect(x - 5, y - 7, 74, 7, PAL.ink); Gfx.rect(x - 4, y - 6, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y - 6, 72, 1, '#f7d64a');
         Gfx.rect(x - 5, y + 28, 74, 7, PAL.ink); Gfx.rect(x - 4, y + 29, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y + 29, 72, 1, '#f7d64a');
-        /* things on their way into the drum: dragged along a great thread, or (high over your head) off the walls */
-        for (const j of d.junk) {
-            const im = (j.thing && j.thing.sprite()) || spr(j.look) || spr('crate');
-            if (j.high) { Gfx.alpha(0.2); Gfx.rect(j.x - cx - 5, j.y - cy + 3, 10, 2, PAL.ink); Gfx.alpha(1); }
-            if (im) Gfx.img(im, j.x - cx - 8, j.y - cy - 12 - (j.high ? 14 : 0));
-        }
     },
     /* a thing Gran threw, lying where it came down: her thread on it, up to the drum, pulled tight as she takes it back */
     thrown(e, cx, cy) {
@@ -31209,14 +31365,8 @@ const SpoolArt = {
         Gfx.rect(x + 1, y - 13, 14, 3, '#c9a24a'); Gfx.rect(x + 1, y + 13, 14, 3, '#c9a24a'); Gfx.rect(x + 2, y - 13, 12, 1, '#f7d64a');
         if (e.cut) { Gfx.line(x + 8, y - 6, x + 14, y + 4, shade(col, -0.4)); return; }
         const s = e.area.find('theSpool'); if (!s) return;
-        /* still in Gran's hands: it runs to her fist, wound round it, and hums there */
-        const gran = e.held && e.area.ents.find(n => n.who === 'gran' && !n.removed);
-        if (gran) {
-            const left = e.tx < gran.tx, hx = gran.px + (left ? 3 : 13) - cx, hy = gran.py + 5 - cy;
-            Gfx.line(x + 8, y - 6, hx, hy, col); Gfx.line(x + 8, y - 5, hx, hy + 1, shade(col, -0.3));
-            Gfx.rect(hx - 2, hy - 1, 4, 3, PAL.ink); Gfx.rect(hx - 1, hy, 2, 1, col);
-            return;
-        }
+        /* still in Gran's hands: drawn with her (SpoolArt.hands), from the post to her fist */
+        if (e.held && e.area.ents.some(n => n.who === 'gran' && !n.removed)) return;
         /* free: to the drum's near side, low */
         const x1 = s.x + (e.tx < s.tx ? 1 : 63) - cx, y1 = s.y + 22 - cy;
         if (e.slack > 0) {
@@ -31228,6 +31378,25 @@ const SpoolArt = {
             Gfx.line(x + 8, y - 6, x1, y1, col); Gfx.line(x + 8, y - 5, x1, y1 + 1, shade(col, -0.3));
             const k = ((G.t * 0.02) + e.tx * 0.13) % 1;
             Gfx.rect(Math.round(x + 8 + (x1 - x - 8) * k) - 1, Math.round(y - 6 + (y1 - y + 6) * k) - 1, 2, 2, shade(col, 0.6));
+        }
+    },
+    /* the great threads still in Gran's hands: from each post to her fist, taut, a shimmer running in to her; each fist
+       wound round thick with them (drawn over her, as she's drawn) */
+    hands(g, cx, cy) {
+        const held = g.area.ents.filter(e => e.kind === 'greatpost' && e.held);
+        for (const side of [true, false]) {
+            const mine = held.filter(e => (e.tx < g.tx) === side); if (!mine.length) continue;
+            const hx = g.px + (side ? 2 : 14) - cx, hy = g.py + 4 - cy;
+            for (const e of mine) {
+                const col = KNOT_COL[e.house], x = e.tx * T + 8 - cx, y = e.ty * T - 6 - cy;
+                Gfx.line(x, y, hx, hy, col); Gfx.line(x, y + 1, hx, hy + 1, shade(col, -0.3));
+                const k = ((G.t * 0.02) + e.tx * 0.13 + e.ty * 0.07) % 1;
+                Gfx.rect(Math.round(x + (hx - x) * k) - 1, Math.round(y + (hy - y) * k) - 1, 2, 2, shade(col, 0.6));
+            }
+            /* the fist: a ball of thread, a stripe of each colour round it */
+            Gfx.rect(hx - 3, hy - 3, 7, 7, PAL.ink);
+            for (let i = 0; i < 5; i++) Gfx.rect(hx - 2, hy - 2 + i, 5, 1, KNOT_COL[mine[i % mine.length].house]);
+            Gfx.rect(hx - 1, hy - 2, 1, 1, '#ffffff');
         }
     },
     /* a Knot of the Wander, tied in its Maker's thread, the thread running up into the drum's face */
@@ -33321,9 +33490,10 @@ const FOG_TAUT = 46;
    lines about Wren written at the time, the fog, the rest of the page empty, and one line at the bottom in fresh ink.
    What's said comes only from what Wren did with the game's own things (the fog, leaning on people, the Bell at the
    Well, the north gate's weight, the Hall, Tuck's thread, the Shears on people and on her own, Linnet's places,
-   sitting to wait, the tally of src/80b_tally.js, the peephole into Gran's study): never time spent anywhere, never an
-   answer picked in a conversation. A thing is said only if it happened; a "never" only from a record of that moment
-   (the tally kept from the first step, or the count taken as her own thread was cut). It's all worked out from a note
+   sitting to wait, flying Homeward to the Bedroll, the peephole into Gran's study; the tally of src/80b_tally.js only
+   in the ledger's last line, as Gran gave it at the Spool): never time spent anywhere, never an answer picked in a
+   conversation. A thing is said only if it happened; a "never" only from a record of that moment (the tally kept from
+   the first step, or the count taken as her own thread was cut). It's all worked out from a note
    of the evidence made as the threads go slack, kept in the save, so it says the same thing every time. Nothing of it
    shows before the end. Developers: HW.afterword() (debug or headless) says what was found and why each thing was or
    wasn't said. (All of it lives in the save's own counters and flags: nothing for Save.migrate to change.) */
@@ -33367,24 +33537,16 @@ const After = {
             cuts: this.cuts(), no: most('aft:no:', 'aft:no:self'), lean: most('budge:', 'budge:gran'), gran: Math.max(n('budge:gran'), f['budged:gran'] ? 1 : 0), all: !!f.s01,
             hold: !!f.hall_held, tuck: n('tuck:yanked'), gate: !!f.s32, notes: [1, 2, 3, 4, 5, 6, 7, 8].filter(i => f['linnet' + i]).length,
             bell: !!f.s09, rings: n('aft:well'), waited: n('waited'), peep: !!f['peep:53,21'],
-            /* times she was brought home after a fall, a faint or the fog (Gran's own pull in the Hall isn't one of those) */
-            home: Tally.kept() ? Tally.home() - n('home:yank') : null, top: this.top(), fell: n('falls') + n('faints') + Tally.fogs() > 0,
+            /* (the tally as Gran gives it at the Spool, her own pull in the Hall included; and Homeward flights, which it
+               leaves out: those were Wren's own going home) */
+            home: Tally.home(), homeward: n('homeward'),
         };
     },
-    /* where she was brought home from most (the tally's longest row), as Gran would say it */
-    top() {
-        const rows = Tally.rows(); if (!rows || !rows.length) return null;
-        const c = Stats.c, faint = c.faints || 0, fog = Tally.fogs();
-        let b = null; for (const [k, v] of Object.entries(c)) if (k.startsWith('home@') && v > 0 && (!b || v > b[1])) b = [k.slice(5), v];
-        if (b && b[1] >= faint && b[1] >= fog) {
-            const [id, blk] = b[0].split(':'), r = blk && typeof OW !== 'undefined' && Object.values(OW.blocks).find(q => q.id === blk);
-            return { place: (r && r.name) || (AREAS[id] && AREAS[id].name) || 'the valley' };
-        }
-        return faint >= fog ? { faint: true } : { fog: true };
-    },
     freeze() { if (!Progress.get('aft:snap')) Progress.set('aft:snap', this.snap()); return Progress.get('aft:snap'); },
+    /* (nothing known: what a note without some of this reads as) */
+    NONE: { v: 1, kept: false, keptCuts: false, keptWell: false, fog: 0, self: 0, atSelf: null, cuts: [], no: null, lean: null, gran: 0, all: false, hold: false, tuck: 0, gate: false, notes: 0, bell: false, rings: 0, waited: 0, peep: false, home: null, homeward: 0 },
     /* noted when the threads went slack (or, for a save that ended before any of this, the first time it's asked) */
-    evidence() { return Progress.get('aft:snap') || (Progress.flag('unwound') ? this.freeze() : this.snap()); },
+    evidence() { return Object.assign({}, this.NONE, { cuts: [] }, Progress.get('aft:snap') || (Progress.flag('unwound') ? this.freeze() : this.snap())); },
 
     /* ---------------- what Gran could say, and what she wrote ----------------
        Each: whether it holds and why; what it's about (two things about the same evidence never go together); how much
@@ -33395,72 +33557,68 @@ const After = {
         const add = (id, ok, why, groups, w, lw, ord, say, write, contra) => L.push({ id, ok: !!ok, why, groups, w, lw, ord, say, write, contra: !!contra });
         const town = this.town(), cutTown = town.filter(w => e.cuts.includes(w)), left = town.filter(w => !e.cuts.includes(w));
         /* a contradiction: two things that pull different ways */
-        add('fogblades', e.fog >= 3 && e.self >= 1, `the fog turned her round ${e.fog} times; at it with the Shears she said not yet ${e.self} times`, ['fog', 'blades'], 95, 0, 0,
+        add('fogblades', e.fog >= 3 && e.self >= 1, `turned round by the fog ${e.fog} (from 3); not yet to her own thread ${e.self} (from 1)`, ['fog', 'blades'], 95, 0, 0,
             () => [['gran', `{happy}${Num(e.fog)} times you went into that fog to see if it'd let you through. And the day it would, you stood there with the Shears and didn't close them.` + (e.self >= 2 ? ` ${cap(numTimes(e.self))}.` : '')], ['linnet', '{sad}It took me a week.']], null, true);
-        add('freeothers', e.atSelf >= 8 && e.self >= 1, `${e.atSelf} people cut before her own thread, which she put off ${e.self} times`, ['cuts', 'blades'], 93, 0, 0,
+        add('freeothers', e.atSelf >= 8 && e.self >= 1, `cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (from 8); not yet to her own ${e.self} (from 1)`, ['cuts', 'blades'], 93, 0, 0,
             () => [['gran', `{sad}You cut ${numWords(e.atSelf)} people loose before you went to the fog. Your own, you had to think about.`], ['linnet', '{sad}It took me a week.']], null, true);
-        add('holdtuck', e.hold && e.tuck >= 2, `held on in the Hall; pulled Tuck's own thread ${e.tuck} times`, ['hold', 'tuck'], 92, 0, 0,
+        add('holdtuck', e.hold && e.tuck >= 2, `held on in the Hall: ${e.hold ? 'yes' : 'no'}; Tuck's own thread pulled ${e.tuck} (from 2)`, ['hold', 'tuck'], 92, 0, 0,
             () => [['gran', `{sad}${Num(e.tuck)} times you pulled that boy home by his own thread. And when I pulled yours, you held on with both hands.`], ['linnet', 'Did he mind?'], ['gran', "{happy}He loved it. That isn't the point."]], null, true);
         /* one thing each */
-        add('granlean', e.gran >= 1, `leant on Gran ${e.gran} times`, ['lean'], 90, 90, 2,
-            () => [['gran', e.gran === 1 ? '{happy}You leant on me once, by the Well. I had to remember to go back where I was.' : `{happy}You leant on me ${numTimes(e.gran)}, by the Well. Every time, I had to remember to go back where I was.`], ['linnet', '{surprised}Mum!']],
-            () => '{name} leant on me by the Well. I went back where I was. She didn\'t notice.');
-        add('left', e.keptCuts && cutTown.length >= 14 && left.length >= 1 && left.length <= 3, `cut ${cutTown.length} of the town's ${town.length}; left ${left.join(', ') || 'nobody'}` + (e.keptCuts ? '' : ' (cuts not all seen)'), ['cuts'], 88, 76, 10,
+        add('granlean', e.gran >= 1, `leant on Gran ${e.gran} (from 1)`, ['lean'], 90, 90, 2,
+            () => [['gran', e.gran === 1 ? '{happy}You leant on me once. I had to remember to go back where I was.' : `{happy}You leant on me ${numTimes(e.gran)}. Every time, I had to remember to go back where I was.`], ['linnet', '{surprised}Mum!']],
+            () => '{name} leant on me. I went back where I was. She didn\'t notice.');
+        add('left', e.keptCuts && cutTown.length >= 14 && left.length >= 1 && left.length <= 3, `cut ${cutTown.length} of the town's ${town.length} (from 14), leaving ${left.length} (one to three)` + (e.keptCuts ? '' : '; cuts not watched from the first'), ['cuts'], 88, 76, 10,
             () => [['gran', `{sad}You cut every thread in town but ${this.list(left.map(poss))}.`], ['linnet', '{surprised}Why ever not?']],
             () => `Everyone in town loose now but ${this.list(left.map(w => this.written(w)))}.`);
-        add('gate', e.gate, 'gave the north gate\'s weight a new place before Reveal 2 (S32)', ['gate'], 85, 85, 6,
+        add('gate', e.gate, `the north gate's weight moved before Reveal 2 (S32): ${e.gate ? 'yes' : 'no'}`, ['gate'], 85, 85, 6,
             () => [['gran', '{surprised}You let my north gate go before you\'d ever been down to the Hall. I felt the weight shift, and I thought: she knows.'], ['linnet', '{happy}Did you?']],
             () => "The north gate's weight, moved. {name}. She can't know.");
         const nw = e.no && e.no[0], nk = e.no ? e.no[1] : 0, later = nw && e.cuts.includes(nw);
-        add('declined', !!e.no, e.no ? `said not yet to cutting ${nw} ${nk} times` + (later ? ', then cut them' : ', and never did') : 'never said not yet to cutting anyone (or not seen)', ['cuts'], later ? 84 : 83, 73, 9,
+        add('declined', !!e.no, e.no ? `not yet to cutting ${nw} ${nk} times` + (later ? ', then cut' : ', never cut') : 'no not-yet to cutting anyone seen', ['cuts'], later ? 84 : 83, 73, 9,
             () => [['gran', `{sad}${cap(numTimes(nk))} you had the Shears to ${poss(nw)} thread and didn't. ${later ? 'Then you did.' : 'You never did.'}`]],
             () => `{name} with the Shears at ${this.written(nw)}'s thread. Didn't.`);
-        add('hold', e.hold, 'held on to the lectern when Gran pulled', ['hold'], 82, 82, 7,
+        add('hold', e.hold, `held on to the lectern when Gran pulled: ${e.hold ? 'yes' : 'no'}`, ['hold'], 82, 82, 7,
             () => [['gran', "{sad}In the Hall, when I pulled, you held on. Both hands. I'd have waited all night."], ['linnet', '{happy}Good.']],
             () => '{name} in the Hall. Held on. I waited.');
-        add('blades', e.self >= 1, `said not yet to cutting her own thread ${e.self} times`, ['blades'], 80, 78, 11,
+        add('blades', e.self >= 1, `not yet to her own thread ${e.self} (from 1)`, ['blades'], 80, 78, 11,
             () => [['gran', e.self === 1 ? "{sad}At the fog I felt the Shears on your thread, and they didn't close." : `{sad}At the fog I felt the Shears on your thread ${numTimes(e.self)}, and they didn't close.`], ['linnet', '{sad}It took me a week.']],
             () => e.self === 1 ? "{name} at the fog with the Shears. They didn't close." : `{name} at the fog with the Shears again. They didn't close. ${cap(numTimes(e.self))} now.`);
-        add('linnet', e.notes >= 6, `found ${e.notes} of Linnet's notes`, ['linnet'], e.notes === 8 ? 78 : 75, 68, 8,
+        add('linnet', e.notes >= 6, `Linnet's notes found ${e.notes} (from 6)`, ['linnet'], e.notes === 8 ? 78 : 75, 68, 8,
             () => e.notes === 8 ? [['gran', "{sad}You went everywhere she'd been. Every place she left a note, one after another. I felt you go, the way I felt her."], ['linnet', '{surprised}Even the horse?'], ['gran', 'Even the horse.']]
                 : [['gran', "{sad}You went nearly everywhere she'd been, the places she left her notes. I felt you go, the way I felt her."], ['linnet', "{sad}I didn't think anybody would look."]],
             () => "{name} in Linnet's places again." + (e.notes === 8 ? ' All of them, now.' : ''));
-        add('leanall', e.all, 'leant on every townsperson (S01)', ['lean'], 72, 58, 2,
+        add('leanall', e.all, `leant on everyone (S01): ${e.all ? 'yes' : 'no'}`, ['lean'], 72, 58, 2,
             () => [['gran', "{happy}You leant on every soul in the valley, one after another, to see what they'd do. I felt the lot."], ['linnet', '{happy}I never got past Arlo.']],
             () => '{name} has leant on every one of them now, to see. Every one went back.');
         const first = e.cuts[0];
-        add('firstcut', e.keptCuts && !!first, first ? `the first person she cut was ${first}` + (e.keptCuts ? '' : ' (cuts not all seen)') : 'cut nobody (or not seen from the first)', ['cuts'], 70, 74, 9,
+        add('firstcut', e.keptCuts && !!first, (first ? `the first she cut: ${first}` : 'cut nobody') + (e.keptCuts ? '' : '; cuts not watched from the first'), ['cuts'], 70, 74, 9,
             () => [['gran', `{sad}The first thread you cut was ${poss(first)}. I felt it go, like a dropped stitch.`], ...(first === 'arlo' ? [['linnet', '{happy}Did he get as far as the lake?'], ['gran', 'Every morning, now.']] : [])],
             () => `${this.written(first)}'s thread, gone. She's cutting them.`);
-        add('fog', e.fog >= 3, `the fog turned her round ${e.fog} times`, ['fog'], 62 + Math.min(10, e.fog), 80, 1,
+        add('fog', e.fog >= 3, `turned round by the fog ${e.fog} (from 3)`, ['fog'], 62 + Math.min(10, e.fog), 80, 1,
             () => [['gran', `{happy}${Num(e.fog)} times you walked into that fog before it would let you through. I'd turn you round, and back you'd come.`], ['linnet', `{happy}Only ${numWords(e.fog)}?`]],
             () => `{name} in the fog again. The ${ordWords(e.fog)} time. Turned her round. Tightened.`);
         const rang = e.keptWell && e.rings >= 2;
-        add('bell', e.bell || e.rings >= 1, `rang the Bell at the Well (S09)` + (e.keptWell ? `, ${e.rings} times with Gran by` : ''), ['bell'], rang ? 66 : 60, 70, 3,
+        add('bell', e.bell || e.rings >= 1, `rang the Bell at the Well (S09): ${e.bell ? 'yes' : 'no'}; with Gran by ${e.rings}` + (e.keptWell ? ' (a number from 2)' : ' (not counted from before the Bell: no number)'), ['bell'], rang ? 66 : 60, 70, 3,
             () => [['gran', rang ? `{cross}${Num(e.rings)} times you rang that Bell at my Well. I asked you not to, every time. The whole Spool groaned.` : '{cross}You rang that Bell at my Well. The whole Spool groaned.'], ['linnet', '{happy}I used to do that.']],
             () => '{name} rang the Bell at the Well. Asked her not to.' + (rang ? ` That makes ${numWords(e.rings)}.` : ''));
-        add('tally0', e.kept && e.home === 0, 'kept from the first step, and never once brought home', ['tally'], 58, 0, 0,
-            () => [['gran', '{surprised}Not one fall, the whole Wander. Not once did I have to wind you home. I kept waiting.'], ['linnet', '{happy}Show-off.']]);
         const lw = e.lean && e.lean[0], ln = e.lean ? e.lean[1] : 0;
-        add('lean', ln >= 4, e.lean ? `leant on ${lw} most: ${ln} times` : 'leant on nobody', ['lean'], 55 + Math.min(15, ln), 55, 2,
+        add('lean', ln >= 4, e.lean ? `leant on ${lw} most: ${ln} (from 4)` : 'leant on nobody', ['lean'], 55 + Math.min(15, ln), 55, 2,
             () => [['gran', `{happy}${Num(ln)} times you leant on ${this.said(lw)}. I felt every one.`], ['linnet', '{happy}Somebody had to.']],
             () => `{name} leaning on ${this.written(lw)} again. The ${ordWords(ln)} time.`);
-        add('waited', e.waited >= 5, `sat and waited for things to come home ${e.waited} times`, ['waited'], 50, 40, 1.5,
+        add('waited', e.waited >= 5, `sat and waited ${e.waited} (from 5)`, ['waited'], 50, 40, 1.5,
             () => [['gran', `In the Houses you'd sit down and wait for everything to come home. ${Num(e.waited)} times. I'd feel you go still.`]],
             () => '{name} sat down in a House again and waited for it all to come home. She does that.');
-        add('straight', e.kept && e.fog === 0 && e.atSelf === 0, 'kept from the first step: the fog never turned her round, and she cut nobody before her own thread', ['fog', 'cuts'], 45, 0, 0,
+        add('straight', e.kept && e.fog === 0 && e.atSelf === 0, `tally kept from the first step: ${e.kept ? 'yes' : 'no'}; turned round by the fog ${e.fog} (needs 0); cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (needs 0)`, ['fog', 'cuts'], 45, 0, 0,
             () => [['gran', "{happy}That fog never had to turn you round once. And with the Shears, you didn't cut a soul loose before your own."], ['linnet', '{happy}Saving them for later.']]);
-        add('nocut', e.atSelf === 0, e.atSelf === null ? 'her own thread cut before any of this was kept' : `cut ${e.atSelf} people before her own thread`, ['cuts'], 40, 0, 0,
+        add('nocut', e.atSelf === 0, `cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (needs 0)`, ['cuts'], 40, 0, 0,
             () => [['gran', "{happy}You had the Shears, and you didn't cut a soul loose before your own."], ['linnet', '{happy}Saving them for later.']]);
-        const t = e.top, mostly = !t ? '' : t.faint ? ' Mostly out cold.' : t.fog ? ' Mostly from the fog.' : ` ${cap(t.place)}, mostly.`;
-        add('tally', e.kept && e.home >= 1, e.kept ? `brought home ${e.home} times` : 'no tally kept from the first step', ['tally'], 30, 0, 0,
-            () => [['gran', (e.home === 1 ? 'Just the once I had to wind you home, this Wander.' : `${Num(e.home)} times I wound you home, this Wander.`) + mostly], ['linnet', '{happy}Mum.']]);
-        add('tallyOld', !e.kept && e.fell, 'an older save: fell, fainted or turned round by the fog, but no count from the first step', ['tally'], 25, 0, 0,
-            () => [['gran', 'Every time you fell, I wound you home. Every one.']]);
+        add('homeward', e.homeward >= 5, `Homeward to the Bedroll ${e.homeward} (from 5)`, ['home'], 35, 35, 3.5,
+            () => [['gran', `{happy}${Num(e.homeward)} times you flew off home to that Bedroll, wherever you'd left it lying. And me telling you to roll it up and bring it home.`], ['linnet', "{happy}That's what it's for, Mum."]],
+            () => '{name} off home to her Bedroll again. Not here.');
         /* for the ledger only */
-        add('peep', e.peep, "looked through the peephole into Gran's study", ['peep'], 0, 95, 4, null,
+        add('peep', e.peep, `looked through the peephole into Gran's study: ${e.peep ? 'yes' : 'no'}`, ['peep'], 0, 95, 4, null,
             () => 'Somebody at the little hole in my study wall. {name}. Let her look.');
-        add('tuck', e.tuck >= 2, `pulled Tuck's own thread ${e.tuck} times`, ['tuck'], 0, 60, 5, null,
+        add('tuck', e.tuck >= 2, `Tuck's own thread pulled ${e.tuck} (from 2)`, ['tuck'], 0, 60, 5, null,
             () => '{name} pulling Tuck home by his own thread, from underneath. He laughs.');
         return L;
     },
@@ -33489,24 +33647,36 @@ const After = {
         parts.forEach((p, i) => out.push(...p.slice(0, 1 + keep[i])));
         return out.concat(this.END);
     },
-    caught(e) {
-        if (!e.kept) return 'Caught her every time, this Wander.';
-        return !e.home ? 'Never once had to catch her, this Wander.' : e.home === 1 ? 'Caught her once, this Wander.' : `Caught her ${numWords(e.home)} times, this Wander.`;
+    /* the count as she gave it at the Spool (src/75_greatspool.js granCount), the same number */
+    brought(e) {
+        if (e.home === null) return 'Brought her home every time, this Wander.';
+        return !e.home ? 'Never once had to bring her home, this Wander.' : e.home === 1 ? 'Brought her home once, this Wander.' : `Brought her home ${numWords(e.home)} times, this Wander.`;
     },
     ledgerLines(e) {
         const q = s => '"' + s + '"', ent = this.pick(e).ledger.map(x => q(x.write(e))), out = ["Down the steps it's cool and quiet. On the cushion, her ledger lies open near the back, at a page in her small, careful hand."];
         for (let i = 0; i < ent.length; i += 2) out.push(ent.slice(i, i + 2).join(' '));
         out.push(q('{name} at the fog with the Shears.') + ' Under that, nothing. The rest of the page is empty, all the way down, but for one line at the very bottom, in fresh ink:');
-        out.push(q(this.caught(e) + ' Last night she fell out of bed. Nobody caught her. She laughed.'));
+        out.push(q(this.brought(e) + ' Last night she fell out of bed. Nobody caught her. She laughed.'));
         return out;
     },
 
     /* ---------------- the bench and the cellar ---------------- */
-    offers(npc) { return Progress.flag('unwound') && !Progress.flag('aft:sat') && !!npc && npc.seated && (npc.who === 'gran' || npc.who === 'linnet') && !!npc.area && npc.area.id === 'hollow'; },
+    /* (wherever the two of them are after the end, together: on the bench by Gran's gate, as built, or anywhere else) */
+    offers(npc) {
+        const a = npc && npc.area, here = w => a.ents.some(e => e.kind === 'npc' && e.who === w && !e.removed);
+        return Progress.flag('unwound') && !Progress.flag('aft:sat') && !!a && (npc.who === 'gran' || npc.who === 'linnet') && here('gran') && here('linnet');
+    },
     *bench() {
         const p = G.player, a = G.map; if (!p || !a) return;
         const g = a.ents.find(e => e.kind === 'npc' && e.who === 'gran' && e.seated), l = a.ents.find(e => e.kind === 'npc' && e.who === 'linnet' && e.seated);
-        if (!g || !l || g.ty !== l.ty || Math.abs(g.tx - l.tx) !== 2) return;
+        /* not side by side on a bench: the same words, standing with them */
+        if (!g || !l || g.ty !== l.ty || Math.abs(g.tx - l.tx) !== 2) {
+            if ((yield* ask(null, 'Stay with them a while?', ['Stay', 'Not now'])) !== 0) return;
+            yield* say(null, 'You stay a while, the three of you, not saying much.');
+            for (const [who, t] of this.benchLines(this.evidence())) yield* say(who, t);
+            Progress.set('aft:sat');
+            return;
+        }
         const i = yield* ask(null, 'Between them, the middle of the bench is free.', ['Sit down', 'Not now']);
         if (i !== 0) return;
         if (p.carry || p.ride) { UI.toast('Not with your hands full.'); return; }

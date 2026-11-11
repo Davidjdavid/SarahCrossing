@@ -282,6 +282,11 @@ const SCENARIOS = {
         }
         await page.evaluate(() => { for (const h of ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette']) HW.Progress.set('untie:' + h); HW.Progress.set('spool_all'); HW.warp('greatspool', 29, 8); HW.step(60); HW.skipTalk(); HW.step(200); });
         await shot('gs_top');
+        /* the top's later pairs, as Gran leaves the room: the crates up in the drum and her throwing; then the dark */
+        await page.evaluate(() => { for (const h of ['slumber', 'marionette']) HW.Progress.set('great:' + h); HW.Progress.set('gs_s1'); HW.warp('greatspool', 29, 7); HW.step(140); });
+        await shot('gs_top_thrown');
+        await page.evaluate(() => { for (const h of ['mill', 'belfry']) HW.Progress.set('great:' + h); HW.Progress.set('gs_s2'); HW.warp('greatspool', 29, 7); HW.step(60); });
+        await shot('gs_top_dark');
         await page.evaluate(() => { HW.warp('greatspool', 29, 20); HW.step(150); });
         await shot('gs_climb_junk');
         await page.evaluate(() => { HW.G.credits = { pages: [['Wanderer:', '', 'Wren']], i: 0, t: 120 }; HW.step(1); });

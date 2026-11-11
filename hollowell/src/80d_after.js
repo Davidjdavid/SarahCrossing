@@ -6,9 +6,10 @@
    lines about Wren written at the time, the fog, the rest of the page empty, and one line at the bottom in fresh ink.
    What's said comes only from what Wren did with the game's own things (the fog, leaning on people, the Bell at the
    Well, the north gate's weight, the Hall, Tuck's thread, the Shears on people and on her own, Linnet's places,
-   sitting to wait, the tally of src/80b_tally.js, the peephole into Gran's study): never time spent anywhere, never an
-   answer picked in a conversation. A thing is said only if it happened; a "never" only from a record of that moment
-   (the tally kept from the first step, or the count taken as her own thread was cut). It's all worked out from a note
+   sitting to wait, flying Homeward to the Bedroll, the peephole into Gran's study; the tally of src/80b_tally.js only
+   in the ledger's last line, as Gran gave it at the Spool): never time spent anywhere, never an answer picked in a
+   conversation. A thing is said only if it happened; a "never" only from a record of that moment (the tally kept from
+   the first step, or the count taken as her own thread was cut). It's all worked out from a note
    of the evidence made as the threads go slack, kept in the save, so it says the same thing every time. Nothing of it
    shows before the end. Developers: HW.afterword() (debug or headless) says what was found and why each thing was or
    wasn't said. (All of it lives in the save's own counters and flags: nothing for Save.migrate to change.) */
@@ -52,24 +53,16 @@ const After = {
             cuts: this.cuts(), no: most('aft:no:', 'aft:no:self'), lean: most('budge:', 'budge:gran'), gran: Math.max(n('budge:gran'), f['budged:gran'] ? 1 : 0), all: !!f.s01,
             hold: !!f.hall_held, tuck: n('tuck:yanked'), gate: !!f.s32, notes: [1, 2, 3, 4, 5, 6, 7, 8].filter(i => f['linnet' + i]).length,
             bell: !!f.s09, rings: n('aft:well'), waited: n('waited'), peep: !!f['peep:53,21'],
-            /* times she was brought home after a fall, a faint or the fog (Gran's own pull in the Hall isn't one of those) */
-            home: Tally.kept() ? Tally.home() - n('home:yank') : null, top: this.top(), fell: n('falls') + n('faints') + Tally.fogs() > 0,
+            /* (the tally as Gran gives it at the Spool, her own pull in the Hall included; and Homeward flights, which it
+               leaves out: those were Wren's own going home) */
+            home: Tally.home(), homeward: n('homeward'),
         };
     },
-    /* where she was brought home from most (the tally's longest row), as Gran would say it */
-    top() {
-        const rows = Tally.rows(); if (!rows || !rows.length) return null;
-        const c = Stats.c, faint = c.faints || 0, fog = Tally.fogs();
-        let b = null; for (const [k, v] of Object.entries(c)) if (k.startsWith('home@') && v > 0 && (!b || v > b[1])) b = [k.slice(5), v];
-        if (b && b[1] >= faint && b[1] >= fog) {
-            const [id, blk] = b[0].split(':'), r = blk && typeof OW !== 'undefined' && Object.values(OW.blocks).find(q => q.id === blk);
-            return { place: (r && r.name) || (AREAS[id] && AREAS[id].name) || 'the valley' };
-        }
-        return faint >= fog ? { faint: true } : { fog: true };
-    },
     freeze() { if (!Progress.get('aft:snap')) Progress.set('aft:snap', this.snap()); return Progress.get('aft:snap'); },
+    /* (nothing known: what a note without some of this reads as) */
+    NONE: { v: 1, kept: false, keptCuts: false, keptWell: false, fog: 0, self: 0, atSelf: null, cuts: [], no: null, lean: null, gran: 0, all: false, hold: false, tuck: 0, gate: false, notes: 0, bell: false, rings: 0, waited: 0, peep: false, home: null, homeward: 0 },
     /* noted when the threads went slack (or, for a save that ended before any of this, the first time it's asked) */
-    evidence() { return Progress.get('aft:snap') || (Progress.flag('unwound') ? this.freeze() : this.snap()); },
+    evidence() { return Object.assign({}, this.NONE, { cuts: [] }, Progress.get('aft:snap') || (Progress.flag('unwound') ? this.freeze() : this.snap())); },
 
     /* ---------------- what Gran could say, and what she wrote ----------------
        Each: whether it holds and why; what it's about (two things about the same evidence never go together); how much
@@ -80,72 +73,68 @@ const After = {
         const add = (id, ok, why, groups, w, lw, ord, say, write, contra) => L.push({ id, ok: !!ok, why, groups, w, lw, ord, say, write, contra: !!contra });
         const town = this.town(), cutTown = town.filter(w => e.cuts.includes(w)), left = town.filter(w => !e.cuts.includes(w));
         /* a contradiction: two things that pull different ways */
-        add('fogblades', e.fog >= 3 && e.self >= 1, `the fog turned her round ${e.fog} times; at it with the Shears she said not yet ${e.self} times`, ['fog', 'blades'], 95, 0, 0,
+        add('fogblades', e.fog >= 3 && e.self >= 1, `turned round by the fog ${e.fog} (from 3); not yet to her own thread ${e.self} (from 1)`, ['fog', 'blades'], 95, 0, 0,
             () => [['gran', `{happy}${Num(e.fog)} times you went into that fog to see if it'd let you through. And the day it would, you stood there with the Shears and didn't close them.` + (e.self >= 2 ? ` ${cap(numTimes(e.self))}.` : '')], ['linnet', '{sad}It took me a week.']], null, true);
-        add('freeothers', e.atSelf >= 8 && e.self >= 1, `${e.atSelf} people cut before her own thread, which she put off ${e.self} times`, ['cuts', 'blades'], 93, 0, 0,
+        add('freeothers', e.atSelf >= 8 && e.self >= 1, `cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (from 8); not yet to her own ${e.self} (from 1)`, ['cuts', 'blades'], 93, 0, 0,
             () => [['gran', `{sad}You cut ${numWords(e.atSelf)} people loose before you went to the fog. Your own, you had to think about.`], ['linnet', '{sad}It took me a week.']], null, true);
-        add('holdtuck', e.hold && e.tuck >= 2, `held on in the Hall; pulled Tuck's own thread ${e.tuck} times`, ['hold', 'tuck'], 92, 0, 0,
+        add('holdtuck', e.hold && e.tuck >= 2, `held on in the Hall: ${e.hold ? 'yes' : 'no'}; Tuck's own thread pulled ${e.tuck} (from 2)`, ['hold', 'tuck'], 92, 0, 0,
             () => [['gran', `{sad}${Num(e.tuck)} times you pulled that boy home by his own thread. And when I pulled yours, you held on with both hands.`], ['linnet', 'Did he mind?'], ['gran', "{happy}He loved it. That isn't the point."]], null, true);
         /* one thing each */
-        add('granlean', e.gran >= 1, `leant on Gran ${e.gran} times`, ['lean'], 90, 90, 2,
-            () => [['gran', e.gran === 1 ? '{happy}You leant on me once, by the Well. I had to remember to go back where I was.' : `{happy}You leant on me ${numTimes(e.gran)}, by the Well. Every time, I had to remember to go back where I was.`], ['linnet', '{surprised}Mum!']],
-            () => '{name} leant on me by the Well. I went back where I was. She didn\'t notice.');
-        add('left', e.keptCuts && cutTown.length >= 14 && left.length >= 1 && left.length <= 3, `cut ${cutTown.length} of the town's ${town.length}; left ${left.join(', ') || 'nobody'}` + (e.keptCuts ? '' : ' (cuts not all seen)'), ['cuts'], 88, 76, 10,
+        add('granlean', e.gran >= 1, `leant on Gran ${e.gran} (from 1)`, ['lean'], 90, 90, 2,
+            () => [['gran', e.gran === 1 ? '{happy}You leant on me once. I had to remember to go back where I was.' : `{happy}You leant on me ${numTimes(e.gran)}. Every time, I had to remember to go back where I was.`], ['linnet', '{surprised}Mum!']],
+            () => '{name} leant on me. I went back where I was. She didn\'t notice.');
+        add('left', e.keptCuts && cutTown.length >= 14 && left.length >= 1 && left.length <= 3, `cut ${cutTown.length} of the town's ${town.length} (from 14), leaving ${left.length} (one to three)` + (e.keptCuts ? '' : '; cuts not watched from the first'), ['cuts'], 88, 76, 10,
             () => [['gran', `{sad}You cut every thread in town but ${this.list(left.map(poss))}.`], ['linnet', '{surprised}Why ever not?']],
             () => `Everyone in town loose now but ${this.list(left.map(w => this.written(w)))}.`);
-        add('gate', e.gate, 'gave the north gate\'s weight a new place before Reveal 2 (S32)', ['gate'], 85, 85, 6,
+        add('gate', e.gate, `the north gate's weight moved before Reveal 2 (S32): ${e.gate ? 'yes' : 'no'}`, ['gate'], 85, 85, 6,
             () => [['gran', '{surprised}You let my north gate go before you\'d ever been down to the Hall. I felt the weight shift, and I thought: she knows.'], ['linnet', '{happy}Did you?']],
             () => "The north gate's weight, moved. {name}. She can't know.");
         const nw = e.no && e.no[0], nk = e.no ? e.no[1] : 0, later = nw && e.cuts.includes(nw);
-        add('declined', !!e.no, e.no ? `said not yet to cutting ${nw} ${nk} times` + (later ? ', then cut them' : ', and never did') : 'never said not yet to cutting anyone (or not seen)', ['cuts'], later ? 84 : 83, 73, 9,
+        add('declined', !!e.no, e.no ? `not yet to cutting ${nw} ${nk} times` + (later ? ', then cut' : ', never cut') : 'no not-yet to cutting anyone seen', ['cuts'], later ? 84 : 83, 73, 9,
             () => [['gran', `{sad}${cap(numTimes(nk))} you had the Shears to ${poss(nw)} thread and didn't. ${later ? 'Then you did.' : 'You never did.'}`]],
             () => `{name} with the Shears at ${this.written(nw)}'s thread. Didn't.`);
-        add('hold', e.hold, 'held on to the lectern when Gran pulled', ['hold'], 82, 82, 7,
+        add('hold', e.hold, `held on to the lectern when Gran pulled: ${e.hold ? 'yes' : 'no'}`, ['hold'], 82, 82, 7,
             () => [['gran', "{sad}In the Hall, when I pulled, you held on. Both hands. I'd have waited all night."], ['linnet', '{happy}Good.']],
             () => '{name} in the Hall. Held on. I waited.');
-        add('blades', e.self >= 1, `said not yet to cutting her own thread ${e.self} times`, ['blades'], 80, 78, 11,
+        add('blades', e.self >= 1, `not yet to her own thread ${e.self} (from 1)`, ['blades'], 80, 78, 11,
             () => [['gran', e.self === 1 ? "{sad}At the fog I felt the Shears on your thread, and they didn't close." : `{sad}At the fog I felt the Shears on your thread ${numTimes(e.self)}, and they didn't close.`], ['linnet', '{sad}It took me a week.']],
             () => e.self === 1 ? "{name} at the fog with the Shears. They didn't close." : `{name} at the fog with the Shears again. They didn't close. ${cap(numTimes(e.self))} now.`);
-        add('linnet', e.notes >= 6, `found ${e.notes} of Linnet's notes`, ['linnet'], e.notes === 8 ? 78 : 75, 68, 8,
+        add('linnet', e.notes >= 6, `Linnet's notes found ${e.notes} (from 6)`, ['linnet'], e.notes === 8 ? 78 : 75, 68, 8,
             () => e.notes === 8 ? [['gran', "{sad}You went everywhere she'd been. Every place she left a note, one after another. I felt you go, the way I felt her."], ['linnet', '{surprised}Even the horse?'], ['gran', 'Even the horse.']]
                 : [['gran', "{sad}You went nearly everywhere she'd been, the places she left her notes. I felt you go, the way I felt her."], ['linnet', "{sad}I didn't think anybody would look."]],
             () => "{name} in Linnet's places again." + (e.notes === 8 ? ' All of them, now.' : ''));
-        add('leanall', e.all, 'leant on every townsperson (S01)', ['lean'], 72, 58, 2,
+        add('leanall', e.all, `leant on everyone (S01): ${e.all ? 'yes' : 'no'}`, ['lean'], 72, 58, 2,
             () => [['gran', "{happy}You leant on every soul in the valley, one after another, to see what they'd do. I felt the lot."], ['linnet', '{happy}I never got past Arlo.']],
             () => '{name} has leant on every one of them now, to see. Every one went back.');
         const first = e.cuts[0];
-        add('firstcut', e.keptCuts && !!first, first ? `the first person she cut was ${first}` + (e.keptCuts ? '' : ' (cuts not all seen)') : 'cut nobody (or not seen from the first)', ['cuts'], 70, 74, 9,
+        add('firstcut', e.keptCuts && !!first, (first ? `the first she cut: ${first}` : 'cut nobody') + (e.keptCuts ? '' : '; cuts not watched from the first'), ['cuts'], 70, 74, 9,
             () => [['gran', `{sad}The first thread you cut was ${poss(first)}. I felt it go, like a dropped stitch.`], ...(first === 'arlo' ? [['linnet', '{happy}Did he get as far as the lake?'], ['gran', 'Every morning, now.']] : [])],
             () => `${this.written(first)}'s thread, gone. She's cutting them.`);
-        add('fog', e.fog >= 3, `the fog turned her round ${e.fog} times`, ['fog'], 62 + Math.min(10, e.fog), 80, 1,
+        add('fog', e.fog >= 3, `turned round by the fog ${e.fog} (from 3)`, ['fog'], 62 + Math.min(10, e.fog), 80, 1,
             () => [['gran', `{happy}${Num(e.fog)} times you walked into that fog before it would let you through. I'd turn you round, and back you'd come.`], ['linnet', `{happy}Only ${numWords(e.fog)}?`]],
             () => `{name} in the fog again. The ${ordWords(e.fog)} time. Turned her round. Tightened.`);
         const rang = e.keptWell && e.rings >= 2;
-        add('bell', e.bell || e.rings >= 1, `rang the Bell at the Well (S09)` + (e.keptWell ? `, ${e.rings} times with Gran by` : ''), ['bell'], rang ? 66 : 60, 70, 3,
+        add('bell', e.bell || e.rings >= 1, `rang the Bell at the Well (S09): ${e.bell ? 'yes' : 'no'}; with Gran by ${e.rings}` + (e.keptWell ? ' (a number from 2)' : ' (not counted from before the Bell: no number)'), ['bell'], rang ? 66 : 60, 70, 3,
             () => [['gran', rang ? `{cross}${Num(e.rings)} times you rang that Bell at my Well. I asked you not to, every time. The whole Spool groaned.` : '{cross}You rang that Bell at my Well. The whole Spool groaned.'], ['linnet', '{happy}I used to do that.']],
             () => '{name} rang the Bell at the Well. Asked her not to.' + (rang ? ` That makes ${numWords(e.rings)}.` : ''));
-        add('tally0', e.kept && e.home === 0, 'kept from the first step, and never once brought home', ['tally'], 58, 0, 0,
-            () => [['gran', '{surprised}Not one fall, the whole Wander. Not once did I have to wind you home. I kept waiting.'], ['linnet', '{happy}Show-off.']]);
         const lw = e.lean && e.lean[0], ln = e.lean ? e.lean[1] : 0;
-        add('lean', ln >= 4, e.lean ? `leant on ${lw} most: ${ln} times` : 'leant on nobody', ['lean'], 55 + Math.min(15, ln), 55, 2,
+        add('lean', ln >= 4, e.lean ? `leant on ${lw} most: ${ln} (from 4)` : 'leant on nobody', ['lean'], 55 + Math.min(15, ln), 55, 2,
             () => [['gran', `{happy}${Num(ln)} times you leant on ${this.said(lw)}. I felt every one.`], ['linnet', '{happy}Somebody had to.']],
             () => `{name} leaning on ${this.written(lw)} again. The ${ordWords(ln)} time.`);
-        add('waited', e.waited >= 5, `sat and waited for things to come home ${e.waited} times`, ['waited'], 50, 40, 1.5,
+        add('waited', e.waited >= 5, `sat and waited ${e.waited} (from 5)`, ['waited'], 50, 40, 1.5,
             () => [['gran', `In the Houses you'd sit down and wait for everything to come home. ${Num(e.waited)} times. I'd feel you go still.`]],
             () => '{name} sat down in a House again and waited for it all to come home. She does that.');
-        add('straight', e.kept && e.fog === 0 && e.atSelf === 0, 'kept from the first step: the fog never turned her round, and she cut nobody before her own thread', ['fog', 'cuts'], 45, 0, 0,
+        add('straight', e.kept && e.fog === 0 && e.atSelf === 0, `tally kept from the first step: ${e.kept ? 'yes' : 'no'}; turned round by the fog ${e.fog} (needs 0); cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (needs 0)`, ['fog', 'cuts'], 45, 0, 0,
             () => [['gran', "{happy}That fog never had to turn you round once. And with the Shears, you didn't cut a soul loose before your own."], ['linnet', '{happy}Saving them for later.']]);
-        add('nocut', e.atSelf === 0, e.atSelf === null ? 'her own thread cut before any of this was kept' : `cut ${e.atSelf} people before her own thread`, ['cuts'], 40, 0, 0,
+        add('nocut', e.atSelf === 0, `cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (needs 0)`, ['cuts'], 40, 0, 0,
             () => [['gran', "{happy}You had the Shears, and you didn't cut a soul loose before your own."], ['linnet', '{happy}Saving them for later.']]);
-        const t = e.top, mostly = !t ? '' : t.faint ? ' Mostly out cold.' : t.fog ? ' Mostly from the fog.' : ` ${cap(t.place)}, mostly.`;
-        add('tally', e.kept && e.home >= 1, e.kept ? `brought home ${e.home} times` : 'no tally kept from the first step', ['tally'], 30, 0, 0,
-            () => [['gran', (e.home === 1 ? 'Just the once I had to wind you home, this Wander.' : `${Num(e.home)} times I wound you home, this Wander.`) + mostly], ['linnet', '{happy}Mum.']]);
-        add('tallyOld', !e.kept && e.fell, 'an older save: fell, fainted or turned round by the fog, but no count from the first step', ['tally'], 25, 0, 0,
-            () => [['gran', 'Every time you fell, I wound you home. Every one.']]);
+        add('homeward', e.homeward >= 5, `Homeward to the Bedroll ${e.homeward} (from 5)`, ['home'], 35, 35, 3.5,
+            () => [['gran', `{happy}${Num(e.homeward)} times you flew off home to that Bedroll, wherever you'd left it lying. And me telling you to roll it up and bring it home.`], ['linnet', "{happy}That's what it's for, Mum."]],
+            () => '{name} off home to her Bedroll again. Not here.');
         /* for the ledger only */
-        add('peep', e.peep, "looked through the peephole into Gran's study", ['peep'], 0, 95, 4, null,
+        add('peep', e.peep, `looked through the peephole into Gran's study: ${e.peep ? 'yes' : 'no'}`, ['peep'], 0, 95, 4, null,
             () => 'Somebody at the little hole in my study wall. {name}. Let her look.');
-        add('tuck', e.tuck >= 2, `pulled Tuck's own thread ${e.tuck} times`, ['tuck'], 0, 60, 5, null,
+        add('tuck', e.tuck >= 2, `Tuck's own thread pulled ${e.tuck} (from 2)`, ['tuck'], 0, 60, 5, null,
             () => '{name} pulling Tuck home by his own thread, from underneath. He laughs.');
         return L;
     },
@@ -174,24 +163,36 @@ const After = {
         parts.forEach((p, i) => out.push(...p.slice(0, 1 + keep[i])));
         return out.concat(this.END);
     },
-    caught(e) {
-        if (!e.kept) return 'Caught her every time, this Wander.';
-        return !e.home ? 'Never once had to catch her, this Wander.' : e.home === 1 ? 'Caught her once, this Wander.' : `Caught her ${numWords(e.home)} times, this Wander.`;
+    /* the count as she gave it at the Spool (src/75_greatspool.js granCount), the same number */
+    brought(e) {
+        if (e.home === null) return 'Brought her home every time, this Wander.';
+        return !e.home ? 'Never once had to bring her home, this Wander.' : e.home === 1 ? 'Brought her home once, this Wander.' : `Brought her home ${numWords(e.home)} times, this Wander.`;
     },
     ledgerLines(e) {
         const q = s => '"' + s + '"', ent = this.pick(e).ledger.map(x => q(x.write(e))), out = ["Down the steps it's cool and quiet. On the cushion, her ledger lies open near the back, at a page in her small, careful hand."];
         for (let i = 0; i < ent.length; i += 2) out.push(ent.slice(i, i + 2).join(' '));
         out.push(q('{name} at the fog with the Shears.') + ' Under that, nothing. The rest of the page is empty, all the way down, but for one line at the very bottom, in fresh ink:');
-        out.push(q(this.caught(e) + ' Last night she fell out of bed. Nobody caught her. She laughed.'));
+        out.push(q(this.brought(e) + ' Last night she fell out of bed. Nobody caught her. She laughed.'));
         return out;
     },
 
     /* ---------------- the bench and the cellar ---------------- */
-    offers(npc) { return Progress.flag('unwound') && !Progress.flag('aft:sat') && !!npc && npc.seated && (npc.who === 'gran' || npc.who === 'linnet') && !!npc.area && npc.area.id === 'hollow'; },
+    /* (wherever the two of them are after the end, together: on the bench by Gran's gate, as built, or anywhere else) */
+    offers(npc) {
+        const a = npc && npc.area, here = w => a.ents.some(e => e.kind === 'npc' && e.who === w && !e.removed);
+        return Progress.flag('unwound') && !Progress.flag('aft:sat') && !!a && (npc.who === 'gran' || npc.who === 'linnet') && here('gran') && here('linnet');
+    },
     *bench() {
         const p = G.player, a = G.map; if (!p || !a) return;
         const g = a.ents.find(e => e.kind === 'npc' && e.who === 'gran' && e.seated), l = a.ents.find(e => e.kind === 'npc' && e.who === 'linnet' && e.seated);
-        if (!g || !l || g.ty !== l.ty || Math.abs(g.tx - l.tx) !== 2) return;
+        /* not side by side on a bench: the same words, standing with them */
+        if (!g || !l || g.ty !== l.ty || Math.abs(g.tx - l.tx) !== 2) {
+            if ((yield* ask(null, 'Stay with them a while?', ['Stay', 'Not now'])) !== 0) return;
+            yield* say(null, 'You stay a while, the three of you, not saying much.');
+            for (const [who, t] of this.benchLines(this.evidence())) yield* say(who, t);
+            Progress.set('aft:sat');
+            return;
+        }
         const i = yield* ask(null, 'Between them, the middle of the bench is free.', ['Sit down', 'Not now']);
         if (i !== 0) return;
         if (p.carry || p.ride) { UI.toast('Not with your hands full.'); return; }

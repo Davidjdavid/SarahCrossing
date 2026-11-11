@@ -524,14 +524,14 @@ const SpoolTop = {
         if (p.grip) p.release();
         yield 24;
         yield* say('gran', "{cross}No. No more of that.");
-        for (const e of this.crates(a)) {
+        for (const e of this.crates(G.map)) {
             if (e.stowed) continue;
             if (!e.hiddenYank) Pull.fx.push({ im: e.sprite(), x: e.tx * T, y: e.ty * T, col: e.ret.color, t: 0 });
             this.stow(e); Sfx.play('twang', 0.5);
             yield 8;
         }
         yield 16;
-        Progress.set('gs_s1'); this.loose(a, 1);
+        Progress.set('gs_s1'); this.loose(G.map, 1);
         yield 30;
         yield* say('gran', "{worried}Keep back from them, love. Please.");
         if (s) s.tossWait = 30;
@@ -546,8 +546,10 @@ const SpoolTop = {
         if (p.carry && p.carry.kind === 'gsjunk') p.carry.takeBack();
         this.hush(a);
         yield 24;
-        /* (anybody standing where the floor's going steps off it first) */
-        if (this.DARK.some(([x, y]) => r.x + x === p.tx && r.y + y === p.ty)) yield* walkTo(p, p.tx, r.y + 3);
+        /* (anybody standing where the floor's going steps off it first; a Bedroll laid there turns up in her pack) */
+        const going = (x, y) => this.DARK.some(([u, v]) => r.x + u === x && r.y + v === y);
+        if (going(p.tx, p.ty)) yield* walkTo(p, p.tx, r.y + 3);
+        if (Inv.bedroll && Inv.bedroll.area === a.id && going(Inv.bedroll.tx, Inv.bedroll.ty)) Bedroll.lost('Your Bedroll went down into the dark with the floor... and turned up, rolled, in your pack.');
         Progress.set('gs_s2'); this.loose(a, 2);
         yield 24;
         G.shake = 4; Sfx.play('rumble');
@@ -797,8 +799,8 @@ const GreatSpool = {
             if (s && !gran) gran = a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
             if (gran) gran.noBudge = gran.noPull = true;
             const st = SpoolTop.stage(), here = !!top && r === top && p.state === 'normal' && !Script.blocking() && !Cam.busy;
-            /* (an older save that showed her the bracelet: she'd have let the middle pair go already) */
-            if (st === 1 && SpoolTop.quiet()) for (const h of SPOOL_PAIRS[1]) Progress.set('great:' + h);
+            /* (an older save that showed her the bracelet, when it let three go: she'd have let the middle pair go) */
+            if (SpoolTop.quiet() && !SpoolTop.done(1)) for (const h of SPOOL_PAIRS[1]) Progress.set('great:' + h);
             else if (here && st === 1 && !Progress.flag('gs_s1')) Script.run(SpoolTop.changeCrates(), { name: 'gschange' });
             else if (here && st === 2 && !Progress.flag('gs_s2')) Script.run(SpoolTop.changeDark(), { name: 'gschange' });
             if (here && st >= 3 && !a.climax) Script.run(this.finale(), { name: 'finale' });
@@ -864,7 +866,7 @@ const GreatSpool = {
             linnet.dir = linnet.tx < gran.tx ? RIGHT : linnet.tx > gran.tx ? LEFT : UP; linnet.fixedFace = true;
             gran.dir = DOWN; gran.fixedFace = true;
             yield 16;
-            Ending.hands = this.handsOf([linnet, gran]); Sfx.play('click');
+            Ending.hands = this.handsOf(linnet, gran); Sfx.play('click');
             yield 30;
             yield* say('gran', "{sad}Linnet.");
             yield* say(null, "Linnet takes one of her mother's hands off the Spool. The other's still on it.");
@@ -879,17 +881,20 @@ const GreatSpool = {
         const c = a.climax, p = G.player, gran = a.ents.find(e => e.who === 'gran');
         if (!gran || !c.linnet || c.linnet.removed || Script.blocking() || Cam.busy || p.state !== 'normal') return;
         const facing = p.adjacentTo(gran);
+        gran.noGrip = true;
         if (facing && !c.told) { c.told = true; UI.toast('Hold [act] to take her hand.', 240); }
-        /* (a hold, not a tap: the Gloves take hold by themselves; without them, held a moment) */
-        if (!p.grip && facing && !p.carry && Input.down('act')) { if (++c.down >= 8) { p.grip = gran; gran.heldBy = p; } } else c.down = 0;
+        /* (a hold, not a tap, and pressed for it: a button still down from the last words doesn't count) */
+        if (facing && Input.pressed('act')) c.armed = true;
+        if (!Input.down('act')) c.armed = false;
+        if (p.grip !== gran && c.armed && facing && !p.carry) { if (++c.down >= 8) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } } else c.down = 0;
         if (p.grip === gran) {
-            if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf([c.linnet, gran, p]); }
+            if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf(c.linnet, gran, p); UI.toasts = UI.toasts.filter(t => !/take her hand/.test(t.s)); }
             c.h++;
             /* (she tries twice: her hand pulls back toward the Spool) */
             if (c.h === 40 || c.h === 100) { Sfx.play('tug'); gran.dir = UP; G.shake = Math.max(G.shake, 2); }
             if (c.h === 52 || c.h === 112) gran.dir = DOWN;
             if (c.h >= 160) { a.climax = null; Script.run(this.letGo(gran, c.linnet), { name: 'finale' }); }
-        } else if (c.h) { c.h = 0; gran.dir = DOWN; Ending.hands = this.handsOf([c.linnet, gran]); }
+        } else if (c.h) { c.h = 0; gran.dir = DOWN; Ending.hands = this.handsOf(c.linnet, gran); }
     },
     *letGo(gran, linnet) {
         const a = G.map, p = G.player;
@@ -902,12 +907,12 @@ const GreatSpool = {
         const sx = linnet.tx < gran.tx ? gran.tx + 1 : gran.tx - 1, k = a.kind(sx, gran.ty);
         if ((p.tx !== sx || p.ty !== gran.ty) && !a.at(sx, gran.ty) && !k.solid && !k.pit) yield* walkTo(p, sx, gran.ty);
         p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
-        Ending.hands = this.handsOf([linnet, gran, p]);
+        Ending.hands = this.handsOf(linnet, gran, p);
         yield 100;
         yield* Ending.unwinding();
     },
-    /* hands held, left to right */
-    handsOf(l) { const x = e => e === G.player ? e.x - 8 : e.px; return l.slice().sort((u, v) => x(u) - x(v)); },
+    /* hands held, left to right: Gran in the middle, Linnet on her side, Wren (if she has Gran's hand) on the other */
+    handsOf(linnet, gran, p) { const l = linnet.tx < gran.tx; return p ? (l ? [linnet, gran, p] : [p, gran, linnet]) : (l ? [linnet, gran] : [gran, linnet]); },
 };
 
 /* ---------------- the Great Pull, up in the town ---------------- */
@@ -1037,10 +1042,17 @@ CONTENT_INIT.push(initGreatSpool);
         return talk0.call(this, npc);
     };
 }
-/* Gran and Linnet at the Spool don't budge when leant on; Gran held doesn't come away with you */
+/* Gran and Linnet at the Spool don't budge when leant on; Gran held doesn't come away with you. Whatever great threads
+   she's still holding are drawn with her, wound round her fists */
 {
     const push0 = NPC.prototype.onPushed;
     NPC.prototype.onPushed = function (p, d) { if (this.noBudge) return false; return push0.call(this, p, d); };
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        const r = draw0.call(this, cx, cy);
+        if (this.who === 'gran' && this.area && this.area.id === 'greatspool' && Progress.flag('spool_met') && !Progress.flag('unwound')) SpoolArt.hands(this, cx, cy);
+        return r;
+    };
 }
 /* while the Pull goes on, nobody with a thread is indoors or down below: they're all out at the Well, or holding on */
 {

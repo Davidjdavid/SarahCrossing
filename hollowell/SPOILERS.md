@@ -56,8 +56,10 @@ Makers keep their Houses' threads by choice, for play. The fog thins to an open 
 in the garden. Credits: "Made by the Makers of Hollowell", then "Wanderer: <name>". The title screen
 changes: no fog, people walking, "Carry on".
 
-With the bracelet from Linnet's Trail (secret chain), the ending adds Linnet giving Hesper the bracelet and Hesper
-putting it on (the post-game bridge over the Drift is still to build with O1). With Tuck's drawing (S30) it's on
+With the bracelet from Linnet's Trail (secret chain), shown to Hesper at the Spool, the fight changes shape: she stops
+throwing and lets a pair of the great threads go herself, and in the epilogue she walks up the north road into the mist
+with Linnet, the one who never left (not shown, Linnet gives it to her on the bench; the post-game bridge over the Drift
+is still to build with O1). With Tuck's drawing (S30) it's on
 Gran's dresser. Either way, a week later somebody re-carves the Well's motto: "EVERYTHING IN ITS PLACE, AND EVERYONE IN
 THEIRS. WHEREVER THAT IS." (S35 reads it in each act.)
 
@@ -71,10 +73,21 @@ place once that's clear, hanging over it while anything's on it (the Return's ot
 things wait, heavier shoves lighter, plates pressed in passing); the Shears and Needle are refused down there (too taut); the Bedroll is the one place
 that stays put; each Knot room is its House's grammar with another House's tool, several steps and an aha, a ratchet
 by its door to lay it back; the Climb's four lanes throw trains of junk on a beat, each throw told first by its lane
-lighting up, and a hit sends Wren back to the start of its lane only, dazed till the train's gone by). At the top Hesper pulls everything else (junk flies at the Spool); the six great threads are
-too taut to cut until something the Pull is dragging is dragged along one (Wren lays a crate under a thread near its post;
-the thread sags a moment); with Linnet's bracelet, shown to Hesper, she lets three go herself; six
-great threads cut; Linnet comes down ("Mum."); a choice of words (Let go / Come home), the same result; the Unwinding
+lighting up, and a hit sends Wren back to the start of its lane only, dazed till the train's gone by). At the top Hesper
+says Wren's tally to her face, once (P2: "Forty-one times this Wander I brought you home. I can't now."; without a kept
+count, "Every time you fell..."). Six great threads hold the drum, in three pairs, the lowest first; the ones still to
+come are wound round her fists (held things wait: they don't give); a free one is too taut to cut until something out of
+its place is dragged along it (lying on it, or wound north across it), when it sags a moment. After each pair she
+changes the room: first the crates on the shelves (dragged along the lowest pair); then she takes the crates up into the
+drum, lets the middle pair go and throws things off the drum at wherever Wren stands, shadow first, so one is made to
+come down on a thread (or pushed onto it); then she lets the last pair go, pulls the floor up from under them into the
+dark and lets the crates down again: a crate thrown at a thread falls into the dark and is back on its shelf, but one
+left to be wound north goes out over the dark hanging on its thread (the Glazing Gallery's rule) and across. With
+Linnet's bracelet, shown to Hesper, the room goes quiet (no throwing) and she lets a pair go herself (the middle, or the
+last). Six great threads cut; Linnet comes down ("Mum."), goes to her mother and takes one of her hands off the Spool;
+no menu: the other hand is Wren's to take (hold Action, as at the lectern in the Hall), and held, it waits: Gran tries
+twice to put it back on the Spool, then lets go (`GreatSpool.finale`, `climaxTick`, `letGo`; tests/spooltop.test.mjs);
+the Unwinding
 (the birds fly away and come back, people walk where they like, the Makers keep their Houses by choice, the fog thins
 to a road; Gran and Linnet in the garden; the Drift-bloom by the gate if S11's seed was planted); credits (the Makers,
 the Loom and the First Spinner, "Wanderer: <name>", Linnet, Hesper, Biscuit); then the free valley: everyone on a
@@ -82,6 +95,33 @@ round of their own with new lines (`AFTER_LINES`), Gran and Linnet by Gran's hou
 Carry on." The title (localStorage `hollowell-ended`): no mist, a road out over the hills with people walking it,
 birds, "a Wander (and after)", Continue becomes "Carry on". The Loom itself is opened by the Guild's key, which Gundry
 gives after Reveal 2.
+
+### After the end: what Gran felt (`src/80d_after.js`; answers the private direction in `private/`)
+Gran held every thread until Wren cut hers at the fog; after that she felt nothing of her. In the free valley the middle
+of the bench between Gran and Linnet is free (where Biscuit sat in the epilogue): after either one's own after-line,
+"Sit down" (once, `aft:sat`; "Not now" keeps it for later), and Wren is drawn in the middle seat (should the two of them
+ever be moved somewhere not side by side on a bench, the same words are said standing). Gran says one thing she
+felt and, where play supports one, a contradiction (else a second thing), Linnet answering where there's room; then, for
+everybody, "After the fog I couldn't feel you at all. So let me look at you." / "...Your scarf's crooked." / "Leave it,
+Mum." / "I'm leaving it." (the prologue's "Let me look at you. Scarf on straight, good." turned round). The second layer
+is the cellar, open after the end ("Go down the steps?"): her ledger near the back, up to four lines written at the time
+in the order they happened (some the bench never says, e.g. the peephole into her study: "Let her look."), then "Wren at
+the fog with the Shears.", the rest of the page empty, and at the bottom in fresh ink "Brought her home N times, this
+Wander. Last night she fell out of bed. Nobody caught her. She laughed." (N is the count she gives at the Spool).
+- **Evidence**, only from the game's own mechanics (never time on screen, never a dialogue answer): the fog turning her
+  round before the cut (`fogTries`); "not yet" with the Shears at her own thread (`aft:no:self`) and at someone's
+  (`aft:no:<who>`); who she cut, in order (`aft:cuts`), and how many before her own (`aft:cutsAtSelf`); leaning on people
+  (`budge:<who>`, Gran's own, everyone S01); holding on in the Hall (`hall_held`); Tuck's thread; the north gate early
+  (S32); Linnet's notes; the Bell rung at the Well with Gran by (`aft:well`); sitting to wait; Homeward to the Bedroll.
+  Noted once, as the Unwinding starts (`aft:snap`, in the save), so it never changes after.
+- **Lines** (`After.cands`): contradictions fogblades, freeothers, holdtuck; singles granlean, left (everyone in town cut
+  but one to three), gate, declined, hold, blades, linnet, leanall, firstcut, fog, bell, lean, waited, straight/nocut,
+  homeward. Each is about a group of evidence and no two from one group are said; four lines at most before the ending.
+- **Fallbacks**: a thing is said only if it happened; a "never" only from a record of that moment (the tally kept from the
+  first step; the count taken at the self-cut); the cut order only if watched from before the first cut (`aft:keptCuts`),
+  Bell counts only from before the Bell (`aft:keptWell`). An older save says what it kept; with nothing at all, Gran's
+  plain line ("I felt every step of your Wander, love..."). `HW.afterword()` (debug or headless) explains any save;
+  `tests/afterword.test.mjs` plays seven trajectories through the real game. Never mention any of it to David.
 
 ## 2. The convention ledger (what each convention really was)
 
@@ -314,7 +354,7 @@ Eight notes from Linnet's own Wander, each by a carved "L.", each needing a diff
 The notes tell, in order: her Wander; finding the Makers; finding the Hall of Names; her mother's ledger;
 the Shears; the fog is thread; "I'm going. I'll cut a little at a time from outside, until she can let go.";
 "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't
-be frightened of that." The Stray House's last room: Linnet's bracelet (for the full ending).
+be frightened of that." The Stray House's last room: Linnet's bracelet (shown to Gran at the Spool, it changes the end's shape).
 
 As built: notes 4 and 5 were scenery first (the Echo Room's pinned note, the bottle below the falls) and are trail
 notes now. Note 5 gives an experiment, not its answer: "Go to where the river runs into the fog and put your hand in it.
@@ -323,7 +363,8 @@ Then tell me it's mist." It can be done: at the bottom of Meadowfold, where the 
 beaded with the river's spray, every strand pulled taut up the river toward the Well, and among them Wren's own red one,
 which pulls taut the same way (slack once the Unwinding's come; no red one once hers is cut). Nothing collected or
 counted (flag `fog_hand`); the Frayed Edge's bead curtain is the confirmation, later. The Stray House's door takes the seven notes through its slot ("Post them") and opens; note 8 lies in the
-Porch. The Stray House: DUNGEON_TRACKER.md "O1". Its reward is the bracelet (the ending: Linnet gives it to Hesper)
+Porch. The Stray House: DUNGEON_TRACKER.md "O1". Its reward is the bracelet (the ending: shown to Hesper at the Spool,
+she stops throwing and lets a pair go, and later walks up the north road with Linnet; never shown, Linnet gives it her)
 and a Heartstitch; the Twin Bedroll was dropped (one Bedroll is enough for everything in the game).
 
 ## 5. Boss solutions
@@ -520,8 +561,8 @@ how easy it is." (never pulled: "You never once pulled that boy's thread, down t
 alone."). A save from before the tally (or a preset) gets the same words without numbers. When Gran pulls, Wren can hold
 on: the Gloves' grip on the lectern (hold Action), and held things wait, Wren included: the pull can't take her, Gran
 tries twice and then waits ("I can wait, love.") for as long as she holds on; let go (or never take hold, or only tap)
-and she's yanked home as before (flag `hall_held`). The count (`Tally.home()`, Gran's own pull included) is there for
-the Spool's top to use.
+and she's yanked home as before (flag `hall_held`). The count (`Tally.home()`, Gran's own pull included) she says to
+Wren's face at the Spool's top, once (`granCount`).
 ## Act IV so far: the north gate, the Loomwood, the Loom, cutting free (`src/71_loomwood.js`, `src/72_loom.js`, `src/73_freed.js`)
 The north gate opens when its counterweight in the Seams takes a new place from the Needle. Burr, after: "Go on, then."
 The Loomwood: silver birches, moths that go for movement, silk strands, the Frayed Edge (strays; the Stray House's

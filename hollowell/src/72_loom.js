@@ -328,7 +328,10 @@ defHouse({
                 { k: 'webloom', x: 1, y: 2 },
                 { k: 'loomwell', x: 9, y: 3 },
                 { k: 'weaver', x: 9, y: 5, id: 'weaver' },
-                { k: 'anchor', x: 5, y: 4, id: 'anA' }, { k: 'anchor', x: 14, y: 4, id: 'anB' }, { k: 'anchor', x: 5, y: 7, id: 'anC' }, { k: 'anchor', x: 14, y: 7, id: 'anD' },
+                /* its web's four anchors, each holding its own way (src/72b_loom_foes.js): wound in a cocoon and asleep; tied
+                   plain; tied long and hanging slack; and up into the loom's cloth over the well's head */
+                { k: 'anchor', x: 5, y: 4, id: 'anA', way: 'asleep' }, { k: 'anchor', x: 5, y: 7, id: 'anC' }, { k: 'anchor', x: 14, y: 7, id: 'anD', way: 'slack' },
+                { k: 'loomanchor', x: 10, y: 1, id: 'anB' },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'weaver' },
             ],
         },
