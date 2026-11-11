@@ -88,7 +88,9 @@ left to be wound north goes out over the dark hanging on its thread (the Glazing
 Linnet's bracelet, shown to Hesper, the room goes quiet (no throwing) and she lets a pair go herself (the middle, or the
 last). Six great threads cut; Linnet comes down ("Mum."), goes to her mother and takes one of her hands off the Spool;
 no menu: the other hand is Wren's to take (hold Action, as at the lectern in the Hall), and held, it waits: Gran tries
-twice to put it back on the Spool, then lets go (`GreatSpool.finale`, `climaxTick`, `letGo`; tests/spooltop.test.mjs);
+twice to put it back on the Spool, then lets go (a ring of stitches on the floor under the hands shows how far; let go
+early, it unpicks slowly; high on the drum, the empty peg for the Wanderer's own that the Foot's sign promised stays
+empty) (`GreatSpool.finale`, `climaxTick`, `letGo`; tests/spooltop.test.mjs);
 the Unwinding
 (the birds fly away and come back, people walk where they like, the Makers keep their Houses by choice, the fog thins
 to a road; Gran and Linnet in the garden; the Drift-bloom by the gate if S11's seed was planted); credits (the Makers,
@@ -466,7 +468,9 @@ anywhere in a House: Wren comes to by its door.
   the Needle put it. Rung without the fourth held out (or, in beat 1, with one pushed off and not held), the wrong
   idea is told as the world went, once what the ring sent home has settled: "Everything goes home at once, and with
   nothing held out of it, the Tangle winds tight again." (its threads to the bobbin home in it flash, and it draws in
-  a little; not said if the ring didn't send everything home). Beat 1 is left as it was, the House's lesson under
+  a little; not said if the ring didn't send everything home). Every try answers (fix round D): struck whole, the stick
+  thuds and its cords shrug (said once); four out with one not held, a glint runs along that thread into the knot, and
+  when it slips home: "Three of its threads stay drawn out. The fourth slips home..." Beat 1 is left as it was, the House's lesson under
   fire: no one small change made it a reading without either priming beat 3's ring or mattering only to a player who
   happened to pick one bobbin. Gundry: "That's all a Maker is. Somebody who knows where the threads go." Moves (hard):
   it swells and glows, then throws yarn balls (one, two, three: a heart); its cords lash out round it when Wren's
@@ -500,7 +504,9 @@ anywhere in a House: Wren comes to by its door.
   it rears back (in beat 1 swung back in its web), belly aglow, and spits silk that binds (snip free; bound again, a
   heart and a half; two at once in beat 3); it plucks the warp: the column Wren's in lit, a thread thrumming down it,
   then it snaps (a heart and a half; two columns from beat 2); its drop in beat 2 costs two hearts; in beat 3 it
-  shakes silk moths down out of the web. Three knocks a beat, thrashing between them. The Shuttle (mini-boss): two
+  shakes silk moths down out of the web. Three knocks a beat, thrashing between them. Bound, the tool button snips the
+  silk whatever's in hand, and a warp thread plucked while she's bound never lands on her; with the Shears in hand,
+  whatever in a snip's reach would cut now glints (so the strand into the loom is found by looking from the well's rim). The Shuttle (mini-boss): two
   knocks, jammed by an offcut in its lane; while it waits at its end its lane is lit wall to wall (a heart and a half
   if it finds her in it). The Shears.
 - **The Spool (Final)**: see DUNGEON_TRACKER.md.

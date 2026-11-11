@@ -897,8 +897,8 @@ const GreatSpool = {
             if (!Input.down('act')) c.armed = false;
             if (p.grip !== gran && c.armed && facing && !p.carry) { if (++c.down >= 8) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } } else c.down = 0;
         }
-        /* (how far it's got, c.h of HOLD, is a ring of stitches sewn round her hand as it's held (SpoolArt.holdRing); let go,
-           it unpicks slowly, a stitch a while, and held again it goes on from there) */
+        /* (how far it's got, c.h of HOLD, is a ring of stitches sewn on the floor under the clasped hands as it's held
+           (SpoolArt.holdRing); let go, it unpicks slowly, a stitch every half second, and held again goes on from there) */
         if (p.grip === gran) {
             if (!c.held) { c.held = true; Sfx.play('click'); Ending.hands = this.handsOf(c.linnet, gran, p); UI.toasts = UI.toasts.filter(t => !/take her hand/.test(t.s)); }
             c.h++;
@@ -912,11 +912,11 @@ const GreatSpool = {
         }
     },
     HOLD: 160,
-    /* where the ring's sewn: round the hand of hers Wren holds (the one away from Linnet), where the two hands clasp */
+    /* where the ring's sewn: on the floor at their feet, under the hand of hers Wren holds (the one away from Linnet) */
     holdSpot(a) {
         const c = a.climax, gran = c && a.ents.find(e => e.who === 'gran');
         if (!gran || !c.linnet) return null;
-        return [gran.px + (c.linnet.tx < gran.tx ? 16 : 0), gran.py + 7];
+        return [gran.px + (c.linnet.tx < gran.tx ? 16 : 0), gran.py + 22];
     },
     *letGo(gran, linnet) {
         const a = G.map, p = G.player;

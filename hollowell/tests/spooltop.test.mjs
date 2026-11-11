@@ -188,14 +188,17 @@ test('the end: no menu. Linnet comes and takes one of Gran\'s hands; the other i
     /* a tap: nothing said, nothing taken */
     HW.press('act', 1); HW.step(30);
     assert.ok(a.climax && !HW.Dialog.active && !HW.Progress.flag('unwound'), 'a tap does nothing');
-    /* held a moment and let go: her hand goes back to the Spool, and it waits */
+    /* held a moment and let go: her hand goes back to the Spool, and it waits (how far the hold got unpicks only slowly:
+       tests/review_blind_d.test.mjs) */
+    let tugs = 0; const sfx = HW.global('Sfx'), play0 = sfx.play; sfx.play = function (n, ...r) { if (n === 'tug') tugs++; return play0.call(this, n, ...r); };
     HW.hold('act'); HW.step(60);
     assert.equal(p.grip, g, 'her hand in yours');
     assert.ok(HW.global('Ending').hands.includes(p), 'drawn so');
+    const h0 = a.climax.h;
     HW.release(); HW.step(30);
-    assert.ok(a.climax && a.climax.h === 0 && !HW.global('Script').running('finale'), 'let go: it waits');
-    /* held: she tries twice, then lets go */
-    let tugs = 0; const sfx = HW.global('Sfx'), play0 = sfx.play; sfx.play = function (n, ...r) { if (n === 'tug') tugs++; return play0.call(this, n, ...r); };
+    assert.ok(a.climax && a.climax.h > 0 && a.climax.h < h0 && !HW.global('Script').running('finale'), 'let go: it waits');
+    assert.ok(!HW.global('Ending').hands.includes(p), 'her hand back to the Spool');
+    /* held again: she tries twice in all, then lets go */
     HW.hold('act'); HW.step(200); HW.release();
     assert.equal(tugs, 2, 'she tries twice');
     for (let i = 0; i < 200 && !HW.Progress.flag('unwound'); i++) { HW.skipTalk(); HW.step(10); }

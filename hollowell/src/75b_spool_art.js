@@ -123,6 +123,9 @@ const SpoolArt = {
             Tells.stitchTile(x, y, blink ? shade(red, 0.45) : red);
             Gfx.alpha(0.2 + 0.4 * k); Tells.ellipse(x + 8, y + 10, Math.round(2 + 5 * k), PAL.ink); Gfx.alpha(1);
         }
+        /* (the very end) how far Wren's hold on Gran's other hand has got: on the floor under the hands they clasp */
+        const c = a.climax, at = c && c.h > 0 && GreatSpool.holdSpot(a);
+        if (at) this.holdRing(at[0] - cx, at[1] - cy, Math.min(1, c.h / GreatSpool.HOLD), !!c.held);
     },
     over(a, cx, cy) {
         /* the foot of the Well: things tumbling down after you */
@@ -151,13 +154,19 @@ const SpoolArt = {
             if (f.t === 2) Fx.ring(f.x + 8, f.y + 2, f.col || '#ffffff');
             Gfx.line(f.x + 8 - cx, f.y - cy - 4 - k * 14, f.x + 8 - cx, f.y - cy - 30, f.col || '#ffffff');
         }
-        /* (the very end) how far Wren's hold on Gran's other hand has got */
-        const c = a.climax, at = c && c.h > 0 && GreatSpool.holdSpot(a);
-        if (at) this.holdRing(at[0] - cx, at[1] - cy, Math.min(1, c.h / GreatSpool.HOLD));
     },
-    /* a ring of stitches round the clasped hands, sewn as the hold goes on (the patience ring's look, in Wren's red); let
-       go, it unpicks */
-    holdRing(x, y, k) { Threads.ring(x, y, k, THREAD.wren); },
+    /* a ring of stitches on the floor under the clasped hands, sewn one by one as the hold goes on, the next one flickering
+       in (the patience ring's look, wider, in cream: Wren's red would be lost on her own clothes); let go, it unpicks,
+       slowly */
+    holdRing(x, y, k, sewing) {
+        const N = 16, n = Math.floor(k * N);
+        for (let i = 0; i < N; i++) {
+            const t = -Math.PI / 2 + i / N * Math.PI * 2, sx = Math.round(x + Math.cos(t) * 10) - 1, sy = Math.round(y + Math.sin(t) * 6);
+            /* (the stitches still to come: faint, pricked round the ring) */
+            if (i > n || (i === n && !(sewing && (G.t >> 2) % 2))) { Gfx.alpha(0.35); Gfx.rect(sx, sy, 2, 1, '#c8b890'); Gfx.alpha(1); continue; }
+            Gfx.rect(sx, sy + 1, 2, 1, Threads.UNDER); Gfx.rect(sx, sy, 2, 1, i < n ? '#fff4c0' : '#c8b890');
+        }
+    },
     /* a thing the drum is holding over its place till the place is clear */
     hanging(e, cx, cy) {
         const im = e.sprite ? e.sprite() : null; if (!im) return;
@@ -178,15 +187,18 @@ const SpoolArt = {
         if (turn) for (let i = 0; i < 28; i += 3) { const ph = (turn * 0.6 + i * 9) % 64; Gfx.alpha(0.5); Gfx.rect(x + ph, y + i, 4, 1, '#ffffff'); Gfx.alpha(1); }
         Gfx.rect(x - 5, y - 7, 74, 7, PAL.ink); Gfx.rect(x - 4, y - 6, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y - 6, 72, 1, '#f7d64a');
         Gfx.rect(x - 5, y + 28, 74, 7, PAL.ink); Gfx.rect(x - 4, y + 29, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y + 29, 72, 1, '#f7d64a');
-        this.peg(x + 31, y + 3);
+        this.peg(x + 32, y + 9);
     },
-    /* the seventh place, high on the front of the drum: a peg on a patch of bare wood where nothing's wound, a blank brass
-       tag under it, for the Wanderer's own (the Foot's sign says so). Nothing is ever hung on it */
+    /* the seventh place, high on the front of the drum: a brass peg, end on, in a patch of bare wood where nothing's wound,
+       a blank brass tag under it, as the Hall of Names labels its pegs: the Wanderer's own (the Foot's sign says so).
+       Nothing is ever hung on it */
     peg(x, y) {
-        Gfx.rect(x - 6, y - 1, 14, 17, PAL.ink); Gfx.rect(x - 5, y, 12, 15, '#5a3a24'); Gfx.rect(x - 5, y, 12, 1, '#7a5233'); Gfx.rect(x + 6, y + 1, 1, 14, '#3a2416');
-        Gfx.rect(x, y + 2, 2, 8, '#2a1a10'); Gfx.rect(x - 2, y + 4, 6, 2, '#2a1a10');
-        Gfx.rect(x, y + 1, 2, 8, '#8a8096'); Gfx.rect(x - 2, y + 3, 6, 2, '#8a8096'); Gfx.rect(x, y + 1, 1, 8, '#b4acc0');
-        Gfx.rect(x - 2, y + 11, 6, 3, PAL.ink); Gfx.rect(x - 1, y + 12, 4, 1, '#c9a24a');
+        Gfx.rect(x - 6, y - 6, 13, 17, '#6a4630'); Gfx.rect(x - 6, y - 6, 13, 1, '#8a5e3c');
+        Gfx.rect(x - 6, y - 5, 1, 16, '#3a2416'); Gfx.rect(x + 6, y - 5, 1, 16, '#3a2416'); Gfx.rect(x - 6, y + 10, 13, 1, '#3a2416');
+        Gfx.rect(x - 4, y + 3, 3, 1, '#5a3a24'); Gfx.rect(x + 2, y - 3, 3, 1, '#5a3a24');
+        Gfx.circle(x + 1, y + 2, 3, '#2a1a10');
+        Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, '#c9a24a'); Gfx.rect(x - 1, y - 1, 1, 1, '#f7d64a'); Gfx.rect(x - 1, y - 2, 1, 1, '#fff4c0');
+        Gfx.rect(x - 3, y + 5, 7, 4, PAL.ink); Gfx.rect(x - 2, y + 6, 5, 2, '#c9a24a'); Gfx.rect(x - 2, y + 6, 5, 1, '#f7d64a');
     },
     /* a thing Gran threw, lying where it came down: her thread on it, up to the drum, pulled tight as she takes it back */
     thrown(e, cx, cy) {

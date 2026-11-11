@@ -508,7 +508,7 @@ test("the grip on toggle at the end: a tap takes Gran's hand (the words say tap)
     HW.press('act', 1); HW.step(30);
     assert.equal(p.grip, g, 'her hand in yours, Action let go');
     HW.press('act', 1); HW.step(30);
-    assert.ok(!p.grip && a.climax && a.climax.h === 0, 'a tap lets go: it waits');
+    assert.ok(!p.grip && a.climax && !HW.global('Script').running('finale'), 'a tap lets go: it waits');      /* (unpicking slowly: tests/review_blind_d.test.mjs) */
     HW.press('act', 1);
     let tugs = 0; const sfx = HW.global('Sfx'), play0 = sfx.play; sfx.play = function (n, ...r) { if (n === 'tug') tugs++; return play0.call(this, n, ...r); };
     HW.step(200);
