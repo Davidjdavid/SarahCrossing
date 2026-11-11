@@ -135,10 +135,10 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 34 | AI blind solver A | The Climb trivial: holding Up reaches the top unhurt from any start | fixed: the lane pillars gone; each lane throws a train of six, every throw told (the lane lights and blinks faster, a glow, a chirp); holding Up is caught every time, waiting for each train never; tested |
 | 35 | AI blind solver A | Untaught reaches (the Needle's four tiles, the Bell's range) and silent refusals (a tied crate pushed, the Needle on a knot, pulling onto silk, a target out of reach, the practice rack) | fixed: the Needle outlines every reachable tile and says 'Too far off'; refusals for a tied block, a wedged weight, the practice rack; tested |
 | 36 | AI blind solver A | A failed snip's line at the Spool's top nearly gives the answer; the Bell's harder shove never said | fixed: the failed snip's line now only says what happens; the Bell's text says its snap shoves harder |
-| 37 | AI blind solver B | The way into House 5 couldn't be found: the door opens only while three Snorelings sleep in the nursery's cradles, nothing links door and cradles, and outdoors they never settle (unlike the Pillow Fort's rule) | fixing (fix round B) |
-| 38 | AI blind solver B | House 6's Trap Room: a returning understudy can land on Wren and trap her (only Homeward frees her); about 2 s for two hooks with a tool switch | fixing (fix round B) |
-| 39 | AI blind solver B | Signs that still give the answer: the Moonwalk's, the Pillow Fort's (and Hettie) | fixing (fix round B) |
-| 40 | AI blind solver B | Untaught: the rolled-up Bedroll's straight flight (the Dreaming Door depends on it; looked like an exploit); the Kiln yard's four-tile throw onto the vent; the Loom warp's fourth weight out of sight | fixing (fix round B) |
+| 37 | AI blind solver B | The way into House 5 couldn't be found: the door opens only while three Snorelings sleep in the nursery's cradles, nothing links door and cradles, and outdoors they never settle (unlike the Pillow Fort's rule) | fixed: one rule for Snorelings everywhere (woken, they follow a while, then lie down in the nearest bed they can walk to: their spot, an empty cradle, the Bedroll); three lamps over the door, each corded to its cradle, lit while it's filled; a Snoreling asleep on the road with a cradle beside it shows the rule before it matters; tested; LEG5 by the new route |
+| 38 | AI blind solver B | House 6's Trap Room: a returning understudy can land on Wren and trap her (only Homeward frees her); about 2 s for two hooks with a tool switch | fixed: while Wren reels in or hops, the tile she'll land on counts as hers (06_area freeForThing), so a thing coming home waits behind her; the understudies wait 7 s (was 2) with a countdown ring; tested |
+| 39 | AI blind solver B | Signs that still give the answer: the Moonwalk's, the Pillow Fort's (and Hettie) | fixed: the Moonwalk's and the Pillow Fort's signs and Hettie's line say only how things behave; tested |
+| 40 | AI blind solver B | Untaught: the rolled-up Bedroll's straight flight (the Dreaming Door depends on it; looked like an exploit); the Kiln yard's four-tile throw onto the vent; the Loom warp's fourth weight out of sight | fixed: rolling up the Bedroll draws Wren's thread straight to the doorway (taught by play in Mallow's Study too); the warp's four cords drawn over the birches with a glint along each; two vents on the Kiln road throwing a pot between them; tested (the Laundry needs no change: it can be done before the Bedroll) |
 
 ## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
 Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,
@@ -273,6 +273,8 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
 - Fix round A done (fixA_brief.md; tests/review_blind_a.test.mjs, 14; suite 604/604 at its finish; LEG7-9 play; probe
   over all nine legs 0 errors). Running now: the Spool's top and the climax (finale_brief.md: P4, P1's climax, P2's
   count at the Spool).
+- Fix round B done (fixB_brief.md; suite 626/626 at its finish; LEG2, LEG5, LEG6, LEG8 play with the probe on).
+  Running now: the signature chain (chain_brief.md: P9, the fifth House's Long Way Home).
 - Running: P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
   Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
   capstone_brief.md.
