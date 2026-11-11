@@ -530,7 +530,7 @@ const Dreams = {
     last: {}, lastT: -9999,
     latched(r) { return Progress.areaFlag('slumber', 'dream:' + r); },
     /* how the last flight's dreams went, for a few seconds after it came down: 'good', 'bad', or neither */
-    lastOf(r) { return G.t - this.lastT < 300 ? this.last[r] : null; },
+    lastOf(r) { const dt = G.t - this.lastT; return dt >= 0 && dt < 300 ? this.last[r] : null; },
     land(p, f) {
         const a = p.area, d = f && f.dreams;
         if (!a || a.id !== 'slumber' || !d) return;
