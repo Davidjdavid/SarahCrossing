@@ -63,7 +63,7 @@ class CapTag extends Ent {
 }
 
 /* ---------------- the House ---------------- */
-const CAP_NOTE = "YOUR TURN. The three things up there are yours to set out: give them places (the Needle), tie them, or leave them be. Tell the tin which one the button goes under. The red lever lets him in. Mine sets it all back the way I had it. -G.";
+const CAP_NOTE = "YOUR TURN. The three things up there are yours to set out: give them places (the Needle), tie them, or leave them be. Tell the tin which one the button goes under. The lever by the Makers lets him in; mine, by the tin, sets it all back the way I had it. -G.";
 defMaking(CAP_N, {
     /* up top: two little rooms, a gap at each end of the wall between them; his door on the west, the hoop on the east */
     '0,0': {
@@ -208,7 +208,7 @@ const Capstone = {
     /* Gundry's lever: every thing up there back on its first mark, untied and unstitched, the button back in its tin */
     reset(a, lever) {
         if (this.ending) return;
-        if (this.run) { UI.toast("Not while he's in. Let him finish, or call him out with the red lever.", 160); Sfx.play('hitthing'); return; }
+        if (this.run) { UI.toast("Not while he's in. Let him finish, or call him out with the other lever.", 160); Sfx.play('hitthing'); return; }
         const up = this.up(a), kit = this.kit(a), mine = (Inv.stitches || []).filter(s => s.area === CAP_ID);
         const changed = this.setOut(a) || !!this.button() || mine.length > 0;
         lever.on = !lever.on; Sfx.play('click');
