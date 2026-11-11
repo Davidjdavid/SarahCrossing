@@ -59,8 +59,9 @@ PRESETS.afterD7 = () => {
 };
 PRESETS.afterMakings = () => {
     PRESETS.afterD7();
-    for (const f of ['gundry_job', 'makings_done']) Progress.set(f);
-    for (let n = 1; n <= MAKING_COUNT; n++) { Progress.set('making' + n); Progress.set('making' + n + '_ahas', 3); }
+    for (const f of ['gundry_job', 'makings_done', 'cap_given', 'cap_seen']) Progress.set(f);
+    /* (every Little House, Wren's own last one too) */
+    for (let n = 1; n <= MAKINGS.length; n++) { Progress.set('making' + n); Progress.set('making' + n + '_ahas', 3); }
     Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
     World.enter('underside', 49, 5, { dir: DOWN });
 };

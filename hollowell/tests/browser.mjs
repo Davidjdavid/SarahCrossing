@@ -224,6 +224,23 @@ const SCENARIOS = {
             }, [n, x, y]);
             await shot(name);
         }
+        /* Wren's own (src/68c_makings_capstone.js): set out from underneath, Tuck let in, graded by the Makers */
+        await page.evaluate(() => {
+            HW.Progress.set('making8'); HW.Progress.set('cap_given'); HW.Inv.stitches = [];
+            HW.warp('making9', 9, 16); HW.step(10); HW.skipTalk();
+            const st = (x, y, fy, d, moves) => { HW.walkTo(x, y + 11 + fy); HW.face(d); HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2); for (const m of moves) { HW.hold(m); HW.step(2); HW.release(); HW.step(8); } HW.press('tool', 1); HW.step(30); };
+            st(7, 2, 1, 'up', ['right', 'right', 'right']); st(7, 8, -1, 'down', ['right', 'right']);
+            HW.walkTo(3, 19); HW.face('down'); HW.press('act', 1); HW.step(3); HW.skipTalk(0); HW.step(30);
+            HW.walkTo(9, 18); HW.face('up'); HW.step(30);
+        });
+        await shot('mk_9_setout');
+        await page.evaluate(() => { HW.walkTo(7, 19); HW.face('down'); HW.press('act', 1); const t = HW.G.map.find('tuck'); for (let i = 0; i < 900 && t.state !== 'sit'; i++) HW.step(1); HW.walkTo(10, 14); HW.face('up'); HW.step(20); });
+        await shot('mk_9_tuck');
+        await page.evaluate(() => {
+            HW.press('act', 1); HW.step(3); const t = HW.G.map.find('tuck'); for (let i = 0; i < 1500 && t.state !== 'done'; i++) HW.step(1);
+            const D = HW.global('Dialog'); for (let i = 0; i < 2000 && !(D.active && D.who === 'ives' && D.shown >= D.pageLen()); i++) { if (D.active && D.shown >= D.pageLen()) HW.press('act', 1); else HW.step(1); }
+        });
+        await shot('mk_9_graded');
     },
     async reveal2() {
         await open();

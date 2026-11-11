@@ -26,6 +26,41 @@ function tidyNudged(name) {
     const r = i >= 0 && Stats.rooms['tidy:' + i];
     return !!(r && r.nudges);
 }
+/* how Wren really tidied the Ballroom on her own Wander, for Ives's page: watched while she was at it, and written down
+   the moment both busts were home. Held: she held one back before they met and let the other by. Unjammed: she let them
+   meet nose to nose in the corridor, then pulled one back out of the way. (A save from before it was watched, or a
+   preset, has neither: then the page doesn't say.) */
+const BallWatch = {
+    run: null,
+    tick(a) {
+        const ball = a.ents.filter(e => e.group === 'ball' && e.ret && !e.removed);
+        /* (set out, waiting on the lever: a fresh go) */
+        if (ball.length < 2 || ball.some(b => b.tiedOff)) { this.run = null; return; }
+        const r = this.run || (this.run = { jam: false, held: false });
+        for (const b of ball) {
+            if (b.heldBy && b.heldBy === G.player && b.ret.state !== 'home') r.held = true;
+            const tr = b.ret.trace, next = b.ret.state === 'returning' && b.ret.strain > 10 && tr.length >= 2 ? a.at(tr[tr.length - 2][0], tr[tr.length - 2][1]) : null;
+            if (next && next !== b && next.group === 'ball') r.jam = true;
+        }
+    },
+    done() { const r = this.run || {}; Stats.count(r.jam ? 'ball:unjammed' : r.held ? 'ball:held' : 'ball:other'); this.run = null; },
+};
+{
+    const tick0 = TidyLogic.tick;
+    TidyLogic.tick = function (a) {
+        const was = Progress.flag('tidy_ballDone');
+        if (!was) BallWatch.tick(a);
+        tick0.call(this, a);
+        if (!was && Progress.flag('tidy_ballDone')) BallWatch.done();
+    };
+}
+function ballroomMemo() {
+    const m = tidyMinutes('Ballroom'), head = m ? `THE BALLROOM: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}.` : 'THE BALLROOM.';
+    if (Stats.c['ball:unjammed']) return `${head} Two busts, one corridor. You let them jam nose to nose, then pulled the one back out of the way. Bold. I had to sit down. -I.`;
+    if (Stats.c['ball:held']) return `${head} Two busts, one corridor. You held the one back and let the other by. They never even touched. Not a scratch on my busts. -I.`;
+    if (Stats.c['ball:other']) return `${head} Two busts, one corridor, both home, and I still can't work out how. I've drawn it four times. -I.`;
+    return `${head} Two busts, one corridor, and one of them had to wait its turn. You worked out which. (The rest of the page is exclamation marks.) -I.`;
+}
 
 /* ---------------- no Needle in Ives's rooms ---------------- */
 {
@@ -108,7 +143,7 @@ defMaking(5, {
     },
     '0,1': BELOW_ROOM('Under the Ballroom', '0,0', 'e', [
         { k: 'deco', x: 4, y: 3, look: 'keeper_costume', solid: [[0, 0], [1, 0]], text: "On a rail under the Ballroom hangs a wardrobe with polished feet, its doors open: leather straps inside, two handholds worn smooth, a cushion. The Grand Housekeeper. A label: MINE. WHEELS WANT OILING. DON'T TELL GUNDRY. -I." },
-        { k: 'memo', x: 15, y: 2, say: () => "THE BALLROOM. Two busts, one corridor. You held the one and let the other by, and then you sat on the floor and laughed. I heard you. -I." },
+        { k: 'memo', x: 15, y: 2, say: () => ballroomMemo() },
     ]),
     '1,1': Object.assign(BELOW_ROOM('Under the Hall of Busts', '1,0', 'we', [
         { k: 'memo', x: 16, y: 2, say: () => { const m = tidyMinutes('Hall of Busts'); return m ? `THE HALL OF BUSTS: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}. Stood on the plate, pushed the big bust up the lane, and let it come home through the block. I nearly clapped and gave us all away. -I.` : "THE HALL OF BUSTS. (The page is blank. That's not like me.) -I."; } },

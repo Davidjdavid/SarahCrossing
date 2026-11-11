@@ -50,15 +50,19 @@ SPAWN.capreset = (x, y, p) => new CapReset(x, y, p);
 class CapTag extends Ent {
     constructor() { super('captag'); }
     cord() {
-        const id = Capstone.button(), e = id && this.area.find(id);
+        const id = Capstone.button(), e = id && this.area && this.area.find(id);
         return e ? this.area.ents.find(o => o.kind === 'cord' && o.thing === e && o.pos) || null : null;
     }
+    /* (where its cord is: drawn with it, just after it) */
+    get x() { const c = this.cord(); return c ? c.x : -9999; }
+    get y() { const c = this.cord(); return c ? c.y : -9999; }
+    set x(v) { } set y(v) { }
     get sortY() { const c = this.cord(); return c ? c.sortY + 1 : -9999; }
     draw(cx, cy) {
         const c = this.cord(); if (!c) return;
-        const x = c.pos[0] * T + 8 - cx + 3, y = c.pos[1] * T - cy - 6;
-        Gfx.line(x - 2, y, x, y + 1, '#8a6a4e');
-        Gfx.rect(x, y - 1, 6, 5, PAL.ink); Gfx.rect(x + 1, y, 4, 3, '#fbf3df'); Gfx.rect(x + 2, y + 1, 2, 1, '#6ec0ee');
+        const x = c.pos[0] * T + 8 - cx, y = c.pos[1] * T - cy;
+        Gfx.line(x + 1, y - 3, x + 3, y - 3, '#8a6a4e');
+        Gfx.rect(x + 3, y - 6, 7, 6, PAL.ink); Gfx.rect(x + 4, y - 5, 5, 4, '#fbf3df'); Gfx.rect(x + 5, y - 4, 3, 2, '#6ec0ee'); Gfx.rect(x + 5, y - 4, 1, 1, '#d8f0ff');
     }
 }
 
@@ -105,7 +109,7 @@ AREAS.underside.ents.push(
 
 /* ---------------- setting it out, letting him in, and the grading ---------------- */
 const Capstone = {
-    run: null,              /* while Tuck's in: { t0, quiet, hmph, button, setOut, yanks0, pushes0 } */
+    run: null,              /* while Tuck's in: { t0, quiet, hmph, button, foundUnder, setOut, yanks0, pushes0 } */
     ending: false,
     flag(n) { const f = Progress.areaFlags[CAP_ID]; return f ? f[n] : undefined; },
     setFlag(n, v) { Progress.setAreaFlag(CAP_ID, n, v); },
@@ -152,12 +156,12 @@ const Capstone = {
             if (knots.join() !== was.join()) this.setFlag('cap:knots', knots);
             return;
         }
-        /* he's in: sat with nothing moving (nothing up there on the move, nobody at a cord or the Needle), he waits a
-           while, says so, and then gives up */
+        /* he's in: sat with nothing moving (nothing up there on the move or jumping, nobody at a cord or the Needle), he
+           waits a while, says so, and then gives up */
         const t = a.find('tuck');
         if (!t || t.state === 'done' || Script.blocking()) return;
         const up = this.up(a);
-        const moving = !!t.mv || !!Spool.pull || !!Needle.st || a.ents.some(e => e.isGrid && e !== t && e.mv && !e.person && a.roomAt(e.tx, e.ty) === up);
+        const moving = !!t.mv || !!Spool.pull || !!Needle.st || a.ents.some(e => e.isGrid && e !== t && !e.person && (e.mv || e.jolt > 0) && a.roomAt(e.tx, e.ty) === up);
         if (t.state === 'sit' && !moving) r.quiet++; else { r.quiet = 0; r.hmph = false; }
         if (r.quiet >= CAP_HMPH && !r.hmph) { r.hmph = true; t.say('Is this IT?', 'dots'); }
         if (r.quiet >= CAP_SULK) this.finish(a, 'stuck');
@@ -165,7 +169,7 @@ const Capstone = {
         for (const n of a.ents) if (n.kind === 'npc' && n.bubbleT > 0 && --n.bubbleT === 0) n.bubble = null;
     },
     /* the Makers underneath, all at once: a heart, an exclamation, a sigh */
-    react(a, bubble, dur = 70) { for (const n of a.ents) if (n.kind === 'npc' && CAP_MAKERS.includes(n.who)) { n.bubble = bubble; n.bubbleT = dur; } },
+    react(a, bubble, dur = 120) { for (const n of a.ents) if (n.kind === 'npc' && CAP_MAKERS.includes(n.who)) { n.bubble = bubble; n.bubbleT = dur; } },
     tin(a) {
         if (this.ending) return;
         Script.run(function* () {
@@ -234,7 +238,7 @@ const Capstone = {
         const c = Making.cur || { ahas: new Set(), bumps: 0 }, r = this.run || {};
         return {
             how, n: c.ahas.size, bumps: c.bumps, cleared: c.ahas.has('cleared'), found: c.ahas.has('found'),
-            button: r.button || null, setOut: !!r.setOut,
+            button: r.button || null, under: r.foundUnder || r.button || null, setOut: !!r.setOut,
             yanked: (Stats.c['tuck:yanked'] || 0) - (r.yanks0 || 0), pushes: (Stats.c['tuck:push'] || 0) - (r.pushes0 || 0),
             secs: Math.round((G.t - (r.t0 || G.t)) / 60),
         };
@@ -247,7 +251,7 @@ const Capstone = {
         else if (f.how === 'called') add(['ambrose', 'tess'], "Called in for his tea. Fair enough. I'd have gone too.");
         else if (!f.setOut && !f.pushes) add(['bram', 'ambrose'], "In one door and out the other. That's not a House, that's a corridor. HA!");
         else if (f.cleared) add(['ives', 'tess'], "He moved that himself. He'll be telling everyone for a week.");
-        if (f.found) add({ capP: ['tess', 'ambrose'], capW: ['ambrose', 'tess'], capS: ['bram', 'tess'] }[f.button] || ['tess'], { capP: 'Under the pot! Oldest trick there is. Still works.', capW: 'Under the block! He went pink.', capS: "Under the heavy one. He'll say he lifted it. Let him." }[f.button] || 'He found it!');
+        if (f.found) add({ capP: ['tess', 'ambrose'], capW: ['ambrose', 'tess'], capS: ['bram', 'tess'] }[f.under] || ['tess'], { capP: 'Under the pot! Oldest trick there is. Still works.', capW: 'Under the block! He went pink.', capS: "Under the heavy one. He'll say he lifted it. Let him." }[f.under] || 'He found it!');
         else if (f.button) add(['mallow', 'ives'], `*yawn* The button's still under ${this.noun(f.button)}. Somebody should tell him. Not me.`);
         else add(['ives', 'tess'], "No button? There's always a button, love.");
         if (f.bumps === 1) add(['tess', 'ambrose'], "One bump. He'll be showing everyone the bruise.");
@@ -326,13 +330,17 @@ MAKINGS[CAP_N - 2].then = function* () { yield* Capstone.handOver(); };
 {
     const finish0 = Making.finish;
     Making.finish = function (a) { if (a && a.def.making === CAP_N) return Capstone.finish(a, 'hoop'); return finish0.call(this, a); };
-    /* an Aha in her House: the Makers underneath can't help themselves */
+    /* an Aha in her House: the Makers underneath can't help themselves (and the button: what he found it under, the
+       thing he's facing as he finds it) */
     const aha0 = Making.aha;
     Making.aha = function (id) {
         const had = this.cur && this.cur.ahas.has(id);
         aha0.call(this, id);
         const a = G.map;
-        if (!had && a && a.def.making === CAP_N && !Capstone.ending) Capstone.react(a, 'heart');
+        if (had || !a || a.def.making !== CAP_N || Capstone.ending) return;
+        Capstone.react(a, 'heart');
+        const t = id === 'found' && a.find('tuck'), o = t && a.at(t.tx + DX[t.dir], t.ty + DY[t.dir]);
+        if (o && Capstone.run) Capstone.run.foundUnder = o.id || null;
     };
     /* (and a bump: they all wince) */
     const bump0 = Tuck.prototype.bump;

@@ -18413,7 +18413,11 @@ const Bedroll = {
         if (this.sleeper) { UI.toast("Somebody's fast asleep on your Bedroll."); return; }
         Inv.bedroll = null; this.float = null; this.traces = {};
         p.dropBed();
-        Sfx.play('lift'); UI.toast('Bedroll rolled up.', 60);
+        /* her place is the room's own again, the doorway she came in by, and her thread to it is drawn straight (she didn't
+           walk here from there: like any thread that jumps, a flight home along it goes straight over whatever's between):
+           shown a moment, so a fall that flies her through a wall to the door is plainly the thread, not a slip */
+        this.snapT = 110;
+        Sfx.play('lift'); Sfx.play('twang', 0.5); UI.toast('Bedroll rolled up.', 60);
     },
     /* it's gone somewhere it can't stay (a board gave way under it, its float sank): back in Wren's pack */
     lost(why) {
@@ -18559,9 +18563,19 @@ TOOLS.bedroll = {
         if (Inv.equipped !== 'bedroll' || !p || p.state !== 'normal') return;
         if (Bedroll.near(p)) Bedroll.rollUp(p); else Bedroll.lay(p);
     },
-    update(area) { Bedroll.update(area); },
+    update(area) { Bedroll.update(area); if (Bedroll.snapT > 0) Bedroll.snapT--; },
     draw(cx, cy) {
         const p = G.player;
+        /* just rolled up: Wren's red thread, back along her trace to the doorway's mark (straight where it jumps) */
+        const m = p && p.mark;
+        if (Bedroll.snapT > 0 && m && !m.bed && p.area && m.area === p.area.id && p.state === 'normal') {
+            const pts = p.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
+            pts.push([p.x - cx, p.y - cy - 4]);
+            Gfx.alpha(Math.min(1, Bedroll.snapT / 40));
+            for (let i = 0; i + 1 < pts.length; i++) { Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.35)'); Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.wren); }
+            Marks.draw(m.tx * T - cx, m.ty * T - cy, THREAD.wren, true);
+            Gfx.alpha(1);
+        }
         if (!this.down || this.charge < 4 || !Inv.bedroll || !p) return;
         /* a ring of stitches filling in over Wren's head */
         const n = Math.round(12 * this.charge / this.HOLD);
@@ -18838,7 +18852,7 @@ AI.snore = (e, p) => {
             e.mode = 'sleep'; e.stir = 0; e.bed = null;
             if (r.roll) { Bedroll.sleeper = e; e.onRoll = true; }
             if (r.nest) e.trace = [[e.hx, e.hy]];
-            else { Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); Sfx.play('yawn', 0.5); }
+            else { Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); if (p && p.area === e.area && Math.hypot(p.x - e.x, p.y - e.y) < 12 * T) Sfx.play('yawn', 0.5); }
             return;
         }
         e.dir = dirOf(dx, dy); e.anim++;
@@ -18991,7 +19005,7 @@ defBlock({
         { k: 'moss', x: 10, y: 11, dir: 'down', dist: 4, id: 'hwMossS' },
         { k: 'sign', x: 11, y: 16, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
         { k: 'building', x: 15, y: 3, w: 10, h: 6, door: 4, art: 'slumber' },
-        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. Over it hang three little lamps, dark, each on a cord that runs away over the stream. From somewhere inside comes a long, slow yawn." },
+        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. Over it hang three little lamps, each on a cord that runs away over the stream. From somewhere inside comes a long, slow yawn." },
         { k: 'sign', x: 17, y: 9, text: 'THE SLUMBERHOUSE. Visiting hours: whenever you wake up. Doctor M.' },
         { k: 'puffball', x: 9, y: 10, id: 'hwPuffN' },
         /* Old Hummock's own bed */
@@ -20022,7 +20036,7 @@ defHouse({
                 '####################',
                 '#..................#',
                 '#..V<<<<<<<<<<<<<..#',
-                '#..V............A...',
+                '#..V............A..#',
                 '#..V............A..#',
                 '...V............A~~~',
                 '#..V............A..#',
@@ -20037,20 +20051,22 @@ defHouse({
                 { k: 'chest', x: 1, y: 1, item: 'plan', id: 'ldPlan', hidden: true, when: 'lr1&lr2&lr3' },
                 { k: 'grate', x: 19, y: 5 },
                 { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, saveWake: e => Bedroll.float === e, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
-                { k: 'door', x: 19, y: 3, type: 'gate', when: 'stlever', dir: 'v', id: 'ldStudyDoor' },
                 { k: 'sign', x: 18, y: 9, text: 'THE LAUNDRY. The wash goes round and round. Whatever goes round comes back to where it started, and is none the wiser.' },
                 { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers. They only catch you on your way home.' },
             ],
             nudge: { solved: () => Inv.plans.includes('slumber'), after: 60 * 60 * 3, at: [3, 8], say: "The basket bobs at its little dock. Out on the water, a dreamcatcher turns slowly, though nobody could ever walk under it." },
         },
-        /* ---------------- 5 Mallow's Study (signature): only reached by sending your Bedroll home in the sleeping barrel ---------------- */
+        /* ---------------- 5 Mallow's Study (signature): only reached by sending your Bedroll home in the sleeping barrel; and no door
+           out. The Bedroll's your place, so a fall only brings you back to it: roll it up, and your place is the doorway you
+           came into the laundry by, your thread drawn straight to it, so a drop in the water flies you home along it, over
+           whatever's between (the rule the Dreaming Door can also be done by) ---------------- */
         '3,2': {
             name: "Mallow's Study",
             rows: [
                 '####################',
                 '#..................#',
                 '#..................#',
-                '...................#',
+                '#..................#',
                 '#..................#',
                 '~~~~...............#',
                 '#~~~...............#',
@@ -20060,12 +20076,12 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'lever', x: 2, y: 1, id: 'stLever', sig: 'stlever', once: true },
                 { k: 'signature', x: 10, y: 5, house: 'slumber' },
                 { k: 'deco', x: 14, y: 2, look: 'desk', solid: [[0, 0], [1, 0]], text: "Doctor Mallow's desk. A case book lies open: \"The Wanderer. Sleeps soundly. Dreams of the road. Wakes where we put her.\" The last three words have been crossed out, very hard." },
                 { k: 'deco', x: 17, y: 7, look: 'bookshelf_tall', solid: [[0, 0]], oy: -16, text: 'Books on sleep, on dreams, on threads, and one called KNOTS FOR BEGINNERS with a lot of pages turned down.' },
                 { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'stPatch' },
             ],
+            nudge: { after: 60 * 60 * 2, at: [2, 5], say: "No door, and a fall only brings you back to your Bedroll, since it's your place. Rolled up, your place is the door you came into the laundry by, and a fall goes there instead." },
         },
         /* ---------------- 6 The Drying Loft: the sleeping boulder's own place is out on the island, empty while it sleeps: the
            Hookline catches on an empty mark. Wake it (the obvious thing) and it goes home and fills it; leave, and it lies
@@ -26257,6 +26273,41 @@ function tidyNudged(name) {
     const r = i >= 0 && Stats.rooms['tidy:' + i];
     return !!(r && r.nudges);
 }
+/* how Wren really tidied the Ballroom on her own Wander, for Ives's page: watched while she was at it, and written down
+   the moment both busts were home. Held: she held one back before they met and let the other by. Unjammed: she let them
+   meet nose to nose in the corridor, then pulled one back out of the way. (A save from before it was watched, or a
+   preset, has neither: then the page doesn't say.) */
+const BallWatch = {
+    run: null,
+    tick(a) {
+        const ball = a.ents.filter(e => e.group === 'ball' && e.ret && !e.removed);
+        /* (set out, waiting on the lever: a fresh go) */
+        if (ball.length < 2 || ball.some(b => b.tiedOff)) { this.run = null; return; }
+        const r = this.run || (this.run = { jam: false, held: false });
+        for (const b of ball) {
+            if (b.heldBy && b.heldBy === G.player && b.ret.state !== 'home') r.held = true;
+            const tr = b.ret.trace, next = b.ret.state === 'returning' && b.ret.strain > 10 && tr.length >= 2 ? a.at(tr[tr.length - 2][0], tr[tr.length - 2][1]) : null;
+            if (next && next !== b && next.group === 'ball') r.jam = true;
+        }
+    },
+    done() { const r = this.run || {}; Stats.count(r.jam ? 'ball:unjammed' : r.held ? 'ball:held' : 'ball:other'); this.run = null; },
+};
+{
+    const tick0 = TidyLogic.tick;
+    TidyLogic.tick = function (a) {
+        const was = Progress.flag('tidy_ballDone');
+        if (!was) BallWatch.tick(a);
+        tick0.call(this, a);
+        if (!was && Progress.flag('tidy_ballDone')) BallWatch.done();
+    };
+}
+function ballroomMemo() {
+    const m = tidyMinutes('Ballroom'), head = m ? `THE BALLROOM: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}.` : 'THE BALLROOM.';
+    if (Stats.c['ball:unjammed']) return `${head} Two busts, one corridor. You let them jam nose to nose, then pulled the one back out of the way. Bold. I had to sit down. -I.`;
+    if (Stats.c['ball:held']) return `${head} Two busts, one corridor. You held the one back and let the other by. They never even touched. Not a scratch on my busts. -I.`;
+    if (Stats.c['ball:other']) return `${head} Two busts, one corridor, both home, and I still can't work out how. I've drawn it four times. -I.`;
+    return `${head} Two busts, one corridor, and one of them had to wait its turn. You worked out which. (The rest of the page is exclamation marks.) -I.`;
+}
 
 /* ---------------- no Needle in Ives's rooms ---------------- */
 {
@@ -26339,7 +26390,7 @@ defMaking(5, {
     },
     '0,1': BELOW_ROOM('Under the Ballroom', '0,0', 'e', [
         { k: 'deco', x: 4, y: 3, look: 'keeper_costume', solid: [[0, 0], [1, 0]], text: "On a rail under the Ballroom hangs a wardrobe with polished feet, its doors open: leather straps inside, two handholds worn smooth, a cushion. The Grand Housekeeper. A label: MINE. WHEELS WANT OILING. DON'T TELL GUNDRY. -I." },
-        { k: 'memo', x: 15, y: 2, say: () => "THE BALLROOM. Two busts, one corridor. You held the one and let the other by, and then you sat on the floor and laughed. I heard you. -I." },
+        { k: 'memo', x: 15, y: 2, say: () => ballroomMemo() },
     ]),
     '1,1': Object.assign(BELOW_ROOM('Under the Hall of Busts', '1,0', 'we', [
         { k: 'memo', x: 16, y: 2, say: () => { const m = tidyMinutes('Hall of Busts'); return m ? `THE HALL OF BUSTS: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}. Stood on the plate, pushed the big bust up the lane, and let it come home through the block. I nearly clapped and gave us all away. -I.` : "THE HALL OF BUSTS. (The page is blank. That's not like me.) -I."; } },
@@ -26730,15 +26781,19 @@ SPAWN.capreset = (x, y, p) => new CapReset(x, y, p);
 class CapTag extends Ent {
     constructor() { super('captag'); }
     cord() {
-        const id = Capstone.button(), e = id && this.area.find(id);
+        const id = Capstone.button(), e = id && this.area && this.area.find(id);
         return e ? this.area.ents.find(o => o.kind === 'cord' && o.thing === e && o.pos) || null : null;
     }
+    /* (where its cord is: drawn with it, just after it) */
+    get x() { const c = this.cord(); return c ? c.x : -9999; }
+    get y() { const c = this.cord(); return c ? c.y : -9999; }
+    set x(v) { } set y(v) { }
     get sortY() { const c = this.cord(); return c ? c.sortY + 1 : -9999; }
     draw(cx, cy) {
         const c = this.cord(); if (!c) return;
-        const x = c.pos[0] * T + 8 - cx + 3, y = c.pos[1] * T - cy - 6;
-        Gfx.line(x - 2, y, x, y + 1, '#8a6a4e');
-        Gfx.rect(x, y - 1, 6, 5, PAL.ink); Gfx.rect(x + 1, y, 4, 3, '#fbf3df'); Gfx.rect(x + 2, y + 1, 2, 1, '#6ec0ee');
+        const x = c.pos[0] * T + 8 - cx, y = c.pos[1] * T - cy;
+        Gfx.line(x + 1, y - 3, x + 3, y - 3, '#8a6a4e');
+        Gfx.rect(x + 3, y - 6, 7, 6, PAL.ink); Gfx.rect(x + 4, y - 5, 5, 4, '#fbf3df'); Gfx.rect(x + 5, y - 4, 3, 2, '#6ec0ee'); Gfx.rect(x + 5, y - 4, 1, 1, '#d8f0ff');
     }
 }
 
@@ -26785,7 +26840,7 @@ AREAS.underside.ents.push(
 
 /* ---------------- setting it out, letting him in, and the grading ---------------- */
 const Capstone = {
-    run: null,              /* while Tuck's in: { t0, quiet, hmph, button, setOut, yanks0, pushes0 } */
+    run: null,              /* while Tuck's in: { t0, quiet, hmph, button, foundUnder, setOut, yanks0, pushes0 } */
     ending: false,
     flag(n) { const f = Progress.areaFlags[CAP_ID]; return f ? f[n] : undefined; },
     setFlag(n, v) { Progress.setAreaFlag(CAP_ID, n, v); },
@@ -26832,12 +26887,12 @@ const Capstone = {
             if (knots.join() !== was.join()) this.setFlag('cap:knots', knots);
             return;
         }
-        /* he's in: sat with nothing moving (nothing up there on the move, nobody at a cord or the Needle), he waits a
-           while, says so, and then gives up */
+        /* he's in: sat with nothing moving (nothing up there on the move or jumping, nobody at a cord or the Needle), he
+           waits a while, says so, and then gives up */
         const t = a.find('tuck');
         if (!t || t.state === 'done' || Script.blocking()) return;
         const up = this.up(a);
-        const moving = !!t.mv || !!Spool.pull || !!Needle.st || a.ents.some(e => e.isGrid && e !== t && e.mv && !e.person && a.roomAt(e.tx, e.ty) === up);
+        const moving = !!t.mv || !!Spool.pull || !!Needle.st || a.ents.some(e => e.isGrid && e !== t && !e.person && (e.mv || e.jolt > 0) && a.roomAt(e.tx, e.ty) === up);
         if (t.state === 'sit' && !moving) r.quiet++; else { r.quiet = 0; r.hmph = false; }
         if (r.quiet >= CAP_HMPH && !r.hmph) { r.hmph = true; t.say('Is this IT?', 'dots'); }
         if (r.quiet >= CAP_SULK) this.finish(a, 'stuck');
@@ -26845,7 +26900,7 @@ const Capstone = {
         for (const n of a.ents) if (n.kind === 'npc' && n.bubbleT > 0 && --n.bubbleT === 0) n.bubble = null;
     },
     /* the Makers underneath, all at once: a heart, an exclamation, a sigh */
-    react(a, bubble, dur = 70) { for (const n of a.ents) if (n.kind === 'npc' && CAP_MAKERS.includes(n.who)) { n.bubble = bubble; n.bubbleT = dur; } },
+    react(a, bubble, dur = 120) { for (const n of a.ents) if (n.kind === 'npc' && CAP_MAKERS.includes(n.who)) { n.bubble = bubble; n.bubbleT = dur; } },
     tin(a) {
         if (this.ending) return;
         Script.run(function* () {
@@ -26914,7 +26969,7 @@ const Capstone = {
         const c = Making.cur || { ahas: new Set(), bumps: 0 }, r = this.run || {};
         return {
             how, n: c.ahas.size, bumps: c.bumps, cleared: c.ahas.has('cleared'), found: c.ahas.has('found'),
-            button: r.button || null, setOut: !!r.setOut,
+            button: r.button || null, under: r.foundUnder || r.button || null, setOut: !!r.setOut,
             yanked: (Stats.c['tuck:yanked'] || 0) - (r.yanks0 || 0), pushes: (Stats.c['tuck:push'] || 0) - (r.pushes0 || 0),
             secs: Math.round((G.t - (r.t0 || G.t)) / 60),
         };
@@ -26927,7 +26982,7 @@ const Capstone = {
         else if (f.how === 'called') add(['ambrose', 'tess'], "Called in for his tea. Fair enough. I'd have gone too.");
         else if (!f.setOut && !f.pushes) add(['bram', 'ambrose'], "In one door and out the other. That's not a House, that's a corridor. HA!");
         else if (f.cleared) add(['ives', 'tess'], "He moved that himself. He'll be telling everyone for a week.");
-        if (f.found) add({ capP: ['tess', 'ambrose'], capW: ['ambrose', 'tess'], capS: ['bram', 'tess'] }[f.button] || ['tess'], { capP: 'Under the pot! Oldest trick there is. Still works.', capW: 'Under the block! He went pink.', capS: "Under the heavy one. He'll say he lifted it. Let him." }[f.button] || 'He found it!');
+        if (f.found) add({ capP: ['tess', 'ambrose'], capW: ['ambrose', 'tess'], capS: ['bram', 'tess'] }[f.under] || ['tess'], { capP: 'Under the pot! Oldest trick there is. Still works.', capW: 'Under the block! He went pink.', capS: "Under the heavy one. He'll say he lifted it. Let him." }[f.under] || 'He found it!');
         else if (f.button) add(['mallow', 'ives'], `*yawn* The button's still under ${this.noun(f.button)}. Somebody should tell him. Not me.`);
         else add(['ives', 'tess'], "No button? There's always a button, love.");
         if (f.bumps === 1) add(['tess', 'ambrose'], "One bump. He'll be showing everyone the bruise.");
@@ -27006,13 +27061,17 @@ MAKINGS[CAP_N - 2].then = function* () { yield* Capstone.handOver(); };
 {
     const finish0 = Making.finish;
     Making.finish = function (a) { if (a && a.def.making === CAP_N) return Capstone.finish(a, 'hoop'); return finish0.call(this, a); };
-    /* an Aha in her House: the Makers underneath can't help themselves */
+    /* an Aha in her House: the Makers underneath can't help themselves (and the button: what he found it under, the
+       thing he's facing as he finds it) */
     const aha0 = Making.aha;
     Making.aha = function (id) {
         const had = this.cur && this.cur.ahas.has(id);
         aha0.call(this, id);
         const a = G.map;
-        if (!had && a && a.def.making === CAP_N && !Capstone.ending) Capstone.react(a, 'heart');
+        if (had || !a || a.def.making !== CAP_N || Capstone.ending) return;
+        Capstone.react(a, 'heart');
+        const t = id === 'found' && a.find('tuck'), o = t && a.at(t.tx + DX[t.dir], t.ty + DY[t.dir]);
+        if (o && Capstone.run) Capstone.run.foundUnder = o.id || null;
     };
     /* (and a bump: they all wince) */
     const bump0 = Tuck.prototype.bump;
@@ -32608,14 +32667,17 @@ for (const h of SILK_HOLLOWS) {
 }
 
 /* ---------- the Wander quilt, on the chair by Wren's bed: a patch sewn on for everything found (counts, never where) ---------- */
+/* What's only seen or tried, with nothing to show for it but the seeing, isn't sewn on: the costume through Seam's back
+   window (S07), a House's key tugging back at its door (S08), the Well's groan at the Bell and its threads under the Hook
+   (S09, S10), the Bell rung in mid-flight (S18), a faint once the Hall of Names is behind you (S33), the motto read in
+   every act (S35). Found, not counted. And the valley's secrets are counted without how many there are to find. */
 const QUILT = [
     ['Secrets of the valley', [
         () => Progress.flag('linnet1'), () => Progress.flag('s01'), () => Progress.flag('s03'), () => Progress.flag('staffonly'), () => Progress.flag('pie'),
-        () => Progress.flag('s07'), () => Progress.flag('s08'), () => Progress.flag('s09'), () => Progress.flag('s10'), () => Progress.flag('s11'),
-        () => Progress.flag('s12'), () => Progress.flag('s13'), () => Progress.flag('s14'), () => Progress.flag('belfry_echo'), () => Progress.flag('linnet6'),
-        () => Progress.flag('s18'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
+        () => Progress.flag('s11'), () => Progress.flag('s12'), () => Progress.flag('s13'), () => Progress.flag('s14'), () => Progress.flag('belfry_echo'),
+        () => Progress.flag('linnet6'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
         () => Progress.flag('s23'), () => Progress.flag('s24'), () => Progress.flag('s25'), () => Progress.flag('s28'), () => Progress.flag('s29'),
-        () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'), () => Progress.flag('s33'), () => Progress.flag('s35'),
+        () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'),
         /* the later regions' finds (what's off the way, not the gates on it): the wooden one in Mallow's nursery, Lantern
            Pond's isle and the old weight found there and set in its socket, the balloon cut loose and found again past
            the fog, the Drift's mill pond run out and its toll box */
@@ -32633,13 +32695,29 @@ const QUILT = [
 ];
 const Quilt = {
     tally() { return QUILT.map(([name, list]) => [name, list.filter(f => f()).length, list.length]); },
+    total() { return this.tally().reduce((s, r) => s + r[1], 0); },
+    /* is Gran shut in, under the Well (from the Hall of Names till the Unwinding)? */
+    shut() { return Progress.flag('well_locked') && !Progress.flag('unwound'); },
     *read() {
         const t = this.tally(), all = t.reduce((s, r) => s + r[1], 0), of = t.reduce((s, r) => s + r[2], 0);
         yield* say(null, Progress.flag('unwound') ? `The Wander quilt, folded on the chair. Gran's been adding to it: ${all} patches now, every one a thing you found.` : `Your Wander quilt, folded on the chair. Gran sews a patch on for everything you find. ${all} so far.`);
-        yield* say(null, t.map(([name, n, m]) => `${name}: ${n} of ${m}`).join('\n'));
+        /* and still they come, with Gran shut in under the Well: as many as were found since she went down (counted from
+           that moment), or, for a save from before that was counted, since the last look while she's been down there */
+        if (this.shut()) {
+            const base = Progress.get('quiltR2'), seen = Progress.get('quiltShutSeen'), k = typeof base === 'number' ? all - base : 0;
+            if (k > 0) yield* say(null, `${numWords(k).replace(/^\w/, c => c.toUpperCase())} new patch${k === 1 ? '' : 'es'} since Gran shut herself in. Nobody has been up the stairs.`);
+            else if (typeof base !== 'number' && typeof seen === 'number' && all > seen) yield* say(null, 'New patches since you last looked. Nobody has been up the stairs.');
+            Progress.set('quiltShutSeen', all);
+        }
+        yield* say(null, t.map(([name, n, m], i) => i === 0 ? `${name}: ${n}` : `${name}: ${n} of ${m}`).join('\n'));
         if (all === of) yield* say(null, "Every patch. Gran has stitched a little red thread all the way round the border, and then, at the very end, deliberately, left it loose.");
     },
 };
+/* the moment Gran shuts herself in, the quilt is counted, so the patches after it can be told from the ones before */
+{
+    const set0 = Progress.set;
+    Progress.set = function (n) { const r = set0.apply(this, arguments); if (n === 'well_locked' && this.flags.quiltR2 === undefined) this.flags.quiltR2 = Quilt.total(); return r; };
+}
 SPAWN.quilt = (tx, ty) => {
     const pr = new Prop(tx, ty, { im: ART.quilt, solid: [[0, 0]], oy: -2 });
     pr.interact = () => { Script.run(Quilt.read()); return true; };
@@ -32734,8 +32812,9 @@ PRESETS.afterD7 = () => {
 };
 PRESETS.afterMakings = () => {
     PRESETS.afterD7();
-    for (const f of ['gundry_job', 'makings_done']) Progress.set(f);
-    for (let n = 1; n <= MAKING_COUNT; n++) { Progress.set('making' + n); Progress.set('making' + n + '_ahas', 3); }
+    for (const f of ['gundry_job', 'makings_done', 'cap_given', 'cap_seen']) Progress.set(f);
+    /* (every Little House, Wren's own last one too) */
+    for (let n = 1; n <= MAKINGS.length; n++) { Progress.set('making' + n); Progress.set('making' + n + '_ahas', 3); }
     Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
     World.enter('underside', 49, 5, { dir: DOWN });
 };

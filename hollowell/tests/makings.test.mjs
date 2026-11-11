@@ -437,10 +437,10 @@ test('Making 8: the nibbler loose, Tuck won\'t go and push; let go too soon, Ott
 });
 
 /* ================= the act ================= */
-test('all eight Makings, all three Ahas each: S30, the drawing; Gundry comes over from the Guild Hall to say his piece; the Way Down', () => {
-    const HW = making(8);
-    for (let n = 1; n <= 8; n++) HW.Progress.set('making' + n + '_ahas', 3);
-    for (let n = 1; n <= 7; n++) HW.Progress.set('making' + n);
+test("all nine Makings (Wren's own the last), all three Ahas each: S30, the drawing; Gundry comes over from the Guild Hall to say his piece; the Way Down", () => {
+    const HW = making(9);
+    for (let n = 1; n <= 9; n++) HW.Progress.set('making' + n + '_ahas', 3);
+    for (let n = 1; n <= 8; n++) HW.Progress.set('making' + n);
     const M = HW.global('Making'), D = HW.global('Dialog'), Sc = HW.global('Script');
     let near = null;
     M.finish(HW.G.map);
@@ -499,10 +499,15 @@ test('old saves: partway through the act (three done) the rest open in turn and 
     const p = HW.player(), r = HW.G.map.roomAt(p.tx, p.ty);
     assert.ok(r && r.above, `in a room underneath (${p.tx},${p.ty})`);
     assert.ok(!HW.G.map.kind(p.tx, p.ty).solid, 'not in a wall');
-    /* and the act still ends: the last of them */
+    /* and the act still ends: the last the Makers built, then Wren's own */
     for (let n = 4; n <= 7; n++) HW.Progress.set('making' + n);
     HW.warp('making8', 56, 16); HW.step(5);
     HW.global('Making').finish(HW.G.map);
+    for (let i = 0; i < 60; i++) { HW.skipTalk(); HW.step(20); }
+    assert.ok(!HW.Progress.flag('makings_done') && HW.G.map.ents.some(e => e.kind === 'warp' && e.to === 'making9'), 'her own still to make');
+    HW.warp('making9', 9, 16); HW.step(5); HW.skipTalk();
+    HW.walkTo(7, 19); HW.face('down'); HW.press('act', 1); HW.step(5);
+    until(HW, () => tuck(HW).state === 'done', 2000);
     for (let i = 0; i < 60; i++) { HW.skipTalk(); HW.step(20); }
     assert.ok(HW.Progress.flag('makings_done'));
     noErrors(HW);

@@ -62,14 +62,17 @@
 }
 
 /* ---------- the Wander quilt, on the chair by Wren's bed: a patch sewn on for everything found (counts, never where) ---------- */
+/* What's only seen or tried, with nothing to show for it but the seeing, isn't sewn on: the costume through Seam's back
+   window (S07), a House's key tugging back at its door (S08), the Well's groan at the Bell and its threads under the Hook
+   (S09, S10), the Bell rung in mid-flight (S18), a faint once the Hall of Names is behind you (S33), the motto read in
+   every act (S35). Found, not counted. And the valley's secrets are counted without how many there are to find. */
 const QUILT = [
     ['Secrets of the valley', [
         () => Progress.flag('linnet1'), () => Progress.flag('s01'), () => Progress.flag('s03'), () => Progress.flag('staffonly'), () => Progress.flag('pie'),
-        () => Progress.flag('s07'), () => Progress.flag('s08'), () => Progress.flag('s09'), () => Progress.flag('s10'), () => Progress.flag('s11'),
-        () => Progress.flag('s12'), () => Progress.flag('s13'), () => Progress.flag('s14'), () => Progress.flag('belfry_echo'), () => Progress.flag('linnet6'),
-        () => Progress.flag('s18'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
+        () => Progress.flag('s11'), () => Progress.flag('s12'), () => Progress.flag('s13'), () => Progress.flag('s14'), () => Progress.flag('belfry_echo'),
+        () => Progress.flag('linnet6'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
         () => Progress.flag('s23'), () => Progress.flag('s24'), () => Progress.flag('s25'), () => Progress.flag('s28'), () => Progress.flag('s29'),
-        () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'), () => Progress.flag('s33'), () => Progress.flag('s35'),
+        () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'),
         /* the later regions' finds (what's off the way, not the gates on it): the wooden one in Mallow's nursery, Lantern
            Pond's isle and the old weight found there and set in its socket, the balloon cut loose and found again past
            the fog, the Drift's mill pond run out and its toll box */
@@ -87,13 +90,29 @@ const QUILT = [
 ];
 const Quilt = {
     tally() { return QUILT.map(([name, list]) => [name, list.filter(f => f()).length, list.length]); },
+    total() { return this.tally().reduce((s, r) => s + r[1], 0); },
+    /* is Gran shut in, under the Well (from the Hall of Names till the Unwinding)? */
+    shut() { return Progress.flag('well_locked') && !Progress.flag('unwound'); },
     *read() {
         const t = this.tally(), all = t.reduce((s, r) => s + r[1], 0), of = t.reduce((s, r) => s + r[2], 0);
         yield* say(null, Progress.flag('unwound') ? `The Wander quilt, folded on the chair. Gran's been adding to it: ${all} patches now, every one a thing you found.` : `Your Wander quilt, folded on the chair. Gran sews a patch on for everything you find. ${all} so far.`);
-        yield* say(null, t.map(([name, n, m]) => `${name}: ${n} of ${m}`).join('\n'));
+        /* and still they come, with Gran shut in under the Well: as many as were found since she went down (counted from
+           that moment), or, for a save from before that was counted, since the last look while she's been down there */
+        if (this.shut()) {
+            const base = Progress.get('quiltR2'), seen = Progress.get('quiltShutSeen'), k = typeof base === 'number' ? all - base : 0;
+            if (k > 0) yield* say(null, `${numWords(k).replace(/^\w/, c => c.toUpperCase())} new patch${k === 1 ? '' : 'es'} since Gran shut herself in. Nobody has been up the stairs.`);
+            else if (typeof base !== 'number' && typeof seen === 'number' && all > seen) yield* say(null, 'New patches since you last looked. Nobody has been up the stairs.');
+            Progress.set('quiltShutSeen', all);
+        }
+        yield* say(null, t.map(([name, n, m], i) => i === 0 ? `${name}: ${n}` : `${name}: ${n} of ${m}`).join('\n'));
         if (all === of) yield* say(null, "Every patch. Gran has stitched a little red thread all the way round the border, and then, at the very end, deliberately, left it loose.");
     },
 };
+/* the moment Gran shuts herself in, the quilt is counted, so the patches after it can be told from the ones before */
+{
+    const set0 = Progress.set;
+    Progress.set = function (n) { const r = set0.apply(this, arguments); if (n === 'well_locked' && this.flags.quiltR2 === undefined) this.flags.quiltR2 = Quilt.total(); return r; };
+}
 SPAWN.quilt = (tx, ty) => {
     const pr = new Prop(tx, ty, { im: ART.quilt, solid: [[0, 0]], oy: -2 });
     pr.interact = () => { Script.run(Quilt.read()); return true; };
