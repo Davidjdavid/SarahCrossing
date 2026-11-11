@@ -175,7 +175,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 37. **Fog-silk hollows** (Act IV, the Shears): three nooks by the southern fog in Meadowfold (cut from the side), Kilnridge
     and Millwater (cut from above), grown shut with the fog's own thread; buttons and a keepsake each.
 38. **The Wander quilt** (Wren's room, by the bed): a tally of everything found, by kind, never where (secrets, Linnet's
-    notes, Makers' marks, old foes patted, fog-silk hollows, the two optional houses).
+    notes, Makers' marks, old foes patted, fog-silk hollows, good turns done in town, the two optional houses). The
+    secrets count the regions' finds too (items 40-50: what's off the way, not the gates on it; 57-60).
 39. **Nothing returns, Wren included** (the Stray House): a fall in there leaves her where she fell.
 36. **Heart Patches** (38 total: 31 in chests or lying about, 6 given by someone for something, 1 knocked out of the hawk's
     nest; tests/heartpatches.test.mjs finds them all) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
@@ -258,6 +259,33 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     whenever Wren's hurt. It's one of the Needle's three stitches: if a fourth lets it go, it walks round to the front again
     (Rosa notices). A save at any stage can start or finish every favour its tools allow; a thank-you still owing is said
     even after the Unwinding.
+57. **Wick's ducks** (Millwater, west of Wick's pier; the Crossbar): Jory's three wooden ducks (Dot, Dash, Dimple) on one
+    crossbar, in a walled pond with a duck house for each across it, the houses further apart than the ducks, two low
+    rocks in the water. The ducks float, so water's no edge to them; they step together, each that can. Left, up; right,
+    right (the rock by the west wall holds Dot back while the others spread); up; left (the east rock holds Dimple while
+    Dash comes back to the middle); up, up: all three flags up at once. Wick: his lucky float (a keepsake). Let go, they
+    swim home to their stands.
+58. **The old mill pond** (Millwater, walled in beside Dad's mill; the Bedroll): the lake runs in down the race, under a
+    grating that stops anybody riding a float, not the float on its own. Paddle the mill's barrel into the race's mouth
+    (it waits at the grating with you aboard), lay the Bedroll on it, step off onto the shallows: in it goes, alone;
+    Homeward lands you on it inside; paddle to the bank. THE TESS (& A.): the boat Dad built to court Mum, and 30 buttons
+    under its seat; the gate's bolt is inside (open for good after). Dad tells the story. (The barrel's patience is long;
+    sent in without the Bedroll it comes home again.)
+59. **The Gulls' Rock** (Millwater, the east reach; the Needle): a rock in a ring of low rocks with nothing on it a hook can
+    catch; the ring's one cleft is too narrow for anybody (or a raft, or a barrel); the eel-catcher's little cork float
+    (too small to stand on) slips through it, and so do a hook's line and anything thrown. His ledge runs along the foot
+    of the north cliffs to above the float. Pre-Needle: the float reeled in leaves an empty mark out in the water (hook
+    it and you go in, and home). With the Needle: give the float a place on the rock, through the cleft; hook it back
+    out (it comes through to you), lift it out of the line, hook its empty mark: over onto the rock (the Heron Rock trick,
+    with a mark the Needle made). The gulls' nest (held things wait: nothing in it ever went home): 40 buttons and a
+    brass ring, Dad's, dropped over the side of THE TESS when he proposed; given back to him, he tells it. Off by the
+    eel-catcher's post on the far bank.
+60. **Madame Rook's wheel** (Larkspur, by her tent; the Needle): twelve fortunes painted round a hub, a brass pointer pushed
+    round the rim; its place is NOTHING, and home it goes. THE TRUTH is across the hub, six round either way: more than one
+    stitch (four) and more than the pointer can be pushed round the corners before it sets off. Push it two round (to
+    the corner), stitch it four (or stitch, push, stitch again): it stops on THE TRUTH, and Rook tells a true fortune (the
+    woman with the green thread past the fog; after meeting Linnet, that she'll come home unpulled; after the Unwinding,
+    that there's nothing left to tell) and gives 20 buttons. The Shears would do it too (cut, it stays where it is).
 
 ### Linnet's Trail (the major secret chain)
 Eight notes from Linnet's own Wander, each by a carved "L.", each needing a different mechanic:
