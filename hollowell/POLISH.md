@@ -251,7 +251,15 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   Home (M-L); then P10 the Makings' capstone, a Little House Wren designs (M); P12 small fairness fixes. About 23 h for
   1-9. Not to do: new cosmology or fourth-wall tricks, restructuring all eight Houses, changing the Return's core
   numbers, longer bosses or a quick retry, hints, required optional content, trimming the Makings blind, added hours.
-- Running: AI blind solver B; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); fix round A
+- Done too: what was owed (owed_brief.md): Millwater's three later places (the Old Mill Pond with the Bedroll, Wick's
+  Duck Pond with the Crossbar, Gulls' Rock with the Needle and the hook); Madame Rook's wheel of fortune at the fair
+  (the Needle); the quilt counting groups B's finds and a row for the town's good turns; the satchel scrolling two
+  rows at a time so any number of things fit with their descriptions (tests/ui_sweep); Heart Patches counted by a test
+  (38; DESIGN_DOCUMENT §5 and SPOILERS item 36 must agree); faces on Linnet's first meeting, her lines using the
+  player's chosen name. Suite 572/572 at its finish. Dressing for Houses 1 and 2 done (one colour script each, calm
+  floors, a few big set pieces per room; the Tidyhouse in teal, cream, crimson and gilt; the Kiln in sooty brick, grey
+  flags and fire); a contrast check of marks and threads on the new floors running.
+- Running (earlier line kept for the record): AI blind solver B; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); fix round A
   (fixA_brief.md: findings 29-36); the story through play (meta_brief.md: P2, P5, P6, the Hall of Names part of P1).
   Queued: the Spool's top and the ending (P1's climax, P4, P2's count at the Spool, P8) after fix round A; the
   signature chain (P9); restraint (P3) and the quilt (P7) once the story files settle; P10 if the budget allows; fix

@@ -75,7 +75,7 @@ the credits in nine legs; solution tests cover every room, both optional dungeon
 - [x] Genre transformation (the Makings)
 - [x] Meta narrative
 - [x] Foreshadowed reveal
-- [x] ≥ 25 optional discoveries (about 33 secrets, Linnet's Trail of 8, 16+ Heart Patches)
+- [x] ≥ 25 optional discoveries (about 60 secrets and finds, Linnet's Trail of 8, 38 Heart Patches: counted by tests/heartpatches.test.mjs)
 - [x] Satisfying conclusion (to be judged by a human; reviewed twice)
 - [x] 10–14 h main targeted (designed for it; estimated at roughly 10 to 13 hours for a first-time player from the
   room count, now about 117 rooms including the four Makings, at 3 to 5 minutes a room plus travel, reading and secrets;
