@@ -632,7 +632,7 @@ function dreamWalk(HW) {
     go(HW, 'dream', 4, 8); stepPath(HW, 'dream', path);
 }
 
-test('the dreaming door: out along the old boards; flown home plain, the good dream lights and then the bad one: shut; ring the Bell between the two and you snap home before the bad one: the door; the Pattern', () => {
+test('the dreaming door: out along the old boards; flown home plain, the good dream lights and then the bad one: shut; ring the Bell between the two and you snap home before the bad one: the door; a purse of buttons (the Pattern is the long way home\'s now)', () => {
     const HW = game(['bedroll']);
     enter(HW, 'dream', 1, 5);
     const p = HW.player(), good = thing(HW, 'dgGood'), bad = thing(HW, 'dgBad'), door = thing(HW, 'dgDoor');
@@ -653,8 +653,10 @@ test('the dreaming door: out along the old boards; flown home plain, the good dr
     assert.ok(good.lit > 0 && !bad.lit, 'the good one lit, the bad one dark');
     assert.ok(door.open, 'the door');
     assert.ok(HW.Progress.flag('s18'), 'the Bell rung in flight');
+    const b0 = HW.Inv.buttons;
     go(HW, 'dream', 2, 2); HW.face('up'); HW.press('act', 1); HW.skipTalk();
-    assert.ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
+    assert.equal(HW.Inv.buttons, b0 + 50, 'fifty buttons');
+    assert.ok(!HW.Inv.hasPattern('slumber'), 'not the Pattern (tests/longway.test.mjs)');
     noErrors(HW);
 });
 
@@ -685,12 +687,13 @@ test("the way on: key C opens the Nursery's lock, the Fort's key D the Moonwalk'
     noErrors(HW);
 });
 
-test('an old game that found the Pattern in Pillow Fort: the Fort holds key D now, and the Dreaming Door buttons', () => {
+test('an old game that found the Pattern in Pillow Fort: the Fort holds key D now, and the Dreaming Door buttons (as it has for everyone since the long way home)', () => {
     const HW = game(['bedroll']);
     HW.Progress.setAreaFlag('slumber', 'chest:pfPattern'); HW.Inv.patterns.push('slumber');
     enter(HW, 'fort', 9, 3);
     assert.ok(!thing(HW, 'pfKey').opened, 'a chest to open');
     enter(HW, 'dream', 1, 5);
-    assert.equal(thing(HW, 'dgPattern').item, 'b20', 'buttons, not a second Pattern');
+    assert.equal(thing(HW, 'dgPattern').item, 'b50', 'buttons, not a second Pattern');
+    assert.equal(thing(HW, 'lwPattern').item, 'b20', "and the Long Ward's chest buttons too");
     noErrors(HW);
 });
