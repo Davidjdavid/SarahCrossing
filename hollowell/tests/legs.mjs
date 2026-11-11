@@ -1297,8 +1297,14 @@ export const LEG8 = (HW, chain) => {
     const free = () => { if (HW.player().pinned === 'silk') { HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(2); } };
     const wgo = (x, y) => { for (let k = 0; k < 40; k++) { HW.skipTalk(); free(); if (HW.walkTo(...l('web', x, y), 30)) return; } ok(false, `walk to the Web's ${x},${y} (at ${pos()})`); };
     const wx = l('web', 10, 0)[0] * 16;
-    /* 1: its four anchors cut at their posts: down into its well; knock it */
-    for (const [x, y, f] of [[4, 4, 'right'], [4, 7, 'right'], [15, 7, 'left'], [15, 4, 'left']]) { wgo(x, y); free(); snip(f); }
+    /* 1: its four anchors, each cut its own way: the plain one at its post; the cocoon rung awake first; the one up into
+       the loom from the well's rim, where it comes down over the well's head; the long one while the Weaver's reared back
+       away from Wren, pulling it tight. Down into its well; knock it */
+    const anchor = (id, x, y, f, first) => { const n = HW.G.map.find(id); for (let k = 0; k < 12 && !n.cut; k++) { wgo(x, y); free(); if (first) first(n); free(); snip(f); } ok(n.cut, `the Weaver's anchor ${id} cut`); };
+    anchor('anC', 4, 7, 'right');
+    anchor('anA', 4, 4, 'right', n => { if (n.sleeping) { HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(3); } });
+    anchor('anB', 8, 3, 'right');
+    anchor('anD', 15, 7, 'left', n => until(() => n.taut(w) && HW.player().pinned !== 'silk', 300));
     ok(until(() => w.state === 'down', 300), 'the Weaver down in its well');
     wgo(8, 6); for (let k = 0; k < 8 && w.hp === 3; k++) { free(); strike('right'); }
     for (let i = 0; i < 4; i++) { HW.step(10); HW.skipTalk(); }

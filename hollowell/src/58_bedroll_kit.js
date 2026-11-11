@@ -332,6 +332,8 @@ class DreamRing extends Ent {
         const f = pl.flight; if (f && f.pts && Math.hypot(f.pts[0][0] - cx, f.pts[0][1] - cy) < 14) return;
         if (!this.lit) { Sfx.play('blip'); Fx.ring(cx, cy - 8, '#d8c8f8'); Stats.count('dreamrings'); }
         this.lit = this.time;
+        /* the flight remembers which dreams it went through (a room's pair: its good one, 1, and its bad one, 2) */
+        if (this.dream && f) { const d = f.dreams || (f.dreams = {}); d[this.dream] = (d[this.dream] || 0) | (this.bad ? 2 : 1); }
     }
     update() { if (this.lit > 0) { this.lit--; if (this.sig) Signals.set(this.area, this.sig); } }
     draw(cx, cy) {

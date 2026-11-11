@@ -152,8 +152,8 @@ const AnchorWays = {
         if (atPost && this.way === 'asleep') Fx.text(this.top[0], this.top[1] - 8, 'z', '#e8e0ff');
         return true;
     },
-    tie() { this.cut = false; this.cuttable = true; this.sleeping = this.sleeper = this.tiedOff = this.way === 'asleep'; this.unwind = 0; },
-    onCut() { if (this.cut) return; this.cut = true; this.cuttable = false; this.sleeping = this.sleeper = this.tiedOff = false; this.unwind = 0; Fx.ring(this.top[0], this.top[1], '#e4ecf5'); },
+    tie() { this.cut = false; this.cuttable = true; this.sleeping = this.way === 'asleep'; this.unwind = 0; },
+    onCut() { if (this.cut) return; this.cut = true; this.cuttable = false; this.sleeping = false; this.unwind = 0; Fx.ring(this.top[0], this.top[1], '#e4ecf5'); },
     /* its thread, from where it's tied to the Weaver: tight and straight (pulled tight, the long one shivers, bright); slack,
        a sag that sways; asleep, grey and low, into its cocoon */
     drawThread(w, cx, cy) {
@@ -164,7 +164,8 @@ const AnchorWays = {
             let lx = ax, ly = ay;
             for (let i = 1; i <= n; i++) {
                 const u = i / n, x = lerp(ax, bx, u), y = lerp(ay, by, u) + Math.sin(u * Math.PI) * (sag + Math.sin(G.t / 17 + this.tx) * k * 1.5);
-                Gfx.line(lx - cx, ly - cy, x - cx, y - cy, this.way === 'asleep' ? '#8a94a4' : '#aab7c8'); lx = x; ly = y;
+                Gfx.line(lx - cx, ly - cy + 1, x - cx, y - cy + 1, 'rgba(20,10,20,0.35)');
+                Gfx.line(lx - cx, ly - cy, x - cx, y - cy, this.way === 'asleep' ? '#9aa8b8' : '#d4dbe5'); lx = x; ly = y;
             }
             return;
         }
@@ -187,7 +188,7 @@ class Anchor extends GridThing {
        into the web, and the knot's bare */
     hear(x, y) {
         if (!this.sleeping || this.cut || Math.hypot(this.tx * T + 8 - x, this.ty * T + 8 - y) > Bells.REACH * T + 4) return;
-        this.sleeping = this.sleeper = this.tiedOff = false; this.unwind = 36;
+        this.sleeping = false; this.unwind = 36;
         Sfx.play('twang'); Fx.poof(this.top[0], this.top[1] + 2); Stats.count('boss:weaver:woke');
         if (!Progress.flag('weaver_cocoon')) { Progress.set('weaver_cocoon'); G.pendingToast = 'At the bell the cocoon stirs, and its silk unwinds back up into the web. Under it, a knot.'; }
     }
@@ -201,19 +202,23 @@ class Anchor extends GridThing {
         if (im) Gfx.img(im, x, y + 16 - im.height);
         const tx = this.top[0] - cx, ty = this.top[1] - cy;
         if (this.cut) { this.drawTatters(tx, ty); return; }
-        Gfx.rect(tx - 2, ty - 1, 4, 3, '#e4ecf5'); Gfx.rect(tx - 1, ty, 2, 1, '#ffffff');
+        if (!this.sleeping) { Gfx.rect(tx - 2, ty - 1, 4, 3, '#e4ecf5'); Gfx.rect(tx - 1, ty, 2, 1, '#ffffff'); }
         /* (the long one: its spare thread hangs in a loop under the knot) */
-        if (this.way === 'slack') { Gfx.line(tx - 1, ty + 2, tx - 2, ty + 7, '#aab7c8'); Gfx.line(tx - 2, ty + 7, tx + 1, ty + 8, '#aab7c8'); Gfx.line(tx + 1, ty + 8, tx + 1, ty + 2, '#c8d0dc'); }
-        /* wound in its cocoon (a sleeper's z drifts up off it); woken, the cocoon unwinding, its silk running off up toward
-           the middle of the web */
-        const co = spr('cocoon');
+        if (this.way === 'slack') { Gfx.line(tx - 1, ty + 2, tx - 2, ty + 7, '#d4dbe5'); Gfx.line(tx - 2, ty + 7, tx + 1, ty + 8, '#d4dbe5'); Gfx.line(tx + 1, ty + 8, tx + 1, ty + 2, '#e4ecf5'); }
+        /* wound in its cocoon, asleep (a z drifting up off it, as off any sleeper); woken, the cocoon unwinding, its silk
+           running off up toward the middle of the web */
+        const co = ART.cocoon;
         if (co && (this.sleeping || this.unwind > 0)) {
             const k = this.sleeping ? 1 : this.unwind / 36, r = this.area.roomAt(this.tx, this.ty);
             if (!this.sleeping && r) {
                 const wx = r.x * T + 160 - cx, wy = r.y * T + 58 - cy;
                 for (let i = 0; i < 3; i++) Gfx.line(tx + (i - 1) * 2, ty - 4, lerp(tx, wx, 1 - k) + (i - 1) * 3, lerp(ty - 4, wy, 1 - k) - i * 2, i === 1 ? '#ffffff' : '#c8d0dc');
             }
-            Gfx.alpha(k); Gfx.img(co, tx - 7, ty - 13 + Math.round((1 - k) * 4)); Gfx.alpha(1);
+            Gfx.alpha(k); Gfx.img(co, tx - 7, ty - 12 + Math.round((1 - k) * 4)); Gfx.alpha(1);
+            if (this.sleeping) {
+                const ph = ((G.t + this.uid * 37) % 90) / 90;
+                Gfx.alpha(Math.min(1, (1 - ph) * 2)); Font.draw('z', tx + 6 + Math.round(ph * 4), ty - 14 - Math.round(ph * 10), '#e8e0ff'); Gfx.alpha(1);
+            }
         }
     }
 }

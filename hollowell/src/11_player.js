@@ -476,7 +476,11 @@ class Player extends Ent {
         const m = this.mark, mx = m.tx * T + 8, my = m.ty * T + 10, last = pts[pts.length - 1];
         if (last[0] !== mx || last[1] !== my) pts.push([mx, my]);
         let len = 0; for (let i = 1; i < pts.length; i++) len += dist(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
-        const dur = opts.dur || clamp(Math.round(len / 4.5), 24, 110);
+        /* quick however far, in one room; the long way home, through several, takes a moment in each (so what it passes
+           can be seen as it goes, and nothing it passes is skipped over) */
+        const rooms = new Set();
+        if (this.area.rooms.length > 1) for (const [x, y] of pts) { const r = this.area.roomAt(tileOf(x), tileOf(y)); if (r) rooms.add(r); }
+        const dur = opts.dur || clamp(Math.round(len / 4.5), 24, 110 * Math.max(1, rooms.size));
         this.flight = { pts, len, dur, t: 0, opts };
         this.state = 'flight'; this.stateT = 0;
         Sfx.play('flight');

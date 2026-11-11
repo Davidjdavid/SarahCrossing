@@ -5,8 +5,10 @@
    anything, through dreamcatchers. Matron Hush follows your footsteps exactly; beaten, she leaves the Bedroll:
    lay it anywhere and hold C to go Homeward. Old rules join in: currents and floats, the Hookline, the Recall
    Bell and sleepers, strays filling pits, plates and their weights; and, late on, the Kiln's shards flying home the
-   way their pot was carried (the Milk Kitchen) and the Bell rung in mid-flight (the Dreaming Door). Mother Sloth
-   pulls you to her bed; fly from her grip, far enough, and her arms snap (three rounds: see 60b). */
+   way their pot was carried (the Milk Kitchen) and the Bell rung in mid-flight (the Dreaming Door). The Pattern is the
+   Long Way Home: one flight back to the Long Ward through three rooms' good dreams and none of their bad ones, which has
+   to go right round the House without crossing itself (see Dreams). Mother Sloth pulls you to her bed; fly from her
+   grip, far enough, and her arms snap (three rounds: see 60b). */
 
 THEMES.slumberhouse = { floor: ['#8a8ac8', '#6a6aa8', '#a8a8e0', '#4a4a7a'], wall: ['#b48ce8', '#8a64c4', '#d8c8f8', '#4b3a8a'], stone: ['#9a8ab8', '#7a6a98', '#bcaed8', '#4e4268'], water: ['#6ab0d8', '#4a8ac0', '#a8d8f0', '#2a5a8a'], dark: '#1e1a34' };
 FLOORS.slumberhouse = {
@@ -82,7 +84,13 @@ defHouse({
                 { k: 'snoreling', x: 8, y: 3, id: 'lwSnore1' }, { k: 'snoreling', x: 11, y: 8, id: 'lwSnore2' },
                 { k: 'nightlight', x: 4, y: 0 }, { k: 'nightlight', x: 7, y: 0 }, { k: 'nightlight', x: 11, y: 0 }, { k: 'nightlight', x: 15, y: 0 },
                 { k: 'sign', x: 10, y: 9, text: "THE LONG WARD. Lights out. Patients will kindly stay in bed. (Snorelings: tread softly and they won't stir.)" },
+                /* the Long Way Home: three night-lights over the door up to the big door (and over the big door too), one for each
+                   room's good dream; dreamt all three on one flight home, and the House's Pattern is here */
+                { k: 'dreamlamps', x: 9, y: 0 },
+                { k: 'sign', x: 11, y: 1, text: 'Over the door, three night-lights: for the linen, the milk and the wash. A good dream lights its own, and it stays lit. Dream all three on one way home, and the House will give up its Pattern.' },
+                { k: 'slumpattern', x: 10, y: 2, id: 'lwPattern', big: true, hidden: true, when: 'flag:slumber_longway' },
             ],
+            nudge: { solved: 'slumber_longway', after: 60 * 60 * 4, at: [9, 1], say: 'Every step from your bed is a thread back to it. Walk back over your own steps and the thread forgets everything since, rooms and all.' },
         },
         /* ---------------- 3 The Linen Cupboard: one walk over the boards, every lamp lit (key A) ---------------- */
         '0,2': {
@@ -105,6 +113,9 @@ defHouse({
                 { k: 'door', x: 4, y: 5, type: 'gate', when: 'lp1&lp2&lp3', dir: 'v', id: 'lcGate', keep: true },
                 { k: 'chest', x: 2, y: 5, item: 'key', id: 'lcKey' },
                 { k: 'bed', x: 16, y: 1, id: 'lcBed' },
+                /* the linen's good dream over the north boards, its bad one over the south (the way the lamps are usually lit) */
+                { k: 'dreamgood', x: 10, y: 3, dream: 'linen', id: 'lcDream' }, { k: 'dreambad', x: 10, y: 5, dream: 'linen', id: 'lcNightmare' },
+                { k: 'dreamlamp', x: 13, y: 0, dream: 'linen' },
                 { k: 'sign', x: 17, y: 8, text: 'THE LINEN CUPBOARD. Three lamps on the old floor. Light them all at once and the cupboard opens. The boards only bear you the once.' },
             ],
             nudge: { solved: 'slumber_chest:lcKey', after: 60 * 60 * 3, at: [13, 6], say: 'The boards sag where they have been trodden before. You would have to plan the whole walk before you set foot on them, and fall home after.' },
@@ -113,7 +124,7 @@ defHouse({
         '2,2': {
             name: 'The Laundry',
             rows: [
-                '####################',
+                '#######.############',
                 '#..................#',
                 '#..V<<<<<<<<<<<<<..#',
                 '#..V............A..#',
@@ -132,7 +143,12 @@ defHouse({
                 { k: 'grate', x: 19, y: 5 },
                 { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, saveWake: e => Bedroll.float === e, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
                 { k: 'sign', x: 18, y: 9, text: 'THE LAUNDRY. The wash goes round and round. Whatever goes round comes back to where it started, and is none the wiser.' },
-                { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers. They only catch you on your way home.' },
+                { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers, and a good dream and a bad one besides. They only catch you on your way home.' },
+                /* the wash's good dream over the top of the tub, its bad one over the bottom (where the current takes you first) */
+                { k: 'dreamgood', x: 6, y: 2, dream: 'laundry', id: 'ldDream' }, { k: 'dreambad', x: 12, y: 7, dream: 'laundry', id: 'ldNightmare' },
+                { k: 'dreamlamp', x: 12, y: 0, dream: 'laundry' },
+                /* the laundry chute up to the Moonwalk: bolted from that side (its lever is up there) */
+                { k: 'door', x: 7, y: 0, type: 'gate', when: 'mwchute', id: 'ldChute', keep: true, bolt: 'Bolted, from the other side.' },
             ],
             nudge: { solved: () => Inv.plans.includes('slumber'), after: 60 * 60 * 3, at: [3, 8], say: "The basket bobs at its little dock. Out on the water, a dreamcatcher turns slowly, though nobody could ever walk under it." },
         },
@@ -207,7 +223,7 @@ defHouse({
                 '#########.##########',
             ],
             ents: [
-                { k: 'door', x: 9, y: 0, type: 'big', id: 'laBig' },
+                { k: 'door', x: 9, y: 0, type: 'big', id: 'laBig' }, { k: 'dreamlamps', x: 9, y: 0 },
                 { k: 'shutter', x: 9, y: 10, dir: 'h', group: 'matron' }, { k: 'shutter', x: 0, y: 5, dir: 'v', group: 'matron' }, { k: 'shutter', x: 19, y: 5, dir: 'v', group: 'matron' },
                 { k: 'deco', x: 1, y: 8, look: 'bed_big', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], oy: 0, text: "Matron's bed. Starched so stiff it could stand up by itself. It very nearly is." },
                 { k: 'matron', x: 3, y: 9, id: 'matron' },
@@ -253,9 +269,10 @@ defHouse({
                 '#......#......#....#',
                 '#..................#',
                 '#..................#',
-                '####################',
+                '#######.############',
             ],
             ents: [
+                { k: 'lever', x: 8, y: 9, id: 'mwChuteLever', sig: 'mwchute', once: true },
                 { k: 'door', x: 2, y: 3, type: 'gate', when: 'mwp', id: 'mwGate', passed: 'up' },
                 { k: 'door', x: 15, y: 0, type: 'lock', id: 'mwLockN' },
                 { k: 'chest', x: 2, y: 1, item: 'key', id: 'mwKey' },
@@ -327,14 +344,19 @@ defHouse({
                 '#....,oo,oo,oo,....#',
                 '#....ooooooooo......',
                 '#....ooooooooo.....#',
+                '#....,oo,oo,oo,....#',
                 '#....ooooooooo.....#',
                 '#....ooooooooo.....#',
-                '#....ooooooooo.....#',
-                '###############.####',
+                '####v##########.####',
             ],
             ents: [
                 { k: 'door', x: 19, y: 5, type: 'gate', when: 'mkbell', dir: 'v', id: 'mkGate', keep: true },
                 { k: 'bedspring', x: 14, y: 4, dir: 'left' }, { k: 'bedspring', x: 11, y: 4, dir: 'left' }, { k: 'bedspring', x: 8, y: 4, dir: 'left' }, { k: 'bedspring', x: 5, y: 4, dir: 'left' },
+                { k: 'bedspring', x: 14, y: 7, dir: 'left' }, { k: 'bedspring', x: 11, y: 7, dir: 'left' }, { k: 'bedspring', x: 8, y: 7, dir: 'left' }, { k: 'bedspring', x: 5, y: 7, dir: 'left' },
+                /* the milk's bad dream over the springs the bell hangs by; its good one over the hole in the far bank's floor (a drop
+                   to the Moonwalk below: only a flight back up through it goes under it) */
+                { k: 'dreambad', x: 12, y: 4, dream: 'kitchen', id: 'mkNightmare' }, { k: 'dreamgood', x: 4, y: 10, dream: 'kitchen', id: 'mkDream' },
+                { k: 'dreamlamp', x: 11, y: 0, dream: 'kitchen' },
                 { k: 'charm', x: 9, y: 4, mode: 'once', id: 'mkBell', sig: 'mkbell', col: 'milk' },
                 { k: 'deco', x: 1, y: 1, look: 'milkstove', solid: [[0, 0], [1, 0]], text: 'A little stove, still warm. A pan of milk sits on it, a skin on the top.' },
                 { k: 'pot', x: 2, y: 2, id: 'mkJug', style: 'jug' },
@@ -344,7 +366,8 @@ defHouse({
             ],
             nudge: { solved: 'slumber_mkGate', after: 60 * 60 * 3, thing: 'mkJug', say: "Broken, the jug's pieces would fly home the way the jug came. So far it has never been anywhere but its shelf." },
         },
-        /* ---------------- 13 The Dreaming Door: a good dream lit, a bad one dark; the Bell rung on the way home (the Pattern) ---------------- */
+        /* ---------------- 13 The Dreaming Door: a good dream lit, a bad one dark; the Bell rung on the way home, or the Bedroll rolled
+           up past the bad one (a purse of buttons; the Pattern is the Long Way Home's now) ---------------- */
         '3,0': {
             name: 'The Dreaming Door',
             rows: [
@@ -363,7 +386,8 @@ defHouse({
             ents: [
                 { k: 'door', x: 2, y: 3, type: 'gate', when: 'dgood&!dbad', id: 'dgDoor', passed: 'up' },
                 { k: 'dreamlock', x: 2, y: 3, good: 'dgGood', bad: 'dgBad' },
-                { k: 'slumpattern', x: 2, y: 1, id: 'dgPattern', big: true },
+                /* (the Pattern was here before the Long Way Home: a game that took it here keeps it) */
+                { k: 'chest', x: 2, y: 1, id: 'dgPattern', item: 'b50' },
                 { k: 'dreamring', x: 10, y: 2, sig: 'dgood', id: 'dgGood', time: 300 },
                 { k: 'nightmare', x: 6, y: 8, sig: 'dbad', id: 'dgBad', time: 300 },
                 { k: 'nightlight', x: 6, y: 0 }, { k: 'nightlight', x: 13, y: 0 },
@@ -385,6 +409,18 @@ const Slumber = {
     build(a) {
         /* the toy block, once it's filled the gap for good, is used up */
         if (this.toyUsed()) { const t = a.find('nuToy'); if (t) a.remove(t); }
+        /* the laundry chute's bolt is drawn from the Moonwalk: the camera goes down and looks as it opens (it's out of sight) */
+        const lv = a.find('mwChuteLever'), gate = a.find('ldChute');
+        if (lv && gate) lv.onPull = l => {
+            if (!l.on) return;
+            Script.run(function* () {
+                yield 10;
+                yield* camLook(gate.tx, gate.ty, 90);
+                Sfx.play('door'); Fx.dust(gate.x + 8, gate.y + 12);
+                yield 50;
+                yield* camBack(90);
+            }, { name: 'chuteLook' });
+        };
     },
     /* the Linen Cupboard's lamps go out when the boards mend (one walk, every lamp lit) */
     linenReset(a) {
@@ -430,8 +466,8 @@ SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd 
 ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap [tool] to lay it down anywhere: that spot is home now. Hold [tool] to go Homeward, flying back along your trace to it. What you carry comes too.';
 ITEM_AFTER.bedroll = function* () { Inv.equipped = 'bedroll'; };
 
-/* the Pattern's chest in the Dreaming Door (a game that found the Pattern in Pillow Fort, before the Milk Kitchen and the
-   Dreaming Door were built, finds buttons in it instead) */
+/* the Pattern's chest, in the Long Ward (a game that already holds the Pattern, from the Dreaming Door or from Pillow Fort before
+   those rooms were built, finds buttons in it instead) */
 SPAWN.slumpattern = (x, y, p) => new Chest(x, y, Object.assign(p, { item: Inv.hasPattern('slumber') && !Progress.areaFlag('slumber', 'chest:' + p.id) ? 'b20' : 'pattern' }));
 
 /* old bedsprings, poking up out of a mattress set on a post: step on and they boing you on, three tiles, the one way
@@ -479,6 +515,144 @@ class DreamLock extends Ent {
     }
 }
 SPAWN.dreamlock = (x, y, p) => new DreamLock(x, y, p);
+
+/* ---------------- the Long Way Home (the Pattern) ----------------
+   Three rooms each have a pair of dreamcatchers hung over a way they already have, a good dream and a bad one: the linen's over
+   the cupboard's old boards, the wash's over the laundry's tub, the milk's over the kitchen's gap and the hole in its far bank.
+   A flight home remembers the dreams it went through (58_bedroll_kit.js). A room whose good dream it went through, and not its
+   bad one, is dreamt for good: its night-light comes on, and stays on (one in the room, and one of the three over the Long
+   Ward's north door and over the big door). All three good dreams on one flight home, and none bad, and the House gives up its
+   Pattern, in the Long Ward. Nothing is special-cased: any flight counts, a fall's or Homeward's, wherever it lands (a bed is
+   as good as the Bedroll), and every flight follows the trace with its loops erased, so a way round the House that takes in
+   all three has to be one that never crosses itself. */
+const Dreams = {
+    ROOMS: ['linen', 'kitchen', 'laundry'],          /* west, north and east of the Long Ward: left to right over its door */
+    last: {}, lastT: -9999,
+    latched(r) { return Progress.areaFlag('slumber', 'dream:' + r); },
+    /* how the last flight's dreams went, for a few seconds after it came down: 'good', 'bad', or neither */
+    lastOf(r) { return G.t - this.lastT < 300 ? this.last[r] : null; },
+    land(p, f) {
+        const a = p.area, d = f && f.dreams;
+        if (!a || a.id !== 'slumber' || !d) return;
+        this.last = {}; this.lastT = G.t;
+        const fresh = [];
+        let good = 0;
+        for (const r of this.ROOMS) {
+            const v = d[r] || 0;
+            this.last[r] = v === 1 ? 'good' : v & 2 ? 'bad' : null;
+            if (v !== 1) continue;
+            good++;
+            if (!this.latched(r)) { Progress.setAreaFlag('slumber', 'dream:' + r); fresh.push(r); }
+        }
+        if (good === this.ROOMS.length && !Progress.flag('slumber_longway')) {
+            Progress.set('slumber_longway'); Stats.count('longway');
+            Sfx.play('knot'); G.shake = 3;
+            G.pendingToast = 'Three good dreams on one way home, and not one bad: every night-light in the House burns at once.';
+            /* the Pattern's chest comes down in the Long Ward: if that's not where she woke, the camera goes and looks */
+            const ch = a.find('lwPattern');
+            if (ch && Cam.room && Cam.room.key !== '1,2') Script.run(function* () {
+                yield 30;
+                yield* camLook(ch.tx, ch.ty, 90);
+                yield 60;
+                yield* camBack(90);
+            }, { name: 'longwayLook' });
+            return;
+        }
+        if (fresh.length) {
+            Sfx.play('appear');
+            const first = !Progress.flag('slumber_dreamt');
+            Progress.set('slumber_dreamt');
+            G.pendingToast = first ? 'A good dream, all the way home. Somewhere in the House a night-light comes on, and stays on.' : 'Another good dream: another night-light comes on, and stays on.';
+        }
+    },
+    /* a little lamp on a bracket: cold glass till its room is dreamt, then lit for good (a flare for a while after a flight
+       that dreamt it; a red gutter after one that went through its bad dream) */
+    lamp(r, x, y, pool, small) {
+        const on = this.latched(r), last = this.lastOf(r), k = Math.sin(G.t / 27 + x * 0.37);
+        const flare = last === 'good' ? Math.max(0, 1 - (G.t - this.lastT) / 300) : 0, lit = on || flare > 0;
+        const gr = small ? 2 : 3, c = y + gr + 2;
+        if (lit) {
+            if (pool) { Gfx.alpha(0.08 + 0.03 * k + 0.12 * flare); Gfx.circle(x, y + 15, 10 + Math.round(4 * flare), '#f7e08a'); Gfx.alpha(1); }
+            Gfx.alpha(0.14 + 0.05 * k + 0.35 * flare); Gfx.circle(x, c, gr + 4 + Math.round(4 * flare), '#fff4c0'); Gfx.alpha(1);
+        }
+        if (last === 'bad' && (G.t >> 2) % 2) { Gfx.alpha(0.4); Gfx.circle(x, c, gr + 4, '#c42b6a'); Gfx.alpha(1); }
+        Gfx.rect(x - 1, y - 2, 3, 3, PAL.ink); Gfx.rect(x, y - 1, 1, 2, '#c8903a');
+        Gfx.circle(x, c, gr + 1, PAL.ink); Gfx.circle(x, c, gr, lit ? '#f0d890' : '#4e4268');
+        if (lit) { Gfx.rect(x - gr + 1, c - gr + 1, 1, 1, '#fff8e0'); Gfx.rect(x, c, 1, gr, '#f39a3c'); }
+        else Gfx.rect(x - gr + 1, c - gr + 1, 1, 1, '#9a8ab8');
+        Gfx.rect(x - gr - 1, c + gr, gr * 2 + 3, 2, PAL.ink); Gfx.rect(x - gr, c + gr, gr * 2 + 1, 1, '#e8b04a');
+    },
+    /* each room's charm, hung under its dreamcatchers and beside its night-light: the linen's folded sheet, the wash's
+       basket, the milk's jug (a bad dream's in the dark) */
+    charm(r, x, y, dark) {
+        const R = (dx, dy, w, h, c) => Gfx.rect(x + dx, y + dy, w, h, dark ? shade(c, -0.45) : c);
+        if (r === 'linen') { R(-3, 0, 7, 5, PAL.ink); R(-2, 1, 5, 3, '#fbf6ea'); R(-2, 2, 5, 1, '#b48ce8'); }
+        else if (r === 'laundry') { R(-1, 0, 3, 1, PAL.ink); R(-3, 1, 7, 4, PAL.ink); R(-2, 2, 5, 2, '#c8a07a'); R(-1, 2, 1, 2, '#8a6a4a'); R(1, 2, 1, 2, '#8a6a4a'); }
+        else { R(-2, 0, 5, 6, PAL.ink); R(-1, 1, 3, 4, '#f4ecdc'); R(-1, 3, 3, 1, '#b48ce8'); R(3, 1, 1, 3, PAL.ink); }
+    },
+};
+Player.onLand.push((p, f) => Dreams.land(p, f));
+/* each flight home is a dream of its own: the three rooms' dreamcatchers go dark as it sets off */
+{
+    const fly0 = Player.prototype.flyHome;
+    Player.prototype.flyHome = function (opts) { if (this.area && this.area.id === 'slumber') for (const e of this.area.ents) if (e.dream && e.lit) e.lit = 0; return fly0.apply(this, arguments); };
+}
+
+/* a room's good dream: a gilt hoop with a star of thread across it, and the room's charm hanging under */
+class DreamCatcher extends DreamRing {
+    draw(cx, cy) {
+        const x = this.x - cx + 8, y = this.y - cy - 4 + Math.round(Math.sin(G.t / 30 + this.tx) * 1.5), lit = this.lit > 0;
+        Gfx.alpha(0.2); Gfx.rect(x - 4, this.y - cy + 12, 8, 2, PAL.ink); Gfx.alpha(1);
+        Gfx.line(x, y - 14, x, y - 8, '#7a6a9a');
+        if (lit) { Gfx.alpha(0.3 + 0.15 * Math.sin(G.t / 6)); Gfx.circle(x, y, 9, '#f7e08a'); Gfx.alpha(1); }
+        for (let i = 0; i < 28; i++) { const t = i / 28 * Math.PI * 2; Gfx.rect(Math.round(x + Math.cos(t) * 6), Math.round(y + Math.sin(t) * 6), 1, 1, lit ? '#fff4c0' : i % 7 ? '#d8b048' : '#fff0a8'); }
+        const st = lit ? '#fff4c0' : '#c8a8e8';
+        Gfx.line(x - 4, y, x + 4, y, st); Gfx.line(x, y - 4, x, y + 4, st); Gfx.line(x - 3, y - 3, x + 3, y + 3, st); Gfx.line(x - 3, y + 3, x + 3, y - 3, st);
+        Gfx.rect(x, y + 6, 1, 2, '#7a6a9a');
+        Dreams.charm(this.dream, x, y + 8);
+    }
+}
+/* and its bad one: a nightmare's dark willow, the same charm hanging under, in the dark */
+class NightmareCatcher extends NightmareRing {
+    constructor(tx, ty, p) { super(tx, ty, p); this.bad = true; }
+    draw(cx, cy) {
+        super.draw(cx, cy);
+        const x = this.x - cx + 8, y = this.y - cy - 4 + Math.round(Math.sin(G.t / 26 + this.tx) * 1.5);
+        Dreams.charm(this.dream, x, y + 9, true);
+    }
+}
+SPAWN.dreamgood = (x, y, p) => new DreamCatcher(x, y, p);
+SPAWN.dreambad = (x, y, p) => new NightmareCatcher(x, y, p);
+
+/* a room's own night-light for its good dream, its charm beside it */
+class DreamLamp extends Ent {
+    constructor(tx, ty, p = {}) { super('dreamlamp', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
+    get sortY() { return this.y + 6; }
+    draw(cx, cy) {
+        const x = this.x - cx + 8, y = this.y - cy + 3;
+        Dreams.lamp(this.dream, x, y, !this.area.kind(this.tx, this.ty + 1).pit);
+        Dreams.charm(this.dream, x + 9, y + 3, !Dreams.latched(this.dream));
+    }
+}
+SPAWN.dreamlamp = (x, y, p) => new DreamLamp(x, y, p);
+/* the three over a door, on a brass rail across its lintel: the linen's, the milk's and the wash's, as they lie from the
+   Long Ward (west, north, east) */
+class DreamLamps extends Ent {
+    constructor(tx, ty, p = {}) { super('dreamlamps', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
+    get sortY() { return this.y + 16; }        /* (over the door, which sorts at its foot) */
+    draw(cx, cy) {
+        const x = this.x - cx + 8, y = this.y - cy + 2;
+        Gfx.rect(x - 15, y - 1, 31, 2, PAL.ink); Gfx.rect(x - 14, y - 1, 29, 1, '#c8903a');
+        Dreams.ROOMS.forEach((r, i) => Dreams.lamp(r, x + (i - 1) * 12, y + 2, false, true));
+    }
+}
+SPAWN.dreamlamps = (x, y, p) => new DreamLamps(x, y, p);
+
+/* a gate bolted on its far side: walked into, it says so */
+{
+    const unlock0 = Door.prototype.tryUnlock;
+    Door.prototype.tryUnlock = function (p) { if (this.bolt && !this.open && this.type === 'gate') { UI.toast(this.bolt, 90); return false; } return unlock0.apply(this, arguments); };
+}
 
 /* night-lights: a little frosted shade on a brass bracket in the wall, a candle in it, a soft pool of light below */
 class NightLight extends Ent {

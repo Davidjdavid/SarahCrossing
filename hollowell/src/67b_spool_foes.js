@@ -153,6 +153,7 @@ class Tangle extends Ent {
         this.hp = 3; this.state = 'sleep'; this.st = 0; this.t = 0; this.flash = 0; this.alive = true;
         this.balls = []; this.outT = 0; this.dazeT = 0; this.lashT = 0; this.pulled = 0;
         this.lift = 0; this.eyes = false; this.haulT = 0; this.gone = false;     /* gone: the hoist torn down */
+        this.rungT = 0; this.tight = 0;      /* (a ring heard, till what it sent home has settled; winding tight again after) */
         this.HAUL = 120; this.swell = 0; this.ballT = 60; this.sweepT = 90; this.miteT = 60; this.sweepN = 0;
     }
     /* (hung up in the rafters, it's in front of everything under it) */
@@ -193,6 +194,15 @@ class Tangle extends Ent {
         this.pulled = bs.filter(b => this.out(b)).length;
         const here = p.area === a && Cam.room === r && p.state === 'normal';
         this.cleanMites();
+        if (this.tight > 0) this.tight--;
+        /* a ring sent everything not held home: once it's all settled, if a thread's home is in it (a bobbin at its first
+           place, not held out), it winds tight again, and says so */
+        if (this.rungT > 0 && (this.state === 'whole' || this.state === 'haul')) {
+            if (++this.rungT > 60 || bs.every(b => !b.mv && !(b.ret && b.ret.snap))) {
+                this.rungT = 0;
+                if (!this.allOut(bs) && bs.some(b => !this.out(b)) && bs.every(b => !this.out(b) || this.heldOut(b))) this.windTight();
+            }
+        } else this.rungT = 0;
         switch (this.state) {
             case 'whole':
                 this.reel(bs);
@@ -251,6 +261,19 @@ class Tangle extends Ent {
         Sfx.play('land'); Sfx.play('unravel'); G.shake = 10; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild);
         if (!Progress.flag('tangle_drop')) { Progress.set('tangle_drop'); G.pendingToast = 'The hook comes down, and the Tangle with it, in a loose heap round its hard little heart.'; }
     }
+    /* it hears a ring as anything does (in its hall): if the ring sent any of its bobbins home, what comes of it is seen
+       once they're settled (above) */
+    hear(x, y) {
+        if (!this.alive || (this.state !== 'whole' && this.state !== 'haul')) return;
+        if (this.bobbins().some(b => b.ret && b.ret.snap)) this.rungT = 1;
+    }
+    /* everything went home, and home for one of them is in the Tangle: it winds tight again (the wrong idea, told as the
+       world went, never the step) */
+    windTight() {
+        this.tight = 30; Sfx.play('twang'); G.shake = Math.max(G.shake, 3);
+        UI.toast('Everything goes home at once, and with nothing held out of it, the Tangle winds tight again.', 220);
+        Stats.count('boss:tangle:wound');
+    }
     /* a chance missed: it winds itself up again; bobbins left out unheld snap home (knots and stitches stay) */
     rewind() {
         for (const b of this.bobbins()) if (b.ret && b.ret.state !== 'home' && !Return.held(b)) Return.snap(b);
@@ -277,7 +300,7 @@ class Tangle extends Ent {
             if (b.knotted) Spool.untie(b);
             if (b.ret && b.ret.state !== 'home') Return.snap(b);
         }
-        this.hp = 3; this.knocks = 0; this.gone = false; this.lift = 0; this.eyes = false; this.unseal();
+        this.hp = 3; this.knocks = 0; this.gone = false; this.lift = 0; this.eyes = false; this.rungT = 0; this.tight = 0; this.unseal();
     }
     seal() {
         const h = this.trap(); if (!h) return;
@@ -382,11 +405,11 @@ class Tangle extends Ent {
            its hauling beat they flicker, drawing tight */
         for (const b of this.bobbins()) {
             const bx = b.px + 8 - cx, by = b.py + 6 - cy, o = this.out(b);
-            const col = gather && (G.t >> 1) % 2 ? '#fff4c0' : o ? '#f7d64a' : THREAD.guild;
+            const col = (gather || (this.tight > 0 && !o)) && (G.t >> 1) % 2 ? '#fff4c0' : o ? '#f7d64a' : THREAD.guild;
             if (L > 4) { const mx = (x + bx) / 2, my = Math.max(hy, by) + 4; Gfx.line(x, hy, mx, my, col); Gfx.line(mx, my, bx, by, col); }
             else Gfx.line(x, hy, bx, by, col);
         }
-        const R = 22 - this.pulled * 3;
+        const R = 22 - this.pulled * 3 - Math.round(this.tight / 12);     /* (winding tight: a little smaller, a moment) */
         if (this.state === 'open' || this.state === 'down') {
             /* the core: a small hard knot, dazed, threads lying loose */
             Gfx.alpha(0.3); Gfx.circle(x, y + 16, 10, PAL.ink); Gfx.alpha(1);

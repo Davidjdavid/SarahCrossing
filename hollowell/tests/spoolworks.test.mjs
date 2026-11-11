@@ -533,7 +533,7 @@ test("the Tangle's second phase: up on the hoist it can't be reached, Wren walks
     noErrors(HW);
 });
 
-test("the Tangle's last phase: the trapdoor won't lift; it hauls stitched bobbins off their new places; a ring alone, with the fourth at home, isn't enough", () => {
+test("the Tangle's last phase: the trapdoor won't lift; it hauls stitched bobbins off their new places; a ring alone, with the fourth at home, isn't enough, and it says how the world went", () => {
     const [HW, t] = tangleGame();
     phase1(HW, t);
     phase2(HW, t);
@@ -547,10 +547,49 @@ test("the Tangle's last phase: the trapdoor won't lift; it hauls stitched bobbin
     assert.deepEqual([w.ret.mx, w.ret.my], home, 'though that is still its place');
     go(HW, 'heart', 10, 9);
     until(HW, () => t.haulT === 2, 200);
+    const UI = HW.global('UI'), LINE = 'with nothing held out of it, the Tangle winds tight again';
+    assert.ok(!UI.toasts.some(q => q.s.includes(LINE)));
     HW.Inv.equipped = 'bell'; HW.press('tool', 1);
     until(HW, () => ['tbN', 'tbW', 'tbE'].every(id => HW.Return.isHome(B(HW, id))), 40);
     HW.step(40);
     assert.equal(t.state, 'haul', 'three home and out, the fourth at its first place: still whole');
+    /* the wrong idea, told as the world went (never the step): everything went home, the fourth into the Tangle */
+    assert.ok(UI.toasts.some(q => q.s.startsWith('Everything goes home at once') && q.s.includes(LINE)), 'said: ' + UI.toasts.map(q => q.s).join(' | '));
+    assert.ok(t.tight > 0 || HW.Stats.c['boss:tangle:wound'] === 1, 'and seen: it winds tight');
+    /* rung again with nothing sent home (all still where they were): nothing more said */
+    UI.toasts = []; HW.step(50); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(40);
+    assert.ok(!UI.toasts.some(q => q.s.includes(LINE)), 'a ring that sends nothing home says nothing');
+    noErrors(HW);
+});
+
+test("the Tangle: rung in its first phase with the fourth pushed off and not held, it goes home into it: the same words; the right way in the last phase says nothing", () => {
+    const [HW, t] = tangleGame();
+    const UI = HW.global('UI'), said = () => UI.toasts.some(q => q.s.includes('with nothing held out of it'));
+    until(HW, () => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(B(HW, id)) && !B(HW, id).mv), 300);
+    go(HW, 'heart', 8, 8); HW.push('right', 2); HW.step(25);
+    assert.deepEqual(where(HW, 'tbS'), at('heart', 11, 8), 'pushed off');
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(40);
+    assert.deepEqual(where(HW, 'tbS'), at('heart', 9, 8), 'home, into the Tangle');
+    assert.ok(said(), 'said');
+    /* (not when the ring didn't send everything home: one pushed off out of its reach stays out, so it isn't said) */
+    UI.toasts = []; HW.step(200);
+    go(HW, 'heart', 7, 5); HW.push('left', 2); HW.step(25); go(HW, 'heart', 8, 8); HW.push('right', 2); HW.step(25);
+    go(HW, 'heart', 17, 9); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(40);
+    assert.deepEqual(where(HW, 'tbS'), at('heart', 9, 8), 'the near one home');
+    assert.deepEqual(where(HW, 'tbW'), at('heart', 4, 5), 'the far one out of reach, still out');
+    assert.ok(!said(), 'not everything went home: nothing said');
+    until(HW, () => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(B(HW, id)) && !B(HW, id).mv), 600);
+    UI.toasts = [];
+    phase1(HW, t); phase2(HW, t);
+    until(HW, () => t.haulT === 0 && B(HW, 'tbN').ret.state !== 'home', 400);
+    go(HW, 'heart', 10, 8); HW.face('left'); HW.hold('act'); HW.step(3);
+    HW.hold(['act', 'right']); until(HW, () => HW.player().tx === at('heart', 11, 8)[0] && !B(HW, 'tbS').mv, 60); HW.hold('act'); HW.step(2);
+    until(HW, () => t.haulT === 2, 200);
+    UI.toasts = [];
+    HW.Inv.equipped = 'bell'; HW.hold(['act', 'tool']); HW.step(1); HW.hold('act');
+    assert.ok(until(HW, () => t.state === 'open', 90), 'held out with one hand, rung with the other: it comes apart');
+    assert.ok(!said(), 'nothing said: it worked');
+    HW.release(); HW.step(2);
     noErrors(HW);
 });
 

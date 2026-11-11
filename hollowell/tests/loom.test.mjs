@@ -271,8 +271,23 @@ test('the Warp Walk: the hook sets you down in front of the weight, in the gap; 
 
 /* the Web's fight, beat by beat (each beat's own rule tested on its own below) */
 const webGame = () => { const HW = game(true); HW.Inv.giveTool('hook'); HW.G.cheats.god = true; enter(HW, 'web', 9, 9); HW.skipTalk(); return [HW, HW.G.map.ents.find(e => e.kind === 'weaver')]; };
+/* (1) one of its anchors, cut its own way: walk up, get free of any silk, do what it wants first, snip (again if the silk
+   caught her in between) */
+const anchor = (HW, id, x, y, dir, first) => {
+    const n = thing(HW, id);
+    for (let k = 0; k < 12 && !n.cut; k++) { wgo(HW, 'web', x, y); free(HW); if (first) first(n); free(HW); HW.face(dir); snip(HW); }
+    assert.ok(n.cut, id + ' cut');
+};
+/* the plain one at its post; the cocoon rung awake first; the one up into the loom from the well's rim, where it comes
+   down over the well's head; the long one while the Weaver's reared back away from Wren, pulling it tight */
+const anchors = (HW, w) => {
+    anchor(HW, 'anC', 4, 7, 'right');
+    anchor(HW, 'anA', 4, 4, 'right', n => { if (n.sleeping) tool(HW, 'bell'); });
+    anchor(HW, 'anB', 8, 3, 'right');
+    anchor(HW, 'anD', 15, 7, 'left', n => until(HW, () => n.taut(w) && HW.player().pinned !== 'silk', 300));
+};
 const beat1 = (HW, w) => {
-    for (const [x, y, f] of [[4, 4, 'right'], [4, 7, 'right'], [15, 7, 'left'], [15, 4, 'left']]) { wgo(HW, 'web', x, y); free(HW); HW.face(f); snip(HW); }
+    anchors(HW, w);
     assert.ok(until(HW, () => w.state === 'down', 300), 'down into the well');
     wgo(HW, 'web', 8, 6); for (let k = 0; k < 8 && w.hp === 3; k++) { free(HW); strike(HW, 'right'); }
     assert.equal(w.hp, 2, 'knocked once');
@@ -301,7 +316,7 @@ const beat3 = (HW, w) => {
     for (let k = 0; k < 8 && w.alive; k++) { free(HW); strike(HW, 'up'); }
 };
 
-test('the Web: four anchors cut at their posts; then its own thread cut while it climbs home over the well; then hooked down the well and cut: the Weaver', () => {
+test('the Web: four anchors, each cut its own way; then its own thread cut while it climbs home over the well; then hooked down the well and cut: the Weaver', () => {
     const [HW, w] = webGame();
     assert.notEqual(w.state, 'sleep');
     const t0 = HW.G.t;
@@ -411,6 +426,45 @@ test('the Web, beat 1: caught in its silk while bound, it tightens; the posts cu
     assert.ok(HW.G.map.kind(w.x >> 4, w.y >> 4).pit, 'in the well');
     assert.ok(until(HW, () => w.state === 'web', 600), 'not knocked: back up into its web');
     assert.ok(w.anchors().every(n => !n.cut), 'tied in again');
+    assert.ok(thing(HW, 'anA').sleeping && !thing(HW, 'anD').taut(w), 'as they were: the cocoon wound up asleep again, the long one slack');
+    noErrors(HW);
+});
+
+/* (1) each anchor's wrong idea fails and says how the world went; its own way cuts it */
+test("the Web, beat 1: four anchors read four ways: the long one slides off till the Weaver rears back away and pulls it tight; the cocoon sleeps till a bell; the one up in the loom is out of reach but where it comes down over the well's head; the plain one cuts at its post", () => {
+    const [HW, w] = webGame();
+    const A = id => thing(HW, id), said = s => HW.global('UI').toasts.some(t => t.s.includes(s)), p = HW.player();
+    const settle = () => until(HW, () => p.pinned !== 'silk' && w.puff === 0 && !A('anD').taut(w), 400);
+    assert.equal(w.anchors().map(n => n.way).sort().join(), 'asleep,loom,plain,slack');
+    /* the long one: slack, it slides off the blades; rearing back to spit, the Weaver swings away from her and it's pulled tight */
+    wgo(HW, 'web', 15, 7); free(HW); settle();
+    HW.face('left'); snip(HW);
+    assert.ok(!A('anD').cut && said('slides off the blades'), 'slack: it slides off');
+    assert.ok(until(HW, () => A('anD').taut(w), 200), 'pulled tight');
+    assert.ok(w.puff > 0 && w.sx < 0, "as it rears back, swung away from her (she's to the east)");
+    HW.face('left'); snip(HW);
+    assert.ok(A('anD').cut, 'cut while it was tight');
+    /* the cocoon: asleep, the blades can't find the thread; the stick only says it's asleep; rung from too far off it sleeps on */
+    wgo(HW, 'web', 4, 4); free(HW); HW.face('right'); snip(HW);
+    assert.ok(!A('anA').cut && said("can't find the thread"), 'asleep: the blades find nothing');
+    free(HW); strike(HW, 'right');
+    assert.ok(said('fast asleep') && A('anA').sleeping, 'the stick: asleep, and it stays so');
+    wgo(HW, 'web', 17, 8); free(HW); tool(HW, 'bell'); HW.step(10);
+    assert.ok(A('anA').sleeping, "rung from across the hall, out of a bell's reach: still asleep");
+    wgo(HW, 'web', 4, 5); free(HW); tool(HW, 'bell'); HW.step(10);
+    assert.ok(!A('anA').sleeping, 'rung within reach: woken, its silk unwound');
+    wgo(HW, 'web', 4, 4); free(HW); HW.face('right'); snip(HW);
+    assert.ok(A('anA').cut, 'its knot bare: cut');
+    /* the one up into the loom: its knot out of reach; where it comes down over the well's head, from the rim, it cuts */
+    wgo(HW, 'web', 8, 3); free(HW); HW.face('up'); snip(HW);
+    assert.ok(!A('anB').cut && said("out of the blades' reach"), 'tied up on the loom: out of reach');
+    free(HW); HW.face('right'); snip(HW);
+    assert.ok(A('anB').cut, 'cut over the well, anywhere along it');
+    /* the plain one: at its post */
+    assert.ok(!['anA', 'anB', 'anD'].some(id => !A(id).cut) && w.state === 'web', 'three cut, still up');
+    wgo(HW, 'web', 4, 7); free(HW); HW.face('right'); snip(HW);
+    assert.ok(A('anC').cut, 'cut at its post');
+    assert.ok(until(HW, () => w.state === 'down', 120) && HW.G.map.kind(w.x >> 4, w.y >> 4).pit, 'down into its well');
     noErrors(HW);
 });
 
