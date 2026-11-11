@@ -122,7 +122,7 @@ const ANCHOR_LINE = {
     loom: "That one's tied up on the loom, out of the blades' reach.",
 };
 /* (what both kinds of anchor share; a kind's own method wins) */
-const anchorWays = C => { for (const k of Object.keys(AnchorWays)) if (!Object.prototype.hasOwnProperty.call(C.prototype, k)) C.prototype[k] = AnchorWays[k]; };
+const withAnchorWays = C => { for (const k of Object.keys(AnchorWays)) if (!Object.prototype.hasOwnProperty.call(C.prototype, k)) C.prototype[k] = AnchorWays[k]; };
 const AnchorWays = {
     /* drawn tight? (the long one only while the Weaver's swung away from it; the cocoon's not while it sleeps) */
     taut(w) {
@@ -217,7 +217,7 @@ class Anchor extends GridThing {
         }
     }
 }
-anchorWays(Anchor);
+withAnchorWays(Anchor);
 SPAWN.anchor = (x, y, p) => new Anchor(x, y, p);
 /* the one tied up on the loom, into its cloth over the well's head (no post: under it there's only the well) */
 class LoomAnchor extends Ent {
@@ -233,7 +233,7 @@ class LoomAnchor extends Ent {
         Gfx.rect(x - cx - 2, y - cy - 1, 5, 3, '#e4ecf5'); Gfx.rect(x - cx - 1, y - cy, 3, 1, '#ffffff'); Gfx.rect(x - cx - 2, y - cy + 2, 5, 1, '#5a6070');
     }
 }
-anchorWays(LoomAnchor);
+withAnchorWays(LoomAnchor);
 SPAWN.loomanchor = (x, y, p) => new LoomAnchor(x, y, p);
 
 class Weaver extends Ent {
