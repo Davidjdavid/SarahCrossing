@@ -321,10 +321,14 @@ test("Rosa's saucer: given a place on the back step with the Needle, it stays; B
 });
 
 /* ---------------- the journal, the looks, later saves ---------------- */
-test("the journal tells what's new in town until it's done, and all of it at once still fits", () => {
+test("the journal notes a favour once it's been asked in person, until it's done, and all of it at once still fits", () => {
     const HW = game('afterD7');
     const news = () => HW.global('TOWN_NEWS').filter(([on, done]) => on() && !done()).map(n => n[2]);
-    assert.ok(news().some(s => /crates/.test(s)) && news().some(s => /saucer/.test(s)) && news().some(s => /Jory/.test(s)));
+    /* (nothing waiting to be noticed is spoilt by the journal: only what someone has asked) */
+    assert.ok(!news().some(s => /crates|kite|strays|Jory|saucer|Tuck/.test(s)), 'not before anyone has asked');
+    for (const f of ['fav_cratesTold', 'fav_kiteTold', 'fav_tuckTold', 'fav_tinTold', 'fav_saucerTold']) HW.Progress.set(f);
+    assert.ok(news().some(s => /crates/.test(s)) && news().some(s => /saucer/.test(s)) && news().some(s => /Tuck/.test(s)));
+    assert.ok(!news().some(s => /Jory/.test(s)), "Jory's window is never noted: nobody asks");
     HW.G.wanderer = 'WWWWWWWWWW';
     const P = HW.probe(true), M = HW.global('PauseMenu'), Game = HW.global('Game');
     M.open(); M.tab = M.tabs.indexOf('Journal');
@@ -332,8 +336,8 @@ test("the journal tells what's new in town until it's done, and all of it at onc
     M.close();
     const issues = P.report().issues.filter(i => i.kind === 'text');
     assert.equal(issues.length, 0, issues.map(i => i.key + ' -- ' + i.detail).join('\n'));
-    for (const f of ['fav_cratesHome', 'fav_kite', 'fav_tin', 'fav_stick', 'fav_saucerPlaced']) HW.Progress.set(f);
-    assert.ok(!news().some(s => /crates|kite|strays|Jory|saucer/.test(s)), 'done, gone from the news');
+    for (const f of ['fav_cratesHome', 'fav_kite', 'fav_marble', 'fav_tin', 'fav_stick', 'fav_saucerPlaced']) HW.Progress.set(f);
+    assert.ok(!news().some(s => /crates|kite|strays|Jory|saucer|Tuck/.test(s)), 'done, gone from the news');
 });
 
 test('the north gate: the first time you come out into town after it opens, you see it standing open', () => {

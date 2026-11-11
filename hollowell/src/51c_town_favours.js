@@ -377,13 +377,14 @@ FAVOUR_TALK.rosa = function* () {
 }
 
 /* what's new in town, for the journal, until it's done */
+/* the journal keeps a note of a favour only once someone has asked it in person: it never tells you what's waiting to
+   be noticed, nor when you've the tool for it (Jory's window is never noted: nobody asks) */
 TOWN_NEWS.push(
-    [() => Progress.flag('d1'), () => Progress.flag('fav_cratesHome'), "Thimble's crates, stuck in the lane by her shop", 1],
-    [() => Progress.flag('d2'), () => Progress.flag('fav_kite'), "the children's kite, up the tree by the Inn", 2],
-    [() => !!Inv.items.marble, () => Progress.flag('fav_marble'), "Tuck, who's never had a thing that stays put", 9],
-    [() => Progress.flag('d4'), () => Progress.flag('fav_tin'), "Auntie Mabel's floor of strays", 4],
-    [() => Progress.flag('reveal1'), () => Progress.flag('fav_stick'), "the puppet in Jory's shop window", 6],
-    [() => Progress.flag('d7'), () => Progress.flag('fav_saucerPlaced'), "Rosa's saucer of cream for Biscuit", 7],
+    [() => Progress.flag('fav_cratesTold'), () => Progress.flag('fav_cratesHome'), "Thimble's crates, stuck in the lane by her shop", 1],
+    [() => Progress.flag('fav_kiteTold'), () => Progress.flag('fav_kite'), "the children's kite, up the tree by the Inn", 2],
+    [() => Progress.flag('fav_tuckTold'), () => Progress.flag('fav_marble'), "Tuck, who's never had a thing that stays put", 9],
+    [() => Progress.flag('fav_tinTold'), () => Progress.flag('fav_tin'), "Auntie Mabel's floor of strays", 4],
+    [() => Progress.flag('fav_saucerTold'), () => Progress.flag('fav_saucerPlaced'), "Rosa's saucer of cream for Biscuit", 7],
 );
 
 /* a handful of buttons out of a chest is named for what it is ("You found 50 buttons!") */
