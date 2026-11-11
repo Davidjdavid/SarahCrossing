@@ -564,10 +564,11 @@ const Spoolworks = {
             if (first || own) {
                 Progress.setAreaFlag('spoolworks', 'paLook'); if (!held) Progress.setAreaFlag('spoolworks', 'paLook2');
                 Script.run(function* () {
-                    yield 6; Sfx.play('appear');
+                    yield 6;
                     yield* camLook(ge.tx, ge.ty, 90);
-                    Fx.sparkle(ge.x + 8, ge.y + 8, THREAD.guild);
-                    yield 50;
+                    Sfx.play('appear'); Fx.ring(ge.x + 8, ge.y + 8, THREAD.guild); Fx.sparkle(ge.x + 8, ge.y + 8, THREAD.guild);
+                    yield 24; Fx.sparkle(ge.x + 8, ge.y + 4, THREAD.guild);
+                    yield 36;
                     yield* camBack(90);
                 }, { name: 'paLook' });
             }

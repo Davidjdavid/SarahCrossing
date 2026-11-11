@@ -14,7 +14,9 @@ tie Knots that keep the valley's marks strong. This year it's Wren.
 The Houses are built, rebuilt and *run live* for each Wanderer by the town's **Makers**, as a gift: Mother
 Ives (Tidyhouse), Bram (Kiln), Dad/Ambrose (Millrace), Mum/Tess (Belfry), Dr Mallow (Slumberhouse), Jory
 (Marionette Hall). They watch from the **Underside** through peepholes, reset puzzles behind you, nudge you
-when you're stuck (the "Hints" option), work the bosses (costumes, automata, puppets). The Return is not
+when you're stuck (the "Hints" option: before Reveal 1 the voice behind the walls is never named, but it talks the way
+its House's Maker does: Ives's "Not very tidy, being stuck", Bram's "HA— ahem", Dad's "Wander rules", Mum's "bairn",
+Mallow's yawn, a "Psst!" from the wings), work the bosses (costumes, automata, puppets). The Return is not
 nature: every mark is a little brass grommet with a thread running down into the Underside, wound on a
 spool with a counterweight; the Makers keep it all running. The Makers did this for every Wanderer; it's
 the town's oldest tradition and its best secret. The Wanderer's last trial is to *make*.
@@ -27,6 +29,8 @@ Hesper's daughter **Linnet** (Wren's aunt) was the Wanderer 25 years ago; on her
 Hall of Names, cut her own thread with the First Spinner's Shears and walked into the fog. She never came
 back. Since then Hesper has tightened the Return, year by year: the townsfolk used to walk about (Old Arlo
 remembers), now they don't. The **Knots** of the Wander were Hesper's addition: each one tightens her hold.
+(Shown, never said: after each Knot a wordless picture of the Well's winch, far away, turning a notch by itself with
+nobody at the crank, the Knot's House's thread winding on beside the ones before: a band of colour per Knot on its drum.)
 Hesper's ledger: "Tightened again. They mustn't leave. Wren mustn't." Her plan: after the six Knots, Wren
 ties the seventh at the Well (the "Wanderer's Knot", the empty pedestal in the Inn) and becomes the next
 Spinner, bound below, so the valley never loses anyone again. When Wren confronts her, she simply pulls:
@@ -86,12 +90,12 @@ gives after Reveal 2.
 | Pots/grass/things come back | The Return | Threads into grommets, spools, counterweights |
 | Enemies respawn | The Return (yarn re-forms) | Makers re-wind them; cut, they stop |
 | Townsfolk stand on one spot, say the same thing | Normal NPCs | They're tied, short; Hesper tightened it |
-| Respawn at the room's door after a fall | Normal | Wren's own thread; the doorway is a mark the Makers set |
-| Fainting → wake in bed | Normal "game over" | Hesper's thread pulls Wren home |
+| Respawn at the room's door after a fall | Normal | Wren's own thread; the doorway is a mark the Makers set; every flight home is a turn of Gran's winch, counted (her tally in the Hall of Names) |
+| Fainting → wake in bed | Normal "game over" | Hesper's thread pulls Wren home (counted with the falls) |
 | Invisible wall at the world's edge (fog pushes back) | Normal | The Return's limit; the fog is threads |
 | Dungeon keys can't leave the dungeon | Normal | Keys are marked to their House |
 | A map showing places you haven't been | Normal | The Makers drew the map (the Drift's is blank) |
-| Hint system (Options: Hints) | Normal | The Makers' nudges (logged in their logbooks) |
+| Hint system (Options: Hints) | Normal | The Makers' nudges (logged in their logbooks); the voice that asks first talks like its Maker |
 | Big locked doors with the dungeon's key | Normal | Makers' "Patterns" |
 | Boss defeated stays defeated | Normal | Makers cut its thread after (costume/automaton) |
 | Save points | "Tie off here?" | Re-tying your thread at a mark |
@@ -304,7 +308,12 @@ the Shears; the fog is thread; "I'm going. I'll cut a little at a time from outs
 be frightened of that." The Stray House's last room: Linnet's bracelet (for the full ending).
 
 As built: notes 4 and 5 were scenery first (the Echo Room's pinned note, the bottle below the falls) and are trail
-notes now. The Stray House's door takes the seven notes through its slot ("Post them") and opens; note 8 lies in the
+notes now. Note 5 gives an experiment, not its answer: "Go to where the river runs into the fog and put your hand in it.
+Then tell me it's mist." It can be done: at the bottom of Meadowfold, where the town's river runs into the fog (hub
+113-117,117), Act facing the fog from the river's end gives a close look (`src/80c_fog_hand.js`): thread fine as hair,
+beaded with the river's spray, every strand pulled taut up the river toward the Well, and among them Wren's own red one,
+which pulls taut the same way (slack once the Unwinding's come; no red one once hers is cut). Nothing collected or
+counted (flag `fog_hand`); the Frayed Edge's bead curtain is the confirmation, later. The Stray House's door takes the seven notes through its slot ("Post them") and opens; note 8 lies in the
 Porch. The Stray House: DUNGEON_TRACKER.md "O1". Its reward is the bracelet (the ending: Linnet gives it to Hesper)
 and a Heartstitch; the Twin Bedroll was dropped (one Bedroll is enough for everything in the game).
 
@@ -473,6 +482,19 @@ doesn't argue; a choice of three words; she pulls Wren's thread and Wren wakes i
 (a short line from each townsperson), the well cellar is locked, Gundry tells of the Shears in the Loom past the north
 gate and the gate's counterweight in the Seams (the Needle gives it a new place: S32 if before Reveal 2); a faint now
 wakes with Gran's hand felt on the thread (S33).
+The player's own play is in the Hall (`src/80b_tally.js` counts it from a new game's first step): every time Wren was
+brought home without choosing it (a fall, sink or doze flown home, by where it happened; a faint; the fog turning her
+back; not a Homeward flight, not a fall where nothing pulls) is a stroke on a card under her spool ("a tally in Gran's
+hand, five strokes to a gate. Forty-one."), and the ledger's last page is that tally in rows, a row for each place, the
+longest named ("The longest row is MILLRACE: nine. Under them all, underlined: 'Every one, home.'"; none at all: "Not
+one fall. I wound her in anyway, every night."). Tuck's spool has as many turns pulled snug as Wren tugged his thread in
+the Makings, and Gran says it to her face: "You pulled that boy home four times, love, by his own thread. Then you know
+how easy it is." (never pulled: "You never once pulled that boy's thread, down there. I could never leave yours
+alone."). A save from before the tally (or a preset) gets the same words without numbers. When Gran pulls, Wren can hold
+on: the Gloves' grip on the lectern (hold Action), and held things wait, Wren included: the pull can't take her, Gran
+tries twice and then waits ("I can wait, love.") for as long as she holds on; let go (or never take hold, or only tap)
+and she's yanked home as before (flag `hall_held`). The count (`Tally.home()`, Gran's own pull included) is there for
+the Spool's top to use.
 ## Act IV so far: the north gate, the Loomwood, the Loom, cutting free (`src/71_loomwood.js`, `src/72_loom.js`, `src/73_freed.js`)
 The north gate opens when its counterweight in the Seams takes a new place from the Needle. Burr, after: "Go on, then."
 The Loomwood: silver birches, moths that go for movement, silk strands, the Frayed Edge (strays; the Stray House's

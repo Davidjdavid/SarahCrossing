@@ -1560,9 +1560,13 @@ class GridThing extends Ent {
         if (this.carried) return;      /* (Wren draws what she carries, over her head: not here as well) */
         const im = this.sprite();
         if (!im) return;
-        /* waiting to come down on its place (something's standing on it): it hovers there, faint, over its mark */
+        /* waiting to pop back onto its place (something's standing on it): not back yet, so not drawn; its place glints,
+           its mark showing over whoever's feet are on it, motes of its thread rising off it */
         if (this.pendingHome) {
-            Gfx.alpha(0.45); Gfx.img(im, this.tx * T - cx + (this.ox || 0), this.ty * T - cy - (im.height - T) - 7 + Math.round(Math.sin(G.t / 10)) + (this.oy || 0)); Gfx.alpha(1);
+            const x = this.tx * T - cx, y = this.ty * T - cy, col = this.ret ? this.ret.color : PAL.white, k = (G.t + this.uid * 7) % 30;
+            Gfx.alpha(k < 20 ? 0.8 : 0.35); Marks.draw(x, y + 2, col, true);
+            for (let i = 0; i < 2; i++) { const m = (G.t + i * 20 + this.uid * 5) % 40; Gfx.alpha(Math.max(0, 0.8 - m / 40)); Gfx.rect(x + 5 + i * 5, y + 4 - m / 2, 1, 2, col); }
+            Gfx.alpha(1);
             return;
         }
         const sx = this.px - cx, sy = this.py - cy - (im.height - T) - this.z;
@@ -3136,9 +3140,10 @@ const Shards = {
 
 const Cam = {
     x: 0, y: 0, room: null, trans: null,
-    target(p, room) {
+    target(p, room, free) {
         const r = room || this.room;
         let x = p.x - W / 2, y = p.y - 6 - H / 2;
+        if (free) return { x: Math.round(x), y: Math.round(y) };      /* (a look across rooms: right at it, whatever room it's in) */
         const rx = r.x * T, ry = r.y * T, rw = r.w * T, rh = r.h * T;
         /* the HUD sits over the top 14 px of a room-sized room */
         const top = ry - (rh <= H ? (H - rh) / 2 : 0);
@@ -3190,7 +3195,7 @@ const Cam = {
         /* a scene can point the camera somewhere else for a while (Cam.look: a point in the world), panned to gently;
            (once no scene is running, it comes back to Wren whatever the scene forgot) */
         if (this.look && !Script.blocking()) { this.look = null; this.lookEase = true; }
-        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p, this.look && this.look.room);
+        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p, null, this.look && this.look.free);
         /* outdoors, a gentle follow; indoors, exact */
         if (p.area.family === 'outdoor' || this.look || this.lookEase) {
             const k = this.look || this.lookEase ? 0.08 : 0.2;
@@ -3207,10 +3212,11 @@ const Cam = {
 /* for scenes: look at a tile (or a thing) and wait till the camera's there; then back to Wren */
 function* camLook(x, y, max = 90) {
     Cam.look = typeof x === 'object' ? { x: (x.isGrid ? x.px : x.x) + 8, y: (x.isGrid ? x.py : x.y) + 8 } : { x: x * T + 8, y: y * T + 8 };
-    /* (a look into another room of the place: the camera keeps to that room while it looks) */
+    /* (a look out of the room Wren's in, at a door in its wall or into another room: the camera goes right to it, not
+       kept to her room) */
     const a = G.map, lr = a && a.rooms && a.rooms.length > 1 ? a.roomAt(tileOf(Cam.look.x), tileOf(Cam.look.y)) : null;
-    if (lr && lr !== Cam.room) Cam.look.room = lr;
-    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }, Cam.look.room); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
+    if (lr && lr !== Cam.room) Cam.look.free = true;
+    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }, null, Cam.look.free); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
 }
 function* camBack(max = 90) {
     Cam.look = null; Cam.lookEase = true;
@@ -3700,7 +3706,7 @@ const ITEMS = {
     gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold [act] against a block to grip it: it stays put while you hold on. Step back to pull it.' },
     hook: { name: 'Hookline', kind: 'tool', desc: '[tool]: throw the hook. Catches on eyelets and empty marks and reels you over; reels light things to you.' },
     paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and paddle it about.' },
-    bell: { name: 'Recall Bell', kind: 'tool', desc: '[tool]: ring it. Everything nearby that is out of place goes straight home.' },
+    bell: { name: 'Recall Bell', kind: 'tool', desc: '[tool]: ring it. Everything nearby out of place snaps straight home, shoving harder than it would on its own.' },
     bedroll: { name: 'Bedroll', kind: 'tool', desc: '[tool]: lay it down to make a place of your own. Hold [tool] to go home to it.' },
     crossbar: { name: 'Crossbar', kind: 'tool', desc: '[tool]: take up the strings of a puppet you can see, and walk it.' },
     needle: { name: 'Needle', kind: 'tool', desc: "[tool]: give a thing a new place. Up to three at a time." },
@@ -9343,14 +9349,58 @@ const Knots = {
             p.state = 'hold';
             yield* say(null, `You tied the ${a.def.knotName || 'Knot'}! ` + KNOT_LINES[Inv.knots.length - 1]);
             G.holdUp = null; p.state = 'normal';
-            yield* say(null, WELL_CREAKS[Math.min(Inv.knots.length, WELL_CREAKS.length) - 1]);
+            yield* Knots.winch();
             G.hideHud = false;
             if (a.def.afterKnot) yield* a.def.afterKnot();
             Save.autosave();
         };
     },
+    /* then, far away, the Well's winch turns a notch by itself, and the Knot's thread winds on beside the others: a moment's
+       picture, no words (Gundry: "turns by itself some nights"). It times itself, so a load in the middle can't leave it up. */
+    *winch() {
+        G.winch = { t0: G.t, n: Inv.knots.length, knots: Inv.knots.slice() };
+        for (let t = 0; t < WINCH_T; t++) {
+            if (t === WINCH_NOTCH) { Sfx.play('winch'); if (G.winch.n >= KNOT_LINES.length) { Sfx.play('rumble'); G.shake = 3; } }
+            yield 1;
+        }
+        G.winch = null;
+    },
+    drawWinch() {
+        const c = G.winch, t = c ? G.t - c.t0 : WINCH_T;
+        if (t < 0 || t >= WINCH_T) { G.winch = null; return; }
+        const w = 112, h = 76, x = (W - w) >> 1, y = 22, n = c.n;
+        const turn = clamp((t - WINCH_NOTCH) / 10, 0, 1), ease = turn * turn * (3 - 2 * turn);
+        Gfx.alpha(t < 10 ? t / 10 : t > WINCH_T - 16 ? (WINCH_T - t) / 16 : 1);
+        stitchedBox(x - 2, y - 2, w + 4, h + 4, { fill: '#1a1828', stitch: '#3e3a58', shadow: '#141220' });
+        for (let i = 0; i < 12; i++) Gfx.rect(x + 6 + Math.floor(hash2(i, 5, 71) * (w - 12)), y + 4 + Math.floor(hash2(5, i, 72) * 14), 1, 1, i % 3 ? '#7a76a0' : '#d8d4f0');
+        /* the Well: its stone side, its rim, the dark inside */
+        for (let j = 0; j < 16; j++) for (let i = 0; i < 76; i += 2) Gfx.rect(x + 18 + i, y + 54 + j, 2, 1, (j % 4 === 3 || (i + (j >> 2) * 4) % 12 === 0) ? '#5e5648' : ((i >> 3) + (j >> 2)) % 2 ? '#a89a86' : '#94877a');
+        Gfx.rect(x + 16, y + 50, 80, 4, '#cfc3ae'); Gfx.rect(x + 22, y + 51, 68, 2, '#0c0a10');
+        /* the posts and the drum between them, under the Well's red roof */
+        for (const px of [22, 86]) { Gfx.rect(x + px, y + 12, 4, 40, '#7a4e32'); Gfx.rect(x + px, y + 12, 2, 40, '#9a6438'); }
+        for (let j = 0; j < 9; j++) { const ins = Math.round((8 - j) * 1.6); Gfx.rect(x + 12 + ins, y + 4 + j, 88 - ins * 2, 1, j < 2 ? '#e07a64' : j % 3 === 2 ? '#a84a40' : '#c45a4a'); }
+        Gfx.rect(x + 12, y + 13, 88, 1, '#6e2a2a');
+        Gfx.rect(x + 26, y + 22, 60, 10, '#c9925a'); Gfx.rect(x + 26, y + 22, 60, 1, '#e6c08a'); Gfx.rect(x + 26, y + 31, 60, 1, '#8a5a38');
+        /* a band of thread on the drum for each Knot, in its House's colour, running down into the dark; the newest winds
+           on as the winch turns */
+        const quiver = n >= KNOT_LINES.length && turn >= 1 ? Math.round((Math.random() - 0.5) * 1.6) : 0;
+        for (let i = 0; i < n; i++) {
+            const col = KNOT_THREAD[c.knots[i]] || THREAD.town, bx = x + 30 + i * 8, bw = i === n - 1 ? Math.round(7 * ease) : 7;
+            if (bw <= 0) continue;
+            for (let r = 0; r < 12; r++) Gfx.rect(bx, y + 21 + r, bw, 1, (r + Math.floor(ease * 4)) % 2 ? shade(col, -0.2) : shade(col, 0.15));
+            Gfx.line(bx + 3, y + 33, bx + 3 + quiver, y + 51, col);
+        }
+        /* the crank on the right-hand post, turned a notch by nobody, and the pawl that clicks */
+        const hx = x + 93, hy = y + 27, an = -Math.PI / 2 + (n - 1 + ease) * Math.PI / 4, ex = hx + Math.round(Math.cos(an) * 10), ey = hy + Math.round(Math.sin(an) * 10);
+        Gfx.line(hx, hy, ex, ey, '#45281c'); Gfx.line(hx + 1, hy, ex + 1, ey, '#6b4128');
+        Gfx.rect(ex - 1, ey - 1, 4, 4, '#45281c'); Gfx.rect(ex, ey, 2, 2, '#c9925a');
+        Gfx.rect(hx - 2, hy - 2, 5, 5, '#3a3440'); Gfx.rect(hx - 1, hy - 1, 2, 2, '#8a8096');
+        Gfx.rect(hx - 4, hy - 6 + (turn > 0 && turn < 1 ? 1 : 0), 2, 3, '#aab0c0');
+        Gfx.alpha(1);
+    },
     /* every thread in the House streaming into the hoop (drawn over the room) */
     draw(cx, cy) {
+        if (G.winch) this.drawWinch();
         const t = G.knotFx; if (!t) return;
         const p = G.player;
         const tx = p.x - cx, ty = p.y - cy - 20;
@@ -9362,18 +9412,26 @@ const Knots = {
         Gfx.alpha(Math.min(0.6, t / 160)); Gfx.rect(0, 0, W, H, '#fff6e0'); Gfx.alpha(1);
     },
 };
-const WELL_CREAKS = [
-    'Far away, at the bottom of the Hollow, the Well creaks once, like a winch taking up slack.',
-    'Far away, the Well creaks again, a little longer this time.',
-    'Somewhere a long way under your feet, something winds one turn tighter. The Well creaks.',
-    'The Well creaks. This time you could swear you felt it, in your chest, like a stitch pulled snug.',
-    'The Well creaks, long and slow, and for a moment every thread in the room leans the same way: home.',
-    'Far off, the Well gives a groan like a rope at full stretch. Then it is quiet. Very quiet.',
-];
+/* the winch's moment after a Knot: how long, and when it turns; each Knot's thread on its drum is its House's colour */
+const WINCH_T = 100, WINCH_NOTCH = 34;
+const KNOT_THREAD = { tidy: THREAD.ives, kiln: THREAD.bram, mill: THREAD.ambrose, belfry: THREAD.tess, slumber: THREAD.mallow, marionette: THREAD.jory };
+/* (a winch taking up a notch: a long wooden creak, then the pawl's click) */
+SFX.winch = (o, t) => { Audio.tone(o, t, 150, 0.4, 'p25', 0.06, { slide: 95 }); Audio.hit(o, t + 0.3, 0.05, 0.2, 1500, 6000); Audio.tone(o, t + 0.3, 240, 0.05, 'p50', 0.1); };
 const KNOT_LINES = [
     'One Knot of six. You feel steadier, somehow, as if the ground under you had been pinned down a little tighter.',
     'Two Knots of six.', 'Three Knots of six.', 'Four Knots of six.', 'Five Knots of six.', 'Six Knots! The Wander is nearly done.',
 ];
+
+/* the voice behind the walls the first time it asks, before anyone owns up: each House's Maker in their own words (Ives's
+   tidiness, Bram's laugh, Dad's Wander rules, Mum's bairn, Mallow's yawn, a whisper from the wings) */
+const NUDGE_VOICES = {
+    tidy: { ask: 'Stuck, are we, dear? Not very tidy, being stuck.', yes: '"Right you are, dear."', no: '"Quite right too." A door closes softly, somewhere, and somebody starts sweeping.' },
+    kiln: { ask: 'HA— ahem. Stuck, are we?', yes: '"Right you are! Go on!"', no: '"HA! Quite right too." A door closes, not very softly, somewhere.' },
+    mill: { ask: "Stuck, are we, love? Not that I'm allowed to help, mind. Wander rules.", offer: "But if I WERE... if the House were, it could give you a nudge now and then, when you've been stuck a good while.", yes: '"Right you are. Don\'t tell anyone."' },
+    belfry: { ask: 'Stuck, are we, bairn?', yes: '"Right you are, bairn."', no: '"Quite right too. Go on, then." A door closes softly, somewhere.' },
+    slumber: { ask: 'Stuck, are we? *yaaawn* Pardon me.', yes: '"Splendid."', no: '"Quite right too. Sleep on it." A door closes softly, somewhere.' },
+    marionette: { pre: 'Somewhere behind the scenery, someone whispers, very loudly: "Psst!"', yes: '"Bravo."', no: '"Quite right too. Your scene." A door closes softly, somewhere in the wings.' },
+};
 
 /* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
 const Nudges = {
@@ -9407,15 +9465,14 @@ const Nudges = {
         Nudges.fire(a, r, n);
     },
     *ask(a, r, n) {
-        const who = { tidy: "rather like Mother Ives's", kiln: "deep and gruff, rather like Bram's", mill: "rather like your dad's", belfry: "rather like your mum's",
-            slumber: "soft and sleepy, rather like Doctor Mallow's", marionette: "rather like Jory's", spoolworks: "rather like Gundry's", loom: "very old" }[a.def.house] || 'muffled';
-        const known = Progress.flag('reveal1');
-        yield* say(null, known ? 'Somewhere behind the walls, one of the Makers clears their throat.' : `Somewhere behind the walls, someone clears their throat. A voice, ${who}:`);
-        const i = yield* ask(null, '"Stuck, are we? We could... the House could give you a nudge now and then, when you\'ve been stuck a good while. Would you like that?"', ['Yes, please.', "No, I'll work it out."]);
-        if (i === 0) { yield* say(null, '"Right you are." Something behind the wall goes twang.'); Nudges.fire(a, r, n); }
+        /* before the Makers own up (Reveal 1) the voice isn't named: it talks the way its Maker always does */
+        const v = (!Progress.flag('reveal1') && NUDGE_VOICES[a.def.house]) || {};
+        yield* say(null, Progress.flag('reveal1') ? 'Somewhere behind the walls, one of the Makers clears their throat.' : v.pre || 'Somewhere behind the walls, someone clears their throat.');
+        const i = yield* ask(null, `"${v.ask || 'Stuck, are we?'} ${v.offer || "We could... the House could give you a nudge now and then, when you've been stuck a good while."} Would you like that?"`, ['Yes, please.', "No, I'll work it out."]);
+        if (i === 0) { yield* say(null, (v.yes || '"Right you are."') + ' Something behind the wall goes twang.'); Nudges.fire(a, r, n); }
         else {
             Settings.hints = false; Settings.save();
-            yield* say(null, '"Quite right too." A door closes softly, somewhere. (Hints can be turned on in Options, if you change your mind.)');
+            yield* say(null, (v.no || '"Quite right too." A door closes softly, somewhere.') + ' (Hints can be turned on in Options, if you change your mind.)');
         }
     },
     fire(a, r, n) {
@@ -15346,7 +15403,7 @@ Object.assign(BUDGE, {
 });
 CRITTER_TALK.biscuit = () => function* () {
     const n = (Progress.get('biscuitPets') || 0) + 1; Progress.set('biscuitPets', n);
-    yield* say(null, n === 1 ? "Biscuit, the town cat. The cat goes wherever it likes. You've never once seen it go back to anywhere." : n === 2 ? "Biscuit purrs and looks at you as if it knows something you don't. Cats always look like that." : "Biscuit. Purring.");
+    yield* say(null, n === 1 ? "Biscuit, the town cat." : n === 2 ? "Biscuit purrs and looks at you as if it knows something you don't. Cats always look like that." : "Biscuit. Purring.");
 };
 CRITTER_TALK.pudding = () => function* () {
     if (Progress.flag('d4') && !Progress.flag('unwound')) { yield* say(null, "Pudding lies with his nose on his paws, looking at his ball. He doesn't chase it any more. His tail thumps once when you crouch down, and then he goes back to looking."); return; }
@@ -16349,9 +16406,10 @@ const Bells = {
     ring(area, x, y, reach = this.REACH, opts = {}) {
         Sfx.play('bell');
         Fx.ring(x, y - 6, '#f7d64a'); Fx.ring(x, y - 6, '#fff4c0');
-        G.ringFx = { x, y, t: 0, r: reach * T, area };
         /* a ring fills the room it's rung in, and no further: walls stop it */
         const room = area.rooms && area.rooms.length > 1 ? area.roomAt(tileOf(x), tileOf(y)) : null;
+        /* (its reach, drawn: anything whose middle is inside this ring hears it) */
+        G.ringFx = { x, y, t: 0, r: reach * T + 4, area, room };
         const here = (tx, ty) => !room || area.roomAt(tx, ty) === room;
         let n = 0;
         for (const e of area.ents) {
@@ -16371,14 +16429,21 @@ const Bells = {
         Stats.count('rings'); if (n) Stats.count('snapped', n);
         return n;
     },
+    /* the ring of its reach: out to it quickly, then held there a moment so where it reached (and where it didn't) is
+       plain, stopping at the walls of the room it was rung in */
+    FX_T: 50,
     drawFx(cx, cy) {
         const f = G.ringFx; if (!f || f.area !== G.map) return;
         f.t++;
-        const r = f.r * Math.min(1, f.t / 18);
-        Gfx.alpha(Math.max(0, 0.6 - f.t / 40));
-        for (let i = 0; i < 40; i++) { const t = i / 40 * Math.PI * 2; Gfx.rect(f.x - cx + Math.cos(t) * r, f.y - cy - 6 + Math.sin(t) * r, 2, 2, '#fff4c0'); }
+        const r = f.r * Math.min(1, f.t / 8), fade = f.t < 30 ? 1 : Math.max(0, 1 - (f.t - 30) / (this.FX_T - 30)), m = f.room, n = Math.max(32, Math.round(f.r));
+        for (let i = 0; i < n; i++) {
+            const a = i / n * Math.PI * 2, x = f.x + Math.cos(a) * r, y = f.y + Math.sin(a) * r;
+            if (m && (x < m.x * T || y < m.y * T || x >= (m.x + m.w) * T || y >= (m.y + m.h) * T)) continue;
+            const sx = Math.round(x - cx) - 1, sy = Math.round(y - cy) - 1;
+            Gfx.alpha(0.5 * fade); Gfx.rect(sx, sy + 1, 2, 2, PAL.ink); Gfx.alpha(0.9 * fade); Gfx.rect(sx, sy, 2, 2, (i % 2) ? '#fff4c0' : '#f7d64a');
+        }
         Gfx.alpha(1);
-        if (f.t > 30) G.ringFx = null;
+        if (f.t > this.FX_T) G.ringFx = null;
     },
     /* sleepers show it: a slow z drifting up */
     drawSleep(a, cx, cy) {
@@ -18423,6 +18488,23 @@ SFX.crumble = (o, t) => { Audio.hit(o, t, 0.3, 0.18, 120, 900); Audio.tone(o, t,
 SFX.snort = (o, t) => { Audio.hit(o, t, 0.1, 0.14, 200, 700); Audio.tone(o, t + 0.05, 140, 0.12, 'p50', 0.1, { slide: 220 }); };
 SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
 
+/* a load in a House starts at Wren's mark: the Bedroll, if it lies there. Laid on a float, it went where the float
+   went, and the place built afresh has the float back at its own home: she starts on it there, not where it was when
+   she saved (which may be somewhere only the float could take her) */
+{
+    const apply0 = Save.apply;
+    Save.apply = function (s) {
+        apply0.call(this, s);
+        const p = G.player, a = G.map, b = Inv.bedroll, m = s && s.pos && s.pos.mark;
+        if (!p || !a || !a.def.house || !m || m.bed !== 'roll' || !b || !b.fid || b.area !== a.id) return;
+        Bedroll.update(a);
+        const nb = Inv.bedroll;
+        if (!nb || nb.area !== a.id || (nb.tx === m.tx && nb.ty === m.ty)) return;
+        const [lx, ly] = p.landingSpot(nb.tx, nb.ty);
+        p.x = lx * T + 8; p.y = ly * T + 10; p.setMark(); Cam.snap(p);
+    };
+}
+
 /* keep the trace in the Bedroll's place when Wren goes elsewhere, so it still leads home on her return */
 {
     const enter = World.enter;
@@ -18677,7 +18759,35 @@ SPAWN.puffball = (x, y, p) => new Puffball(x, y, p);
 }
 
 /* Snorelings: asleep where they lie; disturbed, they shuffle after you with their arms out; after a while they
-   go back to bed (the nearest one: a Bedroll counts) and drop off again */
+   go to bed and drop off again: the nearest bed they can get to, their own spot, a cradle nobody's in (anything set out
+   for a little one to sleep in: `cot`) or the Bedroll. The same in the wood as in the House */
+const Snooze = {
+    REACH: 12,
+    /* the way to the nearest free bed, by the tiles it would walk (nearest first); null if none is in reach */
+    route(e) {
+        const a = e.area, b = Inv.bedroll, beds = new Map();
+        beds.set(key2(e.hx, e.hy), { nest: true });
+        if (b && b.area === a.id && !Bedroll.sleeper && e.D.likesBeds !== false) beds.set(key2(b.tx, b.ty), { roll: true });
+        for (const c of a.ents) if (c.cot && !c.removed && !c.blocks(c.tx, c.ty, e)) beds.set(key2(c.tx, c.ty), { cot: c });
+        const sx = e.tx, sy = e.ty, prev = new Map([[key2(sx, sy), null]]), q = [[sx, sy]];
+        for (let i = 0; i < q.length; i++) {
+            const [x, y] = q[i], bed = beds.get(key2(x, y));
+            if (bed) { const path = []; for (let c = [x, y]; c; c = prev.get(key2(c[0], c[1]))) path.unshift(c); return Object.assign({ x, y, path, i: 1 }, bed); }
+            for (const d of [UP, DOWN, LEFT, RIGHT]) {
+                const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                if (prev.has(k) || Math.abs(nx - sx) > this.REACH || Math.abs(ny - sy) > this.REACH || e.solidAt(nx, ny)) continue;
+                prev.set(k, [x, y]); q.push([nx, ny]);
+            }
+        }
+        return null;
+    },
+    /* still free for it? (somebody else may have got into the cradle first, or onto the Bedroll, or picked it up) */
+    free(e, r) {
+        if (r.roll) { const b = Inv.bedroll; return !!(b && b.area === e.area.id && b.tx === r.x && b.ty === r.y && !Bedroll.sleeper); }
+        if (r.cot) return !r.cot.removed && !r.cot.blocks(r.x, r.y, e);
+        return true;
+    },
+};
 AI.snore = (e, p) => {
     e.modeT++;
     const near = p && p.area === e.area && p.state === 'normal' && Math.hypot(p.x - e.x, p.y - e.y) < 2.6 * T;
@@ -18696,32 +18806,37 @@ AI.snore = (e, p) => {
             if (d > 9 * T) e.modeT += 3;
         }
         if (e.modeT > (e.D.chase || 420)) {
-            /* off to the nearest bed: a Bedroll lying free close by, or its own */
-            const b = Inv.bedroll;
-            const dRoll = b && b.area === e.area.id && !Bedroll.sleeper && e.D.likesBeds !== false ? Math.hypot(b.tx * T + 8 - e.x, b.ty * T + 10 - e.y) : Infinity;
-            e.mode = 'bed'; e.modeT = 0; e.stuck = 0;
-            e.toRoll = dRoll < 12 * T && dRoll <= Math.hypot(e.hx * T + 8 - e.x, e.hy * T + 10 - e.y);
+            /* off to bed: the nearest it can get to (its own, a cradle, a Bedroll lying free) */
+            e.mode = 'bed'; e.modeT = 0; e.stuck = 0; e.lost = 0;
+            e.bed = Snooze.route(e);
         }
         return;
     }
     if (e.mode === 'bed') {
-        const b = Inv.bedroll;
-        const roll = e.toRoll && b && b.area === e.area.id && !Bedroll.sleeper;
-        const gx = roll ? b.tx * T + 8 : e.hx * T + 8, gy = roll ? b.ty * T + 10 : e.hy * T + 10;
-        const dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
-        if (d < 1.5) {
-            e.x = gx; e.y = gy; e.mode = 'sleep'; e.stir = 0;
-            if (roll) { Bedroll.sleeper = e; e.onRoll = true; Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); }
-            else { e.trace = [[e.hx, e.hy]]; }
+        let r = e.bed;
+        /* somebody's in it already (or the Bedroll's gone): the next nearest */
+        if (r && !Snooze.free(e, r)) r = e.bed = Snooze.route(e);
+        /* none in reach: back along its own trace to its own */
+        if (!r) { e.mode = 'home'; e.modeT = 0; return; }
+        const [nx, ny] = r.path[Math.min(r.i, r.path.length - 1)];
+        const gx = nx * T + 8, gy = ny * T + 10, dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
+        const sp = (e.D.speed || 0.55) * 0.9;
+        if (d < sp + 0.5) {
+            e.x = gx; e.y = gy;
+            if (r.i < r.path.length - 1) { r.i++; return; }
+            /* in bed: asleep */
+            e.mode = 'sleep'; e.stir = 0; e.bed = null;
+            if (r.roll) { Bedroll.sleeper = e; e.onRoll = true; }
+            if (r.nest) e.trace = [[e.hx, e.hy]];
+            else { Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); Sfx.play('yawn', 0.5); }
             return;
         }
-        const sp = (e.D.speed || 0.55) * 0.9;
         e.dir = dirOf(dx, dy); e.anim++;
         const ox = e.x, oy = e.y;
-        if (!e.move(dx / d * Math.min(sp, d), dy / d * Math.min(sp, d)) || (Math.abs(e.x - ox) + Math.abs(e.y - oy) < 0.05)) e.stuck++;
-        /* lost its way: back along its own trace instead */
-        if (e.stuck > 40 && !roll) { e.mode = 'home'; e.modeT = 0; }
-        if (e.stuck > 90 && roll) { e.mode = 'home'; e.modeT = 0; }
+        e.move(dx / d * sp, dy / d * sp);
+        if (Math.abs(e.x - ox) + Math.abs(e.y - oy) < 0.05) e.stuck++; else e.stuck = 0;
+        /* something's standing in the way: find the way again; still stuck, back along its own trace instead */
+        if (e.stuck > 40) { e.stuck = 0; r = e.bed = ++e.lost < 3 ? Snooze.route(e) : null; if (!r) { e.mode = 'home'; e.modeT = 0; } }
         return;
     }
     if (e.mode === 'home') { if (e.goHome(0.6)) { e.mode = 'sleep'; e.stir = 0; } }
@@ -18782,9 +18897,11 @@ CONTENT_INIT.push(initBedrollKit);
    the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
    doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
    lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
-   The Slumberhouse's door opens while Mallow's three Snorelings sleep in the three cradles in the stream's south
-   bank (they follow you; a puffball's spores put one to sleep where it stands; somebody in a cradle, nobody else
-   gets in); a fourth cradle by the house is for the little wooden one. Lantern Pond's four lanterns light only while
+   The Slumberhouse's door opens while somebody sleeps in each of the three cradles in the stream's south bank (a lamp
+   over the door for each, on a cord to its cradle): Snorelings follow you a while, then lie down in the nearest bed
+   they can get to, a cradle as soon as their own spot (src/58_bedroll_kit.js); a puffball's spores put one to sleep
+   where it stands; somebody in a cradle, nobody else gets in. One asleep in the road shows it on the way in, and a
+   fourth cradle by the house is for the little wooden one. Lantern Pond's four lanterns light only while
    their stones weigh on them; all four, and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
 
 const SLUMBER_ENTRY = { x: 29, y: 42 };
@@ -18855,13 +18972,16 @@ defBlock({
         { k: 'hollowhole', x: 3, y: 16, id: 'hollowHole', if: 'giant_awake' },
         { k: 'sign', x: 9, y: 18, text: 'HUSHWOOD. Please do not wake anything.' },
         { k: 'rest', x: 10, y: 16 },
-        { k: 'snoreling', x: 15, y: 22, id: 'hwSnore1' },
+        /* one asleep in the road itself (walk by and it wakes); followed a while, it lies down in the nearest bed going: the
+           cradle by the road, or one of the garden's if you've led it there */
+        { k: 'snoreling', x: 8, y: 20, id: 'hwSnore1' },
+        { k: 'cradle', x: 13, y: 21, sig: 'hwCot' },
         /* over the stream to the Slumberhouse: bouncy moss, one each way */
         { k: 'moss', x: 12, y: 15, dir: 'up', dist: 4, id: 'hwMossN' },
         { k: 'moss', x: 10, y: 11, dir: 'down', dist: 4, id: 'hwMossS' },
         { k: 'sign', x: 11, y: 16, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
         { k: 'building', x: 15, y: 3, w: 10, h: 6, door: 4, art: 'slumber' },
-        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. From somewhere inside comes a long, slow yawn." },
+        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. Over it hang three little lamps, dark, each on a cord that runs away over the stream. From somewhere inside comes a long, slow yawn." },
         { k: 'sign', x: 17, y: 9, text: 'THE SLUMBERHOUSE. Visiting hours: whenever you wake up. Doctor M.' },
         { k: 'puffball', x: 9, y: 10, id: 'hwPuffN' },
         /* Old Hummock's own bed */
@@ -18905,9 +19025,9 @@ defBlock({
         { k: 'puffball', x: 15, y: 14, id: 'nuPuffA' }, { k: 'cradle', x: 16, y: 14, sig: 'nuA' },
         { k: 'puffball', x: 19, y: 14, id: 'nuPuffB' }, { k: 'cradle', x: 20, y: 14, sig: 'nuB' },
         { k: 'puffball', x: 23, y: 14, id: 'nuPuffC' }, { k: 'cradle', x: 24, y: 14, sig: 'nuC' },
-        { k: 'snoreling', x: 8, y: 16, id: 'nuSnoreA', type: 'snoreling_n' },
-        { k: 'snoreling', x: 16, y: 16, id: 'nuSnoreB', type: 'snoreling_n' },
-        { k: 'snoreling', x: 20, y: 16, id: 'nuSnoreC', type: 'snoreling_n' },
+        { k: 'snoreling', x: 8, y: 16, id: 'nuSnoreA' },
+        { k: 'snoreling', x: 16, y: 16, id: 'nuSnoreB' },
+        { k: 'snoreling', x: 20, y: 16, id: 'nuSnoreC' },
         /* by the house, a fourth cradle behind a little round hole in the hedge, and the wooden one Jory carved */
         { k: 'cradle', x: 14, y: 7, sig: 'nuD' },
         { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
@@ -18936,7 +19056,7 @@ TALK.hettie = function* () {
     }
     yield* say('hettie', cycle('hettie', [
         "The puffballs go POOF when you get close. Breathe it in and you'll nod off where you stand, and wake up wherever you last thought of as home. Saves walking, I suppose.",
-        "Snorelings. Little sleepwalkers. Wake one and it'll shuffle after you a while, then go and find a bed. Any bed. They're not fussy.",
+        "Snorelings. Little sleepwalkers. Wake one and it'll shuffle after you a while with its arms out, and then off to bed it toddles, yawning.",
         "Doctor Mallow's place is over the stream. The Slumberhouse. Lovely man. Never sleeps himself, mind. Funny, that.",
         "The weir on the pond: wind it and the boat'll take you all the way down to the Reaches. And back, if you leave it be. Boats here know where they live.",
         Progress.flag('giant_home') ? "Old Hummock's gone home to his own bed at last. Up in the north-west. Snoring like a landslide. Good for him." : "Is he still across the road, the old lump? Bless him.",
@@ -19445,6 +19565,7 @@ CONTENT_INIT.push(initHushArt);
    already, nobody else gets in */
 SPAWN.cradle = (x, y, p) => {
     const c = new Plate(x, y, p);
+    c.cot = true;       /* (a bed: a Snoreling done chasing may pick it, src/58_bedroll_kit.js) */
     c.blocks = function (tx, ty, who) {
         if (tx !== this.tx || ty !== this.ty || !this.area) return false;
         const pl = G.player;
@@ -19591,12 +19712,50 @@ OWA.ground.hush = {
     },
 };
 Object.assign(Hushwood, {
+    /* the door's three lamps, on the board over it, and their cords: each runs down beside the door and away over the
+       stream to one of the garden's cradles, slack while the cradle's empty, drawn taut (and its lamp lit) while
+       somebody's in it */
+    CORDS: [['nuA', 16, -12], ['nuB', 20, 0], ['nuC', 24, 12]],
+    lampAt(i) { return [(128 + 15) * T + 66 + i * 14, (40 + 3) * T - 6 + 58]; },
+    cords(a, cx, cy) {
+        const dx = (128 + 19) * T + 8, dy = (40 + 9) * T - 2;
+        if (dx - cx < -80 || dx - cx > W + 80 || dy - cy < -40 || dy - cy > H + 120) return;
+        this.CORDS.forEach(([sig, c, off]) => {
+            const on = Signals.get(a, sig), sx = dx + off - cx, sy = dy - cy, ex = (128 + c) * T + 8 - cx, ey = (40 + 14) * T + 4 - cy;
+            const n = Math.max(3, Math.round(Math.hypot(ex - sx, ey - sy) / 8));
+            let px0 = sx, py0 = sy;
+            Gfx.alpha(on ? 0.95 : 0.6);
+            for (let i = 1; i <= n; i++) {
+                const u = i / n, qx = sx + (ex - sx) * u + (on ? 0 : Math.sin(u * Math.PI) * 3), qy = sy + (ey - sy) * u + (on ? 0 : Math.sin(u * Math.PI) * 7);
+                Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, on ? '#e8d8ff' : THREAD.mallow);
+                px0 = qx; py0 = qy;
+            }
+            Gfx.alpha(1);
+            /* tied to the cradle's head */
+            Gfx.rect(ex - 1, ey - 1, 3, 2, PAL.ink); Gfx.rect(ex, ey - 1, 1, 1, on ? '#fff4c0' : '#d8c8f8');
+        });
+    },
+    lamps(a, cx, cy) {
+        const by = (40 + 9) * T - 2 - cy;
+        this.CORDS.forEach(([sig, c, off], i) => {
+            const on = Signals.get(a, sig), [lx0, ly0] = this.lampAt(i), lx = lx0 - cx, ly = ly0 - cy, fx = (128 + 19) * T + 8 + off - cx;
+            if (lx < -12 || lx > W + 12 || ly < -12 || by > H + 12) return;
+            /* the cord, from the lamp down the door frame to the ground */
+            Gfx.alpha(on ? 0.95 : 0.7); Gfx.line(lx, ly + 3, fx, by, on ? '#e8d8ff' : THREAD.mallow); Gfx.alpha(1);
+            if (on) { Gfx.alpha(0.3 + 0.08 * Math.sin(G.t / 13 + i)); Gfx.circle(lx, ly, 8, '#ffe08a'); Gfx.alpha(1); }
+            /* a little round lamp on a hook: lavender glass, dark till lit */
+            Gfx.rect(lx, ly - 7, 1, 3, PAL.ink); Gfx.rect(lx - 2, ly - 5, 5, 2, PAL.ink); Gfx.rect(lx - 1, ly - 5, 3, 1, '#c8903a');
+            Gfx.circle(lx, ly, 4, PAL.ink); Gfx.circle(lx, ly, 3, on ? '#f7e08a' : '#5a4a8a'); Gfx.circle(lx, ly, 2, on ? '#fff4c0' : '#3e2e6a');
+            Gfx.rect(lx - 2, ly - 2, 1, 1, on ? '#ffffff' : '#9a8ac8');
+        });
+    },
     /* how deep in the wood a point is, 0 at its edges (with the town, the Heights, the Reaches) to 1 four tiles in */
     depth(wx, wy) { return clamp(Math.min(wx - 128 * T, wy - 40 * T, 80 * T - wy) / (4 * T), 0, 1); },
     /* small things on the ground: across the edge with the town, moss creeping out over the town's grass and road and the
        town's grass in tufts among the moss, more of each nearer the edge (so it never changes on a line); in the wood, fallen
        leaves and toadstools here and there */
     ground(a, cx, cy) {
+        this.cords(a, cx, cy);
         if (HEADLESS || cx + W < 124 * T || cy + H < 40 * T || cy > 80 * T) return;
         const tx0 = Math.max(124, Math.floor(cx / T)), tx1 = Math.floor((cx + W) / T), ty0 = Math.max(40, Math.floor(cy / T)), ty1 = Math.min(79, Math.floor((cy + H) / T));
         for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
@@ -19617,6 +19776,7 @@ Object.assign(Hushwood, {
         }
     },
     over(a, cx, cy) {
+        this.lamps(a, cx, cy);
         if (HEADLESS || cx + W < 128 * T || cy + H < 40 * T || cy > 80 * T) return;
         const k0 = Math.min(this.depth(cx, cy), this.depth(cx, cy + H), this.depth(cx + W, cy), this.depth(cx + W, cy + H));
         /* the dimness under the trees: deepening over the wood's first few tiles, its edge wandering (runs of equal shade
@@ -19658,8 +19818,6 @@ Object.assign(Hushwood, {
 });
 
 function initHushArt2() {
-    ENEMY.snoreling_n = Object.assign({}, ENEMY.snoreling, { chase: 1500 });
-    ENEMY_DRAW.snoreling_n = ENEMY_DRAW.snoreling;
     treeArt('tree_hush2', { leaf: ['#3a6e66', '#4a8a78', '#6eb294', '#24504a'], bark: ['#8a7a9a', '#64547a', '#3a2e4a'] }, 9, { clumps: [[16, 15, 10], [8, 18, 7], [24, 18, 7], [11, 10, 6], [21, 10, 6], [16, 21, 8]] });
     {
         /* moss hanging from its boughs */
@@ -19997,7 +20155,7 @@ defHouse({
                 { k: 'chest', x: 2, y: 1, item: 'key', id: 'mwKey' },
                 { k: 'plate', x: 17, y: 9, sig: 'mwp' },
                 { k: 'wood', x: 16, y: 9, id: 'mwBlock' },
-                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. Nobody has ever walked it in time." },
+                { k: 'sign', x: 5, y: 9, text: "THE MOONWALK. The gate in the corner stays open while the far plate is pressed. (Night staff: mind the pillars in the dark.)" },
             ],
             nudge: { solved: 'slumber_mwGate', after: 60 * 60 * 3, at: [2, 4], say: 'The gate is a long way from the plate. Walking back takes too long. Something faster than walking, then.' },
         },
@@ -20024,7 +20182,7 @@ defHouse({
                 { k: 'snoreling', x: 3, y: 2, id: 'pfSnore1' }, { k: 'snoreling', x: 17, y: 2, id: 'pfSnore2' },
                 { k: 'deco', x: 2, y: 7, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows, still warm.' },
                 { k: 'deco', x: 13, y: 6, look: 'pillowpile', solid: [[0, 0], [1, 0]], oy: -4, text: 'A heap of pillows. Somebody has built a little wall of them, and a little flag on top: a sock.' },
-                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. (Lights out at eight. Everybody in bed. ANY bed.)' },
+                { k: 'sign', x: 18, y: 9, text: 'PILLOW FORT. The keep opens while someone holds down the plate. (Lights out at eight. Everybody in bed.)' },
             ],
             nudge: { solved: 'slumber_chest:pfKey', after: 60 * 60 * 4, at: [16, 8], say: 'A Snoreling, woken, shuffles about and then goes to the nearest bed it can find. Any bed at all. Even one somebody has just laid out.' },
         },
@@ -23529,6 +23687,36 @@ SFX.tie = (o, t) => { Audio.hit(o, t, 0.08, 0.1, 500, 1800); Audio.tone(o, t + 0
     Puppet.prototype.step = function (d) { return this.knotted ? false : step0.call(this, d); };
 }
 
+/* refusals, said (what the world does, not what to do about it): a thing tied off below won't be pushed or gripped up
+   here; a thing no hand can shift won't come when pulled */
+{
+    const said = (p, s) => { if (!p._refT || G.t - p._refT > 90) { p._refT = G.t; UI.toast(s, 130); Sfx.play('hitthing', 0.5); } };
+    const KNOT_LINE = "It won't budge: something is holding it fast from underneath.";
+    const push0 = Player.prototype.tryPush;
+    Player.prototype.tryPush = function (d) {
+        const f = this.front(), o = this.area.at(f.tx, f.ty);
+        if (o && o.isGrid && o.knotted) {
+            if (this.pushDir !== d) { this.pushT = 0; this.pushDir = d; }
+            this.pushing = true;
+            if (++this.pushT >= 16) { this.pushT = 0; said(this, o.pushLine || KNOT_LINE); }
+            return;
+        }
+        return push0.call(this, d);
+    };
+    const grip0 = Player.prototype.tryGrip;
+    Player.prototype.tryGrip = function () {
+        const o = this.thingInFront();
+        if (o && o.isGrid && o.knotted && Input.pressed('act')) said(this, o.pushLine || KNOT_LINE);
+        return grip0.call(this);
+    };
+    const gm0 = Player.prototype.gripMove;
+    Player.prototype.gripMove = function (ax) {
+        const o = this.grip, back = OPP[this.dir], want = ax.x < 0 ? LEFT : ax.x > 0 ? RIGHT : ax.y < 0 ? UP : DOWN;
+        if (o && o.noPull && want === back && !o.mv && !this.pullT && !this.solidAt(this.tx + DX[back], this.ty + DY[back])) said(this, o.pullLine || o.pushLine || "It won't come. No hand could pull that.");
+        return gm0.call(this, ax);
+    };
+}
+
 /* hatches: a ladder up from the Underside, a trapdoor down from the room above */
 class Hatch extends GridThing {
     constructor(tx, ty, p = {}) { super('hatch', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); }
@@ -23586,9 +23774,20 @@ const Needle = {
         }
         return null;
     },
+    /* the first thing along the line Wren faces past the Needle's reach (before a wall), if any */
+    beyond(p) {
+        const a = p.area;
+        for (let i = this.REACH + 1; i <= 12; i++) {
+            const x = p.tx + DX[p.dir] * i, y = p.ty + DY[p.dir] * i;
+            if (!a.inside(x, y) || a.kind(x, y).solid) return null;
+            if (a.at(x, y)) return a.at(x, y);
+        }
+        return null;
+    },
     use(p) {
         if (this.st) return this.confirm(p);
         const t = this.target(p);
+        if (!t && this.beyond(p)) { UI.toast("Too far off: the Needle's thread reaches four tiles, no further."); Sfx.play('hitthing', 0.4); return; }
         if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }
@@ -23712,6 +23911,22 @@ const Needle = {
             r.color0 = rec.color0 || r.color; r.color = THREAD.wren; e.stitched = true;
         }
     },
+    /* every tile the needle could still be walked to (four steps from where the thing is, round walls, never over a hole
+       or onto Wren herself) */
+    reach(s) {
+        const e = s.thing, [x0, y0] = s.path[0], seen = new Map([[key2(x0, y0), 0]]), q = [[x0, y0]];
+        while (q.length) {
+            const [x, y] = q.shift(), d = seen.get(key2(x, y));
+            if (d >= this.REACH) continue;
+            for (const k of [UP, RIGHT, DOWN, LEFT]) {
+                const nx = x + DX[k], ny = y + DY[k];
+                if (seen.has(key2(nx, ny)) || !this.stepOk(e, nx, ny)) continue;
+                seen.set(key2(nx, ny), d + 1); q.push([nx, ny]);
+            }
+        }
+        seen.delete(key2(x0, y0));
+        return seen;
+    },
     draw(cx, cy) {
         const s = this.st, p = G.player;
         /* a stitched thing at home: Wren's own little red cross peeping out under it */
@@ -23720,8 +23935,28 @@ const Needle = {
             const x = e.px - cx, y = e.py - cy;
             Gfx.rect(x + 2, y + 13, 2, 1, THREAD.wren); Gfx.rect(x + 12, y + 13, 2, 1, THREAD.wren);
         }
+        /* the Needle in hand: what it would take, marked at its corners (the first thing in line, four tiles at most) */
+        if (!s && p && a && p.area === a && Inv.equipped === 'needle' && p.state === 'normal' && !p.pinned && !Script.blocking()) {
+            const t = this.target(p), e = t && !t.off ? t.thing : null;
+            if (e && this.able(e) && !e.knotted) {
+                const x = e.px - cx, y = e.py - cy, k = (G.t >> 4) % 2;
+                Gfx.alpha(0.85);
+                for (const [u, v, du, dv] of [[0, 0, 1, 1], [15, 0, -1, 1], [0, 15, 1, -1], [15, 15, -1, -1]]) {
+                    const X = x + u - du * k, Y = y + v - dv * k;
+                    Gfx.rect(du > 0 ? X : X - 2, Y, 3, 1, THREAD.wren); Gfx.rect(X, dv > 0 ? Y : Y - 2, 1, 3, THREAD.wren);
+                }
+                Gfx.alpha(1);
+            }
+        }
         if (!s || !p) return;
         const [ox, oy] = s.off, pts = s.path.map(([x, y]) => [(x - ox) * T + 8 - cx, (y - oy) * T + 9 - cy]);
+        /* where it could go: those tiles, stitched faintly round */
+        Gfx.alpha(0.55);
+        for (const k of this.reach(s).keys()) {
+            const [x, y] = k.split(',').map(Number);
+            Tells.stitchTile((x - ox) * T - cx, (y - oy) * T - cy, THREAD.wren);
+        }
+        Gfx.alpha(1);
         /* the needle's red thread, from Wren to the thing, along the stitch to the new place */
         Gfx.line(p.x - cx + 4, p.y - cy - 12, pts[0][0], pts[0][1] - 4, THREAD.wren);
         for (let i = 0; i + 1 < pts.length; i++) {
@@ -24755,10 +24990,11 @@ const Spoolworks = {
             if (first || own) {
                 Progress.setAreaFlag('spoolworks', 'paLook'); if (!held) Progress.setAreaFlag('spoolworks', 'paLook2');
                 Script.run(function* () {
-                    yield 6; Sfx.play('appear');
+                    yield 6;
                     yield* camLook(ge.tx, ge.ty, 90);
-                    Fx.sparkle(ge.x + 8, ge.y + 8, THREAD.guild);
-                    yield 50;
+                    Sfx.play('appear'); Fx.ring(ge.x + 8, ge.y + 8, THREAD.guild); Fx.sparkle(ge.x + 8, ge.y + 8, THREAD.guild);
+                    yield 24; Fx.sparkle(ge.x + 8, ge.y + 4, THREAD.guild);
+                    yield 36;
                     yield* camBack(90);
                 }, { name: 'paLook' });
             }
@@ -24810,6 +25046,7 @@ SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy
 /* a crossbar rack in the Under-works: its strings run up through the floor to puppets on the floor above (drawn where
    they show through), and the rack walks them as any rack does */
 class UnderRack extends Rack {
+    interact(p) { UI.toast("The rack's strings run up through the boards to the puppets above. A rack's worked with a crossbar, not by hand.", 170); Sfx.play('hitthing', 0.4); return true; }
     draw(cx, cy) {
         const im = spr('rack'); if (im) Gfx.img(im, this.px - cx, this.py - cy - 8);
         const r = this.area.roomAt(this.tx, this.ty), ab = r && r.above;
@@ -26678,7 +26915,7 @@ const Reveal2 = {
             down = Input.down('act') ? down + 1 : 0;
             if (down >= 8 && lect && Inv.has('gloves') && p.adjacentTo(lect)) {
                 if (!s.held) { p.grip = lect; lect.heldBy = p; Sfx.play('click'); Progress.set('hall_held'); }
-                const h = ++s.held; p.z = 0;
+                const h = ++s.held; p.z = 0; p.liftT = 2;                           /* (both hands on it) */
                 if (h === 40 || h === 100) { Sfx.play('tug'); s.jerk = 8; }       /* she tries, twice */
                 if (h === 170) UI.toast('Gran: "I can wait, love."', 300);
             } else {
@@ -26696,7 +26933,8 @@ const Reveal2 = {
     /* the thread she's pulling on, from Wren's heart to Gran's fingers, taut (it shakes when she pulls) */
     drawPull(a, cx, cy) {
         const s = this.taut, p = G.player;
-        if (!s || !p || s.gran.removed) return;
+        if (s && (s.gran.removed || s.gran.area !== a)) this.taut = null;        /* (the Hall built again: a load) */
+        if (!this.taut || !p) return;
         const g = s.gran, j = s.jerk > 0 ? Math.round((Math.random() - 0.5) * 2) : 0;
         const x0 = p.x - cx, y0 = p.y - cy - 4 - (p.z || 0), x1 = g.px + 12 - cx, y1 = g.py + 9 - cy;
         Gfx.alpha(0.5); Gfx.line(x0, y0 + 1, x1, y1 + 1, PAL.ink); Gfx.alpha(1);
@@ -27373,7 +27611,7 @@ WALLS.loomhouse = {
 
 /* the Hanging Gallery's weights: hung out at the trench's west end, home along it, then down the far side to the east */
 /* the Bridge Room's weight, wedged in its nook (and any spare dropped into the nook after it) */
-const BR_WEDGED = { noPull: true, stitchName: 'the wedged weight',
+const BR_WEDGED = { noPull: true, stitchName: 'the wedged weight', pullLine: 'Wedged in its nook, iron to the stone: no hand will get it out.',
     onPushed(p, d) { if (!this.canPush(d)) UI.toast('Wedged in its nook, iron to the stone: no hand will get it out.', 120); } };
 function HANG_PATH(hx, hy, sx) {
     const p = [[hx, hy], [hx, 7]];
@@ -29490,7 +29728,8 @@ defHouse({
                 { k: 'knotlock', x: 2, y: 1, house: 'tidy' },
                 { k: 'door', x: 4, y: 2, type: 'gate', when: 'gsTp', dir: 'v', passed: 'left', id: 'gsTGate' },
                 { k: 'plate', x: 14, y: 7, sig: 'gsTp' },
-                { k: 'block', x: 16, y: 3, style: 'wood', id: 'gsTBlock' },
+                /* (patient: time to put the slot behind you and ring from across the room, out of its hearing) */
+                { k: 'block', x: 16, y: 3, style: 'wood', id: 'gsTBlock', patience: 300 },
                 /* the old mangle: it lives at the top of the slot, and it's asleep across the room */
                 { k: 'block', x: 14, y: 6, id: 'gsTMangle', look: 'gs_mangle', sleeper: true, tiedOff: true, resetSleep: 'untie:tidy', startAt: [9, 3], trace: [[14, 6], [14, 5], [13, 5], [12, 5], [11, 5], [10, 5], [9, 5], [9, 4], [9, 3]], noPush: true, pushLine: "The old mangle, fast asleep where somebody left it. It won't budge for anything but a bell." },
                 { k: 'ratchet', x: 18, y: 4 },
@@ -29565,12 +29804,14 @@ defHouse({
         /* ---------------- the climb: Slumberhouse west, Marionette Hall east, the top north; once every Knot's undone, the Pull throws things across it ---------------- */
         '1,1': {
             name: 'The Climb',
-            rows: ['#########.##########', '#..................#', '#....#.............#', '#..................#', '#.............#....#', '....................', '#....#.............#', '#..................#', '#.............#....#', '#..................#', '#########.##########'],
+            rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'gate', when: 'flag:spool_all', dir: 'h', id: 'gsTop' },
                 { k: 'sign', x: 11, y: 9, text: 'UP: THE SPOOL. (The way opens when every Knot is undone.)' },
-                { k: 'junklane', x: 18, y: 2, dir: -1, period: 80, phase: 0 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 70, phase: 30 },
-                { k: 'junklane', x: 18, y: 6, dir: -1, period: 75, phase: 50 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 85, phase: 15 },
+                /* (four lanes on one beat, staggered: a train of six nose to tail from one end, then a clear spell; between the
+                   lanes, rows nothing crosses. Staggered so that walking straight up without looking is caught most of the way) */
+                { k: 'junklane', x: 18, y: 2, dir: -1, period: 96, phase: 32 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 96, phase: 80 },
+                { k: 'junklane', x: 18, y: 6, dir: -1, period: 96, phase: 32 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 96, phase: 0 },
             ],
         },
         /* ---------------- the Slumberhouse's Knot: the arch is too low to ride under; send your place, then go home to it ---------------- */
@@ -29724,7 +29965,7 @@ class GreatPost extends GridThing {
     onCut() {
         if (this.cut || !Progress.flag('spool_met')) return;
         /* the Spool keeps its threads taut: the Shears only bite one that something's just been dragged along */
-        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : "Too taut: the Shears skid right off it. If something were dragged along it, it might go slack for a moment...", 200); Progress.set('taut_told'); return; }
+        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : 'Too taut: the Shears skid right off it. It hums, pulled tight as a bowstring toward the drum.', 200); Progress.set('taut_told'); return; }
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
@@ -29784,30 +30025,60 @@ class SpoolDrum extends Ent {
 }
 SPAWN.greatspool = (x, y, p) => new SpoolDrum(x, y, p);
 
-/* a lane of the Climb: once every Knot is undone, the Pull flings things across it, one way, now and then. One that
-   catches you knocks you back to the start of that lane (the row you came up from), never further. A pillar in the lane
-   stops what's flying (stand in its lee) */
+/* a lane of the Climb: once every Knot is undone, the Pull flings things along it from one end, a train of them at a
+   time, on a beat. Every throw shows itself first, as every blow in the valley does: the whole lane lights up, blinking
+   faster as it comes, a glow gathers at the end it'll come from, and a warning chirps if it's the lane in front of you.
+   One that catches you knocks you back to the start of that lane (the row you came up from), never further, and
+   leaves you dazed till that train's gone by (never caught twice by one). Nothing in a lane shelters you: you watch
+   it, and go behind a train */
+const CLIMB_DAZE = { min: 20, max: 90 };
 class JunkLane extends Ent {
-    constructor(tx, ty, p = {}) { super('junklane', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = p.phase || 0; this.flying = []; }
+    constructor(tx, ty, p = {}) {
+        super('junklane', p);
+        this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = p.phase || 0; this.flying = [];
+        this.n = p.n || 6; this.every = p.every || 7; this.speed = p.speed || 2.4; this.tellN = p.tell || 36; this.dazed = 0;
+    }
     get sortY() { return this.y + 20; }
     get on() { return Progress.flag('spool_all') && !Progress.flag('unwound'); }
+    /* how far into the tell of the next throw (0 till it starts, nearly 1 as the throw comes) */
+    get tellK() { const left = this.period - (this.t % this.period); return left <= this.tellN ? 1 - left / this.tellN : 0; }
+    /* still flinging this throw's train */
+    get throwing() { return this.t % this.period < this.n * this.every; }
+    hits(p, x) { return Math.abs(p.x - x) < 10 && Math.abs(p.y - 6 - (this.ty * T + 6)) < 9; }
     update() {
+        const p = G.player;
+        if (this.dazed > 0 && ++this.dazed > CLIMB_DAZE.min && (this.dazed > CLIMB_DAZE.max || !this.passing(this.dazeX, 22))) { this.dazed = 0; if (p && p.pinned === 'dazed') p.pinned = null; }
         if (!this.on || Script.blocking()) return;
-        const a = this.area, p = G.player, r = a.roomAt(this.tx, this.ty);
-        if (++this.t % this.period === 0) this.flying.push({ x: this.tx * T + 8, k: (this.t / this.period) % 3 | 0 });
+        const a = this.area, r = a.roomAt(this.tx, this.ty), k = ++this.t % this.period;
+        /* (the chirp for the lane in front of you only: four at once would be no warning at all) */
+        if (k === this.period - this.tellN && p && p.area === a && p.state === 'normal' && Math.abs(p.ty - this.ty - 0.5) <= 1) Sfx.play('warn', 0.6);
+        if (k < this.n * this.every && k % this.every === 0) this.flying.push({ x: this.tx * T + 8, k: (Math.floor(this.t / this.period) + k / this.every) % 3 | 0 });
         for (const j of this.flying) {
-            j.x += this.dir * 2.2;
+            j.x += this.dir * this.speed;
             const tx = Math.floor(j.x / T);
             if (a.kind(tx, this.ty).solid || a.roomAt(tx, this.ty) !== r) { j.gone = true; Fx.dust(j.x, this.ty * T + 8); continue; }
-            if (p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 10 && Math.abs(p.y - 6 - (this.ty * T + 6)) < 9) {
+            if (p.area === a && p.state === 'normal' && this.hits(p, j.x)) {
                 j.gone = true; Sfx.play('hitthing'); G.shake = 6; Fx.dust(p.x, p.y);
-                /* back to the start of this lane: the row below it */
+                /* back to the start of this lane: the row below it; knocked silly a moment (no walking; a tool still works) */
                 const [lx, ly] = p.landingSpot(clamp(p.tx, r.x + 1, r.x + r.w - 2), this.ty + 1);
                 p.x = lx * T + 8; p.y = ly * T + 10; p.kx = p.ky = 0; p.unstick(); Fx.poof(p.x, p.y);
+                if (!p.pinned) { p.pinned = 'dazed'; this.dazed = 1; this.dazeX = p.x; }
+                Fx.text(p.x, p.y - 24, '* * *', '#f7d64a'); Stats.count('climb:hit');
                 if (!Progress.flag('junk_hit')) { Progress.set('junk_hit'); G.pendingToast = 'Something flying knocks you clean off your feet, back to the start of the lane.'; }
             }
         }
         this.flying = this.flying.filter(j => !j.gone);
+    }
+    /* is anything coming past pixel column x in the next n frames, flying now or thrown meanwhile? (what a careful eye
+       reads off the lane; the tests' climber reads it too) */
+    passing(x, n, w = 13) {
+        const x0 = this.tx * T + 8, sp = this.dir * this.speed;
+        for (const j of this.flying) for (let f = 0; f <= n; f++) if (Math.abs(j.x + sp * f - x) < w) return true;
+        for (let f = 1; f <= n; f++) {
+            const k = (this.t + f) % this.period;
+            if (k < this.n * this.every && k % this.every === 0) for (let g = 1; f + g - 1 <= n; g++) if (Math.abs(x0 + sp * g - x) < w) return true;
+        }
+        return false;
     }
     draw(cx, cy) { SpoolArt.lane(this, cx, cy); }
 }
@@ -30044,6 +30315,17 @@ CONTENT_INIT.push(initGreatSpool);
         return a;
     };
 }
+/* a load in the Night Ferry's bedroom west of the channel would leave Wren cut off there (the place is built afresh with
+   the ferry back at its landing): she starts east of the channel instead, by the lever, which is the way out */
+{
+    const apply0 = Save.apply;
+    Save.apply = function (s) {
+        apply0.call(this, s);
+        const p = G.player, a = G.map, r = p && a && a.id === 'greatspool' ? a.roomAt(p.tx, p.ty) : null;
+        if (!r || r.key !== '0,1' || p.tx - r.x > 4 || p.ty - r.y > 3) return;
+        p.x = (r.x + 8) * T + 8; p.y = (r.y + 2) * T + 10; p.unstick(); p.setMark(); Cam.snap(p);
+    };
+}
 /* a save made in the Great Spool as it was first built (sixteen rooms on another map) starts again at the foot of the
    Well, the Knots it had untied still untied; whatever it had left lying about down there is back in its place */
 {
@@ -30249,11 +30531,23 @@ const SpoolArt = {
         if ((G.t >> 4) % 2) Gfx.rect(x + 6, y + 3, 2, 2, '#ffffff');
     },
     /* the Climb: what's flying, and once it's begun, a stitched line along the near side of each lane (a hit puts you back
-       behind it) */
+       behind it). Before each throw the lane's tell: the whole lane lit, blinking faster as it comes (as a boss's charge
+       lane is), and a glow gathering at the end it'll come from */
     lane(l, cx, cy) {
         if (!l.on) return;
-        const r = l.area.roomAt(l.tx, l.ty);
-        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy; Gfx.rect(sx + 2, sy, 4, 1, '#e8463c'); Gfx.rect(sx + 10, sy, 4, 1, '#e8463c'); }
+        const r = l.area.roomAt(l.tx, l.ty), red = '#e8463c';
+        if (r) for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) { if (l.area.kind(tx, l.ty + 1).solid) continue; const sx = tx * T - cx, sy = (l.ty + 1) * T - cy; Gfx.rect(sx + 2, sy, 4, 1, red); Gfx.rect(sx + 10, sy, 4, 1, red); }
+        const k = l.tellK;
+        if (r && k > 0) {
+            const t = l.t % l.period, blink = ((t / Math.max(3, Math.round(10 - 7 * k))) | 0) % 2 === 0;
+            for (let tx = r.x + 1; tx < r.x + r.w - 1; tx++) {
+                if (l.area.kind(tx, l.ty).solid) continue;
+                const x = tx * T - cx, y = l.ty * T - cy;
+                Gfx.alpha(0.1 + 0.25 * k + (blink ? 0.08 : 0)); Gfx.rect(x + 1, y + 1, 14, 14, red); Gfx.alpha(1);
+                Tells.stitchTile(x, y, blink ? shade(red, 0.45) : red);
+            }
+        }
+        if (k > 0 || l.throwing) Tells.glow(l.tx * T + 8 - l.dir * 5 - cx, l.ty * T + 7 - cy, l.throwing ? 1 : k, '#f7d64a');
         for (const j of l.flying) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, l.ty * T - cy - 4 + Math.sin(j.x / 6) * 2);
     },
     /* the Kiln's cracked charm: a split down it */
@@ -31226,7 +31520,8 @@ const StrayHouse = {
 
 /* Linnet's Trail: notes 4 (the Belfry's Echo Room) and 5 (below the falls) were scenery; now they're notes like the rest */
 LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to sleep with the stones, the way she sings it: low, high, middle, high, low. She sings it to the cellar too, late at night, very quietly. Something down there turns one click for every Knot I tie. I counted. - L." };
-LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. It isn't mist. It's thread, fine as hair, millions of them, every one pulled tight toward home. - L." };
+/* (note 5 says where and what to try, not what you'll find: the river's mouth in Meadowfold shows it, src/80c_fog_hand.js) */
+LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. Then tell me it's mist. - L." };
 LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. - L." };
 for (const k of [4, 5, 8]) NOTES['linnet' + k] = { title: LINNET_NOTES[k].title, text: LINNET_NOTES[k].text };
 {
@@ -32173,6 +32468,103 @@ function numTimes(n) { return n === 1 ? 'once' : n === 2 ? 'twice' : numWords(n)
         if (this.state === 'fall' && !opts.homeward && this.area) { Stats.count('home:fall'); Stats.count('home@' + Tally.placeOf(this.area, this.tx, this.ty)); }
         return fly0.apply(this, arguments);
     };
+}
+
+// ---- 80c_fog_hand.js ----
+/* Linnet's note 5, tried: where the town's river runs into the fog at the bottom of Meadowfold (its spray on the fog
+   there), Wren can put her hand into it, facing it from the river's end. A close look:
+   thread, fine as hair, millions of strands beaded with the spray, every one pulled taut the same way (up the river,
+   north, toward the Well); and among them her own red one, which pulls taut the same way for a moment. Once the
+   Unwinding's come they hang slack; once her own thread's cut, it isn't there. Nothing to collect and nothing counted:
+   only the flag fog_hand. (Linnet's note says where and what; this is what you find. The Frayed Edge, later, is where
+   the threads part round you like a bead curtain.) */
+
+const FOG_HAND = { block: '1,2', x: 51, y: 37, w: 2 };    /* the river's mouth: the five tiles of fog across its end */
+SPAWN.foghand = (tx, ty) => {
+    const pr = new Prop(tx, ty, { solid: [] });
+    pr.draw = () => { };
+    pr.interact = () => { Script.run(FogHand.reach(), { name: 'foghand' }); return true; };
+    pr.talkBox = (pl, f) => f.ty === ty && Math.abs(f.tx - tx) <= FOG_HAND.w && pl.ty === ty - 1;
+    return pr;
+};
+OW.blocks[FOG_HAND.block].ents.push({ k: 'foghand', x: FOG_HAND.x, y: FOG_HAND.y });
+
+const FogHand = {
+    card: null,
+    *reach() {
+        Progress.set('fog_hand'); Stats.count('foghand');
+        this.card = { t0: G.t, slack: Progress.flag('unwound'), red: !Progress.flag('cut_self') };
+        /* (her own thread snaps taut a moment after the picture comes up) */
+        if (this.card.red) Script.run(function* () { yield FOG_TAUT; if (FogHand.card) Sfx.play('tug'); }, { blocking: false });
+        yield 16;
+        /* (the words go below the picture: the scene's attention is up there) */
+        yield* say(null, 'You put your hand into the fog.', { focus: [tileOf(Cam.x + W / 2), tileOf(Cam.y + 30), 40] });
+        this.card = null;
+    },
+    draw() {
+        const c = this.card;
+        if (!Script.running('foghand')) { this.card = null; return; }     /* (a load in the middle: gone) */
+        const t = G.t - c.t0, A = Math.min(1, t / 12), w = 150, h = 84, x = (W - w) >> 1, y = 14;
+        const x0 = x + 3, x1 = x + w - 3, y0 = y + 3, y1 = y + h - 3, H2 = y1 - y0, k = 0.12, gap = 5;
+        Gfx.alpha(A);
+        stitchedBox(x - 2, y - 2, w + 4, h + 4, { fill: '#b4c0ce', stitch: '#8e9cb0', shadow: '#a6b2c2' });
+        for (let j = y0; j < y1; j++) Gfx.rect(x0, j, x1 - x0, 1, mix('#c4ceda', '#97a6b8', (j - y0) / H2));
+        /* every strand pulled the same way: up, the way the river comes down from the Well, leaning a touch toward it (or,
+           slack, hanging and drifting); xAt is where strand i is, d pixels up from the bottom. A taut one hums now and then */
+        const n = Math.ceil((x1 - x0 + k * H2) / gap);
+        const xAt = (i, d) => c.slack ? x0 + 2 + i * gap - k * H2 / 2 + Math.sin(d / 11 + i * 1.7 + G.t / 90) * 3 : x0 + 2 + i * gap - k * d;
+        const strand = (i, col, a) => {
+            Gfx.alpha(A * a);
+            if (!c.slack) {
+                const hum = hash2(i, G.t >> 3, 85) < 0.04 ? 1 : 0, b = x0 + 2 + i * gap + hum;
+                const d0 = Math.max(0, (b - x1 + 1) / k), d1 = Math.min(H2, (b - x0) / k);
+                if (d0 < d1) Gfx.line(Math.round(b - k * d0), Math.round(y1 - d0), Math.round(b - k * d1), Math.round(y1 - d1), col);
+                return;
+            }
+            let px = xAt(i, 0), py = y1;
+            for (let d = 4; d <= H2 + 3; d += 4) {
+                const dd = Math.min(d, H2), qx = xAt(i, dd), qy = y1 - dd;
+                if (Math.min(px, qx) >= x0 && Math.max(px, qx) < x1) Gfx.line(Math.round(px), py, Math.round(qx), qy, col);
+                px = qx; py = qy;
+            }
+        };
+        for (let i = 0; i < n; i++) strand(i, '#ffffff', i % 2 ? 0.45 : 0.9);
+        /* the hand, in among them: a yellow cuff, a palm, four fingers and a thumb (and some strands in front of it) */
+        const mx = x + (w >> 1) - 8, hy = y1 - Math.round(Math.min(1, t / 16) * 26);
+        Gfx.alpha(A);
+        Gfx.rect(mx - 6, hy + 14, 13, y1 - hy - 14, PAL.ink); Gfx.rect(mx - 5, hy + 15, 11, y1 - hy - 15, '#e7ad3c'); Gfx.rect(mx - 5, hy + 15, 11, 1, '#b67d26');
+        Gfx.rect(mx - 5, hy + 5, 11, 10, PAL.ink); Gfx.rect(mx - 4, hy + 6, 9, 9, PAL.skin);
+        [[-4, 7], [-1, 8], [2, 8], [5, 6]].forEach(([dx, l]) => { Gfx.rect(mx + dx - 1, hy + 6 - l, 3, l + 1, PAL.ink); Gfx.rect(mx + dx, hy + 7 - l, 1, l, PAL.skin); });
+        Gfx.rect(mx - 8, hy + 7, 4, 3, PAL.ink); Gfx.rect(mx - 7, hy + 8, 3, 1, PAL.skin);
+        for (let i = 1; i < n; i += 4) strand(i, '#ffffff', 0.9);
+        /* beads of the river's spray strung along them, thickest low down, glinting */
+        for (let b = 0; b < 40; b++) {
+            const i = Math.floor(hash2(b, 3, 83) * n), d = Math.floor(Math.pow(hash2(3, b, 84), 1.7) * (H2 - 4)), bx = Math.round(xAt(i, d)) - 1, by = y1 - d - 1;
+            if (bx < x0 || bx > x1 - 3 || (i % 4 !== 1 && bx > mx - 11 && bx < mx + 8 && by > hy - 4)) continue;     /* (behind the hand) */
+            Gfx.alpha(A * (0.7 + 0.3 * Math.abs(Math.sin(G.t / 23 + b))));
+            Gfx.rect(bx, by, 3, 3, '#7f93aa'); Gfx.rect(bx, by, 3, 2, '#e8f2fc'); Gfx.rect(bx, by, 1, 1, '#ffffff');
+        }
+        /* her own red thread, up from below beside her hand: loose, then pulled taut the same way as all the rest */
+        if (c.red) {
+            const bx = mx + 14, taut = t >= FOG_TAUT, j = taut && t < FOG_TAUT + 8 ? Math.round((Math.random() - 0.5) * 2) : 0;
+            Gfx.alpha(A);
+            if (taut) Gfx.line(bx + j, y1, Math.round(bx - k * H2) + j, y0, THREAD.wren);
+            else {
+                let px = bx, py = y1;
+                for (let d = 3; d <= H2; d += 3) {
+                    const qx = bx - k * d * 0.5 + Math.sin(d / 9) * 4 * (1 - d / H2), qy = y1 - d;
+                    if (Math.min(px, qx) >= x0 && Math.max(px, qx) < x1) Gfx.line(Math.round(px), py, Math.round(qx), qy, THREAD.wren);
+                    px = qx; py = qy;
+                }
+            }
+        }
+        Gfx.alpha(1);
+    },
+};
+const FOG_TAUT = 46;
+{
+    const draw0 = UI.draw;
+    UI.draw = function () { if (FogHand.card && G.scene === 'play') FogHand.draw(); return draw0.call(this); };
 }
 
 // ---- 90_main.js ----

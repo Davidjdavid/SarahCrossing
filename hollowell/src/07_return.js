@@ -261,9 +261,13 @@ class GridThing extends Ent {
         if (this.carried) return;      /* (Wren draws what she carries, over her head: not here as well) */
         const im = this.sprite();
         if (!im) return;
-        /* waiting to come down on its place (something's standing on it): it hovers there, faint, over its mark */
+        /* waiting to pop back onto its place (something's standing on it): not back yet, so not drawn; its place glints,
+           its mark showing over whoever's feet are on it, motes of its thread rising off it */
         if (this.pendingHome) {
-            Gfx.alpha(0.45); Gfx.img(im, this.tx * T - cx + (this.ox || 0), this.ty * T - cy - (im.height - T) - 7 + Math.round(Math.sin(G.t / 10)) + (this.oy || 0)); Gfx.alpha(1);
+            const x = this.tx * T - cx, y = this.ty * T - cy, col = this.ret ? this.ret.color : PAL.white, k = (G.t + this.uid * 7) % 30;
+            Gfx.alpha(k < 20 ? 0.8 : 0.35); Marks.draw(x, y + 2, col, true);
+            for (let i = 0; i < 2; i++) { const m = (G.t + i * 20 + this.uid * 5) % 40; Gfx.alpha(Math.max(0, 0.8 - m / 40)); Gfx.rect(x + 5 + i * 5, y + 4 - m / 2, 1, 2, col); }
+            Gfx.alpha(1);
             return;
         }
         const sx = this.px - cx, sy = this.py - cy - (im.height - T) - this.z;

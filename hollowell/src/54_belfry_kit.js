@@ -41,7 +41,7 @@ const Bells = {
     drawFx(cx, cy) {
         const f = G.ringFx; if (!f || f.area !== G.map) return;
         f.t++;
-        const r = f.r * Math.min(1, f.t / 8), fade = f.t < 30 ? 1 : Math.max(0, 1 - (f.t - 30) / (this.FX_T - 30)), m = f.room, n = Math.max(32, Math.round(f.r / 2.5));
+        const r = f.r * Math.min(1, f.t / 8), fade = f.t < 30 ? 1 : Math.max(0, 1 - (f.t - 30) / (this.FX_T - 30)), m = f.room, n = Math.max(32, Math.round(f.r));
         for (let i = 0; i < n; i++) {
             const a = i / n * Math.PI * 2, x = f.x + Math.cos(a) * r, y = f.y + Math.sin(a) * r;
             if (m && (x < m.x * T || y < m.y * T || x >= (m.x + m.w) * T || y >= (m.y + m.h) * T)) continue;

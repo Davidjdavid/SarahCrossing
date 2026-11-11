@@ -3,9 +3,10 @@
 
 const Cam = {
     x: 0, y: 0, room: null, trans: null,
-    target(p, room) {
+    target(p, room, free) {
         const r = room || this.room;
         let x = p.x - W / 2, y = p.y - 6 - H / 2;
+        if (free) return { x: Math.round(x), y: Math.round(y) };      /* (a look across rooms: right at it, whatever room it's in) */
         const rx = r.x * T, ry = r.y * T, rw = r.w * T, rh = r.h * T;
         /* the HUD sits over the top 14 px of a room-sized room */
         const top = ry - (rh <= H ? (H - rh) / 2 : 0);
@@ -57,7 +58,7 @@ const Cam = {
         /* a scene can point the camera somewhere else for a while (Cam.look: a point in the world), panned to gently;
            (once no scene is running, it comes back to Wren whatever the scene forgot) */
         if (this.look && !Script.blocking()) { this.look = null; this.lookEase = true; }
-        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p, this.look && this.look.room);
+        const t = this.target(this.look ? { x: this.look.x, y: this.look.y + 6 } : p, null, this.look && this.look.free);
         /* outdoors, a gentle follow; indoors, exact */
         if (p.area.family === 'outdoor' || this.look || this.lookEase) {
             const k = this.look || this.lookEase ? 0.08 : 0.2;
@@ -74,10 +75,11 @@ const Cam = {
 /* for scenes: look at a tile (or a thing) and wait till the camera's there; then back to Wren */
 function* camLook(x, y, max = 90) {
     Cam.look = typeof x === 'object' ? { x: (x.isGrid ? x.px : x.x) + 8, y: (x.isGrid ? x.py : x.y) + 8 } : { x: x * T + 8, y: y * T + 8 };
-    /* (a look into another room of the place: the camera keeps to that room while it looks) */
+    /* (a look out of the room Wren's in, at a door in its wall or into another room: the camera goes right to it, not
+       kept to her room) */
     const a = G.map, lr = a && a.rooms && a.rooms.length > 1 ? a.roomAt(tileOf(Cam.look.x), tileOf(Cam.look.y)) : null;
-    if (lr && lr !== Cam.room) Cam.look.room = lr;
-    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }, Cam.look.room); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
+    if (lr && lr !== Cam.room) Cam.look.free = true;
+    for (let i = 0; i < max; i++) { const t = Cam.target({ x: Cam.look.x, y: Cam.look.y + 6 }, null, Cam.look.free); if (Math.abs(Cam.x - t.x) < 2 && Math.abs(Cam.y - t.y) < 2) break; yield 1; }
 }
 function* camBack(max = 90) {
     Cam.look = null; Cam.lookEase = true;

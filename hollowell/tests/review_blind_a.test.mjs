@@ -123,7 +123,7 @@ const hatch = (HW, r, x, y, d) => { assert.ok(HW.walkTo(...sw(r, x, y)), 'to the
 test('the Practice Floor: its plates open a door out of sight, in the Gatehouse; when it opens, the camera goes and looks', () => {
     const HW = works(); HW.Inv.tools.push('needle'); HW.Inv.items.needle = 1;
     inWorks(HW, 'practice', 13, 2);
-    const Cam = HW.global('Cam'), atGate = () => Cam.x === 20 * 16 && Cam.y === 22 * 16 - 2;
+    const Cam = HW.global('Cam'), [gx, gy] = sw('gate', 19, 5), atGate = () => Math.abs(Cam.x + 160 - (gx * 16 + 8)) <= 2 && Math.abs(Cam.y + 90 - (gy * 16 + 8)) <= 2;
     HW.face('down'); stitch(HW, 'DDD'); until(HW, () => HW.Return.isHome(HW.find('paBoy')), 120);
     hatch(HW, 'practice', 3, 7, 'down');
     assert.ok(HW.walkTo(...sw('upractice', 12, 4))); HW.face('up'); rack(HW, 'DDDDD');

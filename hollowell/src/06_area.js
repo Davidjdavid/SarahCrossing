@@ -100,6 +100,10 @@ class Area {
         const pl = G.player;
         if (e && e.isGrid && pl && pl.area === this && !pl.dead && pl.onTile(x, y) && e !== pl && !(e.floats && pl.tx === e.tx && pl.ty === e.ty)) return false;   /* (a float isn't blocked by whoever's riding it) */
         if (e && e.isGrid && pl && pl.area === this && pl.shove && tileOf(pl.shove.tx) === x && tileOf(pl.shove.ty) === y) return false;   /* (nor where she's being shoved to: two can't land on one tile) */
+        /* (nor where she's coming down off a hook line or a hop: in the air she stands on no tile, but that one's hers, so a
+           thing coming home waits behind her as it would if she stood there; a float may come under her, she lands on it) */
+        const land = pl && pl.area === this && !pl.dead && ((pl.state === 'reel' && pl.reel) || (pl.state === 'hop' && pl.hop));
+        if (e && e.isGrid && land && !e.floats && tileOf(land.tx) === x && tileOf(land.ty) === y) return false;
         for (const m of this.walkers) if (m !== e && m.alive !== false && m.onTile && m.onTile(x, y)) return false;
         return true;
     }

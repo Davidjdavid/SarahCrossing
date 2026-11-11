@@ -265,7 +265,8 @@ const Reveal2 = {
     /* the thread she's pulling on, from Wren's heart to Gran's fingers, taut (it shakes when she pulls) */
     drawPull(a, cx, cy) {
         const s = this.taut, p = G.player;
-        if (!s || !p || s.gran.removed) return;
+        if (s && (s.gran.removed || s.gran.area !== a)) this.taut = null;        /* (the Hall built again: a load) */
+        if (!this.taut || !p) return;
         const g = s.gran, j = s.jerk > 0 ? Math.round((Math.random() - 0.5) * 2) : 0;
         const x0 = p.x - cx, y0 = p.y - cy - 4 - (p.z || 0), x1 = g.px + 12 - cx, y1 = g.py + 9 - cy;
         Gfx.alpha(0.5); Gfx.line(x0, y0 + 1, x1, y1 + 1, PAL.ink); Gfx.alpha(1);

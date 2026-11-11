@@ -164,7 +164,7 @@ TALK.hettie = function* () {
     }
     yield* say('hettie', cycle('hettie', [
         "The puffballs go POOF when you get close. Breathe it in and you'll nod off where you stand, and wake up wherever you last thought of as home. Saves walking, I suppose.",
-        "Snorelings. Little sleepwalkers. Wake one and it'll shuffle after you a while, then go and find a bed. Any bed. They're not fussy.",
+        "Snorelings. Little sleepwalkers. Wake one and it'll shuffle after you a while with its arms out, and then off to bed it toddles, yawning.",
         "Doctor Mallow's place is over the stream. The Slumberhouse. Lovely man. Never sleeps himself, mind. Funny, that.",
         "The weir on the pond: wind it and the boat'll take you all the way down to the Reaches. And back, if you leave it be. Boats here know where they live.",
         Progress.flag('giant_home') ? "Old Hummock's gone home to his own bed at last. Up in the north-west. Snoring like a landslide. Good for him." : "Is he still across the road, the old lump? Bless him.",

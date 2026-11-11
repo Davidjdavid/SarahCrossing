@@ -1,5 +1,5 @@
-/* Linnet's note 5, tried: where the river runs into the fog at the bottom of Meadowfold (the only place the fog can be
-   reached with the water's spray on it), Wren can put her hand into it, facing it from the river's end. A close look:
+/* Linnet's note 5, tried: where the town's river runs into the fog at the bottom of Meadowfold (its spray on the fog
+   there), Wren can put her hand into it, facing it from the river's end. A close look:
    thread, fine as hair, millions of strands beaded with the spray, every one pulled taut the same way (up the river,
    north, toward the Well); and among them her own red one, which pulls taut the same way for a moment. Once the
    Unwinding's come they hang slack; once her own thread's cut, it isn't there. Nothing to collect and nothing counted:

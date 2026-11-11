@@ -24,6 +24,7 @@ export function hearMakers(HW) {
 export function climbWatching(HW, origin, maxWait = 600) {
     const p = HW.player(), [ox, oy] = origin, lanes = HW.G.map.ents.filter(e => e.kind === 'junklane');
     for (const row of [8, 6, 4, 2]) {
+        if (p.ty - oy <= row) continue;                       /* (only the lanes still above her) */
         const l = lanes.find(q => q.ty === oy + row);
         assert.ok(l, 'a lane in row ' + row);
         for (let i = 0; i < maxWait && l.passing(p.x, 22); i++) HW.step(1);
@@ -1309,7 +1310,7 @@ export const LEG9 = (HW, chain) => {
     go('mario', 16, 6); go('mario', 18, 6); go('mario', 18, 3); act('up');
     ok(HW.Progress.flag('spool_all'), 'all six Knots undone');
     /* up the Climb, watching the lanes (a train goes by, then across behind it); Gran; the six great threads */
-    go('climb', 9, 9); climbWatching(HW, G.climb);
+    go('climb', 9, 5); climbWatching(HW, G.climb);
     ok(HW.player().ty === g('climb', 0, 1)[1] && !(HW.Stats.c['climb:hit'] > 0), 'up the Climb, never caught');
     HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk();
     ok(HW.Progress.flag('spool_met'), 'Gran at the Spool');
