@@ -357,7 +357,7 @@ defHouse({
             ],
             nudge: { solved: 'untie:marionette', after: 60 * 150, at: [13, 5], say: GS_SAY.marionette + ' twitches inside the prompt box, under the painted rock.' },
         },
-        /* ---------------- the top: the Spool itself, Gran, the six great threads ---------------- */
+        /* ---------------- the top: the Spool itself, Gran, the six great threads, in three pairs (SpoolTop, below) ---------------- */
         '1,0': {
             name: 'The Top of the Spool',
             rows: ['####################', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
@@ -366,7 +366,7 @@ defHouse({
                 { k: 'greatpost', x: 1, y: 2, house: 'tidy' }, { k: 'greatpost', x: 18, y: 2, house: 'kiln' }, { k: 'greatpost', x: 1, y: 5, house: 'mill' },
                 { k: 'greatpost', x: 18, y: 5, house: 'belfry' }, { k: 'greatpost', x: 1, y: 8, house: 'slumber' }, { k: 'greatpost', x: 18, y: 8, house: 'marionette' },
                 /* things on their shelves, for the Pull to drag */
-                { k: 'crate', x: 6, y: 9, id: 'gsCrateA' }, { k: 'crate', x: 13, y: 9, id: 'gsCrateB' }, { k: 'crate', x: 4, y: 9, id: 'gsCrateC' },
+                { k: 'crate', x: 6, y: 9, id: 'gsCrateA' }, { k: 'crate', x: 13, y: 9, id: 'gsCrateB' }, { k: 'crate', x: 4, y: 9, id: 'gsCrateC' }, { k: 'crate', x: 15, y: 9, id: 'gsCrateD' },
             ],
         },
     },
@@ -375,7 +375,7 @@ defHouse({
 {
     const d = AREAS.greatspool;
     for (const r of d.rooms) { const c = d.cells[r.key]; r.pull = c && c.pull !== undefined ? dirByName(c.pull) : UP; r.house = GS_ROOM_HOUSE[r.key] || null; }
-    d.build = a => { const s = a.find('theSpool'), r = s && a.roomAt(s.tx, s.ty); if (r) r.drum = { tx: s.tx, ty: s.ty }; };
+    d.build = a => { const s = a.find('theSpool'), r = s && a.roomAt(s.tx, s.ty); if (r) r.drum = { tx: s.tx, ty: s.ty }; SpoolTop.apply(a); };
 }
 
 /* the room's brake: a ratchet on the wall by the door */

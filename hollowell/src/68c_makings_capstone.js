@@ -104,7 +104,7 @@ AREAS.underside.ents.push(
     { k: 'warp', x: CAP_DOOR, y: 1, to: CAP_ID, tx2: MAKINGS[CAP_N - 1].entry.x, ty2: MAKINGS[CAP_N - 1].entry.y, dir: 'up', face: 'up', room: '2,0', if: 'making' + (CAP_N - 1) },
     { k: 'deco', x: CAP_DOOR, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0', if: 'making' + (CAP_N - 1) },
     { k: 'deco', x: CAP_DOOR, y: 0, look: 'littledoor_shut', solid: false, baseY: -100, room: '2,0', if: '!making' + (CAP_N - 1) },
-    { k: 'memo', x: CAP_DOOR - 1, y: 1, room: '2,0', say: () => Progress.flag('cap_given') || Progress.flag(CAP_ID) ? `MAKING ${CAP_N}: YOUR TURN. (By {name}, it says, in Gundry's chalk.)` : `MAKING ${CAP_N}: (no name chalked on it yet). Opens when the eighth is done.` },
+    { k: 'memo', x: CAP_DOOR - 1, y: 1, room: '2,0', say: () => Progress.flag('making' + (CAP_N - 1)) ? `MAKING ${CAP_N}: YOUR TURN. (By {name}, it says, in Gundry's chalk.)` : `MAKING ${CAP_N}: (no name chalked on it yet). Opens when the eighth is done.` },
 );
 
 /* ---------------- setting it out, letting him in, and the grading ---------------- */
