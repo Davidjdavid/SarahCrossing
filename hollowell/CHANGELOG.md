@@ -163,4 +163,11 @@
   goes on, harder House by House; hits land with weight, and being hit leaves a moment's safety.
 - The journal keeps a note of a favour only once someone has asked it in person, so nothing waiting to be noticed
   is given away.
+- Two rounds of fixes from AI testers who played the puzzles without the answers: a key order that could strand a
+  run closed; nothing coming home ever lands on you; a success that happened out of sight is shown; tight timings
+  given room; a way in that couldn't be worked out made findable, with its rule seen before it matters; tools show
+  their reach; refusals say what happened; signs that still gave a step reworded.
+- The first two Houses dressed with floors and set pieces of their own; puzzle marks checked for contrast on every
+  new floor.
+- Late moments shown rather than told; one scene waits for as long as you choose.
 
