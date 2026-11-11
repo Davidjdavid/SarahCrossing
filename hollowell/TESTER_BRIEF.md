@@ -5,6 +5,8 @@ want to know whether it can be finished and what goes wrong along the way, **wit
 themselves**. Please read all of this before you start.
 
 ## The rules
+- The game runs in a web page (the link or file you were given): click the game or its Play button, then use the
+  keyboard. It doesn't pause while you think, so give each keypress a moment to take effect.
 - Play the game as a player would: from a new game, with no outside help.
 - Don't read the game's source code, its files or any repository it came from: they contain the answers. Don't add
   anything to its address (such as `?debug`) and don't use the browser's developer tools to change the game.
@@ -32,5 +34,6 @@ themselves**. Please read all of this before you start.
   tools, nothing about the story, the puzzles or how anything works. Just how far you got (as a rough fraction of the
   game, if you can tell), how many bugs and stuck points you found, how serious they seemed, and how you'd rate the
   experience overall.
-- **The full report for the developer**, with every detail, spoilers and all. Put it in a separate block clearly
-  headed "FOR THE DEVELOPER: FULL SPOILERS", so it can be passed on without being read.
+- **The full report for the developer**, with every detail, spoilers and all. If you can, put it in a downloadable
+  file (`developer-report.md`) rather than in the chat, so it can be passed on without being read; if you can't, put
+  it at the very end, in a separate block clearly headed "FOR THE DEVELOPER: FULL SPOILERS", after the summary.

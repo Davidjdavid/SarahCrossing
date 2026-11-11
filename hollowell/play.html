@@ -3974,6 +3974,8 @@ const UI = {
     placeBanner() {
         const b = this.banner;
         if (!b || !b.wait) return;
+        /* (not on a black screen: the name comes up as the place does) */
+        if (this.fadeA > 0.5 || (this.fade && this.fade.to > 0.5)) return;
         const sides = [false, true].filter(lo => !this.toasts.some(t => !t.wait && !!t.low === lo));
         if (!sides.length) { if (++b.waited > 120) this.banner = null; return; }
         let low = sides[0];
