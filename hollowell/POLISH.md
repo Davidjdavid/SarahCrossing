@@ -127,14 +127,14 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 26 | critic | Waiting: failed tries mean standing about until things come home; patience unreadable | fixed: "Sit and wait for things to come home" in a House's pause menu (runs the game four times as fast until the room's things are home; never with anything dangerous about); a ring of stitches round a moved thing's mark unpicks as its patience runs down |
 | 27 | critic | The page's key-hint line sat over the game | fixed: the title screen draws its own controls line with the bound keys |
 | 28 | review A | Threads drawn as long diagonals | by design: a thread shows the exact way the thing will come home, and a thrown or flown stretch comes home in a straight line |
-| 29 | AI blind solver A | House 7: the first key could open Under the Loft, stranding the run (the Loft needs the Needle, which is behind the Kennel) | fixing (fix round A) |
-| 30 | AI blind solver A | Great Spool: a thing coming home dropped onto its place with Wren standing there (overlap; the Airing Cupboard skippable) | fixing (fix round A) |
-| 31 | AI blind solver A | House 7's Practice Floor finishes out of sight (the real unlock opens a gate elsewhere, unseen); 50 experiments to find the Ropewalk | fixing (fix round A) |
-| 32 | AI blind solver A | Great Spool's Airing Cupboard: 9 frames to spare for a perfect bot; the Bell's range never shown | fixing (fix round A) |
-| 33 | AI blind solver A | Great Spool's Night Ferry: a reload in the bedroom's west half leaves Wren cut off (only Homeward frees her) | fixing (fix round A) |
-| 34 | AI blind solver A | The Climb trivial: holding Up reaches the top unhurt from any start | fixing (fix round A) |
-| 35 | AI blind solver A | Untaught reaches (the Needle's four tiles, the Bell's range) and silent refusals (a tied crate pushed, the Needle on a knot, pulling onto silk, a target out of reach, the practice rack) | fixing (fix round A) |
-| 36 | AI blind solver A | A failed snip's line at the Spool's top nearly gives the answer; the Bell's harder shove never said | fixing (fix round A) |
+| 29 | AI blind solver A | House 7: the first key could open Under the Loft, stranding the run (the Loft needs the Needle, which is behind the Kennel) | fixed: the second lock takes only its own spare key (from the Ropewalk, after the Needle); an old save that spent the first key there gets the Kennel's lock opened; tested |
+| 30 | AI blind solver A | Great Spool: a thing coming home dropped onto its place with Wren standing there (overlap; the Airing Cupboard skippable) | fixed: nothing coming home lands under Wren anywhere (07_return: it waits, a heavy thing too, its mark glinting); the top room's crates and the brake wait too; tested (the Airing Cupboard's grip-and-ring is its designed solution and follows the rules) |
+| 31 | AI blind solver A | House 7's Practice Floor finishes out of sight (the real unlock opens a gate elsewhere, unseen); 50 experiments to find the Ropewalk | fixed: the Gatehouse door is looked at, with a chime and a ring, when it opens out of sight; camLook can centre on another room; tested |
+| 32 | AI blind solver A | Great Spool's Airing Cupboard: 9 frames to spare for a perfect bot; the Bell's range never shown | fixed: the block's patience 5 s (was 2); every ring draws its reach for half a second, stopped by walls; tested |
+| 33 | AI blind solver A | Great Spool's Night Ferry: a reload in the bedroom's west half leaves Wren cut off (only Homeward frees her) | fixed: a load in a House with the Bedroll on a float starts on the float; a load west of the Night Ferry's channel starts by the lever; tested |
+| 34 | AI blind solver A | The Climb trivial: holding Up reaches the top unhurt from any start | fixed: the lane pillars gone; each lane throws a train of six, every throw told (the lane lights and blinks faster, a glow, a chirp); holding Up is caught every time, waiting for each train never; tested |
+| 35 | AI blind solver A | Untaught reaches (the Needle's four tiles, the Bell's range) and silent refusals (a tied crate pushed, the Needle on a knot, pulling onto silk, a target out of reach, the practice rack) | fixed: the Needle outlines every reachable tile and says 'Too far off'; refusals for a tied block, a wedged weight, the practice rack; tested |
+| 36 | AI blind solver A | A failed snip's line at the Spool's top nearly gives the answer; the Bell's harder shove never said | fixed: the failed snip's line now only says what happens; the Bell's text says its snap shoves harder |
 | 37 | AI blind solver B | The way into House 5 couldn't be found: the door opens only while three Snorelings sleep in the nursery's cradles, nothing links door and cradles, and outdoors they never settle (unlike the Pillow Fort's rule) | fixing (fix round B) |
 | 38 | AI blind solver B | House 6's Trap Room: a returning understudy can land on Wren and trap her (only Homeward frees her); about 2 s for two hooks with a tool switch | fixing (fix round B) |
 | 39 | AI blind solver B | Signs that still give the answer: the Moonwalk's, the Pillow Fort's (and Hettie) | fixing (fix round B) |
@@ -270,6 +270,9 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
 - A private direction from David (11 November), kept in hollowell/private/ for him to read after the game; never
   shown, summarised or hinted to him. Considered against what the game already does; a helper is on it (scratchpad
   private_brief.md). Never named in the changelog, commit messages or anything he reads.
+- Fix round A done (fixA_brief.md; tests/review_blind_a.test.mjs, 14; suite 604/604 at its finish; LEG7-9 play; probe
+  over all nine legs 0 errors). Running now: the Spool's top and the climax (finale_brief.md: P4, P1's climax, P2's
+  count at the Spool).
 - Running: P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
   Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
   capstone_brief.md.
