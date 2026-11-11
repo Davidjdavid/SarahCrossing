@@ -20,6 +20,9 @@ const EXPECT = {
 const END = ["gran: After the fog I couldn't feel you at all. So let me look at you.", "gran: ...Your scarf's crooked.", 'linnet: Leave it, Mum.', "gran: I'm leaving it."];
 const plain = l => l.replace(/\{(happy|sad|surprised|cross|worried|neutral)\}/g, '');
 const LEFTOVER = /undefined|NaN|null|\[object|\{|\}|\d/;
+/* the count of times home is Gran's at the Spool (and the ledger's): the bench never says it again, nor a count of times
+   home of any kind in its shape */
+const RECOUNT = /\b(wound|brought|bring|wind|caught|catch) (you|her) home\b|\btimes (this Wander )?I (wound|brought)\b|\btimes you (flew|went) (off )?home\b/i;
 /* the lines said after sitting down, to the end */
 const said = lines => { const i = lines.findIndex(l => l.startsWith('You sit down between them')); return i < 0 ? [] : lines.slice(i + 1).map(plain); };
 /* the ledger's page, as read */
@@ -37,6 +40,7 @@ for (const [name, spec] of Object.entries(WANDERS)) {
         same(s.slice(-END.length), END, 'and it ends the same way for everybody');
         assert.ok(s.length - END.length <= 4, 'four lines at most before that');
         for (const l of s) assert.ok(!LEFTOVER.test(l), 'no leftovers: ' + l);
+        for (const l of s) assert.ok(!RECOUNT.test(l), 'no count of times home on the bench: ' + l);
         const page = pageOf(cellar(HW));
         assert.ok(page.length >= 3 && /^"Wren at the fog with the Shears\." Under that, nothing/.test(page[page.length - 2]), page.join(' | '));
         assert.match(page[page.length - 1], /^"(Brought her home .*|Never once had to bring her home), this Wander\. Last night she fell out of bed\. Nobody caught her\. She laughed\."$/);
@@ -139,6 +143,7 @@ test('every combination: two things at most, never two about the same thing, a c
         assert.ok(lines.length - 4 >= 1 && lines.length - 4 <= 4, why);
         assert.equal(!b.length, lines[0][1].startsWith('{happy}I felt every step'), 'the plain line exactly when there is nothing else: ' + why);
         for (const t of lines.map(([, t]) => fill(t)).concat(page.map(fill))) assert.ok(!LEFTOVER.test(plain(t)) && t.length < 260, `"${t}" (${why})`);
+        for (const [, t] of lines) assert.ok(!RECOUNT.test(t), `the bench recounts: "${t}" (${why})`);
         /* only what the record can back */
         if (!e.kept) assert.ok(!ids.includes('straight'), why);
         if (!e.keptCuts) assert.ok(!ids.some(k => ['firstcut', 'left'].includes(k)), why);

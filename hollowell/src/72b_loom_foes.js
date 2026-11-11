@@ -193,7 +193,7 @@ class Anchor extends GridThing {
         if (!Progress.flag('weaver_cocoon')) { Progress.set('weaver_cocoon'); G.pendingToast = 'At the bell the cocoon stirs, and its silk unwinds back up into the web. Under it, a knot.'; }
     }
     /* the stick on its cocoon: asleep, and nothing moves it but a bell */
-    onStruck() { Sfx.play('hitthing'); if (this.sleeping) UI.toast(Return.sleepLine(this)); }
+    onStruck() { Sfx.play('hitthing'); Fx.dust(this.tx * T + 8, this.ty * T + 8); if (this.sleeping) UI.toast(Return.sleepLine(this)); }
     tick() { if (this.unwind > 0) this.unwind--; }
     sprite() { return spr('greatpost'); }
     draw(cx, cy) {
@@ -223,7 +223,9 @@ class Anchor extends GridThing {
     }
 }
 withAnchorWays(Anchor);
-SPAWN.anchor = (x, y, p) => new Anchor(x, y, p);
+/* (the Weaver beaten, the place built again: its anchors hang in tatters) */
+const spentAnchor = n => { if (Progress.flag('loom_boss')) { n.cut = true; n.cuttable = false; n.sleeping = false; } return n; };
+SPAWN.anchor = (x, y, p) => spentAnchor(new Anchor(x, y, p));
 /* the one tied up on the loom, into its cloth over the well's head (no post: under it there's only the well) */
 class LoomAnchor extends Ent {
     constructor(tx, ty, p = {}) { super('anchor', Object.assign({ way: 'loom' }, p)); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.tie(); }
@@ -239,7 +241,7 @@ class LoomAnchor extends Ent {
     }
 }
 withAnchorWays(LoomAnchor);
-SPAWN.loomanchor = (x, y, p) => new LoomAnchor(x, y, p);
+SPAWN.loomanchor = (x, y, p) => spentAnchor(new LoomAnchor(x, y, p));
 
 class Weaver extends Ent {
     constructor(tx, ty, p = {}) {

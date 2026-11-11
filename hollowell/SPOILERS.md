@@ -107,7 +107,8 @@ Mum." / "I'm leaving it." (the prologue's "Let me look at you. Scarf on straight
 is the cellar, open after the end ("Go down the steps?"): her ledger near the back, up to four lines written at the time
 in the order they happened (some the bench never says, e.g. the peephole into her study: "Let her look."), then "Wren at
 the fog with the Shears.", the rest of the page empty, and at the bottom in fresh ink "Brought her home N times, this
-Wander. Last night she fell out of bed. Nobody caught her. She laughed." (N is the count she gives at the Spool).
+Wander. Last night she fell out of bed. Nobody caught her. She laughed." (N is the count she gives at the Spool; the bench
+never says a count of times home, not that one nor one shaped like it).
 - **Evidence**, only from the game's own mechanics (never time on screen, never a dialogue answer): the fog turning her
   round before the cut (`fogTries`); "not yet" with the Shears at her own thread (`aft:no:self`) and at someone's
   (`aft:no:<who>`); who she cut, in order (`aft:cuts`), and how many before her own (`aft:cutsAtSelf`); leaning on people
@@ -456,30 +457,50 @@ anywhere in a House: Wren comes to by its door.
   comes and he marches into the trapdoor behind it; he twirls his baton overhead (his "!", its line lit) and flings
   it, and it comes home along its thread (a heart each way). The Crossbar.
 - **The Tangle (D7)**: four bobbins' threads hold it together. (1) all four off their first places at once (three
-  stitched with the Needle, the fourth pushed off and tied below): it comes apart; knock the core; (2) it hooks
-  itself on the Heart's old hoist up in the rafters: below, push the hoist's counterweight off its plate and it
-  drops, loose; knock it; (3) it hauls every loose bobbin a tile toward its first place every two seconds, and no
-  knot holds: grip the fourth bobbin out and ring the Recall Bell with the other hand: everything snaps home at once,
-  and home is where the Needle put it. Gundry: "That's all a Maker is. Somebody who knows where the threads go."
-  Moves (hard): it swells and glows, then throws yarn balls (one, two, three: a heart); its cords lash out round it
-  when Wren's close, the reach drawn first (a heart and a half); on the floor it whips a cord along its row or column
-  right across the hall, the line lit first (a heart and a half; in beat 3 row and column at once); hung in the
-  rafters it lets spoolmites down; while it gathers its threads to haul it throws nothing. Three knocks a beat, its
-  loose cords lashing between them. Cog (mini-boss): two knocks, with his cord tied off from below; he sits, topples
-  and unravels; a few strides off he crouches, tail whirring, and pounces on the spot she's on (its shadow first: a
-  heart and a half). The Needle.
-- **The Weaver (D8)**: (1) hung by four anchor threads over the First Spinner's loom: cut them all (snip free of its
-  binding silk) and it drops into the well of the loom; knock it; (2) it hangs by one thread of its own from the
-  breast-beam and drops onto Wren (its shadow first): a slack thread slides off the blades, so cut it ahead of the
-  Weaver while it climbs home over the well with the thread pulled tight; (3) it clings to the breast-beam out of
-  reach: the Hookline drags it down its own well, where it hangs low and dazed: cut or knock it. It ends a heap of
-  grey silk in the well, the web drifting down like snow, and the breast-beam's words show: I MEANT TO UNPICK THEM
-  IN THE SPRING. -THE FIRST SPINNER. Moves (hard): it rears back, belly aglow, and spits silk that binds (snip free;
-  bound again, a heart and a half; two at once in beat 3); it plucks the warp: the column Wren's in lit, a thread
-  thrumming down it, then it snaps (a heart and a half; two columns from beat 2); its drop in beat 2 costs two
-  hearts; in beat 3 it shakes silk moths down out of the web. Three knocks a beat, thrashing between them. The Shuttle
-  (mini-boss): two knocks, jammed by an offcut in its lane; while it waits at its end its lane is lit wall to wall
-  (a heart and a half if it finds her in it). The Shears.
+  stitched with the Needle, the fourth pushed off and tied below): it comes apart; knock the core; (2) it hooks itself
+  on the Heart's old hoist up in the rafters: below, push the hoist's counterweight off its plate and it drops, loose;
+  knock it; (3) it hauls every loose bobbin a tile toward its first place every two seconds, and no knot holds: grip
+  the fourth bobbin out and ring the Recall Bell with the other hand: everything snaps home at once, and home is where
+  the Needle put it. Rung without the fourth held out (or, in beat 1, with one pushed off and not held), the wrong
+  idea is told as the world went, once what the ring sent home has settled: "Everything goes home at once, and with
+  nothing held out of it, the Tangle winds tight again." (its threads to the bobbin home in it flash, and it draws in
+  a little; not said if the ring didn't send everything home). Beat 1 is left as it was, the House's lesson under
+  fire: no one small change made it a reading without either priming beat 3's ring or mattering only to a player who
+  happened to pick one bobbin. Gundry: "That's all a Maker is. Somebody who knows where the threads go." Moves (hard):
+  it swells and glows, then throws yarn balls (one, two, three: a heart); its cords lash out round it when Wren's
+  close, the reach drawn first (a heart and a half); on the floor it whips a cord along its row or column right across
+  the hall, the line lit first (a heart and a half; in beat 3 row and column at once); hung in the rafters it lets
+  spoolmites down; while it gathers its threads to haul it throws nothing. Three knocks a beat, its loose cords
+  lashing between them. Cog (mini-boss): two knocks, with his cord tied off from below; he sits, topples and unravels;
+  a few strides off he crouches, tail whirring, and pounces on the spot she's on (its shadow first: a heart and a
+  half). The Needle.
+- **The Weaver (D8)**: (1) hung by four anchor threads over the First Spinner's loom, each holding its own way by a
+  rule the Loom taught (the inference pass, 11 November): cut them all (snip free of its binding silk) and it drops
+  into the well of the loom; knock it. The south-west post's is tied plain: cut at the post. The south-east post's is
+  tied long and hangs slack, sagging, a loop of spare thread under its knot: snipped, "Hanging slack like that, it
+  only slides off the blades." (the Hanging Gallery's rule); but rearing back to spit (its tell), the Weaver now
+  swings back in its web away from Wren and holds there till just after it's spat, so standing by that post the thread
+  is pulled straight, bright and shivering for about half a second: cut it then (or anywhere along it while it's
+  tight), then step out of the silk's way. The north-west post's knot is wound in a cocoon of grey silk, asleep (a z
+  drifts off it): snipped, "Wound round and round in grey silk, and fast asleep. The blades can't find the thread in
+  there."; struck, the sleeper's line; a ring of the Recall Bell within its reach (seven strides, drawn) wakes it, its
+  silk unwinding back up into the web (the Larder's note: NOTHING WAKES THEM BUT A BELL), and the knot cuts; rung from
+  too far off it sleeps on. The fourth runs from the tip of its back up into the loom's cloth over the well's head:
+  facing the loom there, "That one's tied up on the loom, out of the blades' reach."; but it's drawn tight down over
+  the well, and a tight thread is cut anywhere along it: from the well's rim, facing the well's head (either side).
+  The north-east post is gone. Missed (not knocked in time), it climbs back and ties in again as it was, the cocoon
+  wound up and asleep and the long one slack. A taut thread is cut where it's seen over the floor or its shadow is,
+  never in the middle of the web. (2) it hangs by one thread of its own from the breast-beam and drops onto Wren (its
+  shadow first): a slack thread slides off the blades, so cut it ahead of the Weaver while it climbs home over the
+  well with the thread pulled tight; (3) it clings to the breast-beam out of reach: the Hookline drags it down its own
+  well, where it hangs low and dazed: cut or knock it. It ends a heap of grey silk in the well, the web drifting down
+  like snow, and the breast-beam's words show: I MEANT TO UNPICK THEM IN THE SPRING. -THE FIRST SPINNER. Moves (hard):
+  it rears back (in beat 1 swung back in its web), belly aglow, and spits silk that binds (snip free; bound again, a
+  heart and a half; two at once in beat 3); it plucks the warp: the column Wren's in lit, a thread thrumming down it,
+  then it snaps (a heart and a half; two columns from beat 2); its drop in beat 2 costs two hearts; in beat 3 it
+  shakes silk moths down out of the web. Three knocks a beat, thrashing between them. The Shuttle (mini-boss): two
+  knocks, jammed by an offcut in its lane; while it waits at its end its lane is lit wall to wall (a heart and a half
+  if it finds her in it). The Shears.
 - **The Spool (Final)**: see DUNGEON_TRACKER.md.
 
 ## The Knotting Festival (after Knot 4, `src/57_festival.js`)

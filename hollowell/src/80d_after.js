@@ -129,7 +129,8 @@ const After = {
         add('nocut', e.atSelf === 0, `cut before her own thread ${e.atSelf === null ? 'not seen' : e.atSelf} (needs 0)`, ['cuts'], 40, 0, 0,
             () => [['gran', "{happy}You had the Shears, and you didn't cut a soul loose before your own."], ['linnet', '{happy}Saving them for later.']]);
         add('homeward', e.homeward >= 5, `Homeward to the Bedroll ${e.homeward} (from 5)`, ['home'], 35, 35, 3.5,
-            () => [['gran', `{happy}${Num(e.homeward)} times you flew off home to that Bedroll, wherever you'd left it lying. And me telling you to roll it up and bring it home.`], ['linnet', "{happy}That's what it's for, Mum."]],
+            /* (no number: the bench never says a count of times home, which is Gran's at the Spool and the ledger's) */
+            () => [['gran', "{happy}You'd fly off to that Bedroll of yours from anywhere, wherever you'd left it lying. And me telling you to roll it up and bring it home."], ['linnet', "{happy}That's what it's for, Mum."]],
             () => '{name} off home to her Bedroll again. Not here.');
         /* for the ledger only */
         add('peep', e.peep, `looked through the peephole into Gran's study: ${e.peep ? 'yes' : 'no'}`, ['peep'], 0, 95, 4, null,

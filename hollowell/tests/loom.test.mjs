@@ -330,6 +330,7 @@ test('the Web: four anchors, each cut its own way; then its own thread cut while
     /* the place built again: the heap of silk in the well, no Weaver */
     HW.warp('loom', ...at('sr', 9, 5)); HW.step(10); HW.warp('loom', ...at('web', 9, 9)); HW.step(10);
     assert.ok(!HW.G.map.ents.some(e => e.kind === 'weaver') && HW.G.map.ents.some(e => e.kind === 'weaverheap'));
+    assert.ok(HW.G.map.ents.filter(e => e.kind === 'anchor').every(n => n.cut && !n.sleeping), 'its anchors left in tatters');
     noErrors(HW);
 });
 

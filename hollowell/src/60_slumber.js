@@ -88,7 +88,7 @@ defHouse({
                    room's good dream; dreamt all three on one flight home, and the House's Pattern is here */
                 { k: 'dreamlamps', x: 9, y: 0 },
                 { k: 'sign', x: 11, y: 1, text: 'Over the door, three night-lights: for the linen, the milk and the wash. A good dream lights its own, and it stays lit. Dream all three on one way home, and the House will give up its Pattern.' },
-                { k: 'slumpattern', x: 10, y: 2, id: 'lwPattern', big: true, hidden: true, when: 'flag:slumber_longway' },
+                { k: 'slumpattern', x: 10, y: 4, id: 'lwPattern', big: true, hidden: true, when: 'flag:slumber_longway' },
             ],
             nudge: { solved: 'slumber_longway', after: 60 * 60 * 4, at: [9, 1], say: 'Every step from your bed is a thread back to it. Walk back over your own steps and the thread forgets everything since, rooms and all.' },
         },
@@ -592,10 +592,14 @@ const Dreams = {
     },
 };
 Player.onLand.push((p, f) => Dreams.land(p, f));
-/* each flight home is a dream of its own: the three rooms' dreamcatchers go dark as it sets off */
+/* each flight home is a dream of its own: as it sets off, the three rooms' dreamcatchers go dark, and the night-lights stop
+   showing how the last one went */
 {
     const fly0 = Player.prototype.flyHome;
-    Player.prototype.flyHome = function (opts) { if (this.area && this.area.id === 'slumber') for (const e of this.area.ents) if (e.dream && e.lit) e.lit = 0; return fly0.apply(this, arguments); };
+    Player.prototype.flyHome = function (opts) {
+        if (this.area && this.area.id === 'slumber') { for (const e of this.area.ents) if (e.dream && e.lit) e.lit = 0; Dreams.lastT = -9999; }
+        return fly0.apply(this, arguments);
+    };
 }
 
 /* a room's good dream: a gilt hoop with a star of thread across it, and the room's charm hanging under */
