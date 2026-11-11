@@ -41,6 +41,7 @@ const Audio = {
     tone(out, t, f, dur, wave = 'p50', v = 0.2, opts = {}) {
         const c = this.ctx;
         const o = c.createOscillator(), g = c.createGain();
+        g.gain.value = 0;       /* (silent until its envelope starts: a gain begins at 1, and a start a sample early clicked) */
         if (this.waves[wave]) o.setPeriodicWave(this.waves[wave]); else o.type = wave;
         o.frequency.setValueAtTime(f, t);
         if (opts.slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, opts.slide), t + dur);
@@ -55,7 +56,7 @@ const Audio = {
     },
     hit(out, t, dur, v, hp = 1000, lp = 8000) {
         const c = this.ctx, s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter(), f2 = c.createBiquadFilter();
-        s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp; f2.type = 'lowpass'; f2.frequency.value = lp;
+        g.gain.value = 0; s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp; f2.type = 'lowpass'; f2.frequency.value = lp;
         g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         s.connect(f); f.connect(f2); f2.connect(g); g.connect(out);
         s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
@@ -120,7 +121,10 @@ const SFX = {
 };
 const Sfx = {
     last: {},
+    /* the sounds of a step solved: music resting through a long stay comes back for them */
+    stirs: { door: 1, unlock: 1, appear: 1, chest: 1, item: 1, smallitem: 1, knot: 1, button: 1, save: 1 },
     play(name, vol = 1) {
+        if (this.stirs[name]) Music.stir();
         if (!Audio.ok || !SFX[name]) return;
         const now = Audio.ctx.currentTime;
         if (this.last[name] && now - this.last[name] < 0.03) return;
@@ -133,6 +137,12 @@ const Sfx = {
 const SONGS = {};
 const Music = {
     cur: null, next: 0, step: 0, timer: null, fade: 1, playing: null, bus: null,
+    /* long stays: a song marked thin: true, once THIN_AFTER seconds have gone by in one room with nothing solved and
+       no scene playing, rests its tune for a pass (its first voice, and any marked thin: 'rest'; the drums keep only
+       their ticks); the pass after is whole again, and the count starts over. A new room, a scene or a solved step
+       (stir) brings it all back at the next beat. Only what's heard: it never touches play */
+    THIN_AFTER: 150, calm: 0, thin: false, waking: false, where: null,
+    stir() { this.calm = 0; if (this.thin) this.waking = true; },
     /* each song plays through a volume of its own, so a change of music is a short crossfade, never a cut */
     newBus() {
         const c = Audio.ctx, t = c.currentTime;
@@ -144,7 +154,7 @@ const Music = {
         if (this.playing === id) return;
         this.playing = id;
         this.cur = SONGS[id] || null;
-        this.step = 0;
+        this.step = 0; this.calm = 0; this.thin = this.waking = false;
         if (!Audio.ok) return;
         this.newBus();
         this.next = Audio.ctx.currentTime + 0.12;
@@ -156,16 +166,21 @@ const Music = {
         if (!Audio.ok || !this.cur) return;
         const s = this.cur;
         if (!s._parsed) parseSong(s);
+        const where = typeof Cam !== 'undefined' ? Cam.room : null;
+        if (where !== this.where || (typeof Script !== 'undefined' && Script.blocking())) { this.where = where; this.stir(); }
         const stepDur = 60 / s.bpm / (s.div || 4);
         const ctx = Audio.ctx;
         if (this.next < ctx.currentTime - 0.5) this.next = ctx.currentTime + 0.05;
         while (this.next < ctx.currentTime + 0.15) {
             const i = this.step % s.len;
+            if (this.thin && (i === 0 || (this.waking && i % (s.div || 4) === 0))) { this.thin = this.waking = false; this.calm = 0; }
+            else if (i === 0 && s.thin && this.calm * stepDur >= this.THIN_AFTER) this.thin = true;
             const out = this.bus || Audio.music;
             for (const ch of s._ch) {
                 const ev = ch.ev[i % ch.ev.length];
-                if (!ev) continue;
+                if (!ev || (this.thin && ch.rests)) continue;
                 if (ch.drum) {
+                    if (this.thin && ev !== 'h' && ev !== 'H') continue;
                     const o = out;
                     if (ev === 'k') Audio.tone(o, this.next, 150, 0.12, 'triangle', ch.vol * 1.6, { slide: 45 });
                     else if (ev === 's') { Audio.hit(o, this.next, 0.12, ch.vol, 1200, 7000); Audio.tone(o, this.next, 220, 0.05, 'triangle', ch.vol * 0.6); }
@@ -175,13 +190,15 @@ const Music = {
                     Audio.tone(out, this.next, ev.f, ev.n * stepDur * (ch.legato || 0.92), ch.wave, ch.vol, { vib: ch.vib && ev.n >= 4, a: ch.attack || 0.006, r: ch.rel });
                 }
             }
-            this.step++;
+            this.step++; this.calm++;
             this.next += stepDur;
         }
     },
 };
 function parseSong(s) {
-    s._ch = s.ch.map(c => {
+    /* (in a thin pass the tune rests: the first voice, unless it's marked thin: 'keep', and any marked thin: 'rest') */
+    const lead = s.ch.findIndex(c => !c.drum);
+    s._ch = s.ch.map((c, k) => {
         const toks = c.n.replace(/\|/g, ' ').trim().split(/\s+/);
         const ev = new Array(toks.length).fill(null);
         if (c.drum) { toks.forEach((t, i) => { if (t !== '.' && t !== '-') ev[i] = t; }); }
@@ -195,7 +212,7 @@ function parseSong(s) {
                 if (f) ev[i] = { f, n };
             }
         }
-        return Object.assign({}, c, { ev });
+        return Object.assign({}, c, { ev, rests: c.thin === 'rest' || (k === lead && c.thin !== 'keep') });
     });
     s.len = s.len || Math.max(...s._ch.map(c => c.ev.length));
     s._parsed = true;

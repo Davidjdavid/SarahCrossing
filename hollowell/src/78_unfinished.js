@@ -23,7 +23,7 @@ WALLS.chalk = {
 PEOPLE_DEF.mrives = { name: 'Mr Ives', col: THREAD.chalk, look: { body: 'elder', hair: 'short', hairC: '#f0f0f0', top: '#9a9488', accent: '#e8e0d0', bottom: '#5a5448', skin: 'light', extra: ['glasses'] } };
 const IVES_OUT = { x: 120, y: 46 };         /* outside his door, in the town */
 defHouse({
-    id: 'unfinished', name: 'The Unfinished House', place: 'The Unfinished House', house: 'unfinished', theme: 'chalk', thread: THREAD.chalk, music: 'underside',
+    id: 'unfinished', name: 'The Unfinished House', place: 'The Unfinished House', house: 'unfinished', theme: 'chalk', thread: THREAD.chalk, music: 'unfinished',
     entry: { x: 29, y: 42 }, noNudges: true,
     cells: {
         /* ---------------- 1 The Front Room: a gap, a chalk bridge, the Needle ---------------- */

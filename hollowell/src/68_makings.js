@@ -350,7 +350,7 @@ ITEMS.tuckdrawing = { name: "Tuck's drawing", kind: 'quest', desc: 'A stick figu
 function defMaking(n, cells, opts = {}) {
     const up = opts.up || ['tidy', 'kilnhouse', 'house', 'millhouse'][(n - 1) % 4];
     defHouse(Object.assign({
-        id: 'making' + n, name: MAKING_NAMES[n - 1], place: 'The Making Floor', house: 'making' + n, making: n, theme: 'tidy', thread: THREAD.ives, music: 'underside',
+        id: 'making' + n, name: MAKING_NAMES[n - 1], place: 'The Making Floor', house: 'making' + n, making: n, theme: 'tidy', thread: THREAD.ives, music: 'makings',
         entry: MAKINGS[n - 1].entry || { x: 3, y: 16 },
         themeAt: (x, y) => y >= 11 ? 'underside' : up,
         drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
