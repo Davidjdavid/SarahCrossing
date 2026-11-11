@@ -135,6 +135,10 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 34 | AI blind solver A | The Climb trivial: holding Up reaches the top unhurt from any start | fixing (fix round A) |
 | 35 | AI blind solver A | Untaught reaches (the Needle's four tiles, the Bell's range) and silent refusals (a tied crate pushed, the Needle on a knot, pulling onto silk, a target out of reach, the practice rack) | fixing (fix round A) |
 | 36 | AI blind solver A | A failed snip's line at the Spool's top nearly gives the answer; the Bell's harder shove never said | fixing (fix round A) |
+| 37 | AI blind solver B | The way into House 5 couldn't be found: the door opens only while three Snorelings sleep in the nursery's cradles, nothing links door and cradles, and outdoors they never settle (unlike the Pillow Fort's rule) | fixing (fix round B) |
+| 38 | AI blind solver B | House 6's Trap Room: a returning understudy can land on Wren and trap her (only Homeward frees her); about 2 s for two hooks with a tool switch | fixing (fix round B) |
+| 39 | AI blind solver B | Signs that still give the answer: the Moonwalk's, the Pillow Fort's (and Hettie) | fixing (fix round B) |
+| 40 | AI blind solver B | Untaught: the rolled-up Bedroll's straight flight (the Dreaming Door depends on it; looked like an exploit); the Kiln yard's four-tile throw onto the vent; the Loom warp's fourth weight out of sight | fixing (fix round B) |
 
 ## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
 Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,
