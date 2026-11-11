@@ -114,3 +114,24 @@ test('the map points where the goal says', () => {
     P.setGoal('Home to Hollowell: it is the Knotting Festival.'); assert.deepEqual(pin(), [96, 60], 'the town');
     P.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair.'); assert.deepEqual(pin(), [158, 7], 'the Belfry');
 });
+
+/* no creature starts inside a wall, in any area (a nibbler in Meadowfold began on a tile the region's redraw made solid,
+   and stood there for good) */
+test('no walker starts inside a wall, anywhere', () => {
+    const HW = loadGame();
+    HW.newGame('Wren', { skipIntro: true, noAutosave: true });
+    const bad = [];
+    for (const id of Object.keys(HW.AREAS)) {
+        const A = HW.AREAS[id];
+        try { HW.warp(id, A.entry ? A.entry.x : 1, A.entry ? A.entry.y : 1); } catch { continue; }
+        HW.step(2);
+        const a = HW.G.map;
+        if (!a || a.id !== id) continue;
+        for (const m of a.walkers || []) {
+            if (m.alive === false || m.hidden || m.flies || m.ghost || (m.D && m.D.flies)) continue;
+            const tx = Math.floor(m.x / 16), ty = Math.floor(m.y / 16);
+            if (a.inside(tx, ty) && a.kind(tx, ty).solid) bad.push(`${m.type || m.kind} at ${id} ${tx},${ty}`);
+        }
+    }
+    assert.deepEqual(bad, []);
+});
