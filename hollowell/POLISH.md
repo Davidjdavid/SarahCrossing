@@ -127,6 +127,14 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 26 | critic | Waiting: failed tries mean standing about until things come home; patience unreadable | fixed: "Sit and wait for things to come home" in a House's pause menu (runs the game four times as fast until the room's things are home; never with anything dangerous about); a ring of stitches round a moved thing's mark unpicks as its patience runs down |
 | 27 | critic | The page's key-hint line sat over the game | fixed: the title screen draws its own controls line with the bound keys |
 | 28 | review A | Threads drawn as long diagonals | by design: a thread shows the exact way the thing will come home, and a thrown or flown stretch comes home in a straight line |
+| 29 | AI blind solver A | House 7: the first key could open Under the Loft, stranding the run (the Loft needs the Needle, which is behind the Kennel) | fixing (fix round A) |
+| 30 | AI blind solver A | Great Spool: a thing coming home dropped onto its place with Wren standing there (overlap; the Airing Cupboard skippable) | fixing (fix round A) |
+| 31 | AI blind solver A | House 7's Practice Floor finishes out of sight (the real unlock opens a gate elsewhere, unseen); 50 experiments to find the Ropewalk | fixing (fix round A) |
+| 32 | AI blind solver A | Great Spool's Airing Cupboard: 9 frames to spare for a perfect bot; the Bell's range never shown | fixing (fix round A) |
+| 33 | AI blind solver A | Great Spool's Night Ferry: a reload in the bedroom's west half leaves Wren cut off (only Homeward frees her) | fixing (fix round A) |
+| 34 | AI blind solver A | The Climb trivial: holding Up reaches the top unhurt from any start | fixing (fix round A) |
+| 35 | AI blind solver A | Untaught reaches (the Needle's four tiles, the Bell's range) and silent refusals (a tied crate pushed, the Needle on a knot, pulling onto silk, a target out of reach, the practice rack) | fixing (fix round A) |
+| 36 | AI blind solver A | A failed snip's line at the Spool's top nearly gives the answer; the Bell's harder shove never said | fixing (fix round A) |
 
 ## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
 Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,
