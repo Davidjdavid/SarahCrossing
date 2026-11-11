@@ -149,6 +149,10 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 48 | pictures 2b | Staging: the Hall of Names (Gran far off, no thread drawn for the pull); the Weaver said to climb the loom but never leaving the floor; Cog's toppled body drawn over Wren's head, then gone in a frame; the kitchen described over the bedroom; the birds gone before the line; the crowd facing every way; promised props not drawn (Otto's paper hat, Gundry's little House, a lid lifting mid-room, silver thread) | open (fix round C: staging) |
 | 49 | pictures 2b | The Makings repeat: the same three Aha notices nine or ten times each, Tuck's same line eight times, the Underside banner on every return | open (fix round C: the Makings) |
 | 50 | pictures 2b | Small art: a square of grass in the Drift's stream, a ghost rack beyond a wall, a stale banner under a fade, the Well's roof drawn after its cap is gone; the item-get pose still reads as lifting the chest | open (fix round C) |
+| 51 | pictures 2a | The box hides Wren in nearly every boss intro (she enters at the bottom, the boss is at the top, the room is screen-sized); the Knot question's choices cover the Knot and Wren; stale notices into a new area; an orphan closing quote on a page | open (fix round C: UI) |
+| 52 | pictures 2a | The item-get pose reads as lifting the chest whenever it's opened from below (about 18 pictures; finding 24 back); the Kilnwyrm's landed glaze puddle drawn over Wren; the warm pie hidden behind the kitchen table | open (fix round C: art) |
+| 53 | pictures 2a | The Slumberhouse's threads at about 1.3:1 on its floor; hard rectangular seams between outdoor ground regions | open (fix round C: art) |
+| 54 | pictures 2a | The opening ceremony: Mabel covers Wren all scene; Mother Sloth "fast asleep" with open eyes; the giant's hollow two tiles off; a dozen text-not-drawn nits | open (fix round C: scenes) |
 
 ## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
 Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,
@@ -317,6 +321,9 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   motif three times, finished a little more each pass, resolving to A major); long-stay thinning after 150 s in a room
   with nothing solved (one pass in three rests the melody; a new room, a cutscene or a progress sound brings it back);
   a one-sample click at note starts fixed; tests/music.test.mjs.
+- Fix round C running (three helpers: the screen's text, fixC_ui_brief.md; staging and the Makings' repetition,
+  fixC_scenes_brief.md; art, layering, contrast and frame spikes, fixC_art_brief.md), from the two picture reviews
+  (scratchpad pictures2_a/report.md, pictures2_b/notes.md: no blockers; findings 43-54).
 - Verification started: live run 2 (all nine legs in Chromium, a picture at every room, line and notice; then contact
   sheets and picture reviews); two fresh AI blind solvers on the newest pieces (C: the way into House 5, House 5 with
   its chain, the ninth Little House; D: the two late bosses, the Spool's top and the end).
