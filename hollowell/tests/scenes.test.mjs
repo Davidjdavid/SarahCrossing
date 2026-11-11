@@ -9,10 +9,12 @@ import { loadGame } from './harness.mjs';
 const noErrors = HW => assert.equal(HW.ERRORS.length, 0, HW.ERRORS.join('\n'));
 const until = (HW, fn, max = 2000) => { for (let i = 0; i < max && !fn(); i++) HW.step(1); return fn(); };
 const npcs = (HW, who) => HW.G.map.ents.filter(e => e.kind === 'npc' && e.who === who && !e.removed);
-/* talk through whatever's said, calling back once each line is shown in full (picking the first choice when asked) */
-function lines(HW, onLine, max = 40000) {
+/* talk through whatever's said, calling back once each line is shown in full (picking the first choice when asked);
+   onFrame, if given, every frame between */
+function lines(HW, onLine, max = 40000, onFrame = null) {
     const D = HW.Dialog; let last = '';
     for (let n = 0; n < max && (D.active || HW.Script.blocking()); n++) {
+        if (onFrame) onFrame();
         if (D.active && D.shown >= D.pageLen()) {
             const k = D.page + '|' + (D.pages[D.page] || []).join(' ');
             if (k !== last) { last = k; onLine((D.pages[D.page] || []).join(' ')); }
@@ -238,61 +240,114 @@ const inHouse = (area, x, y, tools = []) => {
     HW.step(5);
     return HW;
 };
-test("Mother Sloth stays asleep, eyes shut, all the while she talks in her sleep, and only then opens them", () => {
+test("Mother Sloth is drawn asleep, eyes shut, all the while she talks in her sleep, and only then with them open", () => {
     const HW = inHouse('slumber', 29, 42, ['bedroll']);
     HW.warp('slumber', 20 + 9, 9); HW.step(30);
     HW.walkTo(29, 7);
-    const s = HW.G.map.ents.find(e => e.type === 'mothersloth'), seen = [];
-    lines(HW, t => seen.push(!!s.dozing));
-    assert.ok(seen.length >= 3 && seen.every(Boolean), 'asleep through every line: ' + seen);
-    assert.ok(!s.dozing, 'awake after');
+    const s = HW.G.map.ents.find(e => e.type === 'mothersloth'), Gfx = HW.global('Gfx'), spr = HW.global('spr');
+    /* (which of her pictures she's drawn with) */
+    const drawn = () => {
+        const img0 = Gfx.img, ims = [];
+        Gfx.img = (im, ...q) => { ims.push(im); return img0.call(Gfx, im, ...q); };
+        try { s.draw(0, 0); } finally { Gfx.img = img0; }
+        return ims.includes(spr('sloth_sleep')) ? 'asleep' : ims.includes(spr('sloth_awake')) ? 'awake' : 'neither';
+    };
+    const seen = [];
+    lines(HW, () => seen.push(drawn()));
+    assert.ok(seen.length >= 3 && seen.every(d => d === 'asleep'), 'eyes shut through every line: ' + seen);
+    HW.step(30);
+    assert.equal(drawn(), 'awake', 'and open after');
     noErrors(HW);
 });
-test('Tollgrim: "two yellow eyes" in the bell while that is said', () => {
+test('Tollgrim: "two yellow eyes" in the bell, drawn all the while that is said; only now and then after', () => {
     const HW = inHouse('belfry', 29, 53);
     HW.Inv.patterns.push('belfry');
     HW.warp('belfry', 40 + 1, 5); HW.step(20); HW.hold('left'); HW.step(50); HW.release(); HW.step(20);
     HW.walkTo(20 + 17, 5);
-    const t = HW.G.map.find('tollgrim'), seen = [];
-    lines(HW, l => { if (/two yellow eyes/.test(l)) seen.push(!!t.peer); });
-    assert.deepEqual(seen, [true]);
-    assert.ok(!t.peer, 'and back to now and then after');
+    const t = HW.G.map.find('tollgrim'), Gfx = HW.global('Gfx');
+    /* (over so many frames while a line is up: in how many are his two yellow eyes drawn?) */
+    const eyes = frames => {
+        const rect0 = Gfx.rect; let k = 0;
+        try {
+            for (let i = 0; i < frames; i++) {
+                let n = 0;
+                Gfx.rect = (x, y, w, h, c) => { if (c === '#f7d64a' && w === 2 && h === 2) n++; return rect0.call(Gfx, x, y, w, h, c); };
+                t.draw(0, 0); Gfx.rect = rect0;
+                if (n === 2) k++;
+                HW.step(1);
+            }
+        } finally { Gfx.rect = rect0; }
+        return k;
+    };
+    const seen = {};
+    lines(HW, l => { if (/two yellow eyes/.test(l)) seen.said = eyes(64); else if (/cold draught/.test(l)) seen.after = eyes(64); });
+    assert.equal(seen.said, 64, 'his eyes there all the while');
+    assert.ok(seen.after > 0 && seen.after < 64, 'and back to now and then after: ' + seen.after + ' of 64');
     noErrors(HW);
 });
-test("the Tidyhouse: the way out opens before it's said to, where it's said to be", () => {
+test("the Tidyhouse: the way out opens before it's said to, where it's said to be: a corner of the Grand Hall, on screen, clear of the box", () => {
     const HW = inHouse('tidy', 29, 42);
     HW.warp('tidy', 20 + 9, 6); HW.step(20); HW.skipTalk();
     HW.Script.run(HW.AREAS.tidy.afterKnot());
-    let ok = null;
-    lines(HW, l => { if (/^A door opens in the corner of the Grand Hall/.test(l)) ok = HW.G.map.ents.some(e => e.kind === 'warp' && e.to === 'hollow' && e.tx === 37 && e.ty === 9); });
-    assert.equal(ok, true);
+    const Cam = HW.global('Cam'), T = 16, W = 320, H = 180;
+    let seen = null, said = '';
+    lines(HW, l => {
+        if (!/^A door opens in/.test(l)) return;
+        said = l;
+        /* (the hall's own way out: not the Foyer's door home) */
+        const a = HW.G.map, hall = a.rooms.find(r => r.key === '1,0'), d = a.ents.find(e => e.kind === 'warp' && e.to === 'hollow' && !e.removed && a.roomAt(e.tx, e.ty) === hall);
+        seen = { open: !!d };
+        if (!d) return;
+        /* (in the hall, by one of its side walls and its top or bottom wall) */
+        const sx = Math.min(d.tx - hall.x, hall.x + hall.w - 1 - d.tx), sy = Math.min(d.ty - hall.y, hall.y + hall.h - 1 - d.ty);
+        seen.corner = sx >= 0 && sy >= 0 && sx <= 2 && sy <= 2;
+        const x = d.tx * T - Cam.x, y = d.ty * T - Cam.y;
+        seen.onScreen = x >= 0 && x + T <= W && y >= 0 && y + T <= H;
+        seen.clear = !HW.Dialog.rects().some(([x0, y0, x1, y1]) => x < x1 && x + T > x0 && y < y1 && y + T > y0);
+    });
+    assert.deepEqual(seen, { open: true, corner: true, onScreen: true, clear: true });
+    assert.match(said, /^A door opens in the corner of the Grand Hall/);
     noErrors(HW);
 });
 test("the Snapjaw's door grinds shut behind Wren, once she's wholly in off the doorstep", () => {
     const HW = inHouse('millrace', 29, 42);
     HW.Inv.keyCount.mill = 2;
     HW.warp('millrace', 20 + 17, 22 + 5); HW.step(10);
-    HW.hold('right'); until(HW, () => HW.Dialog.active, 240); HW.release();
-    const p = HW.player();
-    assert.ok(HW.Dialog.active, 'it woke');
-    assert.ok(p.x >= 41 * 16 + 6, `in off the doorstep (x ${p.x})`);
+    const p = HW.player(), door = HW.G.map.ents.find(e => e.kind === 'door' && e.group === 'sj'), PBOX = HW.global('PBOX');
+    assert.ok(door && !door.shut, 'the way in open');
+    /* (walked in a frame at a time: where her feet are the moment it shuts) */
+    HW.hold('right');
+    for (let i = 0; i < 240 && !door.shut; i++) HW.step(1);
+    HW.release();
+    assert.ok(door.shut, 'the door shut');
+    assert.ok(door.tx < p.tx, 'behind her');
+    assert.ok(p.x - PBOX.hw >= (door.tx + 1) * 16, `her feet wholly off the doorstep (from x ${p.x - PBOX.hw}; the doorstep ends at ${(door.tx + 1) * 16})`);
+    assert.ok(until(HW, () => HW.Dialog.active, 120), 'and it woke');
     noErrors(HW);
 });
-test('the festival: the four who come late stand still and turn to Wren when they speak', () => {
+test('the festival: the four who come late stand still and turn to Wren when they speak, even one held up on the way', () => {
     const HW = loadGame(); HW_dirOf = HW.global('dirOf');
+    const NPC = HW.global('NPC');
     HW.preset('afterD4'); HW.step(5); HW.skipTalk();
     HW.warp('hollow', 95, 69); HW.step(10); HW.skipTalk();
     HW.walkTo(95, 64);
     until(HW, () => HW.Script.blocking(), 120);
+    const late = who => HW.G.map.ents.find(e => e.kind === 'npc' && e.who === who && e.prop && !e.removed);
+    let inWay = null;
     const said = {};
     lines(HW, t => {
         const p = HW.player();
         for (const [who, re] of [['tess', /^Sorry! Sorry/], ['ambrose', /^Very busy/], ['bram', /^Pots don't make themselves/], ['ives', /^\.\.\.Tidying/]]) {
             if (!re.test(t)) continue;
-            const n = HW.G.map.ents.find(e => e.kind === 'npc' && e.who === who && e.prop);
-            said[who] = n && !n.walking && !n.path && faces(n, p);
+            const n = late(who), at = n && [n.x, n.y];
+            HW.step(30);           /* (and a moment on, still standing there) */
+            said[who] = !!n && !n.walking && !n.path && !n.mv && n.x === at[0] && n.y === at[1] && faces(n, p);
         }
+    }, 40000, () => {
+        /* (as the town was about in a whole playthrough: somebody standing on the spot Bram's running to) */
+        if (!inWay && late('bram')) inWay = HW.G.map.add(new NPC(64 + 29, 40 + 21, { who: 'otto', face: 'down' }));
     });
+    assert.ok(inWay, 'somebody in his way');
     assert.deepEqual(said, { tess: true, ambrose: true, bram: true, ives: true });
     noErrors(HW);
 });
