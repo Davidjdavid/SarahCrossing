@@ -288,7 +288,11 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   bracelet quiets the room and Gran lets a pair go herself, with a new epilogue shot on the north road; the climax a
   held hand, Linnet taking the other, no menu; the tally said once; old saves carry on (flags gs_s1, gs_s2);
   tests/spooltop.test.mjs (9); LEG9 to the credits. Running now: the restraint pass (restraint_brief.md: P3).
-- Running now too: inference for the two late bosses (latebosses_brief.md: the Weaver's beat 1 read four ways, the
+- Done too: the late bosses (latebosses_brief.md): the Weaver's beat 1 read four ways (a plain post; a long thread
+  pulled taut only when the Weaver swings back to spit; a knot cocooned asleep until rung awake within the drawn
+  reach; a thread tied up into the loom, cut from the well's rim anywhere along it); the Tangle's wrong ring says why;
+  lengths and tells unchanged; suite 662/662 at its finish.
+- Running now too (earlier line, for the record): inference for the two late bosses (latebosses_brief.md: the Weaver's beat 1 read four ways, the
   Tangle's beat 3 failing informatively).
 - Running (earlier line, for the record): P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
   Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
