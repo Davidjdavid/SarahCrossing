@@ -292,20 +292,29 @@ const Loomwood = {
             }
             void F;
         }
-        /* the warp's cords, from its beam to each socket (taut while the socket's held) */
+    },
+    /* the warp's cords, strung from its beam over the birches to each socket (taut while the socket's held): drawn over the
+       trees, so each can be followed by eye from the door to wherever its socket is, the far one away over the river too;
+       and now and then a glint runs along a slack one from the beam to its socket */
+    CORDS: [['lgS1', 26, 12], ['lgS2', 36, 11], ['lgS3', 24, 17], ['lgS4', 57, 17]],
+    cords(a, cx, cy) {
+        if (cx > 128 * T || cx + W < 64 * T || cy > 40 * T) return;
         const wx = (64 + 31) * T + 8 - cx, wy = 10 * T - 16 - cy;
-        for (const [id, sx, sy] of [['lgS1', 26, 12], ['lgS2', 36, 11], ['lgS3', 24, 17], ['lgS4', 57, 17]]) {
+        this.CORDS.forEach(([id, sx, sy], k) => {
             const ex = (64 + sx) * T + 8 - cx, ey = sy * T + 8 - cy;
-            if (Math.max(wx, ex) < -10 || Math.min(wx, ex) > W + 10 || Math.max(wy, ey) < -10 || Math.min(wy, ey) > H + 10) continue;
+            if (Math.max(wx, ex) < -10 || Math.min(wx, ex) > W + 10 || Math.max(wy, ey) < -10 || Math.min(wy, ey) > H + 10) return;
             const held = Signals.get(a, id), n = Math.max(2, Math.round(Math.hypot(ex - wx, ey - wy) / 10));
-            let px0 = wx, py0 = wy;
-            Gfx.alpha(held ? 0.9 : 0.55);
-            for (let i = 1; i <= n; i++) { const u = i / n, qx = wx + (ex - wx) * u, qy = wy + (ey - wy) * u + (held ? 0 : Math.sin(u * Math.PI) * 6); Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, held ? '#ffffff' : '#c8d0dc'); px0 = qx; py0 = qy; }
+            const at = u => [wx + (ex - wx) * u, wy + (ey - wy) * u + (held ? 0 : Math.sin(u * Math.PI) * 6)];
+            let [px0, py0] = at(0);
+            Gfx.alpha(held ? 0.95 : 0.75);
+            for (let i = 1; i <= n; i++) { const [qx, qy] = at(i / n); Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, held ? '#ffffff' : '#dfe6ef'); px0 = qx; py0 = qy; }
+            if (!held) { const u = ((G.t + k * 53) % 200) / 120; if (u <= 1) { const [gx, gy] = at(u); Gfx.alpha(0.9); Gfx.rect(Math.round(gx) - 1, Math.round(gy) - 1, 2, 2, '#ffffff'); } }
             Gfx.alpha(1);
-        }
+        });
     },
     /* silk strung between the birches, glinting now and then */
     over(a, cx, cy) {
+        this.cords(a, cx, cy);
         if (HEADLESS || cx > 128 * T || cx + W < 64 * T || cy > 40 * T) return;
         const trees = this.trees || (this.trees = a.ents.filter(e => e.kind === 'prop' && e.im && (e.im === ART.birch || e.im === ART.birch2 || e.im === ART.birch3)));
         for (let i = 0; i < trees.length; i++) {

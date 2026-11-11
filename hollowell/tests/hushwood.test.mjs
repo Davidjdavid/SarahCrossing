@@ -134,35 +134,38 @@ test('the garden: the puffballs still put one down where it stands, in a cradle 
 /* (the blind solver's findings, round B: one law everywhere, and the door's link to its cradles seen) */
 test("the House's rule in the wood: woken and followed, a Snoreling done chasing lies down in the nearest bed it can get to, a cradle as soon as its own spot", () => {
     const HW = inWood();
-    const a = HW.G.map, e = a.find('nuSnoreB');
-    north(HW); south(HW); go(HW, ...hw(16, 18));
+    const a = HW.G.map, e = a.find('nuSnoreB'), others = ['nuSnoreA', 'nuSnoreC'].map(i => a.find(i));
+    /* (from the road, so the others sleep on) */
+    go(HW, ...hw(16, 18));
     assert.ok(stir(HW, 'nuSnoreB', 18), 'woken');
     north(HW); go(HW, ...hw(16, 11));
     assert.ok(until(HW, () => e.mode === 'sleep', 1200), 'it gave up in good time (as quick as the ones in the House)');
     assert.deepEqual([e.tx, e.ty], hw(16, 14), 'in the cradle it was standing in, not back in its own spot');
     assert.ok(['nuPuffA', 'nuPuffB', 'nuPuffC'].every(i => a.find(i).state === 'ripe'), 'no puffball had a hand in it');
-    /* led nowhere near a cradle, it goes back to its own spot */
-    const c = a.find('nuSnoreC');
+    assert.ok(others.every(o => o.mode === 'sleep' && o.tx === o.hx && o.ty === o.hy), '(the others slept through it)');
+    /* woken and not led anywhere, it gives up beside its own spot and goes back to that, the nearest bed */
+    const c = others[1];
     south(HW); go(HW, ...hw(18, 18));
     assert.ok(stir(HW, 'nuSnoreC', 18), 'another woken');
-    go(HW, ...hw(12, 20)); go(HW, ...hw(4, 20));
+    go(HW, ...hw(21, 19));
     assert.ok(until(HW, () => c.mode === 'sleep', 1200), 'gave up');
-    assert.deepEqual([c.tx, c.ty], hw(20, 16), 'and back to its own spot, the nearest bed from where it was');
+    assert.deepEqual([c.tx, c.ty], [c.hx, c.hy], 'back in its own spot');
     noErrors(HW);
 });
 test('the road in: one asleep in the road wakes as you pass, follows a while, and lies down in a bed that is not its own', () => {
     const HW = inWood();
-    const a = HW.G.map, e = a.find('hwSnore1');
-    assert.ok(HW.G.map.kind(e.tx, e.ty) === HW.G.map.kind(...hw(4, 20)) && e.mode === 'sleep', 'asleep in the road');
     /* (the giant gone, walked in from town along the road, and stopped at the turn up to the moss) */
     HW.warp('hollow', ...hw(0, 20)); HW.step(10);
+    const e = HW.G.map.find('hwSnore1');
+    assert.ok(HW.G.map.kind(e.tx, e.ty) === HW.G.map.kind(...hw(4, 20)) && e.mode === 'sleep', 'asleep in the road');
     go(HW, ...hw(6, 20)); go(HW, ...hw(12, 19));
     assert.ok(e.mode !== 'sleep', 'it woke as she went by');
     assert.ok(until(HW, () => e.mode === 'sleep', 1200), 'and gave up after a while');
     assert.deepEqual([e.tx, e.ty], hw(13, 21), 'in the cradle by the road');
     /* led on over the moss instead, it's a garden cradle it lies down in (and its lamp lights over the door) */
-    const H2 = inWood(), e2 = H2.G.map.find('hwSnore1');
+    const H2 = inWood();
     H2.warp('hollow', ...hw(0, 20)); H2.step(10);
+    const e2 = H2.G.map.find('hwSnore1');
     go(H2, ...hw(6, 20)); go(H2, ...hw(12, 19)); north(H2); go(H2, ...hw(19, 10));
     assert.ok(until(H2, () => e2.mode === 'sleep', 1200), 'gave up');
     assert.deepEqual([e2.tx, e2.ty], hw(16, 14), 'in the first garden cradle');

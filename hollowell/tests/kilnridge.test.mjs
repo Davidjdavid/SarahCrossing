@@ -26,6 +26,22 @@ test('the Kiln\'s forecourt: shut till the firing hole by the road is fired; a p
     noErr(HW);
 });
 
+/* (the blind solver's findings, round B: that a pot can come down in a vent's wet mouth, and be thrown on from there, is
+   shown by the place on the way in, not told) */
+test('on the road in, two old vents four steps apart throw a pot back and forth: it comes down whole in the other\'s wet mouth', () => {
+    const HW = game('afterD1');
+    HW.warp('hollow', ...kr(46, 23)); HW.step(5);
+    const a = HW.G.map, pot = a.find('krVentPot'), Clay = HW.global('CLAY');
+    assert.ok(pot && pot.tx === kr(40, 0)[0] && pot.ty === kr(0, 21)[1], 'a pot sitting in the first vent\'s mouth');
+    const seen = [];
+    for (let i = 0; i < 900; i++) { HW.step(1); if (!pot.flying) { const k = (pot.tx - kr(0, 0)[0]) + ',' + (pot.ty - kr(0, 0)[1]); if (seen[seen.length - 1] !== k) seen.push(k); } assert.ok(!pot.shattered, 'never broken'); }
+    assert.deepEqual(seen.slice(0, 3), ['40,21', '44,21', '40,21'], 'over to the other and back, a vent\'s breath a time');
+    until(HW, () => !pot.flying && pot.tx === kr(44, 0)[0], 400);
+    assert.equal(pot.heldBy, Clay, 'held in the wet mouth where it came down');
+    assert.equal(HW.global('Vents').flights.length, 0, '(and nothing else flying)');
+    noErr(HW);
+});
+
 test('the Kiln\'s forecourt stays open for anyone who has been inside (an older save)', () => {
     const HW = game('afterD2');
     HW.warp('hollow', ...kr(22, 20)); HW.step(5);

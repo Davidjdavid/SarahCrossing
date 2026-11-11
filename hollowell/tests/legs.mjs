@@ -619,15 +619,22 @@ export const LEG5 = (HW, chain) => {
     walk(125, 60); HW.Inv.equipped = 'bell'; HW.press('tool', 1);
     for (let i = 0; i < 30 && !HW.Progress.flag('giant_home'); i++) { HW.skipTalk(); HW.step(20); }
     HW.skipTalk(); ok(HW.Progress.flag('giant_home'), 'the giant gone home');
-    /* over the moss; the Slumberhouse's door opens while Mallow's three Snorelings sleep in the garden's cradles: rung awake
-       from across the stream, they follow along the far bank and file into the cradles; each put down where it lies by the
-       puffball beside it, hooked from across the water (the far one first, so no cloud catches the others) */
-    walk(128 + 12, 40 + 16); HW.hold('up'); until(() => p().ty <= 40 + 11 && p().state === 'normal', 150); HW.release(); HW.step(5);
-    walk(128 + 13, 40 + 11); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(10);
+    /* over the moss; the Slumberhouse's door opens while somebody sleeps in each of the garden's three cradles (a lamp over
+       the door for each, on a cord to it). Snorelings follow a while, then lie down in the nearest bed they can get to: the
+       one asleep in the road woke as she passed and came along; rung from the north bank by the far cradles, Mallow's two
+       nearest come too. Pressing toward her over the water, each slips into the first free cradle under her, and lies down
+       in it when it gives up (a cradle still empty: Mallow's third, woken by treading near, led round to it) */
+    const north = () => { walk(128 + 12, 40 + 16); HW.hold('up'); until(() => p().ty <= 40 + 11 && p().state === 'normal', 150); HW.release(); HW.step(5); };
+    const asleepIn = c => HW.G.map.ents.some(e => e.type === 'snoreling' && e.alive && e.mode === 'sleep' && e.tx === 128 + c && e.ty === 40 + 14);
+    north();
+    walk(128 + 20, 40 + 11); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(10);
     walk(128 + 24, 40 + 11);
-    const cradled = c => ['nuSnoreA', 'nuSnoreB', 'nuSnoreC'].some(i => thing(i).tx === 128 + c && thing(i).ty === 40 + 14);
-    ok(until(() => [16, 20, 24].every(cradled), 900), 'three in the cradles');
-    for (const c of [24, 20, 16]) { walk(128 + c - 1, 40 + 11); HW.face('down'); HW.Inv.equipped = 'hook'; HW.press('tool', 1); HW.step(70); }
+    ok(until(() => asleepIn(20) && asleepIn(24), 900), 'two asleep in the far cradles');
+    ok(until(() => asleepIn(16), 300) || (() => {
+        walk(128 + 11, 40 + 11); HW.hold('left'); until(() => p().ty >= 40 + 15 && p().state === 'normal', 120); HW.release(); walk(128 + 10, 40 + 17);
+        const a3 = thing('nuSnoreA'); for (let i = 0; i < 30 && a3.mode === 'sleep'; i++) walk(128 + 8 + (i % 2 ? 1 : -1), 40 + 17);
+        north(); walk(128 + 16, 40 + 11); return until(() => asleepIn(16), 900);
+    })(), 'and the first');
     walk(128 + 19, 40 + 10); walk(128 + 19, 40 + 9); HW.hold('up'); until(() => area() === 'slumber', 120); HW.release(); HW.step(30);
     ok(area() === 'slumber', 'inside the Slumberhouse');
     HW.G.cheats.god = true;      /* (Snorelings, Matron, Mother Sloth: the dodging isn't what this checks) */

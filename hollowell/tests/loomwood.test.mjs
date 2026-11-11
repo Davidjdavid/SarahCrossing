@@ -34,6 +34,24 @@ test("the warp: four sockets, three stitches (the far one among them); the last 
     assert.ok(HW.Progress.flag('loom_open'), 'and lifted for her from now on');
     noErrors(HW);
 });
+/* (the blind solver's findings, round B: the far socket was out of sight from the door) */
+test("the warp's four cords are strung over the birches, so the far one can be followed by eye from the door, away east over the trees", () => {
+    const HW = inWood();
+    HW.warp('hollow', ...lw(31, 12)); HW.step(30); HW.skipTalk();
+    const G = HW.global('Gfx'), ART = HW.global('ART'), log = [];
+    const birch = [ART.birch, ART.birch2, ART.birch3];
+    const l0 = G.line, i0 = G.img;
+    G.line = function (x0, y0, x1, y1, col) { if (col === '#dfe6ef' || col === '#ffffff') log.push(['cord', x0, y0, x1, y1]); return l0.apply(this, arguments); };
+    G.img = function (im) { if (birch.includes(im)) log.push(['tree']); return i0.apply(this, arguments); };
+    try { HW.global('Game').render(); } finally { G.line = l0; G.img = i0; }
+    const lastTree = log.map(e => e[0]).lastIndexOf('tree'), cords = log.map((e, i) => [e, i]).filter(([e]) => e[0] === 'cord');
+    assert.ok(lastTree >= 0 && cords.length, 'trees and cords both drawn');
+    assert.ok(cords.every(([, i]) => i > lastTree), 'every cord over the trees, none hidden under them');
+    /* the far socket's cord heads off the right of the screen, toward the river */
+    const W = HW.global('W');
+    assert.ok(cords.some(([e]) => Math.max(e[1], e[3]) >= W - 2), 'one runs away off the east edge');
+    noErrors(HW);
+});
 test('the warp: the far weight pushed on by hand, it is home again long before you are back at the door', () => {
     const HW = inWood();
     go(HW, ...lw(39, 11)); HW.face('left'); stitch(HW, 'LL');

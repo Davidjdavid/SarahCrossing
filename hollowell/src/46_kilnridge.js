@@ -24,7 +24,7 @@ const KILNRIDGE_ROWS = [
     '%##..........,........:.^^^........................."......,.###',
     '%##"..................:.^.^....................,.............###',
     '%##...................:.^^^.,..,.,..............".".,.......c###',
-    '%##....."...........,.:....................,.,...............###',
+    '%##....."...........,.:.................c..,c,...............###',
     '%##........,.......,,.:................,.................#######',
     '%##.,...,........"....::::::::::::::::::::::::::::::::::::::::::',
     '%##"....,..,,.................:..............,.,......,..#######',
@@ -80,6 +80,12 @@ defBlock({
         { k: 'vent', x: 25, y: 17, dir: 'down', dist: 2, period: 280, id: 'fgVent1' },
         { k: 'charm', x: 25, y: 19, mode: 'once', id: 'fgHole', sig: 'fgHole', col: 'ember' },
         { k: 'pot', x: 17, y: 19, id: 'fgPot1' }, { k: 'pot', x: 18, y: 21, id: 'fgPot2' },
+        /* by the road in, two old vents face each other four steps apart, a pot sitting in one's wet mouth: now one breathes
+           out and the pot sails over and comes down whole in the other's (a wet mouth holds whatever lands in it), now back
+           again. Nothing else to them: the place showing how a vent and a pot get on (quiet coming home, all the same) */
+        { k: 'vent', x: 40, y: 21, dir: 'right', dist: 4, period: 280, id: 'krVentA' },
+        { k: 'vent', x: 44, y: 21, dir: 'left', dist: 4, period: 280, phase: 140, id: 'krVentB' },
+        { k: 'pot', x: 40, y: 21, id: 'krVentPot', quietHome: true },
         /* the Firing Ground: the old potters' pit, its vent firing through a gate held open from the far corner */
         { k: 'vent', x: 14, y: 31, dir: 'right', dist: 11, period: 300, phase: 150, id: 'fgVent2' },
         { k: 'plate', x: 12, y: 33, sig: 'fgPlate', minWeight: WEIGHT.medium },
