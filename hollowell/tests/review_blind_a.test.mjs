@@ -38,10 +38,9 @@ test('anywhere: a float that pops home (a crate thrown into a pit) never lands o
 test('the Great Spool: every kind of thing wound in hangs over its place while Wren stands there, then comes down', () => {
     const HW = spool(); inSpool(HW, 'foot', 9, 8);
     const a = HW.G.map, SPAWN = HW.global('SPAWN');
-    for (const [k, extra] of [['crate', {}], ['pot', {}], ['wood', {}], ['block', {}], ['puppet', {}], ['raft', {}]]) {
+    for (const k of ['crate', 'pot', 'wood', 'block', 'puppet', 'raft']) {
         const [mx, my] = gs('foot', 12, 6);
-        const e = a.add(SPAWN[k](mx, my, Object.assign({ id: 'test_' + k }, extra)));
-        e.skey = 'test_' + k;
+        const e = a.add(SPAWN[k](mx, my, { id: 'test_' + k })); e.skey = 'test_' + k;
         /* off its place a tile east, then left alone: its patience out, it's wound north into the face and dropped back */
         a.unplace(e, e.tx, e.ty); e.tx = mx + 1; e.x = e.tx * 16; a.place(e, e.tx, e.ty); HW.global('Return').moved(e, e.tx, e.ty);
         standOn(HW, mx, my);
@@ -50,6 +49,20 @@ test('the Great Spool: every kind of thing wound in hangs over its place while W
         assert.ok(e.pendingHome && a.at(mx, my) !== e, k + ': hangs over its place, waiting');
         standOn(HW, mx - 2, my + 1);
         assert.ok(until(HW, () => !e.pendingHome, 30) && a.at(mx, my) === e, k + ': comes down once she steps off');
+        a.remove(e);
+    }
+    /* and on the way in, the Return's rule 4 as everywhere: a heavy thing shoves Wren a tile on; anything lighter waits
+       behind her */
+    for (const [k, shoves] of [['block', true], ['crate', false], ['wood', false]]) {
+        const [mx, my] = gs('foot', 14, 6);
+        const e = a.add(SPAWN[k](mx, my, { id: 'way_' + k })); e.skey = 'way_' + k;
+        a.unplace(e, e.tx, e.ty); e.tx = mx + 1; e.x = e.tx * 16; a.place(e, e.tx, e.ty); HW.global('Return').moved(e, e.tx, e.ty);
+        standOn(HW, mx + 1, my - 2);
+        const p = HW.player();
+        until(HW, () => e.ret.state === 'returning' && !e.mv, 400); HW.step(40);
+        if (shoves) assert.ok(p.ty < my - 2 && e.ty <= my - 2, k + ': heavy, it shoves her on up the room');
+        else assert.ok(p.ty === my - 2 && e.ty === my - 1 && e.ret.strain > 0, k + ': it waits behind her');
+        standOn(HW, mx - 3, my + 2); until(HW, () => e.ret.state === 'home' && !e.pendingHome, 600);
         a.remove(e);
     }
     noErrors(HW);
