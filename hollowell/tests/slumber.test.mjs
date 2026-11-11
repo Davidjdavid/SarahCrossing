@@ -254,10 +254,10 @@ test('pillow fort: lay the Bedroll on the plate; wake a Snoreling; it shuffles a
     noErrors(HW);
 });
 
-test("mallow's study (signature): the Bedroll on the sleeping barrel, the Bell, and Homeward through the grate", () => {
-    const HW = game(['bedroll']);
-    enter(HW, 'laundry', 17, 9);
-    const p = HW.player(), br = thing(HW, 'ldBarrel');
+/* the study: the Bedroll sent home on the sleeping barrel, through the grate, and Wren after it by Homeward */
+function intoStudy(HW) {
+    enter(HW, 'laundry', 1, 5); go(HW, 'laundry', 17, 9);
+    const br = thing(HW, 'ldBarrel');
     go(HW, 'laundry', 17, 6); HW.hold('up'); HW.step(16); HW.release(); HW.step(4);
     assert.deepEqual(here(HW, 'laundry'), [17, 5], 'standing on the barrel');
     lay(HW);
@@ -266,12 +266,40 @@ test("mallow's study (signature): the Bedroll on the sleeping barrel, the Bell, 
     assert.ok(until(HW, () => HW.Return.isHome(br), 300), 'the barrel went home through the grate');
     homeward(HW); landed(HW);
     assert.deepEqual(here(HW, 'study'), [2, 5], 'in the study, on the barrel');
+}
+test("mallow's study (signature): the Bedroll on the sleeping barrel, the Bell, and Homeward through the grate", () => {
+    const HW = game(['bedroll']);
+    intoStudy(HW);
     HW.hold('right'); HW.step(30); HW.release();
-    go(HW, 'study', 2, 2); HW.face('up'); HW.press('act', 1); HW.step(10);
     go(HW, 'study', 10, 6); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Progress.flag('sig:slumber'), "the Maker's mark");
-    go(HW, 'study', 1, 3); go(HW, 'laundry', 17, 3);
-    assert.ok(thing(HW, 'ldStudyDoor').open, 'the way out');
+    go(HW, 'study', 16, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    assert.ok(HW.Progress.areaFlag('slumber', 'chest:stPatch'), 'the Heart Patch');
+    noErrors(HW);
+});
+/* (the blind solver's findings, round B: rolled up, the Bedroll's straight flight to the doorway is the rule, seen and
+   met by play before the Dreaming Door) */
+test("mallow's study has no door out: the Bedroll's your place, so roll it up, and your thread runs straight back to the door you came into the laundry by; a drop in the water, and you fly there", () => {
+    const HW = game(['bedroll']);
+    intoStudy(HW);
+    const p = HW.player(), a = HW.G.map;
+    assert.ok(a.kind(...at('laundry', 19, 3)).solid && a.kind(...at('study', 0, 3)).solid, 'no door between the study and the laundry');
+    /* a fall now only brings her back to the Bedroll */
+    go(HW, 'study', 1, 4); HW.hold('down'); until(HW, () => p.state !== 'normal', 120); HW.release(); landed(HW);
+    assert.deepEqual(here(HW, 'study'), [2, 5], 'home is the Bedroll, here');
+    /* rolled up: home is the doorway she came into the laundry by, her thread drawn straight to it */
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(3);
+    assert.ok(!HW.Inv.bedroll, 'rolled up');
+    assert.deepEqual([p.mark.tx, p.mark.ty], at('laundry', 1, 5), 'her place is the laundry\'s doorway again');
+    const G = HW.global('Gfx'), C = HW.global('Cam'), red = HW.global('THREAD').wren, ends = [], l0 = G.line;
+    G.line = function (x0, y0, x1, y1, col) { if (col === red) ends.push([x0, y0], [x1, y1]); return l0.apply(this, arguments); };
+    try { HW.global('Game').render(); } finally { G.line = l0; }
+    const mx = p.mark.tx * 16 + 8 - C.x, my = p.mark.ty * 16 + 9 - C.y;
+    assert.ok(ends.some(([x, y]) => Math.abs(x - mx) < 1 && Math.abs(y - my) < 1), 'the red thread drawn back to the doorway');
+    go(HW, 'study', 1, 4); HW.hold('down'); until(HW, () => p.state !== 'normal', 120); HW.release();
+    assert.equal(p.state === 'fall' || p.state === 'flight', true, 'into the water');
+    landed(HW);
+    assert.deepEqual(here(HW, 'laundry'), [1, 5], 'flown home, straight, to the doorway');
     noErrors(HW);
 });
 

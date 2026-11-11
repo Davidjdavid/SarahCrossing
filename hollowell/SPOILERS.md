@@ -168,8 +168,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 27. **S27 The Stray House** (O1, optional dungeon).
 28. **S28 Tidiness Trials** (Inn attic, after D1): three timed rooms (two at once; the long way home; home time: falling flies you home), prize: buttons, a Heart Patch and Ives' teal scarf (every stitch the same size: a quiet clue).
 29. **S29 Returnball** (festival and after): carry the ball through the five rings and let it go; each ring it goes back through scores; five in one go: a Heart Patch from Pip.
-30. **S30 Tuck's Aha!s** (Act III): get three Ahas in every Making: Tuck's drawing of Wren (Gran's fridge,
-    shows in the epilogue).
+30. **S30 Tuck's Aha!s** (Act III): get three Ahas in every Making (all nine: the eight the Makers built and Wren's own,
+    which she can set out so that it gives all three): Tuck's drawing of Wren (Gran's fridge, shows in the epilogue).
 31. **S31 The far isle** (Millwater lake, with the Long Hook from O2): an eyelet on a tiny island ten tiles off the west shore (THE ISLE OF NOWHERE sign); hook over, a Heart Patch, and an eyelet on the shore for the way back. (Was: the Moth Matron's silk; the Long Hook took its place.)
 32. **S32 The gate counterweight** (Act III): from the Underside, re-thread the north gate early.
 33. **S33 Fainting on purpose in Act III**: get pulled home by Gran while Wren *knows*: different wake-up scene.
@@ -181,7 +181,12 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     and Millwater (cut from above), grown shut with the fog's own thread; buttons and a keepsake each.
 38. **The Wander quilt** (Wren's room, by the bed): a tally of everything found, by kind, never where (secrets, Linnet's
     notes, Makers' marks, old foes patted, fog-silk hollows, good turns done in town, the two optional houses). The
-    secrets count the regions' finds too (items 40-50: what's off the way, not the gates on it; 57-60).
+    secrets count the regions' finds too (items 40-50: what's off the way, not the gates on it; 57-60), and are counted
+    without a total ("Secrets of the valley: 12", never "of 37"), so the unmarked ones stay unmarked. What's only seen or
+    tried isn't sewn on at all: S07, S08, S09, S10, S18, S33, S35 (found, not counted). And it is a ledger: the moment
+    Gran shuts herself in under the Well (Reveal 2) the quilt is counted, and from then till the Unwinding every find
+    still gets its patch: "Two new patches since Gran shut herself in. Nobody has been up the stairs." (She felt every
+    find through the thread.) A save from before that count was taken says only "New patches since you last looked."
 39. **Nothing returns, Wren included** (the Stray House): a fall in there leaves her where she fell.
 36. **Heart Patches** (38 total: 31 in chests or lying about, 6 given by someone for something, 1 knocked out of the hawk's
     nest; tests/heartpatches.test.mjs finds them all) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
@@ -200,10 +205,13 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
     chimney: 50 buttons); the clay dam (a pot given its place in the vent's mouth with the Needle breaks it: Heart Patch).
 44. **Heron Rock** (Millwater): reel the barrel ashore, set it out of the line, hook its empty mark: a Heart Patch; the
     eel-catcher's post brings you back.
-45. **Mallow's nursery** (Hushwood, the road to the Slumberhouse): the door opens while all three Snorelings sleep in the
-    cradles on the bank. Ring the Bell from the north bank (they wake and chase), walk to the far cradle so they file in
-    behind you, and hook each puffball from across the stream, the far one first (a Snoreling dozes off where it is, in
-    its cradle); or wake and bed them one at a time. **The wooden one** (with the Crossbar, all three asleep): walk the
+45. **Mallow's nursery** (Hushwood, the road to the Slumberhouse): the door opens while somebody sleeps in each of the
+    three cradles on the bank (a lamp over the door for each, on a cord to its cradle). Snorelings keep the House's rule:
+    woken, they follow a while, then lie down in the nearest bed they can get to, a cradle as soon as their own spot. The
+    one asleep in the road shows it on the way in (left behind, it beds down in the cradle by the road; followed over the
+    moss, in the first garden cradle). Ring the Bell from the north bank by the far cradles: two come and slip into the
+    cradles under you, and lie down there; wake the third by treading near and lead it to the last free cradle. A
+    puffball hooked from across the stream puts one in a cradle to sleep at once. **The wooden one** (with the Crossbar, all three asleep): walk the
     little wooden Snoreling through the hole in the hedge into the fourth cradle: 30 buttons.
 46. **Lantern Pond** (Hushwood): each lantern burns while its stone plate holds something heavy; the mossy stones are
     marked, so they go home. The Needle gives three of them a place on their plates for good (it holds only three); the
@@ -463,8 +471,9 @@ tagged NORTH GATE. DO NOT TOUCH. BY ORDER OF THE WARDEN. The peepholes (S23): Ro
 pinning Tuck's drawing beside an old one of a girl in green ribbons; Arlo practising walking; Mabel shelving a
 stray with an L; Seam sewing Tuck's scarf (a list: 3. BRAVE); Burr saying "Go on, then" to nobody; Mallow asleep on
 his plans; Gran writing in a heavy book, looking at the turned portrait, not turning it round.
-## The Makings and Reveal 2 (`src/68_makings.js`, `src/68b_makings_more.js`, `src/69_reveal2.js`)
-Tuck's Little Wander: eight Little Houses the Makers built for him, run by Wren from underneath (see DUNGEON_TRACKER).
+## The Makings and Reveal 2 (`src/68_makings.js`, `src/68b_makings_more.js`, `src/68c_makings_capstone.js`, `src/69_reveal2.js`)
+Tuck's Little Wander: eight Little Houses the Makers built for him, run by Wren from underneath, and then one of her
+own (see DUNGEON_TRACKER).
 The fifth is Ives's own Tidyhouse rooms built again (the Foyer, the Hall of Busts, the Ballroom): from underneath Wren
 finds the cords under the busts she pushed, the Grand Housekeeper's costume on a rail (it was Ives inside), and Ives's
 notes on how long Wren took in each room. From the sixth Otto (from the square's Housekeeper game) comes along to play
@@ -473,7 +482,24 @@ the way the real one always was: standing on a thing's way home as he tidies it.
 (what the Pattern really did), and all six Makers are crouched under the last hoop. Gundry walks over from the Guild
 Hall to say his piece to Wren's face. Tuck's own thread hangs under his start like anybody's (the first hint of
 Reveal 2); tugging it, Ives: "Not the boy's own thread, love!" The Makers grade in Ahas; all of them, three in every
-House: Tuck's drawing of "a Maker, whoever helped" (S30).
+House: Tuck's drawing of "a Maker, whoever helped" (S30). Ives's page under the Ballroom says how Wren really tidied it
+on her own Wander, watched as she did it: held one bust back and let the other by ("They never even touched. Not a
+scratch on my busts."), or let them jam nose to nose and pulled one back out of the way ("Bold. I had to sit down.");
+a save from before that was watched gets a page that claims neither.
+The ninth Little House is Wren's own (`src/68c_makings_capstone.js`), and it pays Jory's line from the stage ("the last
+part of a Wander isn't a House: it's learning to make one"). After the Grand Hall, Gundry brings over an empty one: "Your
+turn. Make one." (Tuck: "ANOTHER one? Who made it?" Gundry: "Nobody, yet.") Up top, two little rooms with a gap at
+each end of the wall between them, Tuck's door in the west, the hoop in the east; three of the Guild's things (a
+wooden block, a pot, a stone block); underneath, Wren's room with a button in a tin, two levers and the six Makers sat
+along the wall to watch. She sets it out from underneath with her own tools (stitches, knots, tugs), tells the tin
+which thing the button goes under (a tag on that thing's cord says so), and pulls the lever: Tuck comes in and walks it
+by his rules while she works it from below, as the Makers always did for her. Graded by the same three Ahas; the
+Makers each say one thing about what actually happened (a corridor, a block he moved himself, the button under the pot,
+a bump, his thread pulled) and Jory, the first time: "What did I tell you? On the stage? I SAID." It always finishes:
+at the hoop; or he sits with nothing moving, says "Is this IT?", and after twenty-five seconds gives up ("Every Maker
+builds one of those. Once."); or she calls him out with the lever ("Is it tea?"). Gundry's lever sets it all back any
+time he isn't in. The Way Down opens only once it's done; a save that had already finished the act with eight has it
+there to play.
 Then Gundry sends Wren for Tuck's fresh spool down the Way Down: the deep store, and past it the Hall of Names: a spool
 for everybody (Arlo's with "Walked to the lake again. Tightened."; Biscuit's peg empty, a snipped end; Hesper's empty,
 in her own hand; Linnet's cut clean; Wren's wound tightest and still turning). Gran's ledger (Layer 2): Linnet cut

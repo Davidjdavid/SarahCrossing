@@ -57,7 +57,11 @@ const Bedroll = {
         if (this.sleeper) { UI.toast("Somebody's fast asleep on your Bedroll."); return; }
         Inv.bedroll = null; this.float = null; this.traces = {};
         p.dropBed();
-        Sfx.play('lift'); UI.toast('Bedroll rolled up.', 60);
+        /* her place is the room's own again, the doorway she came in by, and her thread to it is drawn straight (she didn't
+           walk here from there: like any thread that jumps, a flight home along it goes straight over whatever's between):
+           shown a moment, so a fall that flies her through a wall to the door is plainly the thread, not a slip */
+        this.snapT = 110;
+        Sfx.play('lift'); Sfx.play('twang', 0.5); UI.toast('Bedroll rolled up.', 60);
     },
     /* it's gone somewhere it can't stay (a board gave way under it, its float sank): back in Wren's pack */
     lost(why) {
@@ -203,9 +207,19 @@ TOOLS.bedroll = {
         if (Inv.equipped !== 'bedroll' || !p || p.state !== 'normal') return;
         if (Bedroll.near(p)) Bedroll.rollUp(p); else Bedroll.lay(p);
     },
-    update(area) { Bedroll.update(area); },
+    update(area) { Bedroll.update(area); if (Bedroll.snapT > 0) Bedroll.snapT--; },
     draw(cx, cy) {
         const p = G.player;
+        /* just rolled up: Wren's red thread, back along her trace to the doorway's mark (straight where it jumps) */
+        const m = p && p.mark;
+        if (Bedroll.snapT > 0 && m && !m.bed && p.area && m.area === p.area.id && p.state === 'normal') {
+            const pts = p.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
+            pts.push([p.x - cx, p.y - cy - 4]);
+            Gfx.alpha(Math.min(1, Bedroll.snapT / 40));
+            for (let i = 0; i + 1 < pts.length; i++) { Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.35)'); Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.wren); }
+            Marks.draw(m.tx * T - cx, m.ty * T - cy, THREAD.wren, true);
+            Gfx.alpha(1);
+        }
         if (!this.down || this.charge < 4 || !Inv.bedroll || !p) return;
         /* a ring of stitches filling in over Wren's head */
         const n = Math.round(12 * this.charge / this.HOLD);
@@ -482,7 +496,7 @@ AI.snore = (e, p) => {
             e.mode = 'sleep'; e.stir = 0; e.bed = null;
             if (r.roll) { Bedroll.sleeper = e; e.onRoll = true; }
             if (r.nest) e.trace = [[e.hx, e.hy]];
-            else { Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); Sfx.play('yawn', 0.5); }
+            else { Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); if (p && p.area === e.area && Math.hypot(p.x - e.x, p.y - e.y) < 12 * T) Sfx.play('yawn', 0.5); }
             return;
         }
         e.dir = dirOf(dx, dy); e.anim++;

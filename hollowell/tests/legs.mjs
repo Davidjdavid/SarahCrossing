@@ -1116,6 +1116,19 @@ export const LEG8 = (HW, chain) => {
     until(() => t.tx < 20, 600); until(() => t.state === 'sit', 900);
     under(13, 5); tug();
     finishMaking(8);
+    /* Wren's own: Gundry's empty one, set out from underneath (the wooden block just past the north gap, the stone block
+       in the south gap, the button under the block), Tuck let in, and the block made to jump while he sits */
+    for (let i = 0; i < 20 && (HW.global('Dialog').active || HW.global('Script').blocking()); i++) { HW.skipTalk(); HW.step(10); }
+    ok(HW.Progress.flag('cap_given') && !HW.Progress.flag('makings_done'), 'the empty Little House');
+    littleDoor(door(9)); ok(HW.G.map.id === 'making9', 'into her own');
+    under(7, 2, 'down'); stitch('RRR');
+    under(7, 8, 'up'); stitch('RR');
+    walk(3, 19); HW.face('down'); HW.press('act', 1); HW.step(3); HW.skipTalk(0); HW.step(5);
+    ok(HW.global('Capstone').button() === 'capW', 'the button under the wooden block');
+    walk(7, 19); act('down');
+    t = tuck(); ok(until(() => t.state === 'sit', 900), 'Tuck in, and stuck');
+    under(10, 2, 'down'); tug();
+    finishMaking(9);
     for (let i = 0; i < 40 && (!HW.Progress.flag('makings_done') || HW.global('Dialog').active || HW.global('Script').blocking()); i++) { HW.skipTalk(); HW.step(10); }
     ok(HW.Progress.flag('makings_done'), 'the Makings');
     /* the Way Down; Tuck's spool in the deep store; the Hall of Names; Wren's own spool; the ledger */

@@ -141,7 +141,7 @@ the north shore, each going home to its own side (the Paddle).
   Bell (the bothy's Heart Patch, 76,94). Lucky across the river (119,112): hooked over she goes home; the Needle gives
   her a place on this side (S17, Pip).
 - **Kilnridge**: the forecourt gate (22,96) on the road to the Kiln, opened by firing the hole in the rock by the road
-  (vent 25,97, hole 25,99); the Firing Ground (pit 11–28, 108–114): the vent at its west end (14,111) fires a pot east along
+  (vent 25,97, hole 25,99); on the road in, two old vents (40,101 and 44,101) throwing a pot back and forth; the Firing Ground (pit 11–28, 108–114): the vent at its west end (14,111) fires a pot east along
   the row, through a gate open only while Wren stands on the plate (12,113), into the kiln-charm (25,111); the crate on
   that row shoved off it into the wet clay, where it sticks; Heart Patch (27,112), Bram's first pot (24,113). The sleeping vent (14,94): a boulder asleep on it (Recall Bell), then a pot fired up the Kiln Mesa's chimney
   (14,88): 50 buttons (17,90). The clay dam in the slot (60,96): only a pot given its place in the vent's mouth below
@@ -159,8 +159,9 @@ the north shore, each going home to its own side (the Paddle).
 ### Hushwood, Larkspur, the Loomwood (group B additions)
 - **Hushwood** (block 2,1; +128, +40): its own floor (moss, mushroom loam, a lane of dusk) frayed into the town's at the
   seam (`blobSeam`). Mallow's nursery before the Slumberhouse door (147,48): three cradles on the bank (144/148/152,54),
-  a puffball by each (143/147/151,54), three Snorelings asleep on the green below (136/144/148,56); the door opens while all
-  three sleep in the cradles (or once the Slumberhouse is open). Bouncy moss over the stream (140,55 up; 138,51 down).
+  a puffball by each (143/147/151,54), three Snorelings asleep on the green below (136/144/148,56); the door opens while
+  somebody sleeps in each cradle (three lamps over it, each on a cord to its cradle; or once the Slumberhouse is open).
+  One Snoreling asleep in the road (136,60), a cradle by the road (141,61). Bouncy moss over the stream (140,55 up; 138,51 down).
   A fourth cradle by the house behind a little round hole in the hedge (142,47), the wooden one (145,50): 30 buttons
   (141,49) with all four asleep. **Lantern Pond**: four lanterns on the shore (158,66; 165,67; 160,73; 151,66), each lit
   while its stone plate (heavy) is held down; four mossy stones; all four lit, the isle's chest (158,68: Heart Patch);
@@ -171,8 +172,8 @@ the north shore, each going home to its own side (the Paddle).
   crates out west (4,54; 4,73) stay where they're put. The balloon ascent by the fog (5,70), held by one thread. The big
   wheel (15,62).
 - **The Loomwood** (block 1,0; +64, +0): birch wood with silk between the trees, frayed thread-ends by the fog. The warp
-  across the Loom's door (94-96,10) lifts while all four sockets (90,12; 100,11; 88,17; 121,17) hold a weight; the
-  weights (90,14; 102,11; 88,19; 119,17) are strays. The old weight from Lantern Pond fits any socket for good.
+  across the Loom's door (94-96,10) lifts while all four sockets (90,12; 100,11; 88,17; 121,17) hold a weight, its four
+  cords strung over the birches to them; the weights (90,14; 102,11; 88,19; 119,17) are strays. The old weight from Lantern Pond fits any socket for good.
 ### By the lake, and at the fair (the revisits owed)
 - **Wick's Duck Pond** (Millwater, 132–140, 97–103; the Crossbar): walled round with dry-stone; three duck houses in its north
   wall (133/136/139, 97), each watching the water below it; three wooden ducks on their stands (134/136/138, 102) and their

@@ -116,7 +116,7 @@ defHouse({
                 '####################',
                 '#..................#',
                 '#..V<<<<<<<<<<<<<..#',
-                '#..V............A...',
+                '#..V............A..#',
                 '#..V............A..#',
                 '...V............A~~~',
                 '#..V............A..#',
@@ -131,20 +131,22 @@ defHouse({
                 { k: 'chest', x: 1, y: 1, item: 'plan', id: 'ldPlan', hidden: true, when: 'lr1&lr2&lr3' },
                 { k: 'grate', x: 19, y: 5 },
                 { k: 'barrel', x: 22, y: 5, id: 'ldBarrel', sleeper: true, tiedOff: true, saveWake: e => Bedroll.float === e, startAt: [17, 5], trace: [[22, 5], [21, 5], [20, 5], [19, 5], [18, 5], [17, 5]], pushLine: 'A washtub barrel, bobbing fast asleep by the grate. Bubbles come up, now and then, like snores.' },
-                { k: 'door', x: 19, y: 3, type: 'gate', when: 'stlever', dir: 'v', id: 'ldStudyDoor' },
                 { k: 'sign', x: 18, y: 9, text: 'THE LAUNDRY. The wash goes round and round. Whatever goes round comes back to where it started, and is none the wiser.' },
                 { k: 'sign', x: 1, y: 9, text: 'Hung over the tub: three dreamcatchers. They only catch you on your way home.' },
             ],
             nudge: { solved: () => Inv.plans.includes('slumber'), after: 60 * 60 * 3, at: [3, 8], say: "The basket bobs at its little dock. Out on the water, a dreamcatcher turns slowly, though nobody could ever walk under it." },
         },
-        /* ---------------- 5 Mallow's Study (signature): only reached by sending your Bedroll home in the sleeping barrel ---------------- */
+        /* ---------------- 5 Mallow's Study (signature): only reached by sending your Bedroll home in the sleeping barrel; and no door
+           out. The Bedroll's your place, so a fall only brings you back to it: roll it up, and your place is the doorway you
+           came into the laundry by, your thread drawn straight to it, so a drop in the water flies you home along it, over
+           whatever's between (the rule the Dreaming Door can also be done by) ---------------- */
         '3,2': {
             name: "Mallow's Study",
             rows: [
                 '####################',
                 '#..................#',
                 '#..................#',
-                '...................#',
+                '#..................#',
                 '#..................#',
                 '~~~~...............#',
                 '#~~~...............#',
@@ -154,12 +156,12 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'lever', x: 2, y: 1, id: 'stLever', sig: 'stlever', once: true },
                 { k: 'signature', x: 10, y: 5, house: 'slumber' },
                 { k: 'deco', x: 14, y: 2, look: 'desk', solid: [[0, 0], [1, 0]], text: "Doctor Mallow's desk. A case book lies open: \"The Wanderer. Sleeps soundly. Dreams of the road. Wakes where we put her.\" The last three words have been crossed out, very hard." },
                 { k: 'deco', x: 17, y: 7, look: 'bookshelf_tall', solid: [[0, 0]], oy: -16, text: 'Books on sleep, on dreams, on threads, and one called KNOTS FOR BEGINNERS with a lot of pages turned down.' },
                 { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'stPatch' },
             ],
+            nudge: { after: 60 * 60 * 2, at: [2, 5], say: "No door, and a fall only brings you back to your Bedroll, since it's your place. Rolled up, your place is the door you came into the laundry by, and a fall goes there instead." },
         },
         /* ---------------- 6 The Drying Loft: the sleeping boulder's own place is out on the island, empty while it sleeps: the
            Hookline catches on an empty mark. Wake it (the obvious thing) and it goes home and fills it; leave, and it lies
