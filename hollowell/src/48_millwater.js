@@ -262,3 +262,266 @@ function initMillwaterLook() {
 CONTENT_INIT.push(initMillwaterLook);
 /* the quilt counts Heron Rock too (src/78c_polish.js) */
 CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.areaFlag('hollow', 'chest:mwHeron')));
+
+/* ---------- Millwater's revisits: three places by the lake, there to be seen on the way to the Millrace, each opened by a
+   tool found later ----------
+   Wick's Duck Pond (the Crossbar): Jory's three wooden ducks on one crossbar, a duck house for each across the pond and two
+   rocks in the water; they step together, each that can, so a rock holds one back while the others go on. The Old Mill
+   Pond (the Bedroll): walled in beside the mill, the lake running in down the race under a grating that stops anybody
+   riding a float, not a float on its own; laid on a float, the Bedroll goes where the float goes. The Gulls' Rock (the
+   Needle): a rock in a ring of low rocks with nothing on it a hook can catch, the ring's one cleft too narrow for anybody
+   (a little float slips through it, and so does a hook's line): an empty mark is something to hook onto, and the Needle
+   makes marks. */
+
+/* the mill's wheel, turning in the race, quicker while something floats by it */
+SPAWN.millwheel = (tx, ty) => {
+    const pr = new Prop(tx, ty, { solid: [[0, 0]], live: true });
+    pr.ang = 0; pr.baseY = 22;
+    pr.update = function () { const a = this.area, o = a.at(tx + 1, ty) || a.at(tx + 1, ty + 1); this.ang += o && o.floats ? 0.1 : 0.02; };
+    pr.draw = function (cx, cy) {
+        const x = this.x - cx + 14, y = this.y - cy + 4;
+        Gfx.circle(x, y, 11, PAL.ink); Gfx.circle(x, y, 10, '#6b4128'); Gfx.circle(x, y, 8, '#9a6438'); Gfx.circle(x, y, 3, '#3a2418');
+        for (let i = 0; i < 8; i++) {
+            const t = this.ang + i * Math.PI / 4, ex = x + Math.cos(t) * 10, ey = y + Math.sin(t) * 10;
+            Gfx.line(x, y, ex, ey, '#e6c08a'); Gfx.rect(Math.round(ex) - 1, Math.round(ey) - 1, 3, 3, '#c9925a');
+        }
+        /* the race churned white where the paddles dip */
+        Gfx.alpha(0.7); for (let i = 0; i < 3; i++) Gfx.rect(x + 7 + ((G.t >> 2) + i * 3) % 6, y + 9 + i, 3, 1, '#ffffff'); Gfx.alpha(1);
+    };
+    return pr;
+};
+
+/* ---- Wick's ducks: wooden ducks on strings, worked from one crossbar; they float, so water's no edge to them ---- */
+let MillDuck = null;    /* (made when first wanted: the puppets' kit comes later in the script) */
+SPAWN.millduck = (x, y, p) => {
+    if (!MillDuck) MillDuck = class extends Puppet {
+        constructor(tx, ty, q) { super(tx, ty, Object.assign({ look: 'puppet_duck' }, q)); this.floats = true; this.noRide = true; }
+        /* (a way home round another duck: a duck goes over water) */
+        findWay(mx, my) {
+            const a = this.area, prev = new Map([[key2(this.tx, this.ty), null]]), q = [[this.tx, this.ty]];
+            while (q.length) {
+                const [x, y] = q.shift();
+                if (x === mx && y === my) { const out = []; let c = [x, y]; while (c) { out.push(c); c = prev.get(key2(c[0], c[1])); } return out; }
+                for (const d of [UP, DOWN, LEFT, RIGHT]) {
+                    const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                    if (prev.has(k) || prev.size > 200 || a.kind(nx, ny).pit || !a.freeForThing(nx, ny, this)) continue;
+                    prev.set(k, [x, y]); q.push([nx, ny]);
+                }
+            }
+            return null;
+        }
+        draw(cx, cy) {
+            const im = spr('puppet_duck' + (this.worked ? '_up' : '')); if (!im) return;
+            const x = this.px - cx, y = this.py - cy + Math.round(Math.sin((G.t + this.uid * 29) / 22)) - (this.worked ? 1 : 0);
+            Gfx.alpha(0.5); Gfx.rect(x + 2, this.py - cy + 13, 12, 1, '#d8f2fc'); Gfx.alpha(1);
+            Gfx.img(im, x, y, this.dir === LEFT);
+            /* its ribbon, the colour Wick named it by */
+            Gfx.rect(x + (this.dir === LEFT ? 6 : 8), y + 8, 2, 2, this.ribbon || PAL.red);
+        }
+    };
+    return new MillDuck(x, y, p);
+};
+/* a duck house on the far bank: its flag goes up while a duck bobs at its door */
+class DuckHouse extends Ent {
+    constructor(tx, ty, p = {}) { super('duckhouse', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.lift = 0; }
+    home() { const o = this.area.at(this.tx, this.ty + 1); return !!(o && o.kind === 'puppet' && o.floats && !o.mv); }
+    update() { const h = this.home(); this.lift = clamp(this.lift + (h ? 1 : -1), 0, 8); if (h) Signals.set(this.area, this.sig); }
+    get sortY() { return this.y + 15; }
+    draw(cx, cy) {
+        const x = this.x - cx, y = this.y - cy;
+        Gfx.rect(x + 7, y + 2, 2, 13, PAL.ink); Gfx.rect(x + 7, y + 2, 1, 13, '#9a6438');
+        Gfx.rect(x + 2, y - 7, 12, 10, PAL.ink); Gfx.rect(x + 3, y - 6, 10, 8, '#e6c08a'); Gfx.rect(x + 3, y + 1, 10, 1, '#c49a62');
+        for (let j = 0; j < 4; j++) Gfx.rect(x + 1 + j, y - 8 - j, 14 - j * 2, 1, j ? '#d6304e' : PAL.ink);
+        Gfx.rect(x + 6, y - 4, 4, 5, '#3a2418'); Gfx.rect(x + 7, y - 5, 2, 1, '#3a2418');
+        /* the flag on its little pole, up while a duck's at home */
+        const fy = y - 6 - this.lift;
+        Gfx.rect(x + 13, fy - 2, 1, 6 + this.lift, PAL.ink); Gfx.rect(x + 14, fy - 2, 4, 3, this.lift >= 8 ? '#f7d64a' : '#fbf6ea');
+    }
+}
+SPAWN.duckhouse = (x, y, p) => new DuckHouse(x, y, p);
+
+/* ---- the old mill pond: the grating across the race, the gate bolted on the inside, the little boat ---- */
+/* water goes through the grating, and a float with nobody aboard; nobody else does, and nothing thrown */
+class MillGrate extends Ent {
+    constructor(tx, ty, p = {}) { super('millgrate', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
+    blocks(x, y, who) {
+        if (x !== this.tx || y !== this.ty) return false;
+        const p = G.player;
+        if (who && who.isGrid && who.floats) return !!(p && p.area === this.area && (p.ride === who || (p.tx === who.tx && p.ty === who.ty && !p.flying)));
+        return true;
+    }
+    talkBox(p, f) { return f.tx === this.tx && f.ty === this.ty; }
+    interact() { Script.run(function* () { yield* say(null, 'An iron grating across the race, where the lake runs in to the old mill pond. The water goes through. You don\'t.'); }); return true; }
+    get sortY() { return this.y + 15; }
+    draw(cx, cy) {
+        const x = this.x - cx, y = this.y - cy;
+        Gfx.rect(x, y - 4, 16, 3, PAL.ink); Gfx.rect(x, y - 3, 16, 1, '#7a7468');
+        for (let i = 1; i < 16; i += 3) { Gfx.rect(x + i, y - 2, 2, 16, PAL.ink); Gfx.rect(x + i, y - 2, 1, 16, '#8a8296'); }
+        Gfx.rect(x, y + 7, 16, 2, PAL.ink); Gfx.rect(x, y + 7, 16, 1, '#7a7468');
+    }
+}
+SPAWN.millgrate = (x, y, p) => new MillGrate(x, y, p);
+/* the pond's little gate, bolted on the inside */
+class PondGate extends Door {
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ type: 'gate', dir: 'h', when: 'flag:mw_pondGate' }, p)); }
+    talkBox(p, f) { return f.tx === this.tx && f.ty === this.ty; }
+    interact(p) {
+        if (this.open) return false;
+        if (p.ty < this.ty) { Progress.set('mw_pondGate'); Sfx.play('unlock'); UI.toast('You draw back the bolt. The little gate swings open.', 120); }
+        else UI.toast('A little gate in the pond wall, bolted on the other side.', 120);
+        return true;
+    }
+}
+SPAWN.pondgate = (x, y, p) => new PondGate(x, y, p);
+SPAWN.tessboat = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.tess_boat, solid: [[0, 0], [1, 0]], oy: -4 });
+    pr.baseY = 18;
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('mw_boat')) { yield* say(null, 'The little blue boat. THE TESS, & A.'); return; }
+            Progress.set('mw_boat'); Stats.count('secret:tessboat');
+            yield* say(null, 'A little blue rowing boat, drawn up on the bank and tied to a ring in the wall. On her bow, in white paint: THE TESS. Under it, smaller, in another hand: & A.');
+            yield* say(null, 'Under the seat, wrapped in oilcloth, a tin with thirty buttons in it, and a note: "For the mooring. A."');
+            Favours.buttons(30);
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.ty === ty && (f.tx === tx || f.tx === tx + 1);
+    return pr;
+};
+
+/* ---- the Gulls' Rock: the cleft, the eel-catcher's float, the gulls' nest, the gulls ---- */
+/* too narrow for anybody, or a raft or a barrel; the eel-catcher's little float slips through on its own, and a hook's line
+   and anything thrown go through over the water */
+class Cleft extends Ent {
+    constructor(tx, ty, p = {}) { super('cleft', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
+    blocks(x, y, who) {
+        if (x !== this.tx || y !== this.ty) return false;
+        const p = G.player;
+        if (who === p) return true;
+        if (who && who.isGrid) return !(who.floats && who.small && !(p && p.area === this.area && (p.ride === who || (p.tx === who.tx && p.ty === who.ty))));
+        return false;
+    }
+    get sortY() { return this.y + 10; }
+    draw(cx, cy) {
+        /* the rock jaws leaning in over the water from either side */
+        const x = this.x - cx, y = this.y - cy;
+        for (const [sx, d] of [[0, 1], [16, -1]]) for (let j = 0; j < 9; j++) { const w = 5 - Math.abs(j - 4) * 0.6 | 0; Gfx.rect(d > 0 ? x + sx : x + sx - w, y + 2 + j, w, 1, j < 3 ? '#a8b0a8' : j < 6 ? '#848c86' : '#5c645e'); }
+        Gfx.alpha(0.35); Gfx.rect(x + 5, y + 2, 6, 10, '#123a5a'); Gfx.alpha(1);
+    }
+}
+SPAWN.cleft = (x, y, p) => new Cleft(x, y, p);
+/* (a thing too small to stand on: Wren won't step on it, and nothing rides it) */
+{
+    const ride0 = Water.rideable;
+    Water.rideable = function (o) { return !!o && !o.noRide && ride0.call(this, o); };
+}
+/* the eel-catcher's float: cork, painted, small enough for the cleft; it lives where it's moored (if it's ever caught on its
+   way home, wedged on the rocks, it goes under and bobs up at home, as sunk things do) */
+class GullFloat extends Barrel {
+    constructor(tx, ty, p = {}) { super(tx, ty, Object.assign({ stitchName: "the eel-catcher's float" }, p)); this.small = true; this.noRide = true; }
+    sprite() { return spr('cork_float'); }
+    tick() { const r = this.ret; if (r && r.state === 'returning' && !this.mv && r.strain > 240) { Fx.splash(this.tx * T + 8, this.ty * T + 8); Return.sendHome(this); } }
+}
+SPAWN.gullfloat = (x, y, p) => new GullFloat(x, y, p);
+SPAWN.gullnest = (tx, ty) => {
+    const pr = new Prop(tx, ty, { im: ART.gull_nest, solid: [[0, 0]], oy: -2 });
+    pr.interact = () => {
+        Script.run(function* () {
+            if (Progress.flag('mw_gulls')) { yield* say(null, 'The gulls\' nest, a little emptier. The gulls are already looking for things to fill it.'); return; }
+            Progress.set('mw_gulls'); Stats.count('secret:gulls');
+            yield* say(null, 'A gulls\' nest of driftwood and fishing line, and in it everything shiny the lake ever lost: buttons, a teaspoon, a thimble, a fishing hook, a ring. The gulls have sat on it all like eggs. Held, nothing in it has ever gone home.');
+            yield* say(null, 'You leave them the teaspoon and the thimble. Forty buttons. And the ring.');
+            Favours.buttons(40);
+            yield* Story.getItem('mwring')();
+        });
+        return true;
+    };
+    pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
+    return pr;
+};
+SPAWN.gull = (tx, ty, p = {}) => {
+    const pr = new Prop(tx, ty, { solid: [], live: true, flip: !!p.flip });
+    pr.t = 0; pr.baseY = 12;
+    pr.update = function () { this.t++; };
+    pr.draw = function (cx, cy) { const flap = (this.t + tx * 53) % 300 < 24 && (this.t >> 2) % 2; Gfx.img(spr(flap ? 'gull_1' : 'gull_0'), this.x - cx, this.y - cy - 6, this.flip); };
+    return pr;
+};
+
+ITEMS.wickfloat = { name: "Wick's lucky float", kind: 'keepsake', desc: "A red and white fishing float, chewed at one end. It has never caught a fish. Wick says that's what makes it lucky." };
+ITEMS.mwring = { name: 'A little brass ring', kind: 'quest', desc: 'Plain brass, worn thin, a tiny anchor scratched inside it. The gulls had it.' };
+
+/* all three ducks home at once: the flags go up together */
+OW.blocks['2,2'].tick = a => {
+    if (!Progress.flag('mw_ducksHome') && ['mwDuckA', 'mwDuckB', 'mwDuckC'].every(s => Signals.get(a, s))) {
+        Progress.set('mw_ducksHome'); Stats.count('secret:ducks'); Sfx.play('appear');
+        G.pendingToast = 'Three ducks, three duck houses, and all three flags up at once. Over on the pier, somebody whoops.';
+    }
+};
+
+/* what Wick and Dad have to say about it (before anything else they'd say, and after the Unwinding too) */
+const MILL_OWED = {
+    wick: () => Progress.flag('mw_ducksHome') && !Progress.flag('mw_wickFloat') && function* () {
+        Progress.set('mw_wickFloat');
+        yield* say('wick', "{surprised}You did it! Dot and Dash and Dimple, all in their houses at once! I've NEVER got all three. I can't even get two!");
+        yield* say('wick', "{happy}Here. My lucky float. It's never caught a single fish. That's how you know it's lucky: it's saving it all up.");
+        yield* Story.getItem('wickfloat')();
+    },
+    ambrose: () => {
+        if (Inv.items.mwring && !Progress.flag('mw_ringHome')) return function* () {
+            Progress.set('mw_ringHome'); delete Inv.items.mwring;
+            yield* say('ambrose', "{surprised}Where did you... Oh. Oh, that's the ring. I rowed your mum out to the middle of the lake to ask her, and I was shaking so hard I dropped it over the side. A gull had it before it ever touched the water.");
+            yield* say('ambrose', "{happy}She said yes anyway. Said a ring's only a thing, and things come home. ...Took its time, didn't it?");
+            yield* say('ambrose', "I'll give it back to her tonight. Thank you, love. Don't tell her I cried.");
+        };
+        if (Progress.flag('mw_boat') && !Progress.flag('mw_boatTold')) return function* () {
+            Progress.set('mw_boatTold');
+            yield* say('ambrose', "{surprised}You've been in the old mill pond? Then you've seen her: the little blue boat. I built her the summer I was courting your mum, and rowed her round the lake under the bell-keeper's steps every evening till Tess gave in and came out in her.");
+            yield* say('ambrose', "{happy}She painted the '& A.' on herself. I keep the boat in the pond now, where nothing can carry her off.");
+        };
+        return null;
+    },
+};
+CONTENT_INIT.push(() => {
+    const talk0 = Story.talk;
+    Story.talk = function (npc) {
+        const f = MILL_OWED[npc.who], g = f && !(Progress.flag('great_pull') && !Progress.flag('unwound')) && f();
+        return g || talk0.call(this, npc);
+    };
+});
+
+function initMillwaterRevisits() {
+    const duck = up => ['................', '................', '................', '.........kkkk...', '........kwwwwk..', '........kwkwwk..', '........kwwwwyyk', '..kk....kwwwkkk.',
+        '.kwwk...kwwwk...', '.kwWwkkkwwwwwk..', (up ? '..' : '.k') + 'wwwwwwwwwwwwk.', '.kWwwwwwwwwwwWk.', '..kWWwwwwwwWWk..', '...kkWWWWWWkk...', '.....kkkkkk.....', '................'];
+    const dk = { w: '#f4e6c8', W: '#c9a878', y: '#e8913a' };
+    defSprite('puppet_duck', duck(false), dk); defSprite('puppet_duck_up', duck(true), dk);
+    defSprite('cork_float', ['................', '................', '.......kk.......', '.......kk.......', '......kkkk......', '.....krrrrk.....', '....krwrrrrk....', '....krrrrrrk....',
+        '....kwwwwwwk....', '....kwwwwwwk....', '....krrrrrrk....', '.....kRRRRk.....', '..aa..kkkk..aa..', '...aaa....aaa...', '................', '................'], { r: '#e8463c', R: '#a82a26', w: '#fbf6ea', a: '#d8f2fc' });
+    const gl = { w: '#fbf6ea', g: '#a8b0b8', y: '#f0c850' };
+    defSprite('gull_0', ['................', '................', '................', '................', '.........kkk....', '........kwwwk...', '........kwkwyy..', '...kkkkkkwwwk...',
+        '..kggggwwwwk....', '...kkgggwwwk....', '.....kkkkkk.....', '.......y.y......'], gl);
+    defSprite('gull_1', ['................', '..k.......k.....', '..kgk....kgk....', '...kgk..kgk.....', '....kgkkgkkk....', '.....kggkwwwk...', '......kwwkwyy...', '......kwwwwk....',
+        '.......kwwk.....', '.......kkk......', '................', '.......y.y......'], gl);
+    defSprite('icon_wickfloat', ['................', '.......kk.......', '.......kk.......', '......kkkk......', '.....krrrrk.....', '....krwrrrrk....', '....krrrrrrk....', '....kwwwwwwk....',
+        '....kwwwwwwk....', '....krrrrrrk....', '.....kRRRRk.....', '......kRRk......', '.......kk.......', '.......kk.......', '................', '................'], { r: '#e8463c', R: '#a82a26', w: '#fbf6ea' });
+    defSprite('icon_mwring', ['................', '................', '................', '.....kkkkkk.....', '....kyyyyyyk....', '...kyYkkkkYyk...', '..kyYk....kYyk..', '..kyk......kyk..',
+        '..kyk......kyk..', '..kyYk....kYyk..', '...kyYkkkkYyk...', '....kyyyyyyk....', '.....kkkkkk.....', '................', '................', '................'], { y: '#e0b050', Y: '#a87a2a' });
+    ART.tess_boat = paintSprite(32, 20, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        /* drawn up on the bank, tilted a little: a blue hull with a white strake, two seats, the oars across them */
+        for (let j = 0; j < 9; j++) { const inset = Math.max(0, j - 5) * 2 + (j < 2 ? 2 - j : 0); R(j < 3 ? '#4f9be0' : j < 6 ? '#3a7ab8' : '#2e5a98', 1 + inset, 8 + j, 30 - inset * 2, 1); }
+        R('#fbf6ea', 2, 10, 28, 1); R('#6b4128', 4, 5, 24, 3); R('#9a6438', 5, 5, 22, 1);
+        R('#c9925a', 9, 5, 3, 4); R('#c9925a', 20, 5, 3, 4);
+        R('#e6c08a', 3, 3, 26, 1); R('#9a6438', 3, 4, 26, 1);
+        R('#fbf6ea', 25, 12, 3, 1); R('#fbf6ea', 25, 14, 1, 1); R('#fbf6ea', 27, 14, 1, 1);
+    });
+    ART.gull_nest = paintSprite(16, 14, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        R('#7a5a3a', 1, 6, 14, 6); R('#9a7a52', 2, 5, 12, 2); R('#5a4028', 3, 10, 10, 2);
+        for (let i = 0; i < 9; i++) R(i % 2 ? '#b8946a' : '#6b4a2e', 1 + i * 1.6 | 0, 4 + (i % 3), 3, 1);
+        R('#f7d64a', 5, 5, 2, 1); R('#dfe6ef', 9, 4, 2, 1); R('#e0b050', 7, 6, 1, 1); R('#fbf6ea', 11, 6, 2, 2); R('#e8463c', 3, 6, 1, 1);
+    });
+}
+CONTENT_INIT.push(initMillwaterRevisits);
+/* the quilt counts them too (src/78c_polish.js) */
+CONTENT_INIT.push(() => QUILT[0][1].push(() => Progress.flag('mw_ducksHome'), () => Progress.flag('mw_boat'), () => Progress.flag('mw_gulls')));
