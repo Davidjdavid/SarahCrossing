@@ -5,8 +5,25 @@ import { loadGame } from './harness.mjs';
 
 const STAGES = [null, 'afterD1', 'afterD2', 'afterD3', 'afterD4', 'afterD5', 'afterD6', 'afterD7', 'afterMakings', 'afterReveal2', 'afterD8', 'afterDrift', 'afterEnding'];
 const found = new Map();
-const note = (key, msg, stage) => { if (!found.has(key)) found.set(key, { msg, stage, n: 0 }); found.get(key).n++; };
+const note = (key, msg, stage) => {
+    const [id, , name, at] = key.split('|'), why = EXPECTED[id + '|' + name] || EXPECTED[id + '|' + name + '@' + at];
+    const m = why ? expected : found;
+    if (!m.has(key)) m.set(key, { msg: why ? `${msg}: ${why}` : msg, stage, n: 0 }); m.get(key).n++;
+};
 const FACE = new Set(['sign', 'chest', 'npc', 'lever', 'chute', 'knotlock', 'winch', 'crank', 'bell']);
+/* placed so on purpose, each looked at on screen (POLISH.md finding 7): area|name -> why. Listed, not counted. */
+const EXPECTED = {
+    'greatspool|gsMWheel': 'a water wheel, turning in its race',
+    'hollow|mwDuckRack': "the ducks' crossbar on its stand, fixed to the pond's wall and worked from the bank beside it",
+    'hollow|sign@98,77': 'a sign nailed to a tree, read from the path beside it',
+    'hollow|mwCave': 'behind the falls (S19): opened from a float',
+    'millrace|fpBellFar': 'a bell rope hanging over the race, pulled from beside it',
+    'millrace|fpBellHome': 'a bell rope hanging over the race, pulled from beside it',
+    'millrace|gBell': 'a bell rope hanging over the race, pulled from beside it',
+    'millrace|grindle': 'the boss, who lives in the millpond',
+    'millrace|sign@30,31': 'a plaque on the wall, read from the floor below it',
+};
+const expected = new Map();
 for (const stage of STAGES) {
     const HW = loadGame();
     if (stage) HW.preset(stage); else HW.newGame('Wren', { noAutosave: true, skipIntro: true });
@@ -24,7 +41,7 @@ for (const stage of STAGES) {
                 const k = tiles.get(key(e)); if (k) note(`${id}|two|${key(e)}`, `${id}: ${k} and ${name} share ${key(e)}`, stage); else tiles.set(key(e), name);
                 const kk = a.kind(e.tx, e.ty);
                 const hanging = e.ret && e.ret.state !== 'home';
-                if (kk.solid && !kk.low && e.kind !== 'eyelet' && !e.wall && a.staticSolid && !a.staticSolid.has(e.ty * 4096 + e.tx)) note(`${id}|in|${name}|${key(e)}`, `${id}: ${name} (${e.kind}) inside ${a.kindName(e.tx, e.ty)} at ${key(e)}`, stage);
+                if (kk.solid && !kk.low && e.kind !== 'eyelet' && !e.wall && !e.counter && a.staticSolid && !a.staticSolid.has(e.ty * 4096 + e.tx)) note(`${id}|in|${name}|${key(e)}`, `${id}: ${name} (${e.kind}) inside ${a.kindName(e.tx, e.ty)} at ${key(e)}`, stage);
                 if ((kk.pit || (kk.deep && !e.floats)) && !hanging && !e.flying) note(`${id}|hole|${name}|${key(e)}`, `${id}: ${name} (${e.kind}) over ${a.kindName(e.tx, e.ty)} at ${key(e)}`, stage);
                 if (FACE.has(e.kind) && !e.counter && ![[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => open(e.tx + dx, e.ty + dy))) note(`${id}|reach|${name}|${key(e)}`, `${id}: ${name} (${e.kind}) at ${key(e)} has no floor beside it`, stage);
             } else if ((e.kind === 'critter') && e.x !== undefined) {
@@ -42,3 +59,6 @@ for (const stage of STAGES) {
 function key(e) { return e.tx + ',' + e.ty; }
 console.log(`\n${found.size} findings`);
 for (const [, v] of [...found].sort()) console.log(`${v.msg}  [first: ${v.stage || 'new game'}]`);
+console.log(`(${expected.size} placed so on purpose, not counted)`);
+for (const [, v] of [...expected].sort()) console.log(`  ${v.msg}`);
+process.exitCode = found.size ? 1 : 0;

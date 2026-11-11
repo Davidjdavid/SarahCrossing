@@ -116,6 +116,15 @@ const Shears = {
         Gfx.line(x0 + ux * gap, y0 + uy * gap, x0 + ux * 400, y0 + uy * 400, THREAD.wren);
         Gfx.alpha(Math.max(0, 1 - s.cut / 60)); Gfx.line(x0, y0, x0 + ux * 4, y0 + 6 + gone * 4, THREAD.wren); Gfx.alpha(1);
     },
+    /* a glint on a thread where the blades, in reach, would close on it now: a little star of the blades' own silver,
+       twinkling (steady and a size bigger where Wren is facing) */
+    glint(x, y, strong) {
+        x = Math.round(x); y = Math.round(y);
+        const r = strong ? 3 : ((G.t >> 3) % 3 ? 2 : 1);
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { Gfx.rect(x - r + dx, y + dy, r * 2 + 1, 1, PAL.ink); Gfx.rect(x + dx, y - r + dy, 1, r * 2 + 1, PAL.ink); }
+        Gfx.rect(x - r, y, r * 2 + 1, 1, '#e4ecf5'); Gfx.rect(x, y - r, 1, r * 2 + 1, '#e4ecf5'); Gfx.rect(x, y, 1, 1, '#ffffff');
+        if (strong) { Gfx.rect(x - 1, y - 1, 3, 3, '#ffffff'); Gfx.rect(x - 1, y - 1, 1, 1, '#e4ecf5'); Gfx.rect(x + 1, y + 1, 1, 1, '#e4ecf5'); }
+    },
     /* the place built afresh: whatever was cut stays a stray, where it was left */
     apply(a) {
         const af = Progress.areaFlags[a.id]; if (!af) return;

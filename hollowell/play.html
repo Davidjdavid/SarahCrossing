@@ -24732,6 +24732,7 @@ const Spool = {
         if (quiet) return;
         Sfx.play('tie'); Stats.count('knots');
         if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. (Z on the knot to undo it.)'; }
+        else UI.toast('Tied off: held fast up above.', 90);     /* (every time after, short: a knot always answers) */
     },
     untie(e) {
         if (!e.knotted) return;
@@ -26479,6 +26480,7 @@ class Tangle extends Ent {
         this.lift = 0; this.eyes = false; this.haulT = 0; this.gone = false;     /* gone: the hoist torn down */
         this.rungT = 0; this.tight = 0;      /* (a ring heard, till what it sent home has settled; winding tight again after) */
         this.HAUL = 120; this.swell = 0; this.ballT = 60; this.sweepT = 90; this.miteT = 60; this.sweepN = 0;
+        this.shrug = 0; this.near = false;   /* (the stick thudding into it; all four out at once, not all held) */
     }
     /* (hung up in the rafters, it's in front of everything under it) */
     get sortY() { return this.y + 22 + (this.lift > 8 ? 400 : 0); }
@@ -26493,13 +26495,15 @@ class Tangle extends Ent {
        or at home somewhere else (stitched) */
     keeps(b) { return Return.held(b) || (!!b.stitched && Return.isHome(b) && !b.mv); }
     heldOut(b) { return this.out(b) && this.keeps(b); }
+    /* drawn out of it but held there by nothing: it's pulling that thread back in (and it'll have it) */
+    pulling(b) { return (this.state === 'whole' || this.state === 'haul') && this.out(b) && !this.keeps(b); }
     allOut(bs) { return bs.length >= 4 && bs.every(b => this.heldOut(b)); }
     hoisted() { return !this.gone && Signals.get(this.area, 'hoist'); }
     shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'tangle') s.shut = shut; }
     trap() { const r = this.hall; return this.area.ents.find(e => e.kind === 'hatch' && !e.removed && this.area.roomAt(e.tx, e.ty) === r); }
     update() {
         if (!this.alive) return;
-        this.t++; if (this.flash > 0) this.flash--;
+        this.t++; if (this.flash > 0) this.flash--; if (this.shrug > 0) this.shrug--;
         const p = G.player, a = this.area, r = this.hall;
         if (this.state === 'sleep') {
             if (p.area === a && Cam.room === r && !Cam.busy && p.state === 'normal' && p.ty < r.y + r.h - 2) {
@@ -26531,6 +26535,7 @@ class Tangle extends Ent {
             case 'whole':
                 this.reel(bs);
                 if (this.allOut(bs)) { if (++this.outT > 30) this.apart(); } else this.outT = 0;
+                if (this.state === 'whole') this.watchNear(bs);
                 if (here) { this.balls1(p, 1.4); this.lash(p); this.cordSweep(p); }
                 break;
             case 'up':
@@ -26562,6 +26567,29 @@ class Tangle extends Ent {
             } else b.tangleT = 0;
         }
     }
+    /* (1) all four drawn out at once, but not all held there: once the ones nothing held have slipped home, how the
+       world went is said (and seen: it winds tight round them again). How it went, never what to do */
+    watchNear(bs) {
+        if (bs.length >= 4 && bs.every(b => this.out(b))) { if (!this.allOut(bs)) this.near = true; return; }
+        if (!this.near || bs.some(b => b.mv || (b.ret && b.ret.state === 'returning'))) return;
+        this.near = false;
+        if (bs.some(b => !this.out(b))) this.slipped(bs.filter(b => this.heldOut(b)).length);
+    }
+    slipped(k) {
+        this.tight = 30; Sfx.play('twang'); G.shake = Math.max(G.shake, 3);
+        const N = ['', 'One', 'Two', 'Three'][k], first = !Progress.flag('tangle_slip');
+        Progress.set('tangle_slip'); Stats.count('boss:tangle:slipped');
+        UI.toast(k === 3 ? (first ? 'Three of its threads stay drawn out. The fourth slips home, and the Tangle winds tight round it again.' : 'Three stay out. The fourth slips home.')
+            : k ? (first ? `${N} of its threads ${k === 1 ? 'stays' : 'stay'} drawn out. The rest slip home, and the Tangle winds tight round them again.` : `${N} ${k === 1 ? 'stays' : 'stay'} out. The rest slip home.`)
+            : (first ? 'Every thread slips home, and the Tangle winds tight round them again.' : 'Every thread slips home.'), first ? 220 : 110);
+    }
+    /* whole, it's wound far too tight to feel a stick: it thuds in, and the cords shrug it off (said the first time) */
+    thud(by) {
+        if (this.shrug > 4) return;
+        this.shrug = 16; Sfx.play('thud'); Stats.count('boss:tangle:thud');
+        if (by === G.player && !Progress.flag('tangle_thud')) { Progress.set('tangle_thud'); UI.toast("Thud. The stick sinks into the knot of old cord and bounces back out. It's wound far too tight to feel it.", 170); }
+    }
+    hooked(h) { Sfx.play('hookhit'); if (this.state === 'whole' || this.state === 'haul') this.shrug = Math.max(this.shrug, 10); }
     /* phase 3: on its beat it hauls each thread it can in by a tile, toward the bobbin's first place. Held things (tied
        off, gripped) it can't shift; a stitched bobbin it drags off its new place all the same (it'll want to go home) */
     haul(bs) {
@@ -26575,7 +26603,7 @@ class Tangle extends Ent {
         if (n) { Sfx.play('twang'); G.shake = 2; }
     }
     apart() {
-        this.state = 'open'; this.st = 0; this.dazeT = 0; this.outT = 0; this.balls = [];
+        this.state = 'open'; this.st = 0; this.dazeT = 0; this.outT = 0; this.balls = []; this.near = false;
         Sfx.play('unravel'); G.shake = 8; Fx.yarn(this.x + 8, this.y + 4, THREAD.guild);
         if (!Progress.flag('tangle_open')) { Progress.set('tangle_open'); G.pendingToast = 'Every thread pulled out of it at once, the Tangle falls apart round a little hard knot at its heart.'; }
     }
@@ -26589,7 +26617,7 @@ class Tangle extends Ent {
        once they're settled (above) */
     hear(x, y) {
         if (!this.alive || (this.state !== 'whole' && this.state !== 'haul')) return;
-        if (this.bobbins().some(b => b.ret && b.ret.snap)) this.rungT = 1;
+        if (this.bobbins().some(b => b.ret && b.ret.snap)) { this.rungT = 1; this.near = false; }
     }
     /* everything went home, and home for one of them is in the Tangle: it winds tight again (the wrong idea, told as the
        world went, never the step) */
@@ -26624,7 +26652,7 @@ class Tangle extends Ent {
             if (b.knotted) Spool.untie(b);
             if (b.ret && b.ret.state !== 'home') Return.snap(b);
         }
-        this.hp = 3; this.knocks = 0; this.gone = false; this.lift = 0; this.eyes = false; this.rungT = 0; this.tight = 0; this.unseal();
+        this.hp = 3; this.knocks = 0; this.gone = false; this.lift = 0; this.eyes = false; this.rungT = 0; this.tight = 0; this.near = false; this.shrug = 0; this.unseal();
     }
     seal() {
         const h = this.trap(); if (!h) return;
@@ -26701,9 +26729,16 @@ class Tangle extends Ent {
         }
         this.balls = this.balls.filter(b => b.life > 0);
     }
-    hurtBox() { return this.alive && (this.state === 'open' || this.state === 'down') ? { x0: this.x - 2, x1: this.x + 18, y0: this.y - 8, y1: this.y + 16 } : null; }
+    hurtBox() {
+        if (!this.alive) return null;
+        if (this.state === 'open' || this.state === 'down') return { x0: this.x - 2, x1: this.x + 18, y0: this.y - 8, y1: this.y + 16 };
+        /* (whole on the floor, the stick meets it as it's drawn, and only thuds; up in the rafters it's out of reach) */
+        if (this.state === 'whole' || this.state === 'haul') { const R = 22 - this.pulled * 3; return { x0: this.x + 8 - R, x1: this.x + 8 + R, y0: this.y + 6 - R, y1: this.y + 6 + R }; }
+        return null;
+    }
     struck(by, dmg, dir) {
         if (!this.alive || this.flash > 0) return;
+        if (this.state === 'whole' || this.state === 'haul') return this.thud(by);
         if (this.state !== 'open' && this.state !== 'down') { Sfx.play('hitthing'); return; }
         /* (three knocks; between them its loose cords lash about) */
         if (!knockCounts(this, 7, this.x + 8, this.y + 10, 36, 3)) { this.dazeT = 0; return; }
@@ -26731,6 +26766,13 @@ class Tangle extends Ent {
             const bx = b.px + 8 - cx, by = b.py + 6 - cy, o = this.out(b);
             const col = (gather || (this.tight > 0 && !o)) && (G.t >> 1) % 2 ? '#fff4c0' : o ? '#f7d64a' : THREAD.guild;
             Threads.path(L > 4 ? [[x, hy], [(x + bx) / 2, Math.max(hy, by) + 4], [bx, by]] : [[x, hy], [bx, by]], col);
+            /* one drawn out that nothing holds there: a glint running along it from the bobbin into the knot, again and
+               again (it's being pulled back in); one held out lies still */
+            if (this.pulling(b) && L <= 4) {
+                const k = ((G.t + b.uid * 13) % 36) / 36, at = u => [Math.round(bx + (x - bx) * u), Math.round(by + (hy - by) * u)];
+                const [gx, gy] = at(k), [tx0, ty0] = at(Math.max(0, k - 0.06));
+                Gfx.line(tx0, ty0, gx, gy, '#ffffff'); Gfx.rect(gx - 1, gy - 1, 3, 3, PAL.ink); Gfx.rect(gx - 1, gy - 1, 2, 2, '#fff4c0');
+            }
         }
         const R = 22 - this.pulled * 3 - Math.round(this.tight / 12);     /* (winding tight: a little smaller, a moment) */
         if (this.state === 'open' || this.state === 'down') {
@@ -26744,7 +26786,7 @@ class Tangle extends Ent {
             /* its shadow on the floor, smaller the higher it hangs; then the Tangle: a ball of knotted cord, smaller for
                every thread drawn out of it */
             Gfx.alpha(0.3); Gfx.circle(x, y + 16, Math.max(5, R - 4 - Math.round(L / 4)), PAL.ink); Gfx.alpha(1);
-            const wob = this.state === 'sleep' ? 0 : Math.sin(this.t / 10) * 1.5;
+            const wob = (this.state === 'sleep' ? 0 : Math.sin(this.t / 10) * 1.5) + (this.shrug > 0 ? Math.sin(this.shrug * 0.8) * 2 : 0);
             Gfx.circle(x, hy + 2, R + wob, '#4a3020');
             const cols = [THREAD.guild, '#c9925a', '#7a5233', THREAD.ives, THREAD.bram, THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory];
             for (let i = 0; i < 26; i++) {
@@ -26757,6 +26799,8 @@ class Tangle extends Ent {
                 Gfx.circle(ex, hy, 4, PAL.ink); Gfx.circle(ex, hy, 3, '#e8b04a'); Gfx.rect(ex - 2, hy - 2, 2, 1, '#fff0b0');
                 Gfx.rect(ex - 1, hy, 1, 1, '#5a3a1a'); Gfx.rect(ex + 1, hy, 1, 1, '#5a3a1a');
             } else for (const ex of [x - 6, x + 6]) { Gfx.rect(ex - 3, hy, 7, 1, PAL.ink); for (const d of [-2, 0, 2]) Gfx.rect(ex + d, hy - 1, 1, 3, PAL.ink); }
+            /* struck with the stick: a shrug of loose ends flicked out all round it, and drawn in again */
+            if (this.shrug > 0) { const s = Math.sin(this.shrug / 16 * Math.PI) * 6; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + 0.3; Gfx.line(x + Math.cos(a) * (R - 3), hy + 2 + Math.sin(a) * (R - 3), x + Math.cos(a + 0.25) * (R + s), hy + 2 + Math.sin(a + 0.25) * (R + s), i % 2 ? THREAD.guild : '#c9925a'); } }
             /* about to lash: its cords bristle out all round it (a ring of them, flickering) */
             if (this.lashT > 0 && (this.t >> 1) % 2) for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + this.t / 9; Gfx.line(x + Math.cos(a) * (R - 2), hy + 2 + Math.sin(a) * (R - 2), x + Math.cos(a) * (R + 6), hy + 2 + Math.sin(a) * (R + 6), i % 2 ? THREAD.guild : '#f7d64a'); }
             /* swelling, about to throw: it puffs out and glows */
@@ -26767,6 +26811,8 @@ class Tangle extends Ent {
     }
 }
 SPAWN.tangle = (x, y, p) => Progress.flag('spool_boss') ? new Ent('none') : new Tangle(x, y, p);
+/* the stick sinking into a great knot of old cord: dull, soft, going nowhere */
+SFX.thud = (o, t) => { Audio.hit(o, t, 0.1, 0.2, 90, 500); Audio.tone(o, t, 110, 0.09, 'triangle', 0.16, { slide: 70 }); };
 /* the Tangle's bobbins: wooden, patient; their first places are what the Tangle's threads are measured from */
 SPAWN.tbobbin = (x, y, p) => { const b = new Block(x, y, Object.assign({ style: 'wood', look: 'bobbin_t', patience: 360 }, p)); b.tbobbin = true; b.first = [x, y]; b.tangleT = 0; return b; };
 
@@ -28932,6 +28978,15 @@ const Shears = {
         Gfx.line(x0 + ux * gap, y0 + uy * gap, x0 + ux * 400, y0 + uy * 400, THREAD.wren);
         Gfx.alpha(Math.max(0, 1 - s.cut / 60)); Gfx.line(x0, y0, x0 + ux * 4, y0 + 6 + gone * 4, THREAD.wren); Gfx.alpha(1);
     },
+    /* a glint on a thread where the blades, in reach, would close on it now: a little star of the blades' own silver,
+       twinkling (steady and a size bigger where Wren is facing) */
+    glint(x, y, strong) {
+        x = Math.round(x); y = Math.round(y);
+        const r = strong ? 3 : ((G.t >> 3) % 3 ? 2 : 1);
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { Gfx.rect(x - r + dx, y + dy, r * 2 + 1, 1, PAL.ink); Gfx.rect(x + dx, y - r + dy, 1, r * 2 + 1, PAL.ink); }
+        Gfx.rect(x - r, y, r * 2 + 1, 1, '#e4ecf5'); Gfx.rect(x, y - r, 1, r * 2 + 1, '#e4ecf5'); Gfx.rect(x, y, 1, 1, '#ffffff');
+        if (strong) { Gfx.rect(x - 1, y - 1, 3, 3, '#ffffff'); Gfx.rect(x - 1, y - 1, 1, 1, '#e4ecf5'); Gfx.rect(x + 1, y + 1, 1, 1, '#e4ecf5'); }
+    },
     /* the place built afresh: whatever was cut stays a stray, where it was left */
     apply(a) {
         const af = Progress.areaFlags[a.id]; if (!af) return;
@@ -30056,6 +30111,18 @@ const AnchorWays = {
         }
         return false;
     },
+    /* where on its thread, as it's seen, a snip at that tile would close (over the tile itself, or above its shadow there) */
+    seenAt(tx, ty, w) {
+        const cx = tx * T + 8, cy = ty * T + 8, seen = [this.top, this.end(w)];
+        for (const [a, b, r] of [[this.top, this.end(w), 16], [this.foot, [w.x, w.y], 22]]) {
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+            for (let s = 0; s <= len - r; s += 3) {
+                const x = a[0] + (b[0] - a[0]) * s / len, y = a[1] + (b[1] - a[1]) * s / len;
+                if (Math.abs(x - cx) <= 8.5 && Math.abs(y - cy) <= 8.5) { const u = s / len; return [lerp(seen[0][0], seen[1][0], u), lerp(seen[0][1], seen[1][1], u)]; }
+            }
+        }
+        return null;
+    },
     /* the Shears at it (at its post, or along it): cut, or said why not */
     snipBy(w, atPost) {
         if (this.taut(w)) { Shears.cut(this); Stats.count('boss:weaver:anchor:' + this.way); return true; }
@@ -30144,6 +30211,12 @@ class LoomAnchor extends Ent {
     get sortY() { return this.y + 40; }
     /* (where it comes down over the well's head, whichever way the Weaver's swung: the top of the well, under its knot) */
     over(tx, ty) { return !this.cut && Math.abs(tx * T + 8 - this.top[0]) <= 8 && ty >= this.ty + 2 && ty <= this.ty + 3; }
+    /* (where it comes down nearest that tile: low on it, by the Weaver's back) */
+    seenAt(tx, ty, w) {
+        const [ax, ay] = this.top, [bx, by] = this.end(w), cx = tx * T + 8, cy = ty * T + 8, L2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1;
+        const u = clamp(((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / L2, 0, 1);
+        return [ax + (bx - ax) * u, ay + (by - ay) * u];
+    }
     draw(cx, cy) {
         const [x, y] = this.top;
         if (this.cut) { this.drawTatters(x - cx, y - cy); return; }
@@ -30198,7 +30271,7 @@ class Weaver extends Ent {
         if (p.pinned === 'silk' && --this.bindT <= 0) p.pinned = null;
         if (Script.blocking()) return;
         this.st++;
-        this.updateShots(p, r);
+        this.updateShots(p, r); this.spareBound(p);
         const here = p.area === a && Cam.room === r && p.state === 'normal';
         /* a spit coming: it rears back, its belly aglow (the tell), then the silk */
         if (this.puff > 0 && --this.puff === 0) { this.spit(p); if (this.beat === 3) this.spit(p, 0.3); }
@@ -30386,6 +30459,35 @@ class Weaver extends Ent {
         if (up && a.kind(f.tx, f.ty).solid && f.ty <= up.ty + 1 && Math.abs(f.tx * T + 8 - up.top[0]) <= 2 * T) { up.say(ANCHOR_LINE.loom); Sfx.play('hitthing', 0.5); return true; }
         return false;
     }
+    /* what a snip at a tile would cut now, and where on it the blades would close (as snip and snipAnchor go; nothing
+       said, nothing done) */
+    cutPoint(tx, ty) {
+        if (!this.alive) return null;
+        if (this.beat < 2) {
+            if (this.state !== 'web') return null;
+            const o = this.area.at(tx, ty);
+            if (o && o.kind === 'anchor') return !o.cut && o.taut(this) ? { thing: o, x: o.top[0], y: o.top[1] } : null;
+            const n = this.anchors().find(q => q.taut(this) && q.over(tx, ty, this)), at = n && n.seenAt(tx, ty, this);
+            return at ? { thing: n, x: at[0], y: at[1] } : null;
+        }
+        if (!this.path) return null;
+        if (this.z <= WV.reach && this.covers(tx, ty)) return { thing: this, x: this.x, y: this.y - this.z - 6 };
+        if (this.state !== 'home') return null;
+        for (let s = 0; s <= this.s; s += 3) { const [x, y] = this.pointAt(s); if (Math.abs(x - tx * T - 8) <= 8.5 && Math.abs(y - ty * T - 8) <= 8.5) return { thing: this, x, y }; }
+        return null;
+    }
+    /* the Shears in hand: everything in a snip's reach (in front of her, whichever way she turns) that would cut now, so a
+       thread that can be cut is seen to be within reach, as the Needle shows what it would take */
+    cutSpots(p) {
+        const out = [];
+        if (!p || p.area !== this.area || p.state !== 'normal' || p.pinned) return out;
+        for (const d of [UP, RIGHT, DOWN, LEFT]) {
+            const c = this.cutPoint(tileOf(p.x + DX[d] * 12), tileOf(p.y - 4 + DY[d] * 12));
+            if (c && !out.some(q => q.thing === c.thing)) out.push(Object.assign(c, { d, facing: d === p.dir }));
+            else if (c && d === p.dir) { const q = out.find(o => o.thing === c.thing); Object.assign(q, c, { d, facing: true }); }
+        }
+        return out;
+    }
     cutThread() {
         Sfx.play('snip'); Fx.ring(this.x, this.y - this.z - 6, '#e4ecf5'); Stats.count('cuts'); Stats.count('boss:weaver:cut');
         this.path = null;
@@ -30417,10 +30519,15 @@ class Weaver extends Ent {
         if (this.beat >= 2) cols.push(p.tx + (p.tx > r.x + 9 ? -4 : 4));
         for (const x of cols) {
             const tiles = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
-            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, fxCol: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
+            /* (bound in its silk at any moment while it's thrumming, she had no fair chance to step aside: it snaps past
+               her, bound or just cut free) */
+            const h = Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, fxCol: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp, warp: true, coverAt: (px, py, q) => !q.spared && q.tiles.some(([tx, ty]) => tileOf(px) === tx && tileOf(py) === ty) });
+            if (h && p.pinned === 'silk') h.spared = true;
         }
         Stats.count('boss:weaver:warp');
     }
+    /* a warp thread thrumming while she's bound won't land on her (above) */
+    spareBound(p) { if (p.pinned === 'silk') for (const h of this.area.ents) if (h.kind === 'hazard' && h.owner === this && h.warp && !h.landed) h.spared = true; }
     /* (3) it shakes the web, and silk moths flutter down out of it (three about at most) */
     moths(p) {
         if (--this.mothT > 0) return;
@@ -30559,6 +30666,8 @@ class Weaver extends Ent {
         for (const s of this.shots) { Gfx.circle(s.x - cx, s.y - cy, 3, '#e4ecf5'); Gfx.rect(s.x - cx - 1, s.y - cy - 1, 2, 2, '#ffffff'); }
         const p = G.player;
         if (p && p.pinned === 'silk') for (let i = 0; i < 4; i++) Gfx.line(p.x - cx - 7, p.y - cy - 14 + i * 4, p.x - cx + 7, p.y - cy - 12 + i * 4, '#e4ecf5');
+        /* the Shears in hand: in a snip's reach, where they'd cut now glints (brightest where she's facing) */
+        if (p && Inv.equipped === 'shears' && Cam.room === this.room && !Script.blocking()) for (const s of this.cutSpots(p)) Shears.glint(s.x - cx, s.y - cy, s.facing);
     }
 }
 /* after it's beaten (the place built again): the heap of grey silk in its well */
@@ -30578,6 +30687,17 @@ SPAWN.weaver = (x, y, p) => Progress.flag('loom_boss') ? new WeaverHeap(x, y) : 
         const w = p.area && p.area.ents.find(e => e.kind === 'weaver');
         if (w && w.snip && w.snip(p)) return;
         return use0.call(this, p);
+    };
+    /* bound, there's nothing else to be done with whatever's in hand: the tool button takes the Shears to the silk (said
+       the first time it isn't them in hand) */
+    const tools0 = Tools.use;
+    Tools.use = function (p) {
+        if (p && p.pinned === 'silk' && Inv.has('shears')) {
+            const it = Inv.equipped !== 'shears' && ITEMS[Inv.equipped];
+            if (it && !Progress.flag('silk_anytool')) { Progress.set('silk_anytool'); UI.toast(`Wound up in silk, you can't use the ${it.name}. You work the Shears loose and snip the silk instead.`, 180); }
+            return Shears.use(p);
+        }
+        return tools0.call(this, p);
     };
 }
 

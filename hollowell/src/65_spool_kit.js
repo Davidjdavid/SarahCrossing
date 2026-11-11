@@ -141,6 +141,7 @@ const Spool = {
         if (quiet) return;
         Sfx.play('tie'); Stats.count('knots');
         if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. (Z on the knot to undo it.)'; }
+        else UI.toast('Tied off: held fast up above.', 90);     /* (every time after, short: a knot always answers) */
     },
     untie(e) {
         if (!e.knotted) return;

@@ -156,6 +156,18 @@ const AnchorWays = {
         }
         return false;
     },
+    /* where on its thread, as it's seen, a snip at that tile would close (over the tile itself, or above its shadow there) */
+    seenAt(tx, ty, w) {
+        const cx = tx * T + 8, cy = ty * T + 8, seen = [this.top, this.end(w)];
+        for (const [a, b, r] of [[this.top, this.end(w), 16], [this.foot, [w.x, w.y], 22]]) {
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+            for (let s = 0; s <= len - r; s += 3) {
+                const x = a[0] + (b[0] - a[0]) * s / len, y = a[1] + (b[1] - a[1]) * s / len;
+                if (Math.abs(x - cx) <= 8.5 && Math.abs(y - cy) <= 8.5) { const u = s / len; return [lerp(seen[0][0], seen[1][0], u), lerp(seen[0][1], seen[1][1], u)]; }
+            }
+        }
+        return null;
+    },
     /* the Shears at it (at its post, or along it): cut, or said why not */
     snipBy(w, atPost) {
         if (this.taut(w)) { Shears.cut(this); Stats.count('boss:weaver:anchor:' + this.way); return true; }
@@ -244,6 +256,12 @@ class LoomAnchor extends Ent {
     get sortY() { return this.y + 40; }
     /* (where it comes down over the well's head, whichever way the Weaver's swung: the top of the well, under its knot) */
     over(tx, ty) { return !this.cut && Math.abs(tx * T + 8 - this.top[0]) <= 8 && ty >= this.ty + 2 && ty <= this.ty + 3; }
+    /* (where it comes down nearest that tile: low on it, by the Weaver's back) */
+    seenAt(tx, ty, w) {
+        const [ax, ay] = this.top, [bx, by] = this.end(w), cx = tx * T + 8, cy = ty * T + 8, L2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1;
+        const u = clamp(((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / L2, 0, 1);
+        return [ax + (bx - ax) * u, ay + (by - ay) * u];
+    }
     draw(cx, cy) {
         const [x, y] = this.top;
         if (this.cut) { this.drawTatters(x - cx, y - cy); return; }
@@ -298,7 +316,7 @@ class Weaver extends Ent {
         if (p.pinned === 'silk' && --this.bindT <= 0) p.pinned = null;
         if (Script.blocking()) return;
         this.st++;
-        this.updateShots(p, r);
+        this.updateShots(p, r); this.spareBound(p);
         const here = p.area === a && Cam.room === r && p.state === 'normal';
         /* a spit coming: it rears back, its belly aglow (the tell), then the silk */
         if (this.puff > 0 && --this.puff === 0) { this.spit(p); if (this.beat === 3) this.spit(p, 0.3); }
@@ -486,6 +504,35 @@ class Weaver extends Ent {
         if (up && a.kind(f.tx, f.ty).solid && f.ty <= up.ty + 1 && Math.abs(f.tx * T + 8 - up.top[0]) <= 2 * T) { up.say(ANCHOR_LINE.loom); Sfx.play('hitthing', 0.5); return true; }
         return false;
     }
+    /* what a snip at a tile would cut now, and where on it the blades would close (as snip and snipAnchor go; nothing
+       said, nothing done) */
+    cutPoint(tx, ty) {
+        if (!this.alive) return null;
+        if (this.beat < 2) {
+            if (this.state !== 'web') return null;
+            const o = this.area.at(tx, ty);
+            if (o && o.kind === 'anchor') return !o.cut && o.taut(this) ? { thing: o, x: o.top[0], y: o.top[1] } : null;
+            const n = this.anchors().find(q => q.taut(this) && q.over(tx, ty, this)), at = n && n.seenAt(tx, ty, this);
+            return at ? { thing: n, x: at[0], y: at[1] } : null;
+        }
+        if (!this.path) return null;
+        if (this.z <= WV.reach && this.covers(tx, ty)) return { thing: this, x: this.x, y: this.y - this.z - 6 };
+        if (this.state !== 'home') return null;
+        for (let s = 0; s <= this.s; s += 3) { const [x, y] = this.pointAt(s); if (Math.abs(x - tx * T - 8) <= 8.5 && Math.abs(y - ty * T - 8) <= 8.5) return { thing: this, x, y }; }
+        return null;
+    }
+    /* the Shears in hand: everything in a snip's reach (in front of her, whichever way she turns) that would cut now, so a
+       thread that can be cut is seen to be within reach, as the Needle shows what it would take */
+    cutSpots(p) {
+        const out = [];
+        if (!p || p.area !== this.area || p.state !== 'normal' || p.pinned) return out;
+        for (const d of [UP, RIGHT, DOWN, LEFT]) {
+            const c = this.cutPoint(tileOf(p.x + DX[d] * 12), tileOf(p.y - 4 + DY[d] * 12));
+            if (c && !out.some(q => q.thing === c.thing)) out.push(Object.assign(c, { d, facing: d === p.dir }));
+            else if (c && d === p.dir) { const q = out.find(o => o.thing === c.thing); Object.assign(q, c, { d, facing: true }); }
+        }
+        return out;
+    }
     cutThread() {
         Sfx.play('snip'); Fx.ring(this.x, this.y - this.z - 6, '#e4ecf5'); Stats.count('cuts'); Stats.count('boss:weaver:cut');
         this.path = null;
@@ -517,10 +564,15 @@ class Weaver extends Ent {
         if (this.beat >= 2) cols.push(p.tx + (p.tx > r.x + 9 ? -4 : 4));
         for (const x of cols) {
             const tiles = []; for (let y = r.y + 1; y < r.y + r.h - 1; y++) { const k = a.kind(x, y); if (!k.solid && !k.pit) tiles.push([x, y]); }
-            Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, fxCol: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp });
+            /* (bound in its silk at any moment while it's thrumming, she had no fair chance to step aside: it snaps past
+               her, bound or just cut free) */
+            const h = Hazard.tiles(this, tiles, { tell: tellFor(8, this.beat) + 8, dmg: 3, live: 8, fxCol: '#e4ecf5', fx: 'silk', shake: 4, look: LoomFoes.drawWarp, warp: true, coverAt: (px, py, q) => !q.spared && q.tiles.some(([tx, ty]) => tileOf(px) === tx && tileOf(py) === ty) });
+            if (h && p.pinned === 'silk') h.spared = true;
         }
         Stats.count('boss:weaver:warp');
     }
+    /* a warp thread thrumming while she's bound won't land on her (above) */
+    spareBound(p) { if (p.pinned === 'silk') for (const h of this.area.ents) if (h.kind === 'hazard' && h.owner === this && h.warp && !h.landed) h.spared = true; }
     /* (3) it shakes the web, and silk moths flutter down out of it (three about at most) */
     moths(p) {
         if (--this.mothT > 0) return;
@@ -659,6 +711,8 @@ class Weaver extends Ent {
         for (const s of this.shots) { Gfx.circle(s.x - cx, s.y - cy, 3, '#e4ecf5'); Gfx.rect(s.x - cx - 1, s.y - cy - 1, 2, 2, '#ffffff'); }
         const p = G.player;
         if (p && p.pinned === 'silk') for (let i = 0; i < 4; i++) Gfx.line(p.x - cx - 7, p.y - cy - 14 + i * 4, p.x - cx + 7, p.y - cy - 12 + i * 4, '#e4ecf5');
+        /* the Shears in hand: in a snip's reach, where they'd cut now glints (brightest where she's facing) */
+        if (p && Inv.equipped === 'shears' && Cam.room === this.room && !Script.blocking()) for (const s of this.cutSpots(p)) Shears.glint(s.x - cx, s.y - cy, s.facing);
     }
 }
 /* after it's beaten (the place built again): the heap of grey silk in its well */
@@ -678,6 +732,17 @@ SPAWN.weaver = (x, y, p) => Progress.flag('loom_boss') ? new WeaverHeap(x, y) : 
         const w = p.area && p.area.ents.find(e => e.kind === 'weaver');
         if (w && w.snip && w.snip(p)) return;
         return use0.call(this, p);
+    };
+    /* bound, there's nothing else to be done with whatever's in hand: the tool button takes the Shears to the silk (said
+       the first time it isn't them in hand) */
+    const tools0 = Tools.use;
+    Tools.use = function (p) {
+        if (p && p.pinned === 'silk' && Inv.has('shears')) {
+            const it = Inv.equipped !== 'shears' && ITEMS[Inv.equipped];
+            if (it && !Progress.flag('silk_anytool')) { Progress.set('silk_anytool'); UI.toast(`Wound up in silk, you can't use the ${it.name}. You work the Shears loose and snip the silk instead.`, 180); }
+            return Shears.use(p);
+        }
+        return tools0.call(this, p);
     };
 }
 

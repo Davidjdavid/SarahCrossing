@@ -235,8 +235,12 @@ defHouse({
             rows: ['####################', '#...#..............#', '#..................#', '#####..............#', '#..................#', '#...................', '#............#.#...#', '#............#.#...#', '#............###...#', '#..................#', '####################'],
             ents: [
                 { k: 'knotlock', x: 2, y: 1, house: 'tidy' },
-                { k: 'door', x: 4, y: 2, type: 'gate', when: 'gsTp', dir: 'v', passed: 'left', id: 'gsTGate' },
+                /* (the gate wants the slot's plate down and the mangle home over it, on the iron plate at the top of the slot:
+                   the block alone only waits out its patience on the plate, and a dash for the gate in that time isn't the
+                   idea) */
+                { k: 'door', x: 4, y: 2, type: 'gate', when: 'gsTp&gsTm', dir: 'v', passed: 'left', id: 'gsTGate' },
                 { k: 'plate', x: 14, y: 7, sig: 'gsTp' },
+                { k: 'plate', x: 14, y: 6, sig: 'gsTm', minWeight: WEIGHT.heavy, look: 'iron' },
                 /* (patient: time to put the slot behind you and ring from across the room, out of its hearing) */
                 { k: 'block', x: 16, y: 3, style: 'wood', id: 'gsTBlock', patience: 300 },
                 /* the old mangle: it lives at the top of the slot, and it's asleep across the room */
@@ -272,7 +276,8 @@ defHouse({
             name: 'The Winding Room',
             rows: ['#########.##########', '#..................#', '#..................#', '#..................#', '#..................#', '....................', '#..................#', '#..................#', '#..................#', '#..................#', '#########.##########'],
             ents: [
-                { k: 'deco', x: 7, y: 2, look: 'spoolpost', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'The foot of the Great Spool: a drum of thread as wide as a house, every colour, turning, and every turn a little tighter.' },
+                /* (beside the way up, not in front of it: the way up's in plain sight from every door in) */
+                { k: 'deco', x: 10, y: 2, look: 'spoolpost', solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0]], text: 'The foot of the Great Spool: a drum of thread as wide as a house, every colour, turning, and every turn a little tighter.' },
             ],
         },
         /* ---------------- the Millrace's Knot: the river keeps a loose float till it runs out; then the Pull takes it up ---------------- */
@@ -892,14 +897,26 @@ const GreatSpool = {
             if (!Input.down('act')) c.armed = false;
             if (p.grip !== gran && c.armed && facing && !p.carry) { if (++c.down >= 8) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } } else c.down = 0;
         }
+        /* (how far it's got, c.h of HOLD, is a ring of stitches sewn round her hand as it's held (SpoolArt.holdRing); let go,
+           it unpicks slowly, a stitch a while, and held again it goes on from there) */
         if (p.grip === gran) {
-            if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf(c.linnet, gran, p); UI.toasts = UI.toasts.filter(t => !/take her hand/.test(t.s)); }
+            if (!c.held) { c.held = true; Sfx.play('click'); Ending.hands = this.handsOf(c.linnet, gran, p); UI.toasts = UI.toasts.filter(t => !/take her hand/.test(t.s)); }
             c.h++;
-            /* (she tries twice: her hand pulls back toward the Spool) */
-            if (c.h === 40 || c.h === 100) { Sfx.play('tug'); gran.dir = UP; G.shake = Math.max(G.shake, 2); }
-            if (c.h === 52 || c.h === 112) gran.dir = DOWN;
-            if (c.h >= 160) { a.climax = null; Script.run(this.letGo(gran, c.linnet), { name: 'finale' }); }
-        } else if (c.h) { c.h = 0; gran.dir = DOWN; Ending.hands = this.handsOf(c.linnet, gran); }
+            /* (she tries twice in all: her hand pulls back toward the Spool) */
+            if ((c.tugs || 0) < 2 && c.h >= [40, 100][c.tugs || 0]) { c.tugs = (c.tugs || 0) + 1; c.turn = c.h + 12; Sfx.play('tug'); gran.dir = UP; G.shake = Math.max(G.shake, 2); }
+            if (c.turn && c.h >= c.turn) { c.turn = 0; gran.dir = DOWN; }
+            if (c.h >= this.HOLD) { a.climax = null; Script.run(this.letGo(gran, c.linnet), { name: 'finale' }); }
+        } else {
+            if (c.held) { c.held = false; c.turn = 0; gran.dir = DOWN; Ending.hands = this.handsOf(c.linnet, gran); }
+            if (c.h > 0 && G.t % 3 === 0) c.h--;
+        }
+    },
+    HOLD: 160,
+    /* where the ring's sewn: round the hand of hers Wren holds (the one away from Linnet), where the two hands clasp */
+    holdSpot(a) {
+        const c = a.climax, gran = c && a.ents.find(e => e.who === 'gran');
+        if (!gran || !c.linnet) return null;
+        return [gran.px + (c.linnet.tx < gran.tx ? 16 : 0), gran.py + 7];
     },
     *letGo(gran, linnet) {
         const a = G.map, p = G.player;
