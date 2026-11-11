@@ -267,6 +267,8 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   wordless card of the winch winding the House's colour, Biscuit's line trimmed; P6 Linnet's note 5 playable where the
   river meets the fog in Meadowfold's south (src/80c_fog_hand.js); P1's Hall part (hold on and Gran waits; let go or
   never grip and the scene goes on as before). Its 11 tests fail on the old source and pass now.
+- The private direction: done (see SPOILERS.md's section on it and scratchpad private_work/DECISION.md; its own tests,
+  a 4,000-case sweep among them; nothing before the end; never named anywhere David reads).
 - A private direction from David (11 November), kept in hollowell/private/ for him to read after the game; never
   shown, summarised or hinted to him. Considered against what the game already does; a helper is on it (scratchpad
   private_brief.md). Never named in the changelog, commit messages or anything he reads.
