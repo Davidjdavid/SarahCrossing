@@ -131,8 +131,8 @@ light things back one tile, which displaces them).
 | 7 | **Needle** | D7 Spoolworks | Re-mark: pick a marked thing, choose a new spot within 4 tiles in sight; it moves there and that is now its place. Up to 3 re-marks at a time (a 4th undoes the oldest); Unpick puts one back. A stray can be given a mark. | Moving obstacles for good, shortcuts, the stone gate, finishing the Unfinished House. |
 | 8 | **Shears** | D8 Loom | Cut a thread: the thing becomes a stray, for good. Cut townsfolk free. | Strays fill pits; freed people; the fog at the edge. |
 
-Other progression: **hearts** (stitched patches; 3 to start, +1 per boss, +1 per 4 Heart Patches: 16
-patches in the world), **buttons** (money), dungeon **keys**, each House's **Pattern** (its master key)
+Other progression: **hearts** (stitched patches; 3 to start, +1 per boss, +1 per 4 Heart Patches:
+38 patches in the world, counted by tests/heartpatches.test.mjs), **buttons** (money), dungeon **keys**, each House's **Pattern** (its master key)
 and **Plan** (its map), **Knots** (one per House). Optional upgrades: Long Hook (O2), Linnet's bracelet and a Heartstitch (O1),
 Stray Charm (Lost & Found).
 

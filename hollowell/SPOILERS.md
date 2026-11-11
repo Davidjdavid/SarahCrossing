@@ -177,7 +177,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 38. **The Wander quilt** (Wren's room, by the bed): a tally of everything found, by kind, never where (secrets, Linnet's
     notes, Makers' marks, old foes patted, fog-silk hollows, the two optional houses).
 39. **Nothing returns, Wren included** (the Stray House): a fall in there leaves her where she fell.
-36. **Heart Patches** (16 total) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
+36. **Heart Patches** (38 total: 31 in chests or lying about, 6 given by someone for something, 1 knocked out of the hawk's
+    nest; tests/heartpatches.test.mjs finds them all) placements are listed in DUNGEON_TRACKER.md "Overworld secrets".
 40. **The Old Fold** (Meadowfold): the counting stones count a sheep walking home, not one driven: drive Nettle round the
     fold the opposite way and leave her; she counts herself home yan, tan, tethera: Grandad's tally box, the ringers'
     clapper. Old Tup asleep in the bothy door: the Recall Bell, the bothy's Heart Patch.

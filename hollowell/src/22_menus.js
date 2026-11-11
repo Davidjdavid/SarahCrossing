@@ -192,7 +192,7 @@ const NameEntry = {
 const PauseMenu = {
     tabs: ['Satchel', 'Map', 'Journal', 'Options', 'Save'],
     tab: 0, sel: 0, t: 0,
-    open() { UI.menu = this; this.t = 0; this.sel = 0; this.row = 0; this.tsel = 0; this.nsel = 0; this.reading = null; Sfx.play('menu'); },
+    open() { UI.menu = this; this.t = 0; this.sel = 0; this.row = 0; this.tsel = 0; this.ttop = 0; this.nsel = 0; this.reading = null; Sfx.play('menu'); },
     close() { UI.menu = null; Input.swallow(); Settings.save(); },
     update() {
         this.t++;
@@ -209,8 +209,13 @@ const PauseMenu = {
         else if (Input.pressed('next') || (Input.pressed('right') && this.tabs[this.tab] !== 'Satchel')) { this.tab = (this.tab + 1) % this.tabs.length; this.sel = 0; Sfx.play('menu'); }
         const tab = this.tabs[this.tab];
         if (tab === 'Satchel') {
-            const things = this.things();
-            if ((Input.pressed('down') && this.row !== 1 && things.length) || (Input.pressed('up') && this.row === 1)) { this.row = this.row === 1 ? 0 : 1; this.tsel = Math.min(this.tsel || 0, Math.max(0, things.length - 1)); Sfx.play('menu'); }
+            const things = this.things(), per = this.SAT.perRow;
+            if (this.row === 1 && !things.length) this.row = 0;
+            this.tsel = Math.min(this.tsel || 0, Math.max(0, things.length - 1));
+            /* down from the tools to the things, and down and up their rows; up from the top row of things: the tools */
+            if (this.row !== 1) { if (Input.pressed('down') && things.length) { this.row = 1; Sfx.play('menu'); } }
+            else if (Input.pressed('up')) { if (this.tsel >= per) this.tsel -= per; else this.row = 0; Sfx.play('menu'); }
+            else if (Input.pressed('down') && this.tsel + per < things.length) { this.tsel += per; Sfx.play('menu'); }
             const n = this.row === 1 ? things.length : Inv.tools.length;
             if (n) {
                 const k = this.row === 1 ? 'tsel' : 'sel';
@@ -287,10 +292,29 @@ const PauseMenu = {
             yield* fadeIn(20);
         });
     },
-    /* the satchel: tools on one row, things on the next (each picked with the arrows, its name and what it is below);
-       hearts, patches and buttons at the foot, the Knots tied up top. Laid out to fit with every tool and thing held. */
+    /* the satchel: tools on one row, things under them (each picked with the arrows, its name and what it is below);
+       hearts, patches and buttons at the foot, the Knots tied up top. However many things there are it fits: two rows
+       of them show at a time (the rows scroll with the pick, an arrow at the end of a row when there are more), and
+       what the picked one is has the room left above the foot: its name on a line of its own when that leaves room for
+       all it says, else leading into it. (tests/ui_sweep.test.mjs holds it to that, with every thing in the game.) */
+    SAT: { perRow: 12, rows: 2, gridY: 84, pitch: 22, footY: 158, descW: 280 },
     things() { return Object.keys(Inv.items).filter(k => ITEMS[k] && ITEMS[k].kind !== 'hidden' && ITEMS[k].kind !== 'tool'); },
+    /* the first row of things shown: the picked one's row kept in view (the last one picked, while it's the tools) */
+    satchelTop(things) {
+        const S = this.SAT, rows = Math.ceil(things.length / S.perRow), vis = Math.min(S.rows, Math.max(1, rows));
+        let top = this.ttop || 0;
+        const r = Math.floor((this.tsel || 0) / S.perRow); if (r < top) top = r; if (r >= top + vis) top = r - vis + 1;
+        return (this.ttop = clamp(top, 0, Math.max(0, rows - vis)));
+    },
+    /* what a thing is, in lines that fit `room` (its name in red on a line of its own, or leading in when that's too many) */
+    satchelLines(id, room) {
+        const I = ITEMS[id], w = this.SAT.descW, desc = Story.fill(I.desc || '');
+        const own = desc ? Font.wrap(desc, w) : [];
+        if (own.length + 1 <= room) return ['{red}' + I.name].concat(own);
+        return Font.wrap(I.name.split(' ').map(s => '{red}' + s + '{/}').join(' ') + (desc ? ': ' + desc : ''), w);
+    },
     drawSatchel() {
+        const S = this.SAT;
         Font.draw('Tools', 22, 33, PAL.grey3);
         /* the Knots tied, at the right of the Tools line */
         if (Inv.knots.length) { const kx = 302 - Inv.knots.length * 14; Font.draw('Knots', kx - 30, 33, PAL.grey3); Inv.knots.forEach((k, i) => Gfx.img(spr('knot'), kx + i * 14, 27)); }
@@ -306,29 +330,30 @@ const PauseMenu = {
                 if (Inv.equipped === id) { Gfx.rect(x + 17, y + 17, 6, 6, PAL.red2); Gfx.rect(x + 19, y + 19, 2, 2, '#ffffff'); }
             } else Font.center('?', x + 12, y + 8, '#c8b48c');
         });
-        const things = this.things();
+        const things = this.things(), rows = Math.ceil(things.length / S.perRow), vis = Math.min(S.rows, rows), top = this.satchelTop(things);
         Font.draw('Things', 22, 74, PAL.grey3);
         if (!things.length) Font.draw('Nothing else yet.', 60, 74, PAL.grey3);
-        const perRow = 12;
         things.forEach((id, i) => {
-            const x = 24 + (i % perRow) * 22, y = 84 + Math.floor(i / perRow) * 22;
+            const r = Math.floor(i / S.perRow) - top;
+            if (r < 0 || r >= vis) return;
+            const x = 24 + (i % S.perRow) * S.pitch, y = S.gridY + r * S.pitch;
             Gfx.rect(x, y, 20, 20, '#fff6e0'); Gfx.frame(x, y, 20, 20, '#b8a07a');
             const im = spr(ITEM_ICON[id] || ('icon_' + id)) || spr(id);
             if (im) Gfx.img(im, x + 10 - im.width / 2, y + 10 - im.height / 2); else Font.center('?', x + 10, y + 6, '#c8b48c');
             if (this.row === 1 && this.tsel === i) { Gfx.frame(x - 1, y - 1, 22, 22, PAL.red2); Gfx.frame(x - 2, y - 2, 24, 24, PAL.red2); }
         });
-        /* what the picked one is */
-        const descY = 84 + Math.max(1, Math.ceil(things.length / perRow)) * 22 + 2;
+        /* more rows of things above or below the ones shown: a little arrow at the end of the row */
+        const ax = 24 + S.perRow * S.pitch + 4;
+        if (top > 0) for (let j = 0; j < 3; j++) Gfx.rect(ax + 2 - j, S.gridY + 6 + j, 1 + j * 2, 1, PAL.red2);
+        if (top + vis < rows) for (let j = 0; j < 3; j++) Gfx.rect(ax + j, S.gridY + (vis - 1) * S.pitch + 11 + j, 5 - j * 2, 1, PAL.red2);
+        /* what the picked one is, in the room between the things and the foot */
+        const descY = S.gridY + Math.max(1, vis) * S.pitch, room = Math.floor((S.footY - descY) / 10);
         const pick = this.row === 1 ? things[this.tsel] : Inv.tools[this.sel];
-        if (pick) {
-            const I = ITEMS[pick];
-            Font.draw('{red}' + I.name, 24, descY, PAL.ink);
-            const room = Math.max(1, Math.floor((150 - (descY + 10)) / 10));
-            Font.wrap(Story.fill(I.desc || ''), 270).slice(0, room).forEach((l, i) => Font.draw(l, 24, descY + 10 + i * 10, PAL.ink));
-        } else Font.draw('No tools yet.', 24, descY, PAL.grey3);
+        if (pick) this.satchelLines(pick, room).slice(0, room).forEach((l, i) => Font.draw(l, 24, descY + i * 10, PAL.ink));
+        else Font.draw('No tools yet.', 24, descY, PAL.grey3);
         /* the foot: hearts, patches, buttons */
         const foot = (Progress.flag('cut_self') ? 'No hearts: nothing to unravel' : 'Hearts ' + Math.ceil(Inv.maxHp / 2) + '   Heart Patches ' + (Inv.patches % 4) + '/4') + '   Buttons ' + Inv.buttons;
-        Font.draw(foot, 24, 156, PAL.ink);
+        Font.draw(foot, 24, S.footY, PAL.ink);
     },
     /* the journal: what's next, and the notes found (pick one to read it again) */
     drawJournal() {

@@ -80,7 +80,7 @@ defHouse({
                 { k: 'door', x: 3, y: 4, type: 'gate', when: 'lwr', id: 'lwrGate', passed: 'up' },
                 { k: 'chest', x: 3, y: 2, item: 'heartpatch', id: 'lwrPatch' },
                 { k: 'crock', x: 11, y: 3 },
-                { k: 'deco', x: 9, y: 6, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+                { k: 'kwkiln', x: 9, y: 6, solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
                 { k: 'sign', x: 5, y: 5, text: 'A plaque by the little gate: "Rung from next door. Be here when it rings."' },
             ],
             nudge: { solved: 'kiln_lwrGate', after: 60 * 60 * 3, say: "The little gate answers to a charm in the next room. You'd have to be here, and it would have to ring there." },
@@ -108,7 +108,7 @@ defHouse({
                 { k: 'door', x: 9, y: 0, type: 'gate', when: 'ha&hb&hc', passed: 'up', id: 'hN' },
                 { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'hE' },
                 { k: 'pot', x: 2, y: 8, id: 'hPot' }, { k: 'pot', x: 17, y: 8, id: 'hPot2' },
-                { k: 'deco', x: 9, y: 4, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+                { k: 'kwkiln', x: 9, y: 4, solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
             ],
             nudge: { solved: 'kiln_hN', after: 60 * 60 * 3, say: 'Three charms, all to ring at once. One throw only rings what it flies through... but the pieces go back the whole way you came.' },
         },
@@ -132,7 +132,7 @@ defHouse({
                 { k: 'crock', x: 6, y: 2 }, { k: 'crock', x: 13, y: 7 }, { k: 'crock', x: 15, y: 1 },
                 { k: 'shutter', x: 0, y: 4, dir: 'v', group: 'crocks' },
                 { k: 'chest', x: 17, y: 5, item: 'plan', id: 'cPlan', hidden: true, when: 'flag:kiln_crocksDone' },
-                { k: 'deco', x: 9, y: 5, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+                { k: 'kwkiln', x: 9, y: 5, solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
             ],
         },
         /* ---------------- 4 Sun, Moon, Star ---------------- */
@@ -277,7 +277,7 @@ defHouse({
                 { k: 'crate', x: 3, y: 5, id: 'fCrate' },
                 { k: 'pot', x: 16, y: 2, id: 'fPot' }, { k: 'pot', x: 16, y: 8, id: 'fPot2' },
                 { k: 'door', x: 0, y: 5, type: 'lock', dir: 'v', id: 'fW' },
-                { k: 'deco', x: 14, y: 4, look: 'kilnbig', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
+                { k: 'kwkiln', x: 14, y: 4, look: 'kw_furnace', solid: [[0, 0], [1, 0], [0, 1], [1, 1]], ox: 0, oy: -6 },
                 { k: 'sign', x: 12, y: 9, text: 'No hooks over the furnace pit, please. Nothing over there to hook on to anyway.' },
             ],
             nudge: { solved: 'kiln_fW', after: 60 * 60 * 3, at: [3, 5], say: "Where the crate sits, there's a little stitched cross. Knock the crate off it and there'd be nothing on that cross at all..." },
@@ -307,7 +307,7 @@ defHouse({
                 { k: 'pot', x: 18, y: 6, id: 'rPot' },
                 { k: 'chest', x: 2, y: 2, item: 'pattern', id: 'kPattern', hidden: true, when: 'ra&rb&rc&rd', big: true },
                 { k: 'crackwall', x: 9, y: 0, id: 'sigSeal' },
-                { k: 'deco', x: 1, y: 4, look: 'rack', solid: [[0, 0]] }, { k: 'deco', x: 17, y: 4, look: 'rack', solid: [[0, 0]] },
+                { k: 'deco', x: 1, y: 4, look: 'kw_rack', solid: [[0, 0]] }, { k: 'deco', x: 17, y: 4, look: 'kw_rack', solid: [[0, 0]] },
             ],
             nudge: { solved: 'kiln_kPattern', after: 60 * 60 * 4, say: 'Four charms, one flight. The path will have to cross the pit... and you can only cross it on a line.' },
         },
@@ -330,7 +330,7 @@ defHouse({
             ents: [
                 { k: 'signature', x: 9, y: 5, house: 'kiln' },
                 { k: 'deco', x: 6, y: 2, look: 'mosaic', solid: false, oy: -8, baseY: -100, text: "A mosaic set into the wall, made of hundreds of broken bits of pot: a big laughing man with a beard, holding up a jug. It's signed in ochre: B." },
-                { k: 'deco', x: 13, y: 7, look: 'wheel', text: "A potter's wheel, still turning slowly. Somebody was here not long ago." },
+                { k: 'deco', x: 13, y: 7, look: 'kw_wheel', text: "A potter's wheel, still turning slowly. Somebody was here not long ago." },
                 { k: 'pot', x: 7, y: 7 }, { k: 'pot', x: 12, y: 3 },
                 { k: 'deco', x: 10, y: 3, look: 'sandwich', solid: false, text: "Half a cheese sandwich on a plate. There's a bite out of it the size of a very large man." },
             ],
@@ -384,6 +384,10 @@ defHouse({
     legend: { 'v': { k: 'low', p: 'vat' } },
     tick: a => KilnLogic.tick(a),
     afterKnot: function* () { yield* Kiln.afterKnot(); },
+    /* (each room its own look, its dressing laid over the floor and its fires flickering: see the end of this file) */
+    themeAt: (x, y) => kilnLookAt(x, y),
+    drawGround: (a, cx, cy) => KilnLook.ground(a, cx, cy),
+    onEnter: a => KilnLook.warm(a),
 });
 
 const KilnLogic = {
@@ -885,3 +889,362 @@ function initKilnArt() {
 }
 CONTENT_INIT.push(initKilnArt);
 ITEM_LINES.hook = () => "You found the {red}Hookline{/}! [tool] to throw the hook. It catches on brass rings and on any stitched cross with nothing on it, and reels you over; light things it reels to you.";
+
+/* ======================= the look of the place (all paint: nothing here is solid, moves anything or sets a flag) =======================
+   A colour script for the Kiln: fired brick, darkened with soot the nearer the fires; clay-dusted flagstones underfoot,
+   brick paving round the hearths; the orange of the fires; turquoise glaze in the glazing rooms. The work rooms keep the
+   flags and the brick; the glazing rooms are glazed tile to the dado over a chequer of glazed floor tiles; the furnace
+   hall and the Kiln's heart are blackened with soot; Bram's potting shed is whitewashed over warm boards. Floors are a
+   flag or a tile to a tile, the dust only in the joints, so the ochre marks and threads stay clear. Then a few great
+   things that say what each room is: bottle kilns (in place of the old ones), the great kiln and a long dragon kiln built
+   into the rooms' own walls, clay bins, woodpiles, racks of greenware, glaze stores, kiln mouths (KILN_DRESS, laid over
+   the floor like the Tidyhouse's: RoomLook), with their fires flickering (KILN_GLOW). */
+const KILN_ROOM_LOOK = { '1,3': 'work', '0,3': 'work', '1,2': 'work', '2,3': 'work', '2,2': 'work', '0,2': 'work', '2,1': 'glaze', '3,1': 'work',
+    '3,2': 'work', '1,1': 'heart', '0,1': 'work', '0,0': 'shed', '2,0': 'glaze', '1,0': 'heart' };
+const kilnLookAt = (x, y) => { const n = KILN_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'work'; return 'kiln_' + n + (KILN_LOOKS[n].alt && (x + y) & 1 ? '_b' : ''); };
+const KilnFloor = {
+    /* a flagstone a tile: lit along its top and left, in shade along its bottom and right, pale clay dust in its joints
+       and a scuff at one corner of some */
+    flag: c => (x, th, v) => {
+        fill(x, c[0]);
+        fill(x, c[1], 0, 0, 15, 1); fill(x, c[1], 0, 1, 1, 14); fill(x, c[2], 0, 15, 16, 1); fill(x, c[2], 15, 0, 1, 15);
+        px(x, 2 + v * 3, 15, c[3]); px(x, 3 + v * 3, 15, c[3]); px(x, 15, 4 + v * 2, c[3]);
+        if (v === 1) { px(x, 1, 1, c[4]); px(x, 2, 1, c[4]); px(x, 1, 2, c[4]); }
+        if (v === 3) { px(x, 13, 13, c[4]); px(x, 12, 14, c[4]); px(x, 14, 12, c[4]); }
+    },
+    /* brick paving, for the hearths and aprons and the old passages: laid flat in a basket weave (the walls are in a
+       running bond, so the floor never reads as a wall), duller than the walls, the mortar dark */
+    brick: (x, th, v) => {
+        fill(x, '#74402e');
+        for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+            const X = i * 8, Y = j * 8, along = (i + j) % 2 === 0;
+            for (let k = 0; k < 2; k++) {
+                const t = ['#a2604a', '#986044', '#a86850'][(i + j * 2 + k + v) % 3];
+                if (along) { fill(x, t, X, Y + k * 4, 7, 3); fill(x, shade(t, 0.12), X, Y + k * 4, 7, 1); }
+                else { fill(x, t, X + k * 4, Y, 3, 7); fill(x, shade(t, 0.12), X + k * 4, Y, 3, 1); }
+            }
+        }
+    },
+    /* a glazed floor tile: the glaze's shine at its corner, a drip of a darker glaze on some */
+    glazed: c => (x, th, v) => {
+        fill(x, c[0]); fill(x, c[1], 0, 0, 15, 1); fill(x, c[1], 0, 1, 1, 14); fill(x, c[2], 0, 15, 16, 1); fill(x, c[2], 15, 0, 1, 15);
+        px(x, 2, 2, '#ffffff'); px(x, 3, 2, c[1]); px(x, 2, 3, c[1]);
+    },
+};
+const KILN_LOOKS = {
+    work: { floor: KilnFloor.flag(['#b8aa94', '#cbbfaa', '#8e8170', '#e2d6c0', '#a6977f']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.35, firebox: true },
+    heart: { floor: KilnFloor.flag(['#a39582', '#b6a994', '#7a6e5e', '#cfc2ac', '#8f826e']), brick: ['#a8523a', '#7a3424', '#c46a48', '#4a1c14'], soot: 0.6, firebox: true },
+    glaze: { floor: KilnFloor.glazed(['#efe6d2', '#fbf6ea', '#c8bca4']), alt: KilnFloor.glazed(['#b2e0d8', '#cfeee8', '#7cb4ac']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.25, dado: true },
+    shed: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b07a4a', '#a87444', '#b8824e'], hi: '#c8925a', seam: '#6e4426', nail: '#4e2e1c' }), brick: ['#ece2cc', '#d8ccb4', '#f6eedf', '#b8ab92'], soot: 0.12 },
+};
+const KilnWall = {
+    face(x, L, v) {
+        Paint.bricks(x, L.brick, v);
+        /* soot: the top of the wall blackened by the firings */
+        x.globalAlpha = L.soot; fill(x, '#2a1410', 0, 0, 16, 2); x.globalAlpha = L.soot * 0.6; fill(x, '#2a1410', 0, 2, 16, 2); x.globalAlpha = L.soot * 0.3; fill(x, '#2a1410', 0, 4, 16, 3); x.globalAlpha = 1;
+        if (L.dado) {
+            /* glazed tiles to the dado: turquoise, each with its shine, a dark line under */
+            fill(x, '#2e7e78', 0, 8, 16, 7);
+            for (let j = 8; j < 15; j += 4) for (let i = (j === 12 ? 2 : 0); i < 16; i += 4) { fill(x, '#5ad1c5', i, j, 3, 3); px(x, i, j, '#bff3ee'); }
+            fill(x, '#e0913a', 0, 8, 16, 1);
+        }
+        fill(x, '#3a1810', 0, 15, 16, 1);
+        if (v === 2 && L.firebox) {
+            /* a little firebox let into the wall: a sooty arch, the embers in it */
+            x.globalAlpha = 0.35; fill(x, '#2a1410', 4, 2, 8, 6); x.globalAlpha = 1;
+            fill(x, '#3a1810', 4, 8, 8, 7); fill(x, '#3a1810', 5, 7, 6, 1); fill(x, '#1a0c08', 5, 8, 6, 6);
+            fill(x, '#c0302e', 5, 12, 6, 2); fill(x, '#f39a3c', 6, 12, 4, 1); px(x, 7, 13, '#f7d64a'); px(x, 8, 12, '#f7d64a');
+        }
+    },
+};
+for (const [n, L] of Object.entries(KILN_LOOKS)) for (const half of L.alt ? ['', '_b'] : ['']) {
+    const tn = 'kiln_' + n + half, f = half ? L.alt : L.floor;
+    THEMES[tn] = THEMES.kilnhouse;
+    FLOORS[tn] = { floor: f, floor2: KilnFloor.brick, floor3: FLOORS.kilnhouse.floor3, vat: (x, th, v) => FLOORS.kilnhouse.vat(x, th, v) };
+    WALLS[tn] = { edge: '#3a1810', top: (x) => { fill(x, '#6a2e1e'); fill(x, '#7a3a26', 0, 0, 16, 1); }, face: (x, th, v) => KilnWall.face(x, L, v) };
+}
+
+/* each room's own pieces, in room pixels (as TIDY_DRESS) */
+const KILN_DRESS = {
+    /* the way in: the Kiln's wares on shelves either side of the sealed door */
+    '1,3': { wall: [['kw_potshelf', 72, 0], ['kw_potshelf', 168, 0, true]] },
+    /* the long way round: a woodpile for the kiln (the bottle kiln stands where the old one stood), soot at its mouth */
+    '0,3': { wall: [['kw_logs', 200, 0]], paint: (x, R) => KilnLook.soot(x, R, [[9, 6]]) },
+    /* the charm hall: shelves of greenware drying on the four brick benches, the kiln on its apron */
+    '1,2': { wall: [['kw_dryshelf', 64, 48], ['kw_dryshelf', 208, 48], ['kw_dryshelf', 64, 112], ['kw_dryshelf', 208, 112]], paint: (x, R) => KilnLook.soot(x, R, [[9, 4]]) },
+    /* the crock pen: clay bins and woodpiles for pillars, the broken crocks swept into a heap */
+    '2,3': { wall: [['kw_claybin', 48, 48], ['kw_claybin', 240, 48], ['kw_woodstack', 48, 112], ['kw_woodstack', 240, 112], ['kw_shards', 142, 2]], paint: (x, R) => KilnLook.soot(x, R, [[9, 5]]) },
+    /* the room round the great kiln, built into its middle */
+    '2,2': { wall: [['kw_greatkiln', 48, 48]] },
+    /* doubling back: round a long dragon kiln */
+    '0,2': { wall: [['kw_dragonkiln', 32, 96]] },
+    /* the glazing room: four glaze stores at its corners */
+    '2,1': { wall: [['kw_glazeshelf', 32, 32], ['kw_glazeshelf', 256, 32], ['kw_glazeshelf', 32, 112], ['kw_glazeshelf', 256, 112]] },
+    /* the gallery of chasms: plates hung on its wall */
+    '3,1': { wall: [['kw_plates', 116, 1]] },
+    /* the bridge of cords: coils of rope and a pulley on their pegs */
+    '3,2': { wall: [['kw_ropes', 194, 0]] },
+    /* the furnace hall: the furnace's iron doors in the wall (the furnace stands where the old kiln stood) */
+    '1,1': { wall: [['kw_furnacedoor', 128, 0]], paint: (x, R) => KilnLook.soot(x, R, [[14, 4]]) },
+    /* bram's potting shed: his pots on a shelf */
+    '0,0': { wall: [['kw_brampots', 166, 16]] },
+    /* the glaze vats: each set of four a great vat, the glaze jars on a shelf */
+    '2,0': { wall: [['kw_glazejars', 136, 0]], floor: [['kw_vat', 32, 32], ['kw_vat', 256, 32], ['kw_vat', 32, 112], ['kw_vat', 256, 112]] },
+    /* the kiln's heart: kiln mouths roaring in its wall */
+    '1,0': { wall: [['kw_kilnmouth', 80, 0], ['kw_kilnmouth', 144, 0], ['kw_kilnmouth', 208, 0]] },
+};
+/* the fires: [x, y, w, h] in room pixels, each flickering (and a warm light on the floor in front) */
+const KILN_GLOW = {
+    '2,2': [[79, 119, 10, 8], [147, 119, 10, 8], [215, 119, 10, 8]],
+    '0,2': [[59, 118, 6, 8], [107, 118, 6, 8], [155, 118, 6, 8], [203, 118, 6, 8], [251, 118, 6, 8]],
+    '1,1': [[142, 5, 5, 10]],
+    '1,0': [[89, 9, 14, 7], [153, 9, 14, 7], [217, 9, 14, 7]],
+};
+const KilnLook = {
+    ground(a, cx, cy) {
+        RoomLook.ground(a, cx, cy, KILN_DRESS);
+        if (HEADLESS) return;
+        for (const r of a.rooms) {
+            const g = KILN_GLOW[r.key]; if (!g) continue;
+            const X = r.x * T - cx, Y = r.y * T - cy;
+            if (X >= W || Y >= H || X + r.w * T <= 0 || Y + r.h * T <= 0) continue;
+            g.forEach(([gx, gy, w, h], i) => {
+                const k = 0.5 + 0.5 * Math.sin(G.t / 7 + i * 1.9) * Math.sin(G.t / 11 + i);
+                Gfx.alpha(0.25 + 0.3 * k); Gfx.rect(X + gx, Y + gy + h - 3, w, 3, '#f7d64a'); Gfx.alpha(0.2 + 0.25 * k); Gfx.rect(X + gx + 1, Y + gy, w - 2, h, '#f39a3c');
+                Gfx.alpha(0.06 + 0.04 * k); Gfx.rect(X + gx - 4, Y + gy + h + 2, w + 8, 10, '#f39a3c'); Gfx.alpha(1);
+            });
+        }
+    },
+    warm(a) { RoomLook.warm(a, KILN_DRESS); },
+    /* soot round a kiln's foot: the floor darkened about its mouth (the kiln 2x2 at x,y) */
+    soot(x, R, kilns) {
+        for (const [kx, ky] of kilns) {
+            const cx = kx * T + 16, cy = (ky + 2) * T + 2;
+            for (let j = -6; j < 14; j++) for (let i = -26; i <= 26; i++) {
+                const d = Math.hypot(i / 26, (j - 2) / 12); if (d > 1) continue;
+                x.globalAlpha = 0.22 * (1 - d); R('#2a1410', cx + i, cy + j, 1, 1);
+            }
+            x.globalAlpha = 1;
+        }
+    },
+};
+/* a kiln standing in a room (in place of the old ones, on the same tiles): its fire flickers in its mouth */
+SPAWN.kwkiln = (x, y, p) => {
+    const pr = SPAWN.deco(x, y, Object.assign({ look: 'kw_kiln' }, p)), d0 = pr.draw.bind(pr), fur = p.look === 'kw_furnace';
+    pr.draw = (cx, cy) => {
+        d0(cx, cy);
+        const k = 0.5 + 0.5 * Math.sin(G.t / 6 + x) * Math.sin(G.t / 13 + y), X = pr.x - cx, Y = pr.y - cy;
+        Gfx.alpha(0.3 + 0.35 * k); Gfx.rect(X + (fur ? 10 : 12), Y + (fur ? 27 : 31), fur ? 12 : 8, 3, '#f7d64a'); Gfx.alpha(1);
+    };
+    return pr;
+};
+/* the pieces (lit from the top left; the free-standing ones outlined in ink, the ones built into a room's walls painted
+   to the edge of their tiles) */
+function initKilnLook() {
+    const pic = (w, h, fn, outline = true) => paintSprite(w, h, x => fn((c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); }, x), outline);
+    /* fired brick in a running bond over a box (tone: light, mid, dark, mortar) */
+    const bricks = (R, x0, y0, w, h, c, s = 0) => {
+        R(c[3], x0, y0, w, h);
+        for (let j = 0; j < h; j += 4) for (let i = ((j / 4 + s) % 2) * -4; i < w; i += 8) {
+            const a = Math.max(0, i), ww = Math.min(i + 7, w) - a, t = hash2(i + s * 7, j, 11) < 0.5 ? c[1] : c[0];
+            if (ww > 0) { R(t, x0 + a, y0 + j, ww, Math.min(3, h - j)); R(shade(t, 0.15), x0 + a, y0 + j, ww, 1); }
+        }
+    };
+    const BRICK = ['#c86a44', '#b45a3c', '#8a3c28', '#5e261c'];
+    const embers = (R, a, b, w, h) => { R('#1a0c08', a, b, w, h); R('#c0302e', a, b + h - 3, w, 3); R('#f39a3c', a + 1, b + h - 3, w - 2, 2); R('#f7d64a', a + Math.floor(w / 2) - 1, b + h - 2, 2, 1); };
+    const arch = (R, a, b, w, h, col) => { R(col, a + 1, b, w - 2, 1); R(col, a, b + 1, w, h - 1); };
+    /* a bottle kiln: a brick hovel at its foot, the bottle swelling up out of it, a sooty neck, the fire in its mouth */
+    ART.kw_kiln = pic(32, 38, R => {
+        const hw = y => y < 2 ? 6 : y < 9 ? 5 : y < 23 ? Math.round(5 + Math.pow((y - 9) / 14, 0.7) * 9) : 14;
+        for (let y = 0; y < 36; y++) {
+            const h = hw(y);
+            for (let i = 16 - h; i < 16 + h; i++) {
+                const u = (i - 16 + 0.5) / h, mortar = y >= 23 ? (y - 23) % 4 === 3 || ((y - 23) >> 2) % 2 === 0 && i % 8 === 0 || ((y - 23) >> 2) % 2 === 1 && i % 8 === 4 : y % 3 === 2;
+                R(mortar ? '#6a2e1e' : u < -0.55 ? '#e08a5e' : u > 0.45 ? '#93432c' : y > 22 && hash2(i, y, 5) < 0.3 ? '#b45a3c' : '#c4623a', i, y, 1, 1);
+            }
+        }
+        R('#8a7a6a', 3, 34, 26, 2); R('#a89a88', 3, 34, 26, 1); R('#93432c', 10, 0, 12, 2); R('#e08a5e', 10, 0, 4, 1);
+        for (let y = 0; y < 14; y++) { const h = hw(y); R('#2a1410', 16 - h, y, h * 2, 1); }
+        R('#4a2418', 13, 0, 6, 1);
+        arch(R, 11, 25, 10, 10, '#3a1810'); embers(R, 12, 27, 8, 8);
+        for (let y = 14; y < 18; y++) { const h = hw(y); R('#5e3a2e', 16 - h, y, h * 2, 1); }
+    });
+    /* the furnace: a squat brick furnace bound with iron, a flue out of its back, its iron door glowing at the seams */
+    ART.kw_furnace = pic(32, 38, R => {
+        R('#4a4454', 20, 0, 5, 10); R('#6a6474', 20, 0, 1, 10); R('#2a2430', 19, 0, 7, 1);
+        for (let y = 6; y < 36; y++) { const h = y < 12 ? Math.round(8 + (y - 6)) : 14; for (let i = 16 - h; i < 16 + h; i++) { const u = (i - 16 + 0.5) / h; R((y % 4 === 3) ? '#6a2e1e' : u < -0.55 ? '#d67a54' : u > 0.45 ? '#8a3c28' : '#b8583a', i, y, 1, 1); } }
+        for (const b of [14, 24]) { R('#3a3440', 2, b, 28, 2); R('#6a6474', 2, b, 28, 1); for (let i = 4; i < 29; i += 6) R('#a8a4b8', i, b, 1, 1); }
+        R('#2a2430', 9, 20, 14, 12); R('#4a4454', 10, 21, 12, 10); R('#5e586a', 10, 21, 12, 1); R('#5e586a', 10, 21, 1, 10);
+        R('#f39a3c', 10, 27, 12, 2); R('#f7d64a', 14, 27, 4, 1); R('#a8a4b8', 20, 24, 2, 1);
+        R('#8a5634', 0, 26, 5, 6); R('#a8744a', 0, 26, 5, 1); R('#6e4226', 1, 32, 3, 2);
+        R('#8a7a6a', 2, 34, 28, 2); R('#a89a88', 2, 34, 28, 1);
+        for (let y = 6; y < 12; y++) R('#3a1c14', 16 - (y - 2), y, (y - 2) * 2, 1);
+    });
+    /* a drying rack of greenware: unfired pots, pale and dull, on three slatted shelves */
+    const greenware = (R, a, b, kind) => {
+        const c = ['#ddd2c0', '#c4b8a4', '#ece4d6'];
+        if (kind === 0) { R(c[0], a, b + 1, 4, 4); R(c[0], a + 1, b, 2, 1); R(c[1], a + 3, b + 1, 1, 4); R(c[2], a, b + 1, 1, 2); }
+        else if (kind === 1) { R(c[0], a, b + 2, 5, 3); R(c[1], a + 4, b + 2, 1, 3); R(c[2], a, b + 2, 5, 1); }
+        else { R(c[0], a + 1, b, 2, 2); R(c[0], a, b + 2, 4, 3); R(c[1], a + 3, b + 2, 1, 3); R(c[2], a + 1, b, 1, 2); R(c[0], a + 4, b + 2, 1, 1); }
+    };
+    ART.kw_rack = pic(16, 28, R => {
+        R('#7a4e32', 1, 1, 2, 26); R('#7a4e32', 13, 1, 2, 26); R('#a8744a', 1, 1, 1, 26); R('#a8744a', 13, 1, 1, 26);
+        for (const s of [8, 17, 26]) { R('#9a6438', 1, s, 14, 2); R('#c9925a', 1, s, 14, 1); }
+        greenware(R, 3, 3, 0); greenware(R, 8, 3, 2); greenware(R, 3, 12, 1); greenware(R, 9, 12, 0); greenware(R, 4, 21, 2); greenware(R, 9, 21, 1);
+    });
+    /* bram's wheel: a kick wheel on its frame, a pot half-thrown on the head, wet and shining */
+    ART.kw_wheel = pic(20, 20, R => {
+        R('#7a4e32', 1, 11, 18, 3); R('#a8744a', 1, 11, 18, 1); R('#5e3a22', 2, 14, 2, 5); R('#5e3a22', 16, 14, 2, 5); R('#5e3a22', 9, 14, 2, 3);
+        for (let i = -6; i <= 6; i++) { const h = Math.round(Math.sqrt(36 - i * i) / 3); R(i < -2 ? '#8a5a36' : '#6b4128', 10 + i, 17 - h, 1, h * 2 + 1); }
+        for (let i = -5; i <= 5; i++) { const h = Math.round(Math.sqrt(25 - i * i) / 3); R(i < -1 ? '#9a6644' : '#7a4c30', 10 + i, 9 - h, 1, h * 2 + 1); }
+        R('#b07a5a', 7, 3, 6, 6); R('#d8a888', 7, 3, 2, 5); R('#8a5a40', 12, 3, 1, 6); R('#b07a5a', 8, 1, 4, 2); R('#6e4430', 9, 1, 2, 1); R('#f0c8a8', 8, 4, 1, 2);
+        R('#9a9aa8', 15, 8, 4, 3); R('#c8c8d4', 15, 8, 4, 1); R('#5fa6c8', 16, 9, 2, 1);
+    });
+    /* the kiln's wares on a shelf: a tall ochre jug, a turquoise vase, a stack of bowls, a teapot, a jar */
+    ART.kw_potshelf = pic(64, 16, R => {
+        R('#9a6438', 1, 11, 62, 2); R('#c9925a', 1, 11, 62, 1); R('#6b4128', 6, 13, 2, 2); R('#6b4128', 56, 13, 2, 2);
+        const pot = (a, w, h, c, neck) => { R(c, a, 11 - h, w, h); R(shade(c, 0.3), a, 11 - h, 1, h - 1); R(shade(c, -0.25), a + w - 1, 11 - h, 1, h); if (neck) { R(c, a + 1, 11 - h - 2, w - 2, 2); R(shade(c, -0.25), a + w - 2, 11 - h - 2, 1, 2); } R('#ffffff', a + 1, 11 - h + 1, 1, 1); };
+        pot(3, 6, 6, '#e0913a', true); R('#e0913a', 9, 6, 1, 2);
+        pot(12, 5, 7, '#5ad1c5', true);
+        for (let k = 0; k < 3; k++) { R('#efe6d2', 20, 10 - k * 2, 8, 2); R('#c8bca4', 20, 11 - k * 2, 8, 1); }
+        pot(31, 7, 4, '#8a4a2a', false); R('#8a4a2a', 38, 8, 2, 1); R('#8a4a2a', 33, 6, 3, 1);
+        pot(43, 5, 6, '#e0913a', false); R('#efe6d2', 43, 5, 5, 1);
+        pot(51, 6, 5, '#2e9a96', true);
+    });
+    /* firewood for the kilns, stacked log ends out */
+    const logEnd = (R, a, b, r) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) { const d = Math.hypot(i, j); if (d > r + 0.3) continue; R(d > r - 0.8 ? '#6b4128' : d < 1 ? '#b8864a' : (i + j) < -1 ? '#e8bc80' : '#d8a868', a + i, b + j, 1, 1); } };
+    ART.kw_logs = pic(32, 16, R => {
+        for (const [a, b] of [[5, 12], [12, 12], [19, 12], [26, 12], [8, 7], [15, 7], [22, 7], [12, 2], [19, 2]]) logEnd(R, a, b, 3);
+    });
+    /* built into the room's walls: a shelving unit of greenware over a brick bench (3 tiles), a clay bin (2x2), a
+       woodpile (2x1), a glaze store (2x2): each fills its tiles, drawn over the brick */
+    ART.kw_dryshelf = pic(48, 16, R => {
+        R('#2a1f2d', 0, 0, 48, 16); R('#3a2418', 1, 1, 46, 14); R('#7a4e32', 1, 1, 2, 14); R('#7a4e32', 45, 1, 2, 14); R('#7a4e32', 23, 1, 2, 14);
+        for (const s of [6, 13]) { R('#9a6438', 1, s, 46, 2); R('#c9925a', 1, s, 46, 1); }
+        for (let k = 0; k < 4; k++) { greenware(R, 4 + k * 5, 1, k % 3); greenware(R, 27 + k * 5, 1, (k + 1) % 3); greenware(R, 4 + k * 5, 8, (k + 2) % 3); greenware(R, 27 + k * 5, 8, k % 3); }
+        R('#a8744a', 1, 1, 46, 1);
+    }, false);
+    ART.kw_claybin = pic(32, 32, R => {
+        R('#2a1f2d', 0, 0, 32, 32); R('#6b4128', 1, 1, 30, 14); R('#9a6438', 1, 1, 30, 1); R('#4a2c1c', 3, 3, 26, 12);
+        for (let j = 0; j < 11; j++) { const w = Math.round(12 * Math.sqrt(Math.max(0, 1 - ((j - 9) / 10) ** 2))); R(j < 4 ? '#b8aea2' : '#9a8e84', 16 - w, 4 + j, w * 2, 1); }
+        R('#d0c8c0', 10, 6, 4, 1); R('#d0c8c0', 8, 8, 2, 1); R('#7a6e64', 18, 9, 7, 1); R('#9a6438', 21, 2, 1, 6); R('#c9925a', 20, 2, 3, 1);
+        R('#6b4128', 1, 15, 30, 1);
+        for (let i = 1; i < 31; i += 5) { R(i % 2 ? '#8a5a36' : '#9a6644', i, 16, 5, 15); R('#5e3a22', i + 4, 16, 1, 15); R('#a8744a', i, 16, 1, 15); }
+        for (const b of [19, 26]) { R('#4a4454', 1, b, 30, 2); R('#6a6474', 1, b, 30, 1); for (let i = 4; i < 30; i += 8) R('#a8a4b8', i, b, 1, 1); }
+        R('#3a2418', 1, 30, 30, 1);
+    }, false);
+    ART.kw_woodstack = pic(32, 16, R => {
+        R('#2a1f2d', 0, 0, 32, 16); R('#3a2418', 1, 1, 30, 14);
+        for (const [a, b] of [[4, 4], [11, 4], [18, 4], [25, 4], [7, 10], [14, 10], [21, 10], [28, 11], [1, 11]]) logEnd(R, a, b, 3);
+        R('#6b4128', 1, 15, 30, 1);
+    }, false);
+    ART.kw_glazeshelf = pic(32, 32, R => {
+        R('#2a1f2d', 0, 0, 32, 32); R('#3a2418', 1, 1, 30, 30);
+        const jar = (a, b, w, h, c) => { R(c, a, b, w, h); R(shade(c, 0.35), a, b, 1, h - 1); R(shade(c, -0.3), a + w - 1, b, 1, h); R(shade(c, -0.15), a + 1, b - 1, w - 2, 1); R('#ffffff', a + 1, b + 1, 1, 1); };
+        jar(3, 4, 8, 10, '#5ad1c5'); R('#2e9a96', 4, 9, 6, 1); jar(13, 6, 6, 8, '#e0913a'); jar(21, 3, 8, 11, '#2e9a96'); R('#5ad1c5', 23, 8, 4, 1);
+        R('#9a6438', 1, 14, 30, 2); R('#c9925a', 1, 14, 30, 1);
+        R('#7a4e32', 1, 16, 2, 15); R('#7a4e32', 29, 16, 2, 15);
+        jar(4, 18, 4, 4, '#efe6d2'); jar(10, 17, 5, 5, '#5ad1c5'); jar(17, 18, 4, 4, '#8a4a2a'); jar(23, 17, 5, 5, '#e0913a');
+        R('#9a6438', 1, 22, 30, 2); R('#c9925a', 1, 22, 30, 1);
+        jar(4, 25, 5, 4, '#e0913a'); jar(11, 25, 4, 4, '#2e9a96'); jar(17, 24, 6, 5, '#efe6d2'); jar(25, 25, 3, 4, '#5ad1c5');
+        R('#9a6438', 1, 29, 30, 2);
+    }, false);
+    /* the broken crocks, swept into a heap against the wall */
+    ART.kw_shards = pic(32, 14, R => {
+        for (let j = 0; j < 12; j++) { const w = Math.round(14 * Math.sqrt(Math.max(0, 1 - ((11 - j) / 12) ** 2))); R('#93432c', 16 - w, j + 1, w * 2, 1); }
+        for (const [a, b, c] of [[9, 7, '#c4623a'], [14, 4, '#e08a5e'], [19, 8, '#c4623a'], [12, 10, '#d98f3a'], [22, 11, '#e08a5e'], [6, 11, '#c4623a'], [17, 2, '#d98f3a'], [25, 9, '#93432c']]) { R(c, a, b, 4, 2); R(shade(c, 0.3), a, b, 2, 1); }
+        R('#5ad1c5', 15, 6, 2, 1); R('#5ad1c5', 23, 10, 2, 1); R('#efe6d2', 10, 4, 2, 1);
+    });
+    /* the great kiln, built into the middle of its room (13x5 tiles): a brick dome in courses round its flue, spy-holes
+       glowing, the hovel's roof at its corners; three firemouths along its front */
+    ART.kw_greatkiln = pic(208, 80, R => {
+        bricks(R, 0, 0, 208, 64, ['#7a3426', '#6a2e1e', '#5e261c', '#4a1c14']);
+        for (let j = 0; j < 64; j++) for (let i = 0; i < 208; i++) {
+            const u = (i - 104) / 98, v = (j - 33) / 31, d = Math.hypot(u, v); if (d > 1) continue;
+            const ring = Math.floor(d * 9), joint = Math.floor((Math.atan2(v, u) + Math.PI) * (6 + ring * 3)) % 2;
+            const lit = -u * 0.6 - v * 0.8;
+            const base = lit > 0.35 ? '#d67a54' : lit > -0.15 ? '#c4623a' : lit > -0.6 ? '#ac5234' : '#923f2a';
+            let c = (d * 9) % 1 < 0.14 ? shade(base, -0.18) : base;
+            if (joint && (d * 9) % 1 < 0.5 && (d * 9) % 1 > 0.4) c = shade(base, -0.18);
+            R(c, i, j, 1, 1);
+        }
+        for (let j = 0; j < 64; j++) for (let i = 0; i < 208; i++) { const d = Math.hypot((i - 104) / 22, (j - 31) / 8); if (d < 1) R(d < 0.6 ? '#1a0c08' : d < 0.8 ? '#7a2a1e' : '#4a1c14', i, j, 1, 1); }
+        R('#f39a3c', 98, 30, 12, 2); R('#f7d64a', 102, 30, 4, 1);
+        for (const [a, b] of [[48, 22], [160, 22], [62, 46], [146, 46]]) { R('#1a0c08', a, b, 4, 3); R('#f39a3c', a + 1, b + 1, 2, 1); }
+        R('#2a1f2d', 0, 63, 208, 1);
+        bricks(R, 0, 64, 208, 16, BRICK, 1);
+        for (const m of [30, 98, 166]) {
+            for (let k = 0; k < 6; k++) R(k < 3 ? '#4a2418' : '#6a3424', m + 2 - k, 60 + k, 8 + k * 2, 1);
+            arch(R, m, 66, 12, 14, '#3a1810'); embers(R, m + 1, 68, 10, 12);
+        }
+    }, false);
+    /* a dragon kiln, built along the middle of its room (16x2 tiles): a long brick vault with ports along its back, small
+       stoke holes all down its side with soot over each */
+    ART.kw_dragonkiln = pic(256, 32, R => {
+        for (let j = 0; j < 16; j++) { const t = j / 15, c = t < 0.2 ? '#a84e30' : t < 0.5 ? '#e08a5e' : t < 0.8 ? '#c4623a' : '#8a3c28'; R(c, 0, j, 256, 1); }
+        for (let i = 0; i < 256; i += 8) R('#6a2e1e', i, 0, 1, 16);
+        for (let j = 2; j < 16; j += 4) R('#7a3426', 0, j, 256, 1);
+        for (let i = 24; i < 256; i += 48) { R('#1a0c08', i, 5, 5, 3); R('#f39a3c', i + 1, 6, 3, 1); }
+        R('#2a1f2d', 0, 15, 256, 1);
+        bricks(R, 0, 16, 256, 16, BRICK);
+        for (let i = 26; i < 256; i += 48) { for (let k = 0; k < 4; k++) R('#4a2418', i - k, 17 + k, 8 + k * 2 - 2, 1); arch(R, i, 21, 8, 9, '#3a1810'); embers(R, i + 1, 22, 6, 8); }
+        R('#3a1810', 0, 31, 256, 1);
+    }, false);
+    /* plates hung on the gallery wall */
+    ART.kw_plates = pic(48, 14, R => {
+        const plate = (cx, rim, mid, dot) => { for (let j = -6; j <= 6; j++) for (let i = -6; i <= 6; i++) { const d = Math.hypot(i, j); if (d > 6.3) continue; R(d > 4.8 ? rim : d < 1.8 ? dot : mid, cx + i, 7 + j, 1, 1); } R('#ffffff', cx - 3, 3, 2, 1); };
+        plate(8, '#2e9a96', '#efe6d2', '#e0913a'); plate(24, '#e0913a', '#efe6d2', '#5ad1c5'); plate(40, '#8a4a2a', '#e8b884', '#2e9a96');
+    });
+    /* rope coiled on its peg, a pulley block, a hank of cord */
+    ART.kw_ropes = pic(24, 16, R => {
+        R('#6b4128', 5, 1, 2, 2);
+        for (let k = 0; k < 4; k++) { const r = 5 - k; for (let a = 0; a < 20; a++) { const t = a / 20 * Math.PI * 2; R(k % 2 ? '#c9b089' : '#a88a60', 6 + Math.round(Math.cos(t) * r), 8 + Math.round(Math.sin(t) * r * 0.8), 1, 1); } }
+        R('#9a6438', 14, 2, 6, 7); R('#c9925a', 14, 2, 6, 1); for (let a = 0; a < 12; a++) { const t = a / 12 * Math.PI * 2; R('#6a6474', 17 + Math.round(Math.cos(t) * 2), 5 + Math.round(Math.sin(t) * 2), 1, 1); }
+        R('#c9b089', 17, 9, 1, 6); R('#c9b089', 21, 3, 1, 10); R('#a88a60', 20, 12, 3, 2);
+    });
+    /* the furnace's iron doors in the wall, the fire showing at the seam, a poker leaning by them */
+    ART.kw_furnacedoor = pic(32, 16, R => {
+        arch(R, 3, 1, 26, 15, '#5e261c'); R('#8a7a6a', 4, 2, 24, 2); R('#a89a88', 4, 2, 24, 1);
+        R('#3a3440', 5, 4, 11, 12); R('#3a3440', 17, 4, 10, 12); R('#5e586a', 5, 4, 11, 1); R('#5e586a', 17, 4, 10, 1); R('#5e586a', 5, 4, 1, 12);
+        for (const [a, b] of [[7, 6], [13, 6], [7, 13], [13, 13], [19, 6], [24, 6], [19, 13], [24, 13]]) R('#8a8496', a, b, 1, 1);
+        R('#1a0c08', 16, 4, 1, 12); R('#f39a3c', 16, 6, 1, 8);
+        R('#6a6474', 29, 3, 1, 12); R('#9a94a8', 29, 3, 1, 1); R('#6a6474', 28, 2, 2, 1);
+    });
+    /* a kiln's mouth in the wall: an arch of stone, soot climbing above it, the fire roaring in it */
+    ART.kw_kilnmouth = pic(32, 16, R => {
+        for (let k = 0; k < 6; k++) R(k < 3 ? '#2a1410' : '#4a2418', 9 - k, k, 14 + k * 2, 1);
+        arch(R, 5, 3, 22, 13, '#8a7a6a'); R('#a89a88', 6, 3, 20, 1);
+        arch(R, 8, 5, 16, 11, '#1a0c08');
+        R('#c0302e', 9, 10, 14, 6); R('#f39a3c', 10, 11, 12, 4); R('#f7d64a', 13, 12, 6, 3); R('#fff4c0', 15, 13, 2, 2);
+        R('#3a3440', 7, 15, 18, 1);
+    });
+    /* bram's own pots on his shelf: a great jug, two mugs, a teapot, a bowl */
+    ART.kw_brampots = pic(48, 16, R => {
+        R('#9a6438', 1, 12, 46, 2); R('#c9925a', 1, 12, 46, 1); R('#6b4128', 5, 14, 2, 2); R('#6b4128', 41, 14, 2, 2);
+        R('#e0913a', 3, 3, 9, 9); R('#f2bc78', 3, 3, 2, 8); R('#a8602a', 11, 3, 1, 9); R('#e0913a', 4, 1, 7, 2); R('#e0913a', 12, 5, 2, 4); R('#a8602a', 6, 7, 4, 1);
+        for (const a of [16, 22]) { R('#8a4a2a', a, 8, 4, 4); R('#b8743c', a, 8, 1, 3); R('#8a4a2a', a + 4, 9, 1, 2); }
+        R('#5ad1c5', 29, 7, 8, 5); R('#bff3ee', 29, 7, 2, 2); R('#2e9a96', 36, 7, 1, 5); R('#5ad1c5', 31, 5, 4, 2); R('#5ad1c5', 37, 8, 2, 1);
+        R('#efe6d2', 40, 9, 6, 3); R('#c8bca4', 40, 11, 6, 1);
+    });
+    /* glaze in jars on a shelf, dribbled down their sides */
+    ART.kw_glazejars = pic(48, 16, R => {
+        R('#9a6438', 1, 12, 46, 2); R('#c9925a', 1, 12, 46, 1); R('#6b4128', 5, 14, 2, 2); R('#6b4128', 41, 14, 2, 2);
+        const jar = (a, c) => { R('#c4b8a4', a, 3, 10, 9); R('#e8dcc8', a, 3, 2, 8); R('#9a8e7a', a + 9, 3, 1, 9); R(c, a + 1, 2, 8, 2); R(c, a + 2, 4, 1, 3); R(c, a + 6, 4, 1, 5); R(shade(c, 0.4), a + 2, 2, 3, 1); };
+        jar(3, '#5ad1c5'); jar(19, '#e0913a'); jar(35, '#9a2a3a');
+    });
+    /* a great vat of glaze over each four vat tiles: a clay basin brimming with turquoise, a paddle across it */
+    ART.kw_vat = pic(32, 32, R => {
+        /* the tub's side, in front (lit from the left), then its rim and the glaze in it, seen from above */
+        for (let i = 1; i < 31; i++) { const u = (i - 15.5) / 14.5, h = Math.round(Math.sqrt(1 - u * u) * 6); R(u < -0.5 ? '#d67a54' : u > 0.4 ? '#8a3c28' : '#b4583a', i, 14, 1, 12 + h); R('#5e261c', i, 25 + h, 1, 1); }
+        for (const b of [17, 22]) for (let i = 1; i < 31; i++) { const u = (i - 15.5) / 14.5; R(u < -0.5 ? '#8a7a6a' : '#5a4e44', i, b + Math.round(Math.sqrt(1 - u * u) * 6), 1, 1); }
+        for (let j = 0; j < 22; j++) for (let i = 0; i < 32; i++) {
+            const d = Math.hypot((i - 15.5) / 15.5, (j - 11) / 11);
+            if (d > 1) continue;
+            R(d > 0.86 ? (i < 14 ? '#e08a5e' : '#a84e30') : d > 0.78 ? '#5e261c' : (i + j < 14 ? '#8fe6dc' : i + j > 32 ? '#2e9a96' : '#5ad1c5'), i, j, 1, 1);
+        }
+        R('#bff3ee', 8, 6, 4, 1); R('#bff3ee', 7, 7, 2, 1);
+        for (let k = 0; k < 16; k++) R(k < 2 ? '#6b4128' : '#c9925a', 8 + k, 15 - Math.round(k * 0.45), 2, 1);
+        R('#2e9a96', 5, 20, 1, 4); R('#2e9a96', 24, 22, 1, 3);
+    }, false);
+}
+CONTENT_INIT.push(initKilnLook);

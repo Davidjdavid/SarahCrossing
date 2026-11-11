@@ -63,7 +63,7 @@ defHouse({
                 { k: 'crystal', x: 4, y: 1, sig: 'kc', id: 'kCrystal', keepOn: true },
                 { k: 'chest', x: 13, y: 2, item: 'key', id: 'kKey', hidden: true, when: 'kc' },
                 { k: 'pot', x: 12, y: 5, style: 'pot_teal' }, { k: 'pot', x: 16, y: 4, style: 'pot_teal' }, { k: 'pot', x: 11, y: 7, style: 'pot_teal' },
-                { k: 'deco', x: 15, y: 1, look: 'stove', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 15, y: 1, look: 'td_range', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
                 { k: 'deco', x: 2, y: 7, look: 'table', solid: [[0, 0], [1, 0]] },
                 { k: 'pie', x: 3, y: 7 },
                 { k: 'deco', x: 9, y: 9, look: 'barrel' }, { k: 'deco', x: 17, y: 9, look: 'barrel' },
@@ -149,7 +149,7 @@ defHouse({
                 { k: 'chest', x: 16, y: 8, item: 'key', id: 'pKey' },
                 { k: 'wood', x: 16, y: 1, look: 'cupboard', id: 'cupboard' },
                 { k: 'staffonly', x: 16, y: 0 },
-                { k: 'deco', x: 2, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 2, y: 1, look: 'td_larder', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
                 { k: 'deco', x: 9, y: 9, look: 'barrel' }, { k: 'deco', x: 1, y: 9, look: 'barrel' },
                 { k: 'sign', x: 7, y: 3, text: 'Tins, jars, sacks. Everything labelled. One shelf is labelled THROWING CRATES.' },
             ],
@@ -177,8 +177,8 @@ defHouse({
                 { k: 'door', x: 16, y: 0, type: 'gate', when: 'pp', passed: 'up', id: 'pN' },
                 { k: 'deco', x: 3, y: 2, look: 'armchair' }, { k: 'deco', x: 6, y: 2, look: 'armchair', flip: true },
                 { k: 'deco', x: 4, y: 3, look: 'rug_small', solid: false, baseY: -100 },
-                { k: 'deco', x: 10, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
-                { k: 'deco', x: 17, y: 8, look: 'plant' },
+                { k: 'deco', x: 10, y: 1, look: 'td_piano', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
+                { k: 'deco', x: 17, y: 8, look: 'td_fernpot' },
             ],
             nudge: { solved: 'tidy_pN', thing: 'parBlock', say: 'The plate in the corridor clicks every time anything goes over it. Even on the way home.' },
         },
@@ -204,7 +204,7 @@ defHouse({
                 { k: 'crate', x: 5, y: 7 },
                 { k: 'door', x: 16, y: 4, type: 'gate', when: 'ca&cb', passed: 'up', id: 'cG' },
                 { k: 'chest', x: 17, y: 1, item: 'heartpatch', id: 'consPatch' },
-                { k: 'deco', x: 3, y: 8, look: 'plant' }, { k: 'deco', x: 8, y: 6, look: 'plant' }, { k: 'deco', x: 14, y: 8, look: 'plant' }, { k: 'deco', x: 17, y: 6, look: 'plant' },
+                { k: 'deco', x: 3, y: 8, look: 'td_palm' }, { k: 'deco', x: 8, y: 6, look: 'td_fernpot' }, { k: 'deco', x: 14, y: 8, look: 'td_palm' }, { k: 'deco', x: 17, y: 6, look: 'td_fernpot' },
                 { k: 'sign', x: 1, y: 6, text: 'Seedlings. Do not tread on the plates more than strictly necessary.' },
             ],
             nudge: { solved: 'tidy_cG', after: 60 * 60 * 4, say: 'You count the clicks of the plates on the way in and on the way out. Odd. Even. Odd.' },
@@ -253,7 +253,7 @@ defHouse({
             ents: [
                 { k: 'chest', x: 12, y: 4, item: 'key', id: 'lKey' },
                 { k: 'wood', x: 13, y: 4, id: 'laundryBlock' },
-                { k: 'deco', x: 3, y: 2, look: 'washtub' }, { k: 'deco', x: 5, y: 2, look: 'washtub' },
+                { k: 'deco', x: 3, y: 2, look: 'washtub' }, { k: 'deco', x: 5, y: 2, look: 'td_mangle' },
                 { k: 'deco', x: 16, y: 7, look: 'basket' }, { k: 'deco', x: 3, y: 8, look: 'basket' },
                 { k: 'enemy', x: 6, y: 7, type: 'dustbunny' }, { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
                 { k: 'sign', x: 1, y: 1, text: 'LAUNDRY. Wash on Monday, mangle on Tuesday, fold on Wednesday. The good linen is kept in the cubby.' },
@@ -309,7 +309,7 @@ defHouse({
                 { k: 'block', x: 10, y: 2, look: 'bookshelf', id: 'secretShelf2', weight: WEIGHT.heavy, noPush: true, if: 'tidy_attic' },
                 { k: 'deco', x: 2, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 }, { k: 'deco', x: 5, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
                 { k: 'deco', x: 12, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 }, { k: 'deco', x: 15, y: 1, look: 'shelf', solid: [[0, 0], [1, 0]], ox: 0, oy: -14 },
-                { k: 'deco', x: 3, y: 5, look: 'table', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 13, y: 6, look: 'table', solid: [[0, 0], [1, 0]] },
+                { k: 'deco', x: 3, y: 5, look: 'td_readtable', solid: [[0, 0], [1, 0]] }, { k: 'deco', x: 13, y: 6, look: 'td_readtable', solid: [[0, 0], [1, 0]] },
                 { k: 'deco', x: 7, y: 8, look: 'armchair' },
                 { k: 'sign', x: 17, y: 8, text: 'PLEASE DO NOT PULL THE BOOKSHELVES. (Thank you.)' },
             ],
@@ -388,8 +388,11 @@ defHouse({
         },
     },
     tick: a => TidyLogic.tick(a),
-    onEnter: a => TidyLogic.enter(a),
+    onEnter: a => { TidyLogic.enter(a); TidyLook.warm(a); },
     afterKnot: function* () { yield* Tidy.afterKnot(); },
+    /* (each room its own look, and its dressing laid over the floor: see the end of this file) */
+    themeAt: (x, y) => tidyLookAt(x, y),
+    drawGround: (a, cx, cy) => TidyLook.ground(a, cx, cy),
 });
 
 const TidyLogic = {
@@ -881,101 +884,75 @@ ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0
 ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
 
 /* ======================= the look of the place (all paint: nothing here is solid, moves anything or sets a flag) =======================
-   Every room papered and floored its own way in the House's colours (teal, crimson, cream and gilt): the halls a polished
-   marble chequer under teal damask and white panelling (the gallery's walls picture-gallery red); parquet in the parlour
-   and the library (walnut) and the ballroom (golden oak); scrubbed flags under white tile in the kitchen and limewash in
-   the pantry; slate in the laundry, painted boards in the linen room, garden flags under a trellis in the conservatory,
-   bare boards in the attic. (themeAt picks the room's look; the House's own 'tidy' theme still colours its gates.) */
+   A colour script for the House: teal and cream throughout, crimson underfoot, gilt for the trim. Each room papered and
+   floored its own way within it: the halls a polished marble chequer under teal damask and white panelling (the
+   gallery's walls picture-gallery red); block parquet in the parlour and the library (walnut) and the ballroom (golden
+   oak); white tile over scrubbed flags in the kitchen, limewash in the pantry, slate in the laundry, painted boards in the
+   linen room, walls of glass round the conservatory, bare boards under the attic's rafters. Floors come a slab, a block or
+   two boards to a tile, with soft joints and no speckle, so a mark always sits on one quiet surface. Then a few things in
+   each room that say what it is (a range, a piano, a mangle, linen presses...): hung on its walls, laid on its floor
+   (TIDY_DRESS, painted into the room's own picture: TidyLook), or standing where something already stood. */
 const TIDY_ROOM_LOOK = { '1,3': 'hall', '0,3': 'kitchen', '2,3': 'gallery', '1,2': 'hall', '0,2': 'pantry', '2,2': 'parlour', '3,2': 'garden',
     '2,1': 'linen', '3,1': 'laundry', '1,1': 'ball', '0,1': 'library', '0,0': 'attic', '2,0': 'hall', '1,0': 'grand' };
-const tidyLookAt = (x, y) => 'tidy_' + (TIDY_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'hall');
-/* flagstones laid in two courses (the widths of the slabs in each, per tile variant) */
-const TIDY_SLABS = [[[9, 7], [5, 11]], [[16], [7, 9]], [[6, 10], [11, 5]], [[11, 5], [16]]];
+/* (a chequer or a basket weave needs to know which tile it's on: the odd tiles are the look's second half, '_b') */
+const tidyLookAt = (x, y) => { const n = TIDY_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'hall'; return 'tidy_' + n + (TIDY_LOOKS[n].alt && (x + y) & 1 ? '_b' : ''); };
 const TidyFloor = {
-    /* marble in a chequer: each slab bevelled (lit along its top and left), a vein wandering through it, a gleam on a few */
-    marble: (L, D) => (x, th, v) => {
-        for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
-            const c = (i + j) % 2 ? D : L, X = i * 8, Y = j * 8, s = v * 4 + j * 2 + i;
-            fill(x, c[0], X, Y, 8, 8);
-            let vx = X + 1 + Math.floor(hash2(s, 1, 41) * 6), vy = Y + 1;
-            const d = hash2(s, 2, 43) < 0.5 ? 1 : -1;
-            for (let k = 0; k < 6 && vx > X && vx < X + 7; k++) { px(x, vx, vy, c[3]); vy++; if (hash2(s, k, 47) < 0.5) vx += d; }
-            fill(x, c[1], X, Y, 8, 1); fill(x, c[1], X, Y + 1, 1, 7); fill(x, c[2], X + 1, Y + 7, 7, 1); fill(x, c[2], X + 7, Y + 1, 1, 6);
+    /* a slab of stone or marble, a tile to itself: lit along its top and left, in shade along its bottom and right, a
+       faint vein across one corner (never through the middle, where a mark is stitched) */
+    slab: c => (x, th, v) => {
+        fill(x, c[0]);
+        if (c[3]) for (const [i, j] of [[[1, 6], [2, 5], [3, 5], [4, 4], [5, 3], [6, 2]], [[9, 14], [10, 13], [11, 13], [12, 12], [13, 11]],
+            [[10, 1], [11, 2], [12, 2], [13, 3], [14, 4]], [[1, 10], [2, 11], [2, 12], [3, 13], [4, 14]]][v]) px(x, i, j, c[3]);
+        if (c[4] && v === 0) { px(x, 0, 0, c[4]); px(x, 1, 0, c[4]); px(x, 0, 1, c[4]); px(x, 15, 15, c[5]); px(x, 14, 15, c[5]); px(x, 15, 14, c[5]); }
+        fill(x, c[1], 0, 0, 15, 1); fill(x, c[1], 0, 1, 1, 14);
+        fill(x, c[2], 0, 15, 16, 1); fill(x, c[2], 15, 0, 1, 15);
+        if (c[6]) { const j = 3 + v * 3; px(x, 1, j, c[6]); px(x, 1, j + 1, c[6]); px(x, 14, 15 - j, c[6]); }
+    },
+    /* a block of parquet, a tile to itself: four slats laid one way (the next block the other way), soft seams, a short
+       grain mark in each slat near its end, the block's joint dark */
+    block: (P, across) => (x, th, v) => {
+        for (let s = 0; s < 4; s++) {
+            const t = P.tone[(s + v) % P.tone.length], g = s % 2 ? 1 : 12;
+            if (across) { fill(x, t, 0, s * 4, 16, 4); if (s) fill(x, P.seam, 0, s * 4, 16, 1); fill(x, P.grain, g, s * 4 + 2, 3, 1); }
+            else { fill(x, t, s * 4, 0, 4, 16); if (s) fill(x, P.seam, s * 4, 0, 1, 16); fill(x, P.grain, s * 4 + 2, g, 1, 3); }
         }
-        if (v === 2) { x.globalAlpha = 0.3; for (let k = 0; k < 4; k++) px(x, 10 + k, 2 + k, '#ffffff'); x.globalAlpha = 1; }
+        fill(x, P.lit, 0, 0, 15, 1); fill(x, P.lit, 0, 1, 1, 14); fill(x, P.joint, 0, 15, 16, 1); fill(x, P.joint, 15, 0, 1, 15);
     },
-    /* parquet: blocks of four slats in a basket weave, each slat its own shade with a grain mark, the joints dark */
-    parquet: P => (x, th, v) => {
-        for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
-            const along = (i + j) % 2 === 0, X = i * 8, Y = j * 8;
-            for (let s = 0; s < 4; s++) {
-                const t = P.tone[Math.floor(hash2(v * 4 + j * 2 + i, s, 51) * P.tone.length)], g = Math.floor(hash2(s, v * 4 + j * 2 + i, 52) * 6) + 1;
-                if (along) { fill(x, t, X, Y + s * 2, 8, 2); fill(x, P.grain, X + g, Y + s * 2 + 1, 2, 1); }
-                else { fill(x, t, X + s * 2, Y, 2, 8); fill(x, P.grain, X + s * 2 + 1, Y + g, 1, 2); }
-            }
-            fill(x, P.joint, X, Y + 7, 8, 1); fill(x, P.joint, X + 7, Y, 1, 8);
-            if (along) fill(x, P.shine, X, Y, 7, 1); else fill(x, P.shine, X, Y, 1, 7);
-        }
-    },
-    /* flagstones: two courses, the joints dark, each slab's top edge catching the light, a fleck or two (and a wet gleam) */
-    flags: F => (x, th, v) => {
-        fill(x, F.joint);
-        TIDY_SLABS[v].forEach((ws, r) => {
-            let sx = 0;
-            ws.forEach((w, n) => {
-                const t = F.tone[Math.floor(hash2(v * 5 + r, n, 61) * F.tone.length)], y0 = r * 8;
-                fill(x, t, sx, y0, w - 1, 7); fill(x, F.hi, sx, y0, w - 1, 1); fill(x, F.lo, sx, y0 + 6, w - 1, 1);
-                speckle(x, F.fleck, 70 + v * 3 + r * 2 + n, 0.1, sx, y0 + 1, w - 1, 5);
-                if (F.moss && hash2(v, r * 3 + n, 63) < 0.6) { px(x, sx + w - 1, y0 + 2 + Math.floor(hash2(n, r, 64) * 4), F.moss[0]); px(x, sx + w - 1, y0 + 4 + Math.floor(hash2(r, n, 65) * 3), F.moss[1]); }
-                sx += w;
-            });
-        });
-        if (F.wet && (v === 1 || v === 2)) { fill(x, F.wet, 3 + v * 3, 3, 2, 1); px(x, 4 + v * 3, 4, F.wet); }
-        if (F.inset && v === 0) { fill(x, F.inset[1], 14, 13, 2, 2); fill(x, F.inset[0], 15, 14, 1, 1); }
-    },
-    /* boards: up and down (painted) or across (bare), each its own shade, a lit edge, butt joints with their nails */
+    /* boards, two to a tile, up and down (painted) or across (bare); a butt joint with its nails on some */
     boards: P => (x, th, v) => {
         const up = P.dir === 'v';
-        for (let b = 0; b < 4; b++) {
-            const t = P.tone[Math.floor(hash2(v, b, 71) * P.tone.length)], o = b * 4;
-            if (up) { fill(x, t, o, 0, 3, 16); fill(x, P.hi, o, 0, 1, 16); fill(x, P.seam, o + 3, 0, 1, 16); }
-            else { fill(x, t, 0, o, 16, 3); fill(x, P.hi, 0, o, 16, 1); fill(x, P.seam, 0, o + 3, 16, 1); }
-            if (hash2(v, b, 73) < 0.45) {
-                const k = 3 + Math.floor(hash2(b, v, 74) * 10);
-                if (up) { fill(x, P.seam, o, k, 3, 1); px(x, o + 1, k - 2, P.nail); px(x, o + 1, k + 2, P.nail); }
-                else { fill(x, P.seam, k, o, 1, 3); px(x, k - 2, o + 1, P.nail); px(x, k + 2, o + 1, P.nail); }
-            }
+        for (let b = 0; b < 2; b++) {
+            const t = P.tone[(b + v) % P.tone.length], o = b * 8;
+            if (up) { fill(x, t, o, 0, 8, 16); fill(x, P.hi, o, 0, 1, 16); fill(x, P.seam, o + 7, 0, 1, 16); }
+            else { fill(x, t, 0, o, 16, 8); fill(x, P.hi, 0, o, 16, 1); fill(x, P.seam, 0, o + 7, 16, 1); }
         }
-        if (P.fleck) speckle(x, P.fleck, 80 + v, 0.04);
+        if (v === 1) { if (up) { fill(x, P.seam, 8, 3, 7, 1); px(x, 10, 1, P.nail); px(x, 10, 5, P.nail); } else { fill(x, P.seam, 3, 8, 1, 7); px(x, 1, 10, P.nail); px(x, 5, 10, P.nail); } }
+        if (v === 3) { if (up) { fill(x, P.seam, 0, 12, 7, 1); px(x, 3, 10, P.nail); px(x, 3, 14, P.nail); } else { fill(x, P.seam, 12, 0, 1, 7); px(x, 10, 3, P.nail); px(x, 14, 3, P.nail); } }
     },
-    /* a carpet: wool with a small repeat, a little gilt pip in each (its borders are laid over it, TidyLook) */
+    /* a carpet: plain wool, a darker knot where four tiles meet (its borders are laid over it, TidyLook) */
     carpet: C => (x, th, v) => {
-        fill(x, C[0]); speckle(x, [C[1], C[2]], 30 + v, 0.16);
-        for (const [i, j] of [[3, 3], [11, 11]]) { px(x, i - 1, j, C[3]); px(x, i + 1, j, C[3]); px(x, i, j - 1, C[3]); px(x, i, j + 1, C[3]); px(x, i, j, C[4]); }
-        for (const [i, j] of [[11, 3], [3, 11]]) px(x, i, j, C[3]);
+        fill(x, C[0]); fill(x, C[1], 0, 0, 15, 1); fill(x, C[1], 0, 1, 1, 14);
+        for (const [i, j] of [[0, 0], [15, 0], [0, 15], [15, 15]]) px(x, i, j, C[2]);
     },
 };
-const TF_MARBLE = TidyFloor.marble(['#ebe2cc', '#f8f2e4', '#cdbfa0', '#d9ccb0'], ['#3c4f52', '#557070', '#283638', '#4c6464']);
-const TF_WALNUT = TidyFloor.parquet({ tone: ['#8a5634', '#94603a', '#83512f'], grain: '#734628', joint: '#4e2e1c', shine: '#a8744a' });
-const TF_OAK = TidyFloor.parquet({ tone: ['#c99552', '#d2a05c', '#c08a4a'], grain: '#b07c40', joint: '#7e5428', shine: '#e8c07a' });
-const TF_FLAGS = TidyFloor.flags({ tone: ['#d6ccb8', '#cfc4ae', '#dcd3c0'], joint: '#9c8f78', hi: '#ebe4d6', lo: '#bdb19a', fleck: ['#c4b8a2', '#e2dacb'] });
-const TF_CARPET = TidyFloor.carpet(['#9a3a4a', '#a8465a', '#8c3242', '#6e2232', '#e0b050']);
+const TF_MARBLE = TidyFloor.slab(['#e9dfc8', '#f6f0e2', '#c9bb9c', '#d8cbb0']);
+const TF_MARBLE_B = TidyFloor.slab(['#41585b', '#587275', '#2c3b3e', '#4e6668']);
+const TF_WALNUT = { tone: ['#8a5634', '#93603b', '#865332'], seam: '#734628', grain: '#6e4226', lit: '#a06a42', joint: '#4e2e1c' };
+const TF_OAK = { tone: ['#c99552', '#d09c58', '#c48f4e'], seam: '#b07c40', grain: '#a87438', lit: '#e2b674', joint: '#7e5428' };
+const TF_CARPET = TidyFloor.carpet(['#9a3a4a', '#a24456', '#7a2a3a']);
 const TIDY_LOOKS = {
-    hall: { floor: TF_MARBLE, paper: 'damask', pc: ['#5fb7a8', '#7ccabe', '#46998d', '#e8c060'], dado: 'cream' },
-    grand: { floor: TF_MARBLE, paper: 'damask', pc: ['#4c9f93', '#66b7aa', '#367d73', '#f0c868'], dado: 'cream' },
-    gallery: { floor: TF_MARBLE, paper: 'damask', pc: ['#943848', '#a84a5a', '#742634', '#e0b050'], dado: 'cream' },
-    parlour: { floor: TF_WALNUT, paper: 'stripe', pc: ['#efdcc4', '#c97a84', '#a85a66', '#e0b860'], dado: 'walnut' },
-    library: { floor: TF_WALNUT, paper: 'damask', pc: ['#3f6b58', '#4e7d68', '#2f5646', '#c8a048'], dado: 'walnut' },
-    ball: { floor: TF_OAK, paper: 'gilt', pc: ['#f2e8d0', '#e6d8b8', '#d9a33a', '#f6d880'], dado: 'cream' },
-    kitchen: { floor: TF_FLAGS, paper: 'tile', pc: ['#f3efe4', '#cfc7b6', '#ffffff', '#5fb7a8', '#3c8a80'] },
-    laundry: { floor: TidyFloor.flags({ tone: ['#9aa6aa', '#929ea3', '#a3aeb1'], joint: '#5f6a70', hi: '#b8c4c8', lo: '#86929a', fleck: ['#8a979c', '#aab6ba'], wet: '#d6e6ec' }),
-        paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
-    pantry: { floor: TidyFloor.flags({ tone: ['#cdc3b0', '#c6bba6', '#d3cab8'], joint: '#968a74', hi: '#e0d8c8', lo: '#b4a892', fleck: ['#bcb09a', '#d8d0c0'] }),
-        paper: 'lime', pc: ['#ece3cf', '#e0d5bd', '#f6eedf'], dado: 'paint' },
-    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#9fb0bc', '#97a9b6', '#a6b6c1'], hi: '#bccad4', seam: '#76879a', nail: '#5e6e80' }), paper: 'sprig', pc: ['#efe6d4', '#e4d9c4', '#b49ad0', '#8aa070'], dado: 'paint' },
-    garden: { floor: TidyFloor.flags({ tone: ['#c6cab2', '#bec3a9', '#ccd0ba'], joint: '#8a9874', hi: '#dde0cc', lo: '#aab094', fleck: ['#b6bba0', '#d4d8c4'], moss: ['#7ea05a', '#98b86e'], inset: ['#e8a070', '#c0704a'] }),
-        paper: 'trellis', pc: ['#9cba92', '#eef2e6', '#5e9a50', '#7cb468'], dado: 'brick' },
-    attic: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b8946a', '#ae8a5e', '#c09c70'], hi: '#cdae84', seam: '#7e5e3c', nail: '#5e4430', fleck: ['#d4c4a4'] }), paper: 'plaster', pc: ['#d8ccb4', '#cbbea4', '#e4dac6'], dado: 'plain' },
+    hall: { floor: TF_MARBLE, alt: TF_MARBLE_B, paper: 'damask', pc: ['#5fb7a8', '#7ccabe', '#46998d', '#e8c060'], dado: 'cream' },
+    grand: { floor: TF_MARBLE, alt: TF_MARBLE_B, paper: 'damask', pc: ['#4c9f93', '#66b7aa', '#367d73', '#f0c868'], dado: 'cream' },
+    gallery: { floor: TF_MARBLE, alt: TF_MARBLE_B, paper: 'damask', pc: ['#943848', '#a64a5a', '#742634', '#e0b050'], dado: 'cream' },
+    parlour: { floor: TidyFloor.block(TF_WALNUT, false), alt: TidyFloor.block(TF_WALNUT, true), paper: 'stripe', pc: ['#efdcc4', '#c97a84', '#a85a66', '#e0b860'], dado: 'walnut' },
+    library: { floor: TidyFloor.block(TF_WALNUT, false), alt: TidyFloor.block(TF_WALNUT, true), paper: 'damask', pc: ['#3f6b58', '#4e7d68', '#2f5646', '#c8a048'], dado: 'walnut' },
+    ball: { floor: TidyFloor.block(TF_OAK, false), alt: TidyFloor.block(TF_OAK, true), paper: 'gilt', pc: ['#f2e8d0', '#e6d8b8', '#d9a33a', '#f6d880'], dado: 'cream' },
+    kitchen: { floor: TidyFloor.slab(['#e0c79c', '#eed9b4', '#b89c70']), alt: TidyFloor.slab(['#b35c40', '#c8745a', '#86402c']), paper: 'tile', pc: ['#f3efe4', '#cfc7b6', '#ffffff', '#5fb7a8', '#3c8a80'] },
+    pantry: { floor: TidyFloor.slab(['#c9b894', '#dacba8', '#a08c68', '#bead88']), paper: 'lime', pc: ['#ece3cf', '#e2d8c2', '#f4ecdc'], dado: 'paint' },
+    laundry: { floor: TidyFloor.slab(['#9ba6aa', '#b6c1c4', '#6e797e', null, '#88949a', '#5f6a70', '#d0e0e6']), paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
+    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#9fb0bc', '#98aab6', '#a5b5c0'], hi: '#b9c8d2', seam: '#7a8b9c', nail: '#5e6e80' }), paper: 'ticking', pc: ['#efe6d4', '#8a9cc0', '#b8c4dc'], dado: 'paint' },
+    garden: { floor: TidyFloor.slab(['#e4e0c8', '#f0ecda', '#b8b498', null, '#c0704a', '#c0704a']), alt: TidyFloor.slab(['#a9bc94', '#bccca8', '#839a70', null, '#c0704a', '#c0704a']), paper: 'glass', pc: ['#d2ece8', '#aed6a6', '#eef2ea', '#6aa060', '#c8ccc0'] },
+    attic: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b8946a', '#b08c62', '#bf9b70'], hi: '#ccac82', seam: '#7e5e3c', nail: '#5e4430' }), paper: 'plaster', pc: ['#d8ccb4', '#cec1a8', '#e2d8c4'], dado: 'plain' },
 };
 const TidyWall = {
     /* the paper, the top half of a wall's face (rows 0-7) */
@@ -992,18 +969,13 @@ const TidyWall = {
                 fill(x, C[2], 0, 0, 16, 1);
                 break;
             }
-            case 'stripe': for (let i = 0; i < 16; i++) fill(x, [C[2], C[1], C[0], C[0], C[0], C[0], C[0], C[1]][i % 8], i, 0, 1, 8); px(x, 4, 2, C[3]); px(x, 12, 5, C[3]); fill(x, C[2], 0, 0, 16, 1); break;
-            case 'gilt': fill(x, C[0], 0, 0, 16, 8); for (const g of [0, 8]) { fill(x, C[2], g, 0, 1, 8); fill(x, C[3], g + 1, 0, 1, 8); } fill(x, C[1], 3, 2, 4, 4); fill(x, C[0], 4, 3, 2, 2); fill(x, C[1], 11, 2, 4, 4); fill(x, C[0], 12, 3, 2, 2); fill(x, C[2], 0, 0, 16, 1); break;
-            case 'lime': fill(x, C[0], 0, 0, 16, 8); speckle(x, [C[1], C[2]], 20 + v, 0.18, 0, 0, 16, 8); break;
-            case 'sprig': fill(x, C[0], 0, 0, 16, 8); speckle(x, [C[1]], 25 + v, 0.1, 0, 0, 16, 8);
-                for (const [i, j] of [[3, 1], [11, 5]]) { px(x, i, j, C[2]); px(x, i + 1, j + 1, C[2]); px(x, i - 1, j + 1, C[2]); px(x, i, j + 2, C[3]); px(x, i, j + 1, shade(C[2], -0.2)); }
-                break;
-            case 'trellis': fill(x, C[0], 0, 0, 16, 8);
-                for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) { const a = (i + j) % 6, b = (i - j + 18) % 6; if (a === 0 || b === 0) px(x, i, j, C[1]); }
-                for (const [i, j] of [[2, 4], [9, 1], [13, 5], [6, 6]]) { px(x, i, j, C[2]); px(x, i + 1, j, C[3]); }
-                break;
-            case 'plaster': fill(x, C[0], 0, 0, 16, 16); speckle(x, [C[1], C[2]], 40 + v, 0.15); break;
-            case 'tile': break;
+            case 'stripe': for (let i = 0; i < 16; i++) fill(x, [C[2], C[1], C[0], C[0], C[0], C[0], C[0], C[1]][i % 8], i, 0, 1, 8); px(x, 4, 3, C[3]); px(x, 12, 3, C[3]); fill(x, C[2], 0, 0, 16, 1); break;
+            case 'gilt': fill(x, C[0], 0, 0, 16, 8); for (const g of [0, 8]) { fill(x, C[2], g, 0, 1, 8); fill(x, C[3], g + 1, 0, 1, 8); }
+                for (const g of [3, 11]) { fill(x, C[1], g, 2, 4, 4); fill(x, C[0], g + 1, 3, 2, 2); }
+                fill(x, C[2], 0, 0, 16, 1); break;
+            case 'lime': fill(x, C[0], 0, 0, 16, 8); fill(x, C[1], 0, 0, 16, 1); fill(x, C[2], (v * 5) % 12 + 1, 3, 3, 1); break;
+            case 'ticking': fill(x, C[0], 0, 0, 16, 8); for (const i of [2, 4, 10, 12]) fill(x, C[1], i, 0, 1, 8); for (const i of [3, 11]) fill(x, C[2], i, 0, 1, 8); fill(x, shade(C[0], -0.08), 0, 0, 16, 1); break;
+            case 'plaster': fill(x, C[0], 0, 0, 16, 16); fill(x, C[1], 0, 0, 16, 1); if (v === 2) { fill(x, C[2], 4, 4, 5, 1); fill(x, C[1], 9, 9, 3, 1); } break;
         }
     },
     face(x, L, v) {
@@ -1011,20 +983,34 @@ const TidyWall = {
         if (L.paper === 'tile') {
             /* glazed white tiles to the floor, a teal band at the dado, a dark teal skirting */
             fill(x, C[1]);
-            for (let j = 0; j < 14; j += 4) for (let i = 0; i < 16; i += 4) { if (j === 8) continue; fill(x, C[0], i, j, 3, 3); px(x, i, j, C[2]); }
+            for (let j = 0; j < 8; j += 4) for (let i = 0; i < 16; i += 4) { fill(x, C[0], i, j, 3, 3); px(x, i, j, C[2]); }
             fill(x, C[3], 0, 8, 16, 2); fill(x, shade(C[3], 0.3), 0, 8, 16, 1); fill(x, C[4], 0, 10, 16, 1);
-            for (let i = 0; i < 16; i += 4) fill(x, C[0], i, 12, 3, 1);
+            for (let i = 0; i < 16; i += 4) { fill(x, C[0], i, 11, 3, 2); px(x, i, 11, C[2]); }
             fill(x, C[4], 0, 13, 16, 2); fill(x, shade(C[4], 0.25), 0, 13, 16, 1); fill(x, '#2a1f2d', 0, 15, 16, 1);
+            return;
+        }
+        if (L.paper === 'glass') {
+            /* the conservatory's glazing: white bars, the garden green behind the glass, a glint; a low brick wall under it */
+            for (let j = 0; j < 10; j++) fill(x, mix(C[0], C[1], j / 9), 0, j, 16, 1);
+            for (const [i, j] of [[2, 8], [3, 7], [4, 8], [5, 9], [10, 9], [11, 8], [12, 7], [13, 8], [14, 9]]) fill(x, C[3], i, j, 1, 10 - j);
+            fill(x, C[2], 0, 0, 1, 10); fill(x, C[2], 8, 0, 1, 10); fill(x, C[4], 1, 0, 1, 10); fill(x, C[4], 9, 0, 1, 10);
+            fill(x, C[2], 0, 4, 16, 1); fill(x, C[4], 0, 5, 16, 1);
+            px(x, 3, 1, '#ffffff'); px(x, 4, 1, '#ffffff'); px(x, 3, 2, '#ffffff'); px(x, 12, 1, '#f4fbfa');
+            fill(x, '#eceee4', 0, 10, 16, 1); fill(x, '#a8ac9c', 0, 11, 16, 1);
+            fill(x, '#8a4a34', 0, 12, 16, 3);
+            for (let i = (v & 1) * 4; i < 16; i += 8) fill(x, '#b86a4a', i, 12, 7, 1);
+            for (let i = 4 - (v & 1) * 4; i < 16; i += 8) fill(x, '#c47a58', i, 13, 7, 1);
+            fill(x, '#2a1f2d', 0, 15, 16, 1);
             return;
         }
         this.paper(x, L, v);
         switch (L.dado) {
             case 'cream': case 'walnut': {
-                const W = L.dado === 'cream' ? ['#e6d9bd', '#f7efdc', '#dacbad', '#c2b190'] : ['#7a4c30', '#9a6644', '#6c4229', '#55331f'];
+                const Wd = L.dado === 'cream' ? ['#e6d9bd', '#f7efdc', '#dacbad', '#c2b190'] : ['#7a4c30', '#9a6644', '#6c4229', '#55331f'];
                 const rail = L.dado === 'cream' ? ['#f0c868', '#a87a2a'] : ['#b07a4c', '#4e2e1c'];
                 fill(x, rail[0], 0, 8, 16, 1); fill(x, rail[1], 0, 9, 16, 1);
-                fill(x, W[0], 0, 10, 16, 4); fill(x, W[1], 0, 10, 16, 1);
-                for (const p0 of [1, 9]) { fill(x, W[2], p0, 11, 6, 2); fill(x, W[3], p0, 11, 6, 1); fill(x, W[3], p0, 11, 1, 2); fill(x, W[1], p0 + 1, 13, 5, 1); fill(x, W[1], p0 + 6, 11, 1, 2); }
+                fill(x, Wd[0], 0, 10, 16, 4); fill(x, Wd[1], 0, 10, 16, 1);
+                for (const p0 of [1, 9]) { fill(x, Wd[2], p0, 11, 6, 2); fill(x, Wd[3], p0, 11, 6, 1); fill(x, Wd[3], p0, 11, 1, 2); fill(x, Wd[1], p0 + 6, 11, 1, 2); }
                 fill(x, L.dado === 'cream' ? '#6e4430' : '#3e2416', 0, 14, 16, 1);
                 break;
             }
@@ -1035,30 +1021,24 @@ const TidyWall = {
                 fill(x, shade(P[2], -0.25), 0, 14, 16, 1);
                 break;
             }
-            case 'brick': {
-                fill(x, '#e8e4d4', 0, 8, 16, 1); fill(x, '#9a8e74', 0, 9, 16, 1);
-                fill(x, '#8a4a34', 0, 10, 16, 5);
-                for (let r = 0; r < 2; r++) for (let i = -(r * 4); i < 16; i += 8) { fill(x, hash2(i, r + v, 3) < 0.5 ? '#b86a4a' : '#c47a58', Math.max(0, i), 10 + r * 2 + r, Math.min(7, 16 - Math.max(0, i), i + 7), 2); }
-                break;
-            }
             default: {
                 /* (the attic: plaster to the floor, a post here and there, a plain board along the foot) */
-                if (v === 1) { fill(x, '#7a5a3c', 6, 0, 3, 14); fill(x, '#9a7450', 6, 0, 1, 14); fill(x, '#5a3e28', 8, 0, 1, 14); }
+                if (v === 1) { fill(x, '#7a5a3c', 6, 0, 3, 13); fill(x, '#9a7450', 6, 0, 1, 13); fill(x, '#5a3e28', 8, 0, 1, 13); }
                 fill(x, '#8a6a48', 0, 13, 16, 2); fill(x, '#a8845e', 0, 13, 16, 1);
             }
         }
         fill(x, '#2a1f2d', 0, 15, 16, 1);
     },
 };
-for (const [n, L] of Object.entries(TIDY_LOOKS)) {
-    const tn = 'tidy_' + n;
+for (const [n, L] of Object.entries(TIDY_LOOKS)) for (const half of L.alt ? ['', '_b'] : ['']) {
+    const tn = 'tidy_' + n + half, f = half ? L.alt : L.floor;
     THEMES[tn] = THEMES.tidy;
-    FLOORS[tn] = { floor: L.floor, floor2: TF_CARPET, floor3: L.floor3 || (L.paper === 'tile' || L.paper === 'lime' ? L.floor : TF_FLAGS) };
-    WALLS[tn] = { edge: '#142424', top: (x) => { fill(x, '#245a54'); speckle(x, ['#2c6a63'], 4, 0.12); }, face: (x, th, v) => TidyWall.face(x, L, v) };
+    FLOORS[tn] = { floor: f, floor2: TF_CARPET, floor3: f };
+    WALLS[tn] = { edge: '#142424', top: (x) => { fill(x, '#245a54'); fill(x, '#2a665f', 0, 0, 16, 1); }, face: (x, th, v) => TidyWall.face(x, L, v) };
 }
 /* the kitchen counter, over the kitchen's own flags (as the House's counter is drawn over its boards) */
 FLOORS.tidy_kitchen.counter = (x, th, v) => {
-    FLOORS.tidy_kitchen.floor3(x, th, v);
+    FLOORS.tidy_kitchen.floor(x, th, v);
     fill(x, '#3a2a30', 0, 0, 16, 1); fill(x, '#f4ecdc', 0, 1, 16, 5); fill(x, '#fffaf0', 0, 1, 16, 1);
     for (const i of [3, 7, 11, 15]) fill(x, '#ddd0b6', i, 2, 1, 4);
     fill(x, '#ddd0b6', 0, 3, 16, 1);
@@ -1075,3 +1055,320 @@ FLOORS.tidy_kitchen.counter = (x, th, v) => {
     fill(x, '#2a1f2d', 0, 13, 16, 2);
     x.globalAlpha = 0.4; fill(x, '#2a1f2d', 0, 15, 16, 1); x.globalAlpha = 1;
 };
+
+/* the ground's dressing, room by room, painted once into one picture and laid over the floor under everything that
+   stands or lies on it: each carpet's border, the shadow along the foot of every wall (the light comes from the top
+   left), and the room's own pieces. (A picture is painted again only if the room's map changes under it.) */
+const RoomLook = {
+    cache: {},
+    sig(a, r) { let s = ''; for (let j = 0; j < r.h; j++) s += a.chars.slice((r.y + j) * a.w + r.x, (r.y + j) * a.w + r.x + r.w).join(''); return s; },
+    room(a, r, dress) {
+        const k = a.id + ':' + r.key, c = this.cache[k];
+        if (c && (!a._dirty || c.sig === this.sig(a, r))) return c.im;
+        const im = paintSprite(r.w * T, r.h * T, x => this.paint(x, a, r, dress), false);
+        this.cache[k] = { sig: this.sig(a, r), im };
+        return im;
+    },
+    /* (all the rooms painted on the way in, behind the fade) */
+    warm(a, dress) { if (HEADLESS) return; for (const r of a.rooms) { const c = this.cache[a.id + ':' + r.key]; if (c && c.sig !== this.sig(a, r)) delete this.cache[a.id + ':' + r.key]; this.room(a, r, dress); } },
+    ground(a, cx, cy, dress) {
+        if (HEADLESS) return;
+        for (const r of a.rooms) {
+            const X = r.x * T - cx, Y = r.y * T - cy;
+            if (X >= W || Y >= H || X + r.w * T <= 0 || Y + r.h * T <= 0) continue;
+            Gfx.img(this.room(a, r, dress), X, Y);
+        }
+    },
+    paint(x, a, r, dress) {
+        const R = (c, X, Y, w, h) => { x.fillStyle = c; x.fillRect(X, Y, w, h); };
+        const cell = (i, j) => a.cell(r.x + i, r.y + j), carpet = (i, j) => cell(i, j).p === 'floor2' && cell(i, j).k === 'floor';
+        const D = dress[r.key] || {}, put = list => { for (const [n, X, Y, flip] of list || []) { const im = ART[n]; if (!im) continue; if (flip) { x.save(); x.translate(X + im.width, Y); x.scale(-1, 1); x.drawImage(im, 0, 0); x.restore(); } else x.drawImage(im, X, Y); } };
+        /* carpets (where the House's dressing has them: dress.border): a dark binding, a gilt band, a line of darker red,
+           each pixel the band of the nearest edge (so every corner, outside or in, is mitred) */
+        const B = dress.border;
+        for (let j = 0; j < r.h; j++) for (let i = 0; i < r.w; i++) {
+            if (!B || !carpet(i, j)) continue;
+            const n = !carpet(i, j - 1), s = !carpet(i, j + 1), w = !carpet(i - 1, j), e = !carpet(i + 1, j);
+            const nw = !n && !w && !carpet(i - 1, j - 1), ne = !n && !e && !carpet(i + 1, j - 1), sw = !s && !w && !carpet(i - 1, j + 1), se = !s && !e && !carpet(i + 1, j + 1);
+            if (!(n || s || w || e || nw || ne || sw || se)) continue;
+            for (let py = 0; py < 16; py++) for (let qx = 0; qx < 16; qx++) {
+                const d = Math.min(n ? py : 9, s ? 15 - py : 9, w ? qx : 9, e ? 15 - qx : 9, nw ? Math.max(qx, py) : 9, ne ? Math.max(15 - qx, py) : 9,
+                    sw ? Math.max(qx, 15 - py) : 9, se ? Math.max(15 - qx, 15 - py) : 9);
+                if (d < 3) R(B[d], i * T + qx, j * T + py, 1, 1);
+            }
+        }
+        put(D.floor);
+        if (D.paint) D.paint(x, R, a, r);
+        /* the shadow at the foot of the walls */
+        for (let j = 0; j < r.h; j++) for (let i = 0; i < r.w; i++) {
+            if (cell(i, j).k !== 'floor') continue;
+            const X = i * T, Y = j * T;
+            if (cell(i, j - 1).k === 'wall') { x.globalAlpha = 0.24; R('#2a1f2d', X, Y, 16, 1); x.globalAlpha = 0.14; R('#2a1f2d', X, Y + 1, 16, 1); x.globalAlpha = 0.06; R('#2a1f2d', X, Y + 2, 16, 1); }
+            if (cell(i - 1, j).k === 'wall') { x.globalAlpha = 0.14; R('#2a1f2d', X, Y, 1, 16); x.globalAlpha = 0.06; R('#2a1f2d', X + 1, Y, 1, 16); }
+            x.globalAlpha = 1;
+        }
+        put(D.wall);
+    },
+};
+
+/* each room's own pieces, in room pixels: hung on the walls (wall: art, x, y[, flipped]) or laid flat on the floor (floor);
+   and the carpets' border */
+const TIDY_DRESS = {
+    border: ['#4a1620', '#d9a33a', '#7a2836'],
+    /* the front hall: the family either side of the way in, hats and coats on their pegs, a mat inside the door */
+    '1,3': { wall: [['td_coats', 209, 0], ['td_portrait_lady', 113, 1], ['td_portrait_gent', 177, 1]], floor: [['td_doormat', 144, 148]] },
+    /* the kitchen: copper pans over the work (the range stands where the old stove stood) */
+    '0,3': { wall: [['td_pans', 160, 1]] },
+    /* the gallery: pictures on its red walls */
+    '2,3': { wall: [['td_paint_sea', 180, 0], ['td_paint_fruit', 214, 0], ['td_paint_hills', 82, 64], ['td_paint_horse', 197, 64]] },
+    /* the hall of busts: marble pilasters marching down it */
+    '1,2': { wall: [['td_pilaster', 83, 0], ['td_pilaster', 131, 0], ['td_pilaster', 179, 0], ['td_pilaster', 227, 0], ['td_pilaster', 35, 48], ['td_pilaster', 83, 48]] },
+    /* the pantry: a ham, strings of onions and garlic, herbs drying (the larder dresser where the bookcase stood) */
+    '0,2': { wall: [['td_hams', 85, 0], ['td_herbs', 197, 1]] },
+    /* the parlour: the fire, the armchairs drawn up to it (the piano where the bookcase stood) */
+    '2,2': { wall: [['td_fireplace', 63, 0]] },
+    /* the linen room: its four cupboards made linen presses */
+    '2,1': { wall: [['td_press', 32, 32], ['td_press', 256, 32], ['td_press', 32, 112], ['td_press', 256, 112]] },
+    /* the laundry: Monday's wash on the line along the wall (the mangle beside the tub) */
+    '3,1': { wall: [['td_washline', 114, 0]] },
+    /* the ballroom: tall windows hung with crimson, a mirror between */
+    '1,1': { wall: [['td_window', 83, 0], ['td_mirror', 153, 1], ['td_window', 211, 0]] },
+    /* the library: a reading room's rug (and reading lamps on its tables) */
+    '0,1': { floor: [['td_rug', 96, 68]] },
+    /* the attic: under the rafters, a round window in the gable */
+    '0,0': { wall: [['td_oculus', 161, 17]], paint: (x, R) => TidyLook.rafters(x, R) },
+    /* the antechamber: the Housekeeper's brooms and pails, kept just so */
+    '2,0': { wall: [['td_brooms', 83, 0], ['td_brooms', 211, 0, true]] },
+    /* the grand hall: tall windows, the House's own banner between */
+    '1,0': { wall: [['td_window', 83, 0], ['td_banner', 140, 0], ['td_window', 211, 0]] },
+};
+const TidyLook = {
+    ground(a, cx, cy) { RoomLook.ground(a, cx, cy, TIDY_DRESS); },
+    warm(a) { RoomLook.warm(a, TIDY_DRESS); },
+    /* the attic's roof: rafters down both slopes over the thick side walls, a purlin across */
+    rafters(x, R) {
+        for (const [x0, dir] of [[0, 1], [319, -1]]) {
+            R('#3a2a1e', dir > 0 ? 0 : 256, 74, 64, 6); R('#7a5a3c', dir > 0 ? 0 : 256, 74, 64, 4); R('#a8845e', dir > 0 ? 0 : 256, 74, 64, 1);
+            for (let k = 0; k < 3; k++) {
+                const top = 8 + k * 50;
+                for (let s = 0; s < 64; s++) { const X = x0 + dir * s, Y = top + Math.floor(s * 0.5); if (Y > 160) break; R('#3a2a1e', X, Y, 1, 7); R('#6e5034', X, Y + 1, 1, 5); R('#9a7450', X, Y + 1, 1, 1); }
+            }
+        }
+    },
+};
+/* the pieces (lit from the top left; most are outlined in ink by paintSprite, as the rest of the House's things are) */
+function initTidyLook() {
+    const pic = (w, h, fn, outline = true) => paintSprite(w, h, x => fn((c, a, b, ww, hh) => { x.fillStyle = c; x.fillRect(a, b, ww, hh); }, x), outline);
+    const gilt = (R, a, b, w, h) => { R('#d9a33a', a, b, w, h); R('#f2cc6a', a, b, w, 1); R('#f2cc6a', a, b, 1, h); R('#a6772a', a, b + h - 1, w, 1); R('#a6772a', a + w - 1, b, 1, h); };
+    /* two of the family, in gilt frames: a lady in teal with a lace collar, a gentleman with whiskers and a crimson stock */
+    ART.td_portrait_lady = pic(14, 15, R => {
+        gilt(R, 1, 1, 12, 13); R('#2e2630', 3, 3, 8, 9);
+        R('#8e8e98', 5, 3, 4, 2); R('#b4b4bc', 5, 3, 2, 1); R('#8e8e98', 6, 2, 2, 1);
+        R('#f2c49b', 5, 5, 4, 3); R('#d8956b', 8, 5, 1, 3); R('#2a1f2d', 6, 6, 1, 1);
+        R('#fbf6ea', 4, 8, 6, 1); R('#3fa99e', 3, 9, 8, 3); R('#6fd0c4', 4, 9, 2, 2); R('#2e7e78', 9, 9, 2, 3);
+    });
+    ART.td_portrait_gent = pic(14, 15, R => {
+        gilt(R, 1, 1, 12, 13); R('#2e2630', 3, 3, 8, 9);
+        R('#5a3a26', 5, 3, 4, 2); R('#f2c49b', 5, 4, 4, 4); R('#d8956b', 8, 4, 1, 4); R('#2a1f2d', 6, 5, 1, 1);
+        R('#7a5a44', 4, 6, 1, 2); R('#7a5a44', 9, 6, 1, 2);
+        R('#c0303e', 6, 8, 2, 1); R('#3a3448', 3, 9, 8, 3); R('#56506a', 4, 9, 2, 2); R('#fbf6ea', 6, 9, 2, 1);
+    });
+    /* hats and coats on a peg rail: a long teal coat, a crimson scarf, a bowler and a walking stick */
+    ART.td_coats = pic(24, 16, R => {
+        R('#8a5a36', 1, 2, 22, 2); R('#b07a4c', 1, 2, 22, 1);
+        for (const p of [4, 12, 19]) R('#5e3a22', p, 4, 1, 1);
+        R('#3c8a80', 2, 4, 6, 11); R('#5fb7a8', 2, 4, 2, 10); R('#2e6a62', 7, 5, 1, 10); R('#e2b45a', 5, 7, 1, 1); R('#e2b45a', 5, 10, 1, 1); R('#2e6a62', 4, 14, 3, 1);
+        R('#b8364a', 11, 4, 3, 9); R('#d85a6a', 11, 4, 1, 8); R('#b8364a', 10, 12, 2, 2); R('#e8b04a', 11, 13, 1, 1);
+        R('#2a2834', 16, 5, 7, 2); R('#3a3848', 17, 3, 5, 3); R('#4a4858', 17, 3, 2, 1);
+        R('#6b4128', 21, 8, 1, 7); R('#9a6438', 20, 8, 2, 1);
+    });
+    /* the mat inside the front door: coir, a teal border, the weave showing */
+    ART.td_doormat = pic(16, 10, R => {
+        R('#3c8a80', 0, 0, 16, 10); R('#b8925a', 1, 1, 14, 8);
+        for (let i = 2; i < 14; i += 2) R('#9a7444', i, 2, 1, 6);
+        R('#d0aa70', 1, 1, 14, 1); R('#5fb7a8', 0, 0, 16, 1);
+    }, false);
+    /* the range: a black iron range under a plastered hood, the fire glowing in its box, brass rail and handles, a copper
+       kettle on the hob (in place of the old stove, on the same two tiles) */
+    ART.td_range = pic(32, 30, R => {
+        R('#e8dcc4', 5, 1, 22, 3); R('#ddd0b4', 4, 4, 24, 4); R('#cfc0a0', 3, 8, 26, 3); R('#f4ecdc', 5, 1, 22, 1);
+        R('#a89878', 3, 10, 26, 1); R('#e2b45a', 2, 11, 28, 1);
+        R('#3a3440', 2, 12, 28, 17); R('#4e4858', 2, 12, 28, 2); R('#5e586a', 2, 12, 28, 1);
+        R('#2a2430', 5, 13, 5, 1); R('#2a2430', 22, 13, 5, 1);
+        R('#c8743a', 6, 7, 6, 5); R('#f0a868', 6, 7, 2, 2); R('#8a4a22', 11, 8, 1, 4); R('#c8743a', 12, 8, 2, 1); R('#c8743a', 7, 6, 3, 1);
+        R('#e2b45a', 2, 15, 28, 1); R('#b88a2a', 2, 16, 28, 1);
+        for (const d of [3, 20]) { R('#2e2834', d, 18, 9, 8); R('#4a4454', d, 18, 9, 1); R('#4a4454', d, 18, 1, 8); R('#e2b45a', d + 6, 21, 2, 1); }
+        R('#2a1f2d', 13, 18, 6, 8); R('#c0302e', 14, 21, 4, 4); R('#f39a3c', 14, 22, 4, 3); R('#f7d64a', 15, 23, 2, 2);
+        R('#2a2430', 2, 27, 28, 2); R('#4a4454', 3, 27, 2, 2); R('#4a4454', 27, 27, 2, 2);
+    });
+    /* copper pans on a rail: a frying pan, two saucepans, a little milk pan, a ladle */
+    ART.td_pans = pic(46, 15, R => {
+        R('#b88a2a', 1, 1, 44, 1); R('#e2b45a', 1, 1, 44, 1); R('#8a6a3a', 1, 2, 44, 1);
+        const pan = (cx, r, hl) => {
+            R('#6b4128', cx, 2, 1, hl);
+            for (let j = -r; j <= r; j++) { const w = Math.round(Math.sqrt(r * r - j * j)); R(j < -r / 3 ? '#f0a868' : j > r / 2 ? '#8a4a22' : '#c8743a', cx - w, 2 + hl + r + j, w * 2 + 1, 1); }
+            R('#a85a2a', cx - Math.round(r / 2), 2 + hl + r - Math.round(r / 2), Math.max(2, r), Math.max(2, r));
+        };
+        pan(7, 5, 1); pan(19, 4, 2); pan(30, 3, 3); pan(39, 2, 4);
+        R('#9a9aa8', 44, 2, 1, 8); R('#c8c8d4', 43, 9, 2, 2);
+    });
+    /* pictures for the gallery, in gilt: the sea with a sail on it, a bowl of fruit, the hills at home, a grey horse */
+    const framed = (w, h, fn) => pic(w, h, R => { gilt(R, 1, 1, w - 2, h - 2); fn(R); });
+    ART.td_paint_sea = framed(26, 15, R => {
+        R('#bfe0f0', 3, 3, 20, 5); R('#e8f4fa', 4, 4, 6, 1); R('#3f8fd8', 3, 8, 20, 4); R('#5fb5e8', 3, 8, 20, 1); R('#2b5aa8', 3, 11, 20, 1);
+        R('#fbf6ea', 13, 4, 3, 4); R('#d8d0c0', 15, 5, 1, 3); R('#6b4128', 12, 8, 6, 1);
+    });
+    ART.td_paint_fruit = framed(20, 15, R => {
+        R('#3a2a2e', 3, 3, 14, 9); R('#c9925a', 5, 9, 10, 2); R('#e6c08a', 5, 9, 10, 1);
+        R('#c0303e', 6, 6, 3, 3); R('#e8604a', 6, 6, 1, 1); R('#8fd46a', 9, 6, 3, 3); R('#c8e66a', 9, 6, 1, 1); R('#8a5aa0', 12, 7, 2, 2); R('#b48ce8', 12, 7, 1, 1);
+    });
+    ART.td_paint_hills = framed(26, 15, R => {
+        R('#cfe9f4', 3, 3, 20, 5); R('#a9e07f', 3, 7, 20, 2); R('#7cc35c', 3, 9, 20, 2); R('#5fa84c', 3, 11, 20, 1);
+        R('#a9e07f', 12, 6, 8, 1); R('#fbf6ea', 7, 6, 3, 2); R('#c0505a', 7, 5, 3, 1); R('#f7d64a', 19, 4, 2, 2);
+    });
+    ART.td_paint_horse = framed(26, 15, R => {
+        R('#e8d8b0', 3, 3, 20, 9); R('#c8b888', 3, 10, 20, 2);
+        R('#b4b4bc', 9, 6, 9, 3); R('#d8d8e0', 9, 6, 9, 1); R('#b4b4bc', 17, 4, 3, 3); R('#2a1f2d', 19, 5, 1, 1);
+        for (const l of [10, 12, 15, 17]) R('#8e8e98', l, 9, 1, 2);
+        R('#6e6e78', 8, 7, 1, 3);
+    });
+    /* a marble pilaster: a gilt capital, a fluted shaft, a plinth */
+    ART.td_pilaster = pic(10, 16, R => {
+        R('#efe6d6', 2, 3, 6, 11); R('#fbf6ea', 2, 3, 1, 11); R('#cfc2a8', 7, 3, 1, 11); R('#dcd0b8', 4, 3, 1, 11); R('#dcd0b8', 6, 3, 1, 11);
+        R('#d9a33a', 1, 1, 8, 2); R('#f2cc6a', 1, 1, 8, 1); R('#efe6d6', 1, 14, 8, 2); R('#cfc2a8', 1, 15, 8, 1);
+    });
+    /* the larder dresser (in place of the pantry's bookcase): jars of preserves, a crock, a cheese, a loaf */
+    ART.td_larder = pic(32, 30, R => {
+        R('#9a6438', 1, 1, 30, 28); R('#3a2418', 3, 3, 26, 24); R('#c9925a', 1, 1, 30, 1);
+        for (let r = 0; r < 3; r++) { const y = 3 + r * 8; R('#c9925a', 3, y + 7, 26, 1); R('#6b4128', 3, y + 8, 26, 1); }
+        const jar = (a, b, c) => { R('#fbf6ea', a, b, 4, 1); R(c, a, b + 1, 4, 5); R(shade(c, 0.35), a, b + 2, 1, 3); R('#e8dcc8', a, b, 4, 1); };
+        jar(4, 4, '#c0303e'); jar(9, 4, '#e8903a'); jar(14, 4, '#8aa84a'); jar(19, 4, '#c0303e'); jar(24, 4, '#8a5aa0');
+        R('#e8dcc0', 4, 12, 7, 6); R('#fbf6ea', 4, 12, 2, 5); R('#5a8ad0', 4, 14, 7, 1); R('#c8bca0', 10, 12, 1, 6);
+        R('#f0c860', 14, 14, 9, 4); R('#f7e08a', 14, 14, 9, 1); R('#c8963a', 14, 17, 9, 1); R('#e8b04a', 18, 14, 4, 2);
+        R('#c9925a', 24, 13, 5, 5); R('#e6c08a', 24, 13, 5, 1);
+        R('#d8c8a0', 4, 21, 6, 5); R('#c4b088', 4, 24, 6, 1); R('#d8c8a0', 12, 22, 5, 4); R('#9a9aa8', 19, 21, 4, 5); R('#c8c8d4', 19, 21, 1, 5); R('#9a9aa8', 24, 22, 4, 4);
+    });
+    /* from the pantry's hooks: a ham in a cloth, a string of onions, a string of garlic */
+    ART.td_hams = pic(26, 16, R => {
+        R('#8a6a4a', 1, 1, 24, 1);
+        R('#d8c8a8', 4, 2, 1, 2); R('#c8784a', 2, 4, 6, 7); R('#e09a6a', 2, 4, 2, 5); R('#8a4a2a', 7, 5, 1, 6); R('#c8784a', 3, 11, 4, 2); R('#fbf6ea', 4, 13, 2, 2);
+        for (let k = 0; k < 5; k++) { R('#d9a050', 11 + (k % 2), 3 + k * 2, 3, 2); R('#f0c070', 11 + (k % 2), 3 + k * 2, 1, 1); }
+        for (let k = 0; k < 5; k++) { R('#f0ead8', 18 + (k % 2), 3 + k * 2, 3, 2); R('#c8bca0', 20 + (k % 2), 4 + k * 2, 1, 1); }
+    });
+    /* bunches of herbs hung up to dry */
+    ART.td_herbs = pic(20, 12, R => {
+        R('#8a6a4a', 1, 1, 18, 1);
+        for (const [a, c] of [[3, '#6a9a4a'], [9, '#8aae5a'], [15, '#5a8a50']]) { R('#c8a060', a + 1, 2, 1, 2); R(c, a, 4, 3, 5); R(shade(c, 0.25), a, 4, 1, 4); R(c, a - 1, 6, 1, 3); R(c, a + 3, 6, 1, 3); }
+    });
+    /* the parlour's upright piano (in place of its bookcase): candle sconces, music on the stand, a vase of roses on top */
+    ART.td_piano = pic(32, 30, R => {
+        R('#6e4226', 2, 4, 28, 24); R('#8a5634', 2, 4, 28, 2); R('#9a6644', 2, 4, 28, 1);
+        R('#5a3420', 4, 7, 24, 7); for (let i = 6; i < 27; i += 4) R('#c8963a', i, 9, 1, 1);
+        R('#fbf6ea', 11, 8, 10, 5); R('#c8bca0', 12, 9, 8, 1); R('#c8bca0', 12, 11, 8, 1);
+        R('#fbf6ea', 3, 15, 26, 3); for (let i = 4; i < 28; i += 2) R('#d8d0c0', i, 17, 1, 1);
+        for (const i of [5, 7, 11, 13, 15, 19, 21, 25]) R('#2a1f2d', i, 15, 1, 2);
+        R('#4e2e1c', 2, 18, 28, 1); R('#7a4c30', 4, 20, 10, 6); R('#7a4c30', 18, 20, 10, 6); R('#5a3420', 5, 21, 8, 4); R('#5a3420', 19, 21, 8, 4);
+        R('#e2b45a', 12, 27, 2, 1); R('#e2b45a', 18, 27, 2, 1);
+        for (const s of [0, 29]) { R('#e2b45a', s, 9, 3, 1); R('#fbf6ea', s + 1, 6, 1, 3); R('#f7d64a', s + 1, 5, 1, 1); }
+        R('#5fb7a8', 22, 1, 4, 3); R('#3c8a80', 24, 1, 2, 3); R('#c0303e', 21, 0, 2, 2); R('#e8604a', 24, 0, 2, 1); R('#c0303e', 26, 0, 1, 2);
+    });
+    /* the parlour's fire: a cream marble surround, the coals aglow behind a brass fender, a clock and candlesticks on the mantel */
+    ART.td_fireplace = pic(34, 16, R => {
+        R('#efe6d6', 0, 3, 34, 2); R('#fbf6ea', 0, 3, 34, 1); R('#cfc2a8', 0, 4, 34, 1);
+        R('#e6dcc8', 2, 5, 30, 10); R('#fbf6ea', 2, 5, 1, 10); R('#cfc2a8', 31, 5, 1, 10);
+        R('#2a1f2d', 9, 7, 16, 8); R('#3a2a30', 9, 7, 16, 2);
+        R('#c0302e', 11, 11, 12, 3); R('#f39a3c', 12, 11, 10, 2); R('#f7d64a', 15, 11, 4, 1); R('#4a4454', 10, 14, 14, 1);
+        R('#e2b45a', 9, 14, 16, 1);
+        R('#6e4226', 14, 0, 6, 3); R('#fbf6ea', 15, 1, 4, 1); R('#2a1f2d', 17, 1, 1, 1);
+        for (const c of [4, 29]) { R('#e2b45a', c, 2, 1, 1); R('#fbf6ea', c, 0, 1, 2); }
+    });
+    /* a tall gilt mirror */
+    ART.td_mirror = pic(14, 15, R => { gilt(R, 1, 1, 12, 13); R('#c8d8e0', 3, 3, 8, 9); R('#e8f2f6', 4, 4, 2, 2); R('#e8f2f6', 6, 6, 1, 1); R('#a8bcc8', 8, 9, 3, 3); });
+    /* a potted palm, and a fern in a glazed pot (for the conservatory, and the parlour's corner) */
+    ART.td_palm = pic(22, 30, R => {
+        R('#efe6d6', 7, 22, 8, 7); R('#fbf6ea', 7, 22, 2, 6); R('#3c8a80', 7, 24, 8, 1); R('#cfc2a8', 13, 22, 2, 7); R('#e6dcc8', 6, 21, 10, 2);
+        R('#6b4128', 10, 12, 2, 10);
+        const frond = (pts, c) => { for (const [a, b] of pts) R(c, a, b, 2, 2); };
+        frond([[10, 12], [8, 10], [6, 9], [4, 9], [2, 10], [1, 12]], '#4fa84a'); frond([[12, 12], [14, 10], [16, 9], [18, 9], [19, 11], [20, 13]], '#4fa84a');
+        frond([[10, 11], [9, 8], [8, 5], [7, 3], [6, 2]], '#8ad87a'); frond([[12, 11], [13, 8], [15, 5], [16, 3]], '#4fa84a');
+        frond([[11, 11], [11, 7], [11, 4], [12, 1]], '#8ad87a'); frond([[10, 13], [7, 14], [4, 15], [2, 17]], '#2e7a43'); frond([[12, 13], [15, 14], [18, 16], [19, 18]], '#2e7a43');
+    });
+    ART.td_fernpot = pic(20, 24, R => {
+        R('#3c8a80', 6, 16, 8, 7); R('#5fb7a8', 6, 16, 2, 6); R('#2e6a62', 12, 16, 2, 7); R('#4fa89c', 5, 15, 10, 2);
+        for (let k = 0; k < 7; k++) { const a = -1.3 + k * 0.43, len = 7 + (k % 2) * 2; for (let s = 1; s <= len; s++) R(s < 4 ? '#4fa84a' : k < 3 ? '#8ad87a' : '#4fa84a', 10 + Math.round(Math.sin(a) * s), 15 - Math.round(Math.cos(a) * s * 0.9) + (s > 5 ? s - 5 : 0), 1, 1); }
+        R('#2e7a43', 8, 13, 4, 2);
+    });
+    /* the linen presses (over the room's four cupboard blocks): folded linen stacked on top, two panelled doors, brass knobs */
+    ART.td_press = pic(32, 32, R => {
+        R('#142424', 0, 0, 32, 32); R('#8fa2ae', 1, 1, 30, 14); R('#a8bac4', 1, 1, 30, 1);
+        for (const [a, c, n] of [[3, '#fbf6ea', 3], [12, '#c9b3f0', 2], [20, '#fbf6ea', 4]]) for (let k = 0; k < n; k++) { R(c, a, 12 - k * 3, 8, 3); R(shade(c, -0.15), a, 14 - k * 3, 8, 1); R('#ffffff', a, 12 - k * 3, 3, 1); }
+        R('#768894', 1, 15, 30, 1); R('#9fb0bc', 1, 16, 30, 15); R('#b9c8d2', 1, 16, 30, 1);
+        for (const d of [2, 17]) { R('#8496a4', d + 1, 18, 11, 11); R('#b9c8d2', d + 1, 28, 11, 1); R('#b9c8d2', d + 11, 18, 1, 11); R('#6e8090', d + 1, 18, 11, 1); }
+        R('#768894', 15, 16, 2, 15); R('#e2b45a', 13, 23, 1, 2); R('#e2b45a', 18, 23, 1, 2); R('#5e6e80', 1, 30, 30, 1);
+    }, false);
+    /* Monday's wash, pegged out along the laundry wall: sheets, a teal shirt, an apron, crimson socks, a pillowcase */
+    ART.td_washline = pic(122, 16, R => {
+        for (let i = 1; i < 121; i++) R('#c8bca0', i, 2 + Math.round(Math.sin(i / 120 * Math.PI) * 2), 1, 1);
+        const peg = a => R('#9a6438', a, 2 + Math.round(Math.sin(a / 120 * Math.PI) * 2), 1, 2);
+        const hang = (a, w, h, c, fn) => { const y = 4 + Math.round(Math.sin((a + w / 2) / 120 * Math.PI) * 2); R(c, a, y, w, h); R(shade(c, 0.3), a, y, 2, h - 1); R(shade(c, -0.15), a + w - 1, y, 1, h); if (fn) fn(a, y); peg(a + 1); peg(a + w - 2); };
+        hang(4, 22, 11, '#fbf6ea', (a, y) => { R('#e4ddd0', a + 6, y + 2, 1, 9); R('#e4ddd0', a + 14, y + 2, 1, 9); });
+        hang(31, 13, 8, '#3fa99e', (a, y) => { R('#3fa99e', a - 2, y, 2, 4); R('#3fa99e', a + 13, y, 2, 4); R('#2e7e78', a + 6, y, 1, 8); R('#fbf6ea', a + 5, y, 3, 1); });
+        hang(50, 9, 10, '#efe2c6', (a, y) => { R('#c0303e', a, y + 6, 9, 1); });
+        hang(64, 4, 6, '#b8364a', (a, y) => R('#b8364a', a + 2, y + 5, 3, 2)); hang(71, 4, 6, '#b8364a', (a, y) => R('#b8364a', a + 2, y + 5, 3, 2));
+        hang(80, 20, 11, '#dce8f0', (a, y) => { for (let i = 2; i < 20; i += 4) R('#a8c4dc', a + i, y, 1, 11); });
+        hang(105, 12, 8, '#fbf6ea', (a, y) => R('#5fb7a8', a + 1, y + 6, 10, 1));
+    });
+    /* the laundry's mangle (in place of one of its tubs): an iron frame, two wooden rollers, the big wheel and its handle */
+    ART.td_mangle = pic(22, 26, R => {
+        R('#3a3440', 3, 4, 2, 19); R('#3a3440', 15, 4, 2, 19); R('#5e586a', 3, 4, 1, 19); R('#3a3440', 3, 3, 14, 2); R('#5e586a', 3, 3, 14, 1);
+        R('#e6c08a', 5, 8, 10, 3); R('#fbf0d8', 5, 8, 10, 1); R('#c9925a', 5, 11, 10, 3); R('#9a6438', 5, 13, 10, 1);
+        R('#fbf6ea', 6, 14, 8, 4); R('#e4ddd0', 6, 17, 8, 1);
+        for (let a = 0; a < 24; a++) { const t = a / 24 * Math.PI * 2; R(a < 12 ? '#5e586a' : '#3a3440', 17 + Math.round(Math.cos(t) * 4), 10 + Math.round(Math.sin(t) * 4), 1, 1); }
+        R('#4a4454', 17, 7, 1, 7); R('#4a4454', 14, 10, 7, 1); R('#9a6438', 20, 6, 1, 4); R('#c9925a', 20, 5, 2, 1);
+        R('#6b4128', 2, 23, 16, 2); R('#9a6438', 2, 23, 16, 1);
+    });
+    /* a tall window hung with crimson, gathered in gold, under a gilt pelmet */
+    ART.td_window = pic(26, 16, R => {
+        R('#cfe9f4', 7, 3, 12, 12); R('#e8f6fc', 8, 4, 4, 3); R('#a8d4ec', 7, 11, 12, 4);
+        R('#fbf6ea', 12, 3, 2, 12); R('#fbf6ea', 7, 8, 12, 1); R('#efe6d6', 6, 14, 14, 1);
+        for (const [a, f] of [[1, 1], [19, -1]]) { R('#9a2a3a', a, 2, 6, 13); R('#c4485a', f > 0 ? a : a + 4, 2, 2, 13); R('#741c2a', f > 0 ? a + 5 : a, 2, 1, 13); R('#e8b04a', a, 9, 6, 1); }
+        R('#d9a33a', 0, 0, 26, 3); R('#f2cc6a', 0, 0, 26, 1); R('#a6772a', 0, 2, 26, 1);
+    });
+    /* the round window in the attic's gable */
+    ART.td_oculus = pic(14, 14, R => {
+        for (let j = 0; j < 14; j++) for (let i = 0; i < 14; i++) { const d = Math.hypot(i - 6.5, j - 6.5); if (d < 6.6) R(d > 5 ? '#7a5a3c' : j < 6 ? '#cfe9f4' : '#a8d4ec', i, j, 1, 1); }
+        R('#7a5a3c', 6, 1, 2, 12); R('#7a5a3c', 1, 6, 12, 2); R('#e8f6fc', 3, 3, 2, 2);
+    });
+    /* the Housekeeper's things, kept just so: two brooms, a mop, a feather duster, a pail on its hook */
+    ART.td_brooms = pic(26, 16, R => {
+        R('#8a5a36', 1, 1, 24, 2); R('#b07a4c', 1, 1, 24, 1);
+        for (const a of [3, 8]) { R('#9a6438', a, 3, 1, 8); R('#e8c860', a - 2, 11, 5, 4); R('#c8a040', a - 2, 13, 5, 2); R('#3c8a80', a - 2, 11, 5, 1); }
+        R('#9a6438', 13, 3, 1, 7); R('#d8d0c0', 11, 10, 5, 5); R('#b8b0a0', 12, 12, 1, 3); R('#b8b0a0', 14, 12, 1, 3);
+        R('#6b4128', 18, 3, 1, 5); R('#c0303e', 16, 7, 5, 3); R('#e8604a', 16, 7, 2, 2); R('#c0303e', 17, 10, 3, 1);
+        R('#9a9aa8', 21, 8, 4, 6); R('#c8c8d4', 21, 8, 1, 6); R('#6a6a78', 21, 8, 4, 1); R('#6a6a78', 22, 5, 2, 3);
+    });
+    /* the House's banner: teal cloth on a brass rod, a little house and its pail stitched in cream and crimson, a gold fringe */
+    ART.td_banner = pic(40, 16, R => {
+        R('#e2b45a', 0, 0, 40, 2); R('#b88a2a', 0, 1, 40, 1); R('#f7d64a', 0, 0, 2, 2); R('#f7d64a', 38, 0, 2, 2);
+        R('#3c8a80', 3, 2, 34, 12); R('#5fb7a8', 4, 3, 32, 10); R('#efe6d6', 4, 3, 32, 1); R('#efe6d6', 4, 12, 32, 1);
+        R('#c0303e', 14, 5, 10, 2); R('#c0303e', 16, 4, 6, 1); R('#fbf6ea', 15, 7, 8, 5); R('#3c8a80', 18, 9, 2, 3);
+        R('#e2b45a', 26, 9, 4, 3); R('#b88a2a', 27, 8, 2, 1);
+        for (let i = 3; i < 37; i += 2) R('#e8b04a', i, 14, 1, 2);
+    });
+    /* the library's rug: deep teal, a cream border, a crimson medallion, fringed ends (laid flat) */
+    ART.td_rug = pic(144, 56, (R, x) => {
+        R('#1f5d63', 4, 0, 136, 56); R('#efe6d6', 7, 3, 130, 50); R('#2e7e78', 9, 5, 126, 46); R('#3c8a80', 13, 9, 118, 38);
+        for (let i = 13; i < 131; i += 6) { R('#e0b050', i + 2, 7, 2, 1); R('#e0b050', i + 2, 48, 2, 1); }
+        for (let j = -14; j <= 14; j++) { const w = Math.round((14 - Math.abs(j)) * 2.6); R(Math.abs(j) > 11 ? '#e0b050' : '#9a3a4a', 72 - w, 28 + j, w * 2, 1); }
+        R('#c45a6a', 64, 26, 16, 4); R('#e0b050', 70, 27, 4, 2);
+        for (let j = 2; j < 54; j += 2) { R('#efe6d6', 0, j, 4, 1); R('#efe6d6', 140, j, 4, 1); }
+    }, false);
+    /* the library's reading tables (in place of its plain ones): a green-shaded lamp, a book open, an inkpot */
+    ART.td_readtable = pic(32, 20, R => {
+        R('#8a5634', 1, 5, 30, 8); R('#a8744a', 1, 5, 30, 2); R('#6e4226', 1, 12, 30, 2); R('#4e2e1c', 3, 14, 3, 6); R('#4e2e1c', 26, 14, 3, 6);
+        R('#e2b45a', 22, 3, 1, 3); R('#3c8a80', 19, 0, 7, 3); R('#5fb7a8', 19, 0, 3, 1); R('#fff4c0', 20, 3, 5, 1);
+        R('#fbf6ea', 6, 5, 10, 4); R('#c8bca0', 10, 5, 2, 4); R('#9a9188', 7, 6, 2, 1); R('#9a9188', 13, 7, 2, 1);
+        R('#2a2834', 27, 6, 2, 2); R('#fbf6ea', 28, 3, 1, 3);
+    });
+}
+CONTENT_INIT.push(initTidyLook);
