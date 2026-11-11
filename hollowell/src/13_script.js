@@ -43,7 +43,10 @@ function* wait(n) { yield n; }
 function faceSpeaker(who) {
     const a = G.map, p = G.player;
     if (!who || !a || !p || p.hidden) return;
-    const n = a.ents.find(e => e.kind === 'npc' && e.who === who && !e.hidden);
+    /* (the one nearest her: a scene may have brought a second of somebody, the ceremony's crowd say, while the first
+       stands at their usual spot across town) */
+    let n = null, nd = 1e9;
+    for (const e of a.ents) if (e.kind === 'npc' && e.who === who && !e.hidden && !e.removed) { const d = Math.abs(p.tx - e.tx) + Math.abs(p.ty - e.ty); if (d < nd) { nd = d; n = e; } }
     if (!n || n.mv || n.walking || n.fixedFace || n.counter) return;
     const dx = p.tx - n.tx, dy = p.ty - n.ty;
     if (Math.abs(dx) + Math.abs(dy) > 6 || (dx === 0 && dy === 0)) return;
@@ -66,7 +69,8 @@ function* ask(who, text, choices, opts = {}) {
     yield () => !Dialog.active;
     return Dialog.picked;
 }
-function* fadeOut(n = 20) { UI.fade = { from: UI.fadeA, to: 1, t: 0, dur: n }; yield n; }
+/* (a banner belongs to the place being faded out of: it goes with it, not left showing over the black) */
+function* fadeOut(n = 20) { UI.banner = null; UI.fade = { from: UI.fadeA, to: 1, t: 0, dur: n }; yield n; }
 function* fadeIn(n = 20) { UI.fade = { from: UI.fadeA, to: 0, t: 0, dur: n }; yield n; }
 /* walk a grid walker (townsfolk) or Wren to a tile */
 /* a scripted walk goes across then along, unless something stands in that way: then round it, a tile at a time */

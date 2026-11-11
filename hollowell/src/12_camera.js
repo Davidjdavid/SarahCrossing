@@ -25,9 +25,10 @@ const Cam = {
             tr.t++;
             const k = tr.t / tr.dur, e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
             this.x = Math.round(lerp(tr.fx, tr.tx, e)); this.y = Math.round(lerp(tr.fy, tr.ty, e));
-            /* Wren steps on through the doorway */
+            /* Wren steps on through the doorway (the tool pressed meanwhile is kept for when she's through) */
             p.x = lerp(tr.px0, tr.px1, k); p.y = lerp(tr.py0, tr.py1, k);
             p.anim++; p.walking = true;
+            if (Input.pressed('tool')) p.toolQ = true;
             if (tr.t >= tr.dur) {
                 this.trans = null;
                 p.setMark();

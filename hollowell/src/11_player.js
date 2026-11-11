@@ -128,6 +128,7 @@ class Player extends Ent {
     /* ----- each step ----- */
     update() {
         if (this.inv > 0) this.inv--;
+        if (!this.inv) this.blink = false;
         if (this.hitT > 0) this.hitT--;
         this.stateT++;
         switch (this.state) {
@@ -172,9 +173,13 @@ class Player extends Ent {
             this.afterMove();
             return;
         }
-        /* grip (Gloves): hold the action button against a thing */
+        /* grip (Gloves): hold the action button against a thing (Options > Grip: toggle, a tap takes hold and the next tap
+           lets go, and does nothing else) */
+        let letGo = false;
         if (!cut && this.grip) {
-            if (!Input.down('act') || this.grip.removed || (!this.grip.mv && !this.adjacentTo(this.grip))) this.release();
+            letGo = Settings.grip === 'toggle' ? Input.pressed('act') : !Input.down('act');
+            if (letGo || this.grip.removed || (!this.grip.mv && !this.adjacentTo(this.grip))) this.release();
+            if (letGo && Settings.grip === 'toggle') this.tapSpent = G.t;
         }
         let moving = false;
         if (this.state === 'normal' && this.swingT <= 0 && (ax.x || ax.y)) {
@@ -210,11 +215,16 @@ class Player extends Ent {
             else { this.edgeT = 0; this.diving = false; }
         } else if (!this.diving || !moving) { this.edgeT = 0; if (!moving) this.diving = false; }
 
+        if (!Input.down('tool')) this.toolQ = false;
         if (!cut && this.state === 'normal') {
-            if (Input.pressed('act')) this.action();
-            else if (Input.down('act') && !this.grip && !this.carry && Inv.has('gloves')) this.tryGrip();
+            if (Input.pressed('act')) { if (!letGo) this.action(); }
+            else if (Input.down('act') && !this.grip && !this.carry && Inv.has('gloves') && Settings.grip !== 'toggle') this.tryGrip();
             if (Input.pressed('atk') && !this.carry && this.swingT <= 0 && !this.grip && Inv.has('staff')) this.startSwing();
-            if (Input.pressed('tool') && (!this.grip || Inv.equipped === 'bell')) Tools.use(this);   /* hold on with one hand, ring with the other */
+            /* (the tool pressed while she was in the air, or while the view went on into the next room, counts once she's
+               down, if it's still held: Homeward straight after a drop) */
+            const tool = Input.pressed('tool') || (this.toolQ && Input.down('tool'));
+            this.toolQ = false;
+            if (tool && (!this.grip || Inv.equipped === 'bell')) Tools.use(this);   /* hold on with one hand, ring with the other */
             if (Input.down('tool')) Tools.hold(this); else Tools.unhold(this);
         }
         this.afterMove();
@@ -410,7 +420,7 @@ class Player extends Ent {
     hurt(n, fx, fy) {
         if (this.inv > 0 || this.flying || this.state === 'faint' || G.cheats.god) return;
         Inv.hp = Math.max(0, Inv.hp - n);
-        this.inv = 70; this.hitT = 10;      /* (a flash first, then the blinking spell) */
+        this.inv = 70; this.hitT = 10; this.blink = true;     /* (a flash first, then the blinking spell) */
         const d = Math.hypot(this.x - fx, this.y - fy) || 1;
         this.kx = (this.x - fx) / d * 3.2; this.ky = (this.y - fy) / d * 3.2;
         Sfx.play('hurt'); G.shake = 6; G.hitstop = 4;
@@ -542,6 +552,7 @@ class Player extends Ent {
     }
     updateHop() {
         const h = this.hop; h.t++;
+        if (Input.pressed('tool')) this.toolQ = true;
         const k = h.t / h.dur;
         this.x = lerp(h.fx, h.tx, k); this.y = lerp(h.fy, h.ty, k);
         this.z = Math.sin(k * Math.PI) * (h.h || 10);
@@ -580,7 +591,9 @@ class Player extends Ent {
             return { im: spr(`wren_lift_${d}`), flip: this.dir === LEFT };
         }
         if (this.state === 'flight') { const d = [DOWN, RIGHT, UP, LEFT][Math.floor(this.stateT / 4) % 4]; return { im: personFrame('wren', d, 0), flip: d === LEFT }; }
-        if (this.state === 'faint' || this.state === 'sleep') return { im: spr('wren_sleep'), flip: false };
+        /* fainted, or lying where a scene has put her: flat on the ground (sitting down to wait, she only shuts her eyes) */
+        if (this.state === 'faint' || (this.state === 'sleep' && !G.waiting)) return { im: spr('wren_lie'), flip: false };
+        if (this.state === 'sleep') return { im: spr('wren_sleep'), flip: false };
         return { im: personFrame('wren', this.dir, fr), flip: this.dir === LEFT };
     }
     draw(cx, cy) {
@@ -597,14 +610,23 @@ class Player extends Ent {
             }
             return;
         }
-        if (this.inv > 0 && this.state === 'normal' && !(this.hitT > 0) && (this.inv >> 2) % 2 && this.inv < 60) return;
+        /* (she blinks only after a hurt: the moment's grace after landing from a flight home doesn't show; it left frames
+           with no Wren in them, in a room with nothing in it to hurt her) */
+        if (this.blink && this.inv > 0 && this.state === 'normal' && !(this.hitT > 0) && (this.inv >> 2) % 2 && this.inv < 60) return;
         /* asleep in a bed: her head on its pillow, the rest of her under its quilt */
         if (this.state === 'sleep' && this.inBed && !this.inBed.removed) { const b = this.inBed, h = spr('wren_sleep_head'); if (h) Gfx.img(h, b.x - cx + Math.round((b.im ? b.im.width : 16) / 2) - 8, b.y - cy + 2); return; }
         const { im, flip } = this.sprite();
         const z = this.z || 0;
-        /* shadow */
-        Gfx.alpha(0.25); Gfx.rect(this.x - cx - 5, this.y - cy + 2, 10, 2, PAL.ink); Gfx.alpha(1);
-        let sx = this.x - cx - 8, sy = this.y - cy - 13 - z;
+        /* holding up a find: a soft glow behind it, in front of whatever's behind her (the chest she opened), so the find
+           reads as the find */
+        if (this.state === 'hold' && G.holdUp) {
+            const gy = this.y - cy - (G.holdUp.high ? 44 : 22);
+            Gfx.alpha(0.3); Gfx.circle(this.x - cx, gy, 12, '#fff4c0'); Gfx.alpha(0.55); Gfx.circle(this.x - cx, gy, 9, '#fffaf0'); Gfx.alpha(1);
+        }
+        /* shadow (laid out flat, she's longer and lower) */
+        const flat = im === SPR.wren_lie;
+        Gfx.alpha(0.25); Gfx.rect(this.x - cx - (flat ? 7 : 5), this.y - cy + 2, flat ? 14 : 10, 2, PAL.ink); Gfx.alpha(1);
+        let sx = this.x - cx - 8, sy = this.y - cy - 13 - z + (flat ? 4 : 0);
         if (this.walking && (Math.floor(this.anim / 8) % 2)) sy -= 1;
         if (this.pushT > 3) sx += DX[this.dir] * 1;
         /* just hit: she flashes white and red a moment (it holds through the hit's stop) */

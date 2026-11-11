@@ -240,8 +240,9 @@ class Hazard extends Ent {
     static tiles(owner, tiles, o = {}) { return tiles.length ? owner.area.add(new Hazard(owner, Object.assign({ shape: 'tiles', tiles }, o))) : null; }
     static drop(owner, x, y, o = {}) { return owner.area.add(new Hazard(owner, Object.assign({ shape: 'drop', x, y }, o))); }
     static ring(owner, x, y, r, o = {}) { return owner.area.add(new Hazard(owner, Object.assign({ shape: 'ring', x, y, r }, o))); }
-    /* (under everyone while it warns; whatever drops is drawn over them as it comes down) */
-    get sortY() { return this.look && this.t > this.tell - 30 ? this.y + 200 : -900 + this.y; }
+    /* (under everyone while it warns; whatever drops is drawn over them as it comes down; what's left lying once it's
+       landed, a puddle, is on the floor again, under whoever steps in it) */
+    get sortY() { return this.look && this.t > this.tell - 30 && !(this.landed && this.lookLanded) ? this.y + 200 : -900 + this.y; }
     get landed() { return this.t >= this.tell; }
     covers(x, y) {
         if (this.coverAt && this.landed) return this.coverAt(x, y, this);

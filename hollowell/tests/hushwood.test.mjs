@@ -38,7 +38,10 @@ test('the sleeping giant blocks the road until the Recall Bell wakes him; he goe
     assert.ok(HW.Progress.flag('giant_home'), 'home to bed');
     assert.deepEqual([g.tx, g.ty], hw(3, 4), 'in his own bed');
     go(HW, ...hw(8, 20));
-    assert.ok(HW.G.map.ents.some(e => e.interact && e.tx === hw(3, 16)[0] && e.ty === hw(3, 16)[1]), 'the hollow where he lay');
+    /* (in the middle of where he lay: he filled five tiles of the road by four) */
+    const hole = HW.G.map.find('hollowHole') || HW.G.map.ents.find(e => e.interact && e.tx === hw(3, 19)[0] && e.ty === hw(3, 19)[1]);
+    assert.ok(hole && hole.tx === hw(3, 19)[0] && hole.ty === hw(3, 19)[1], 'the hollow where he lay');
+    assert.ok(hole.tx > hw(1, 0)[0] && hole.tx < hw(5, 0)[0] && hole.ty > hw(0, 18)[1] && hole.ty < hw(0, 21)[1], 'in the middle of where he lay');
     noErrors(HW);
 });
 
@@ -252,13 +255,13 @@ test('the far bank: over the log bridge; the moss hops you up onto the plateau (
 
 test("the giant's hollow (S16): only with the Bedroll laid up top; down there, Linnet's note; Homeward brings you back up", () => {
     const HW = inWood();
-    go(HW, ...hw(4, 16)); HW.face('left'); HW.press('act', 1); HW.skipTalk();
+    go(HW, ...hw(4, 19)); HW.face('left'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.G.map.id, 'hollow', 'no Bedroll: not going down there');
     HW.Inv.giveTool('bedroll');
     HW.face('left'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.G.map.id, 'hollow', 'not laid: still not');
     go(HW, ...hw(6, 18)); lay(HW);
-    go(HW, ...hw(4, 16)); HW.face('left'); HW.press('act', 1); HW.skipTalk(0);
+    go(HW, ...hw(4, 19)); HW.face('left'); HW.press('act', 1); HW.skipTalk(0);
     HW.step(70); HW.skipTalk();
     assert.equal(HW.G.map.id, 'hummock_hollow', 'down the hollow');
     HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5);

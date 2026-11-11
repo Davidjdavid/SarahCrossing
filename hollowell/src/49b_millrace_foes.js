@@ -23,7 +23,8 @@ class Snapjaw extends Enemy {
         const p = G.player, a = this.area;
         if (this.state === 'sleep') {
             const r = a.roomAt(this.hx, this.hy);
-            if (p.area === a && Cam.room === r && !Cam.busy && p.tx > r.x) {
+            /* (not till Wren's wholly in off the doorstep: the door grinds shut behind her, not on her) */
+            if (p.area === a && Cam.room === r && !Cam.busy && p.tx > r.x && p.x >= (r.x + 1) * T + 6) {
                 this.state = 'swim'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'sj') s.shut = true;
                 Music.play('boss');

@@ -59,7 +59,7 @@ const World = {
         const af = Progress.areaFlags[id] || {};
         for (const k in af) {
             const m = /^fill:(\d+),(\d+)$/.exec(k);
-            if (m) { a.setCell(+m[1], +m[2], a.family === 'outdoor' ? ':' : ','); a.flow.delete(key2(+m[1], +m[2])); }
+            if (m) { a.filled(+m[1], +m[2]); a.setCell(+m[1], +m[2], a.family === 'outdoor' ? ':' : ','); a.flow.delete(key2(+m[1], +m[2])); }
         }
         if (def.build) def.build(a);
         return a;

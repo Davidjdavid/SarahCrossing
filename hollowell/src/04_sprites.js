@@ -181,6 +181,10 @@ function initWrenSprites() {
     defSprite('wren_lift_right', armsUp(WREN_RIGHT, false), WREN_LEGEND);
     /* asleep: lying down, eyes shut */
     defSprite('wren_sleep', swapChars(WREN_DOWN, { e: 'S', c: 's' }), WREN_LEGEND);
+    /* laid out flat on the ground (fainted, or winded after a fall): the sleeping frame turned on its side, head to the
+       left, in the lower part of her tile */
+    const shut = swapChars(WREN_DOWN, { e: 'S', c: 's' });
+    defSprite('wren_lie', shut.map((r, y) => [...r].map((ch, x) => shut[x][15 - y]).join('')), WREN_LEGEND);
     defSprite('wren_sleep_head', swapChars(WREN_DOWN, { e: 'S', c: 's' }).slice(0, 9), WREN_LEGEND);
 }
 

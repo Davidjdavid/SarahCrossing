@@ -11,6 +11,11 @@ const Fog = {
     /* each land tile's fog neighbours, and each fog tile's distance from the land and which way it lies */
     info(a) {
         if (a._fog && a._fog.n === a.cells.length) return a._fog;
+        /* (worked out once a session per place: a place is built afresh every time Wren comes back to it, but its fog
+           only changes when its fog tiles do) */
+        let sig = 0; for (let i = 0; i < a.cells.length; i++) if (a.cells[i].k === 'fog') sig = (sig * 31 + i) % 1000000007;
+        const kept = this.kept[a.id];
+        if (kept && kept.sig === sig && kept.n === a.cells.length) return (a._fog = kept);
         const w = a.w, h = a.h, near = new Uint8Array(w * h), depth = new Uint8Array(w * h), dir = new Uint8Array(w * h);
         const fog = (x, y) => a.inside(x, y) && a.cells[y * w + x].k === 'fog';
         for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -31,8 +36,9 @@ const Fog = {
         }
         /* deep in, the threads keep to the way of the nearest edge */
         for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (depth[i] === 9) dir[i] = x > 0 && dir[i - 1] ? dir[i - 1] : y > 0 && dir[i - w] ? dir[i - w] : 1; }
-        return (a._fog = { n: a.cells.length, near, depth, dir });
+        return (a._fog = this.kept[a.id] = { n: a.cells.length, sig, near, depth, dir });
     },
+    kept: {},
     /* the billows: soft noise that wraps, lighter puffs and lilac hollows */
     makeTex() {
         const S = this.S, c = Gfx.makeCanvas(S + 16, S + 16), x = c.getContext('2d');
@@ -133,6 +139,16 @@ const Fog = {
     TileDraw.draw = function (area, tx, ty, sx, sy) {
         if (area.cell(tx, ty).p === 'fog' && area.family === 'outdoor') { Gfx.img(Fog.tile(Math.floor(hash2(tx, ty, 99) * 4)), sx, sy); return; }
         return draw0.call(this, area, tx, ty, sx, sy);
+    };
+}
+/* and made ready on the way in (behind the fade), not on the first frame drawn there: the billows' picture, and where the
+   fog lies (together 60 to 80 ms, a stall as the screen came up) */
+{
+    const warm0 = TileDraw.warm;
+    TileDraw.warm = function (area) {
+        warm0.call(this, area);
+        if (HEADLESS || !area || area.family !== 'outdoor' || !area.cells.some(c => c.k === 'fog')) return;
+        Fog.info(area); if (!Fog.tex) Fog.tex = Fog.makeTex();
     };
 }
 CONTENT_INIT.push(() => {

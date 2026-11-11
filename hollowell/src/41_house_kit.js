@@ -74,7 +74,7 @@ const Knots = {
             const p = G.player, a = G.map, house = a.def.house;
             /* (the first time it's all told; after that, the ceremony is quicker, and the Well's answer grows) */
             const first = !Inv.knots.length;
-            const i = yield* ask(null, first ? "The House's Knot hangs in the hoop, every colour of thread running into it and down through the floor. Tie it?" : "The House's Knot hangs in the hoop. Tie it?", ['Tie the Knot', 'Not yet']);
+            const i = yield* ask(null, first ? "The House's Knot hangs in the hoop, every colour of thread running into it and down through the floor. Tie it?" : "The House's Knot hangs in the hoop. Tie it?", ['Tie the Knot', 'Not yet'], { focus: hoop });
             if (i !== 0) return;
             hoop.tied = true;
             G.hideHud = true;
@@ -173,7 +173,7 @@ const NUDGE_VOICES = {
     kiln: { ask: 'HA— ahem. Stuck, are we?', yes: '"Right you are! Go on!"', no: '"HA! Quite right too." A door closes, not very softly, somewhere.' },
     mill: { ask: "Stuck, are we, love? Not that I'm allowed to help, mind. Wander rules.", offer: "But if I WERE... if the House were, it could give you a nudge now and then, when you've been stuck a good while.", yes: '"Right you are. Don\'t tell anyone."' },
     belfry: { ask: 'Stuck, are we, bairn?', yes: '"Right you are, bairn."', no: '"Quite right too. Go on, then." A door closes softly, somewhere.' },
-    slumber: { ask: 'Stuck, are we? *yaaawn* Pardon me.', yes: '"Splendid."', no: '"Quite right too. Sleep on it." A door closes softly, somewhere.' },
+    slumber: { ask: 'Stuck, are we? Yaaawn. Pardon me.', yes: '"Splendid."', no: '"Quite right too. Sleep on it." A door closes softly, somewhere.' },
     marionette: { pre: 'Somewhere behind the scenery, someone whispers, very loudly: "Psst!"', yes: '"Bravo."', no: '"Quite right too. Your scene." A door closes softly, somewhere in the wings.' },
 };
 

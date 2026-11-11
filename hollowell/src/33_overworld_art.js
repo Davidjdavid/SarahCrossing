@@ -252,7 +252,7 @@ CONTENT_INIT.push(() => {
         if (!a || this.hidden || this.state === 'fall' || this.z > 0 || this.flying || this.ride) return;
         const k = a.kind(this.tx, this.ty);
         if (!(k.water && k.slow)) return;
-        if (this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
+        if (this.blink && this.inv > 0 && this.state === 'normal' && (this.inv >> 2) % 2 && this.inv < 69) return;
         const x = Math.round(this.x - cx), y = Math.round(this.y - cy);
         const tn = a.def.themeAt ? a.def.themeAt(this.tx, this.ty) : a.themeName, th = THEMES[OWA.styleOf[tn] || tn] || a.theme;
         const wcol = (th.water || THEMES.town.water);

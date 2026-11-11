@@ -135,3 +135,156 @@ test('no walker starts inside a wall, anywhere', () => {
     }
     assert.deepEqual(bad, []);
 });
+
+/* ---------- round C: where the screen's words go (POLISH.md 43-46) ---------- */
+/* how much of a thing's box (world) is under a rect on the screen, with the camera where it is (0..1) */
+const share = (HW, e, r) => { const C = HW.global('Cam'), b = HW.global('viewBox')(e), x0 = b[0] - C.x, y0 = b[1] - C.y, x1 = b[2] - C.x, y1 = b[3] - C.y; return Math.max(0, Math.min(x1, r[2]) - Math.max(x0, r[0])) * Math.max(0, Math.min(y1, r[3]) - Math.max(y0, r[1])) / Math.max(1, (x1 - x0) * (y1 - y0)); };
+/* every panel the UI draws this frame */
+const panelsUp = HW => { const UI = HW.global('UI'), out = []; if (!UI.held()) { let y = 22, yl = 174; for (const t of UI.toasts) { if (t.wait) continue; UI.measure(t); const x = Math.round((320 - t.w) / 2), ty = t.low ? (yl -= t.h + 2) + 2 : y; out.push([x, ty, x + t.w, ty + t.h]); if (!t.low) y += t.h + 2; } if (UI.banner && !UI.banner.wait) out.push(UI.bannerRect(UI.banner, UI.banner.low)); } return out; };
+const kilnDoor = () => { const HW = loadGame(); HW.preset('afterD1'); HW.step(5); HW.skipTalk(); HW.warp('kiln', 20 + 9, 33 + 6); HW.step(30); HW.skipTalk(); const UI = HW.global('UI'); UI.banner = null; UI.toasts = []; return HW; };
+
+test('a stack of notices never covers Wren: two at a time at most, the rest wait their turn, each on the side that hides least', () => {
+    for (const at of [24, 60, 100, 150]) {
+        const HW = kilnDoor(), UI = HW.global('UI'), p = HW.player(), Cam = HW.global('Cam');
+        p.y = Cam.y + at;
+        const long = i => `Notice number ${i}: a long one, that runs on and on over two or three lines of the screen, the way the Needle's did when it let a stitch go.`;
+        for (let i = 1; i <= 4; i++) UI.toast(long(i), 200);
+        for (let k = 0; k < 40; k++) {
+            const up = UI.toasts.filter(t => !t.wait);
+            assert.ok(up.length <= 2, 'two at most');
+            for (const r of panelsUp(HW)) assert.ok(share(HW, p, r) < 0.3, `Wren at ${at}: a notice over her (${r})`);
+            HW.step(5);
+        }
+        assert.ok(UI.toasts.some(t => t.s === long(4)), 'the rest waited their turn');
+    }
+});
+
+test('a notice keeps clear of what it is about, gives the banner its side or puts it out, and never carries into another place', () => {
+    const HW = kilnDoor(), UI = HW.global('UI'), p = HW.player(), Cam = HW.global('Cam');
+    p.y = Cam.y + 90;
+    /* about something at the top: it goes to the bottom */
+    const thing = { x0: Cam.x + 100, y0: Cam.y + 24, x1: Cam.x + 220, y1: Cam.y + 60 };
+    UI.toasts = [];
+    UI.toast('Somewhere inside, a bolt slides back.', 120, { focus: thing });
+    assert.equal(UI.toasts[0].low, true, 'away from its subject');
+    /* the place's name up top: a notice doesn't stack under it */
+    UI.toasts = []; UI.bannerMap = HW.G.map; UI.showBanner('The Kiln'); UI.update();
+    assert.ok(UI.banner && !UI.banner.wait);
+    const side = UI.banner.low;
+    UI.toast('A notice while the name is up.', 120);
+    const t = UI.toasts[0];
+    for (let i = 0; i < 120 && t.wait; i++) { HW.step(1); assert.ok(!(UI.banner && !UI.banner.wait && !t.wait && UI.banner.low === t.low), 'never under the banner on one side'); }
+    assert.ok(!t.wait, 'shown, after the name had a moment');
+    assert.ok(!UI.banner || UI.banner.low !== t.low, 'never under the banner on the same side');
+    void side;
+    /* somewhere else: the notice about the last place goes */
+    HW.step(30);
+    HW.warp('hollow', 96, 60); HW.step(3);
+    assert.ok(!UI.toasts.some(q => /while the name is up/.test(q.s)), 'left behind');
+});
+
+test('a notice made while a scene is talking waits till the scene is over; one up when a line opens steps aside till then', () => {
+    const HW = kilnDoor(), UI = HW.global('UI'), Script = HW.global('Script');
+    UI.toast('Up before the scene.', 300);
+    HW.step(5);
+    assert.ok(!UI.toasts[0].wait);
+    Script.run(function* () { yield* HW.global('say')(null, 'A line.'); UI.toast('Said in the scene.', 120); yield* HW.global('say')(null, 'Another line.'); });
+    HW.step(3);
+    assert.ok(UI.held(), 'held while the box is up');
+    const t0 = UI.toasts[0].t;
+    HW.skipTalk();
+    assert.ok(UI.toasts.some(t => t.s === 'Said in the scene.'), 'kept');
+    HW.step(2);
+    assert.ok(!UI.held(), 'shown once the scene is over');
+    assert.ok(UI.toasts.find(t => t.s === 'Up before the scene.').t <= t0 + 3, 'and it did not run down meanwhile');
+    assert.ok(!UI.toasts.find(t => t.s === 'Said in the scene.').wait, 'the new one shows');
+});
+
+test('the place name shows coming in from outside, not coming back out of somewhere inside it (a Little House, the Inn)', () => {
+    const HW = loadGame(); HW.preset('afterMakings'); HW.step(5); HW.skipTalk();
+    const UI = HW.global('UI');
+    const go = (id, x, y) => { HW.warp(id, x, y); HW.step(2); HW.skipTalk(); return UI.banner && UI.banner.s; };
+    go('hollow', 96, 60);
+    assert.ok(go('inn', 7, 6), 'into the Inn: its name');
+    assert.equal(go('hollow', 96, 60), null, 'back out into town: no banner');
+    go('inn', 7, 6);
+    assert.equal(go('underside', 49, 5), 'The Underside', 'down into the Underside: its name');
+    assert.ok(go('making1', 3, 16), 'into a Little House: its name');
+    assert.equal(go('underside', 49, 5), null, 'back on the Making Floor: no banner');
+    assert.equal(go('inn', 7, 6), null, 'and up into the Inn');
+    assert.equal(go('hollow', 96, 60), null, 'and out into town');
+});
+
+test('the place name never sits on Wren or on whoever is speaking: it waits out a scene, and keeps to the side away from her', () => {
+    const HW = kilnDoor(), UI = HW.global('UI'), p = HW.player(), Cam = HW.global('Cam'), D = HW.global('Dialog');
+    for (const at of [40, 150]) {
+        p.y = Cam.y + at; UI.banner = null; UI.bannerMap = HW.G.map;
+        UI.showBanner('The Kiln'); UI.update();
+        assert.ok(share(HW, p, UI.bannerRect(UI.banner, UI.banner.low)) === 0, `Wren at ${at}: not under the name`);
+    }
+    /* a speaker at the top and Wren at the bottom, a line open: no name drawn till it's over */
+    UI.banner = null; UI.bannerMap = HW.G.map;
+    HW.global('Script').run(function* () { yield* HW.global('say')('gran', 'A word, love.'); });
+    UI.showBanner('The Kiln'); HW.step(2);
+    assert.ok(D.active && UI.held() && panelsUp(HW).length === 0, 'nothing over the scene while it talks');
+    HW.skipTalk(); HW.step(2);
+    assert.ok(UI.banner && !UI.banner.wait, 'shown after');
+});
+
+test('a line Wren says keeps clear of her: the speaker counts double, Wren too', () => {
+    const HW = kilnDoor(), D = HW.global('Dialog'), p = HW.player(), Cam = HW.global('Cam');
+    p.y = Cam.y + 150;
+    D.open('wren', "You can't pull me, Gran.");
+    assert.equal(D.top, true, 'her line up top, away from her');
+    D.close();
+});
+
+test('in a scene the camera leans so Wren and the boss are both clear of the box; an exchange keeps its side', () => {
+    const HW = loadGame();
+    HW.preset('afterD6'); HW.step(10); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 30; HW.Inv.giveTool('needle');
+    HW.warp('spoolworks', 20 + 9, 0 + 9); HW.step(30);
+    HW.walkTo(20 + 6, 0 + 7);
+    const D = HW.global('Dialog'), p = HW.player(), t = HW.G.map.ents.find(e => e.kind === 'tangle'), bobbins = t.bobbins(), sides = [];
+    for (let i = 0; i < 1500 && sides.length < 3; i++) {
+        if (D.active && D.t === 40) {
+            const rs = D.rects();
+            sides.push(D.top);
+            assert.ok(rs.every(r => share(HW, p, r) < 0.2), 'Wren clear of the box');
+            for (const b of [t, ...bobbins]) assert.ok(rs.every(r => share(HW, b, r) < 0.2), 'the Tangle and its four bobbins clear of the box');
+        }
+        HW.step(1);
+        if (D.active && D.shown >= D.pageLen() && D.t > 45) HW.press('act', 1);
+    }
+    assert.equal(sides.length, 3, 'its lines');
+    assert.ok(sides.every(s => s === sides[0]), 'one side for the exchange');
+    HW.skipTalk(); HW.step(60);
+    assert.equal(HW.global('UI').lean.now, 0, 'and the camera back when it is over');
+});
+
+test("the Needle: its first notice keeps clear of the thing and where it could go; a doorway at the top doesn't hide Wren; the let-go notice shortens", () => {
+    const HW = loadGame();
+    HW.preset('afterD6'); HW.step(10); HW.skipTalk(); HW.Inv.giveTool('needle'); HW.Inv.equipped = 'needle';
+    HW.Progress.set('needle_first', false);
+    const UI = HW.global('UI'), N = HW.global('Needle'), Cam = HW.global('Cam'), p = HW.player();
+    /* the Practice Floor: in the top doorway (as the live run found it), facing the iron weight just below */
+    HW.warp('spoolworks', 40 + 9, 22); HW.step(30); HW.skipTalk(); HW.face('down');
+    const pot = HW.G.map.find('paWeight');
+    assert.ok(pot && N.able(pot), 'the weight below the door');
+    HW.press('tool', 1); HW.step(2);
+    assert.ok(N.st, 'choosing');
+    const t = UI.toasts.find(q => /Arrows walk the needle/.test(q.s));
+    assert.ok(t && !t.wait, 'the first notice');
+    HW.step(40);
+    const r = panelsUp(HW).find(q => q);
+    const focus = N.focus(N.st);
+    assert.ok(share(HW, pot, r) === 0 && share(HW, focus[1], r) < 0.2, 'clear of the thing and its reach');
+    assert.ok(p.y - 24 - Cam.y >= 4, 'Wren on screen');
+    HW.press('atk', 1); HW.step(30);
+    /* the let-go notice: in full twice, then short */
+    const said = [];
+    for (let i = 0; i < 3; i++) said.push(N.letGo({ area: 'spoolworks', key: 'x', noun: 'the iron weight', from: [45, 25] }, false));
+    assert.match(said[0], /^The Needle only holds three stitches/);
+    assert.match(said[1], /^The Needle only holds three stitches/);
+    assert.match(said[2], /^Your oldest stitch lets go: the iron weight/);
+    assert.ok(said[2].length < said[0].length - 30, 'shorter');
+});

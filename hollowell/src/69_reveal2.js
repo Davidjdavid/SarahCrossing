@@ -192,11 +192,17 @@ const Reveal2 = {
         const a = G.map, p = G.player;
         const hall = a.rooms.find(q => q.key === '1,0');
         const gran = a.add(new NPC(hall.x + 1, hall.y + 5, { who: 'gran', face: 'right' }));
+        gran.spools = true;          /* (her hands wound round with threads of every colour: drawn so, below) */
         Fx.poof(gran.px + 8, gran.py + 8);
         Music.play('silence');
         yield 30;
+        /* you turn round to her, at the top of the hall */
+        p.dir = dirOf(gran.tx - p.tx, gran.ty - p.ty);
         yield* say('gran', "{sad}You shouldn't be down here, love.");
         yield* say(null, "She looks very small at the top of the hall, and very tired. Her fingers are wound round with threads, every colour, so many that her hands look like spools themselves.");
+        /* and she comes down the hall to you as she talks, not hurrying, and stops an arm's length off */
+        const near = Reveal2.spotBy(a, gran, p);
+        if (near) { gran.free = true; gran.walkTo(near[0], near[1], 0.8); }
         yield* say('gran', "{sad}I'd have told you. After the seventh Knot. You'd have understood, then. You'd have seen how much there is to lose.");
         const tuckLine = granOnTuck();
         if (tuckLine) yield* say('gran', tuckLine);
@@ -204,9 +210,14 @@ const Reveal2 = {
         if (i === 0) yield* say('gran', "{sad}Gone. Out past the fog, where nothing comes back. Where nobody can find you, or bring you home. I'll not lose another. Not you.");
         else if (i === 1) yield* say('gran', "{cross}Let them go? Let them walk off and never come back? I've done that once, love. Once was enough for a whole life.");
         else yield* say('gran', "{sad}Oh, love. Don't.");
+        for (let k = 0; k < 600 && (gran.path || gran.mv); k++) { if (k % 40 === 39 && !gran.mv && near) gran.walkTo(near[0], near[1], 0.8); yield 1; }
+        gran.dir = dirOf(p.tx - gran.tx, p.ty - gran.ty); p.dir = OPP[gran.dir];
         yield* say('gran', "Go home now. Go home and go to sleep, and in the morning everything will be in its place.");
+        /* her fingers on it: the thread from your heart to her hand, drawn as it's said (and pulled taut after) */
+        Reveal2.taking = gran;
         yield* say(null, "She takes your red thread between her finger and thumb, the way she'd take a loose end on a jumper, and pulls.");
         yield* Reveal2.pull(gran);
+        Reveal2.taking = null;
         /* yanked home: up, away, a long red line, and bed */
         Sfx.play('flight'); G.shake = 10;
         G.hideHud = true;
@@ -227,8 +238,21 @@ const Reveal2 = {
         yield* say(null, "You wake in your own bed. It's morning. The house is very quiet.");
         me.state = 'normal'; me.inBed = null; G.hideHud = false; Sfx.play('land'); Fx.dust(me.x, me.y);
         yield 20;
-        yield* say(null, "Gran's chair is empty. On the kitchen table, a cup of tea gone cold. And the door to the well cellar, which is never locked, is locked.");
+        /* downstairs: her chair at the table, her cup on it, and the cellar door */
+        yield* walkTo(me, 2, 3);
+        yield* fadeOut(20);
+        World.enter('gran_house', 2, 2, { dir: DOWN });
+        yield* fadeIn(20);
+        const down = G.player;
+        yield* walkTo(down, 3, 5);
+        down.dir = RIGHT;
+        yield 20;
+        yield* say(null, "Gran's chair is empty. On the kitchen table, a cup of tea gone cold. And the door to the well cellar, which is never locked, is locked.", { focus: [5, 4] });
+        down.dir = DOWN;
+        Reveal2.ownSeen = true;
+        yield 30;
         yield* say(null, "When you look down at your hands, you can see your own thread, faintly, running from your heart down through the floor. You can see everybody's now.");
+        Reveal2.ownSeen = false;
         Progress.setGoal("Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.");
         Save.autosave();
     },
@@ -237,16 +261,28 @@ const Reveal2 = {
        home as she would have been. (A deliberate hold counts, not the tap that closed the last line; there's no hurry
        once she has hold, and letting go is always there.) */
     taut: null,
+    taking: null,            /* (Gran with her fingers on your thread, before she pulls) */
+    ownSeen: false,          /* (the morning after: her own thread drawn in front of her while she first sees it) */
+    /* where Gran comes to, to take hold of your thread: an arm's length off on her side of you, a free tile she can walk to */
+    spotBy(a, gran, p) {
+        const sx = gran.tx < p.tx ? -1 : 1;
+        const spots = [[p.tx + sx * 2, p.ty], [p.tx + sx * 2, p.ty + 1], [p.tx + sx * 2, p.ty - 1], [p.tx + sx, p.ty + 1], [p.tx + sx, p.ty - 1], [p.tx + sx * 3, p.ty]];
+        return spots.find(([x, y]) => a.freeForThing(x, y, gran) && findPath(a, gran.tx, gran.ty, x, y, gran)) || null;
+    },
     *pull(gran) {
         const p = G.player, lect = G.map.ents.find(e => e.kind === 'ledger');
         G.hideHud = true;
         const s = this.taut = { gran, held: 0, jerk: 6 };
         let t = 0, down = 0;
+        const t0 = G.t;
+        /* (she's turned to face Gran: beside the lectern is enough, and taking hold she turns to it, both hands on it) */
+        const beside = () => !!lect && Math.abs(p.tx - lect.tx) + Math.abs(p.ty - lect.ty) === 1;
         Sfx.play('tug');
         for (;;) {
-            down = Input.down('act') ? down + 1 : 0;
-            if (down >= 8 && lect && Inv.has('gloves') && p.adjacentTo(lect)) {
-                if (!s.held) { p.grip = lect; lect.heldBy = p; Sfx.play('click'); Progress.set('hall_held'); }
+            /* (held as the Gloves' grip is: Action down, or tapped on and off: Options > Grip) */
+            down = gripSteps(down, !!(lect && Inv.has('gloves') && beside()), t0);
+            if (down >= 8 && lect && Inv.has('gloves') && beside()) {
+                if (!s.held) { p.grip = lect; lect.heldBy = p; p.dir = dirOf(lect.tx - p.tx, lect.ty - p.ty); Sfx.play('click'); Progress.set('hall_held'); }
                 const h = ++s.held; p.z = 0; p.liftT = 2;                           /* (both hands on it) */
                 if (h === 40 || h === 100) { Sfx.play('tug'); s.jerk = 8; }       /* she tries, twice */
                 if (h === 170) UI.toast('Gran: "I can wait, love."', 300);
@@ -264,9 +300,10 @@ const Reveal2 = {
     },
     /* the thread she's pulling on, from Wren's heart to Gran's fingers, taut (it shakes when she pulls) */
     drawPull(a, cx, cy) {
-        const s = this.taut, p = G.player;
-        if (s && (s.gran.removed || s.gran.area !== a)) this.taut = null;        /* (the Hall built again: a load) */
-        if (!this.taut || !p) return;
+        if (this.taking && (this.taking.removed || this.taking.area !== a)) this.taking = null;
+        const s = this.taut || (this.taking && { gran: this.taking, jerk: 0 }), p = G.player;
+        if (this.taut && (s.gran.removed || s.gran.area !== a)) this.taut = null;        /* (the Hall built again: a load) */
+        if (!(this.taut || this.taking) || !p) return;
         const g = s.gran, j = s.jerk > 0 ? Math.round((Math.random() - 0.5) * 2) : 0;
         const x0 = p.x - cx, y0 = p.y - cy - 4 - (p.z || 0), x1 = g.px + 12 - cx, y1 = g.py + 9 - cy;
         Gfx.alpha(0.5); Gfx.line(x0, y0 + 1, x1, y1 + 1, PAL.ink); Gfx.alpha(1);
@@ -286,15 +323,34 @@ const Reveal2 = {
     };
 }
 
-/* ...and Wren's own, red, from her heart down through the floor (until she cuts it) */
+/* ...and Wren's own, red, from her heart down through the floor (until she cuts it); the morning she first looks down and
+   sees it, it's in front of her, from her heart down to the floor and into it */
 {
     const draw0 = Player.prototype.draw;
     Player.prototype.draw = function (cx, cy) {
-        if (Progress.flag('reveal2') && !Progress.flag('cut_self') && !this.hidden && this.state === 'normal' && G.map && !G.map.def.house) {
-            const x = this.x - cx, y = this.y - cy - 4 - (this.z || 0);
-            Gfx.alpha(0.4); Gfx.line(x, y, x, y + 12, THREAD.wren); Gfx.alpha(1);
-        }
-        return draw0.call(this, cx, cy);
+        const show = Progress.flag('reveal2') && !Progress.flag('cut_self') && !this.hidden && this.state === 'normal' && G.map && !G.map.def.house;
+        const x = this.x - cx, y = this.y - cy - 4 - (this.z || 0);
+        if (show) { Gfx.alpha(0.4); Gfx.line(x, y, x, y + 12, THREAD.wren); Gfx.alpha(1); }
+        const r = draw0.call(this, cx, cy);
+        if (show && Reveal2.ownSeen) { Gfx.alpha(0.8); Threads.stroke(x, y - 2, x, y + 7, THREAD.wren); Gfx.alpha(0.4); Gfx.line(x, y + 8, x, y + 11, THREAD.wren); Gfx.alpha(1); }
+        return r;
+    };
+}
+/* Gran in the Hall of Names: her fingers wound round with threads of every colour, so many her hands look like spools */
+{
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        draw0.call(this, cx, cy);
+        if (!this.spools) return;
+        const im = this.sprite(); if (!im) return;
+        const sx = this.px - cx, top = this.py - cy - (im.height - T) - 2, hy = top + im.height - 10;
+        const cols = ['#e8463c', '#3fc1b5', '#e8c04a', '#4f9be0', '#b48ce8', '#5ab85a'];
+        const hands = this.dir === LEFT ? [sx + 1] : this.dir === RIGHT ? [sx + 11] : [sx + 1, sx + 11];
+        hands.forEach((hx, j) => {
+            Gfx.rect(hx - 1, hy - 1, 6, 6, PAL.ink);
+            for (let i = 0; i < 4; i++) Gfx.rect(hx, hy + i, 4, 1, cols[(i + j * 3 + (this.uid || 0)) % cols.length]);
+            Gfx.line(hx + 1, hy + 4, hx + (j ? 3 : -1), hy + 9, cols[(j * 2 + 1) % cols.length]);
+        });
     };
 }
 

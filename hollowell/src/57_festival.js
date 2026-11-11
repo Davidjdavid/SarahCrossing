@@ -124,6 +124,8 @@ const Festival = {
             }
             yield 1;
         }
+        /* (one still held up on the way stops where they are, facing in, so they can turn to her when they speak) */
+        for (const r of runs) if (!r.there) { r.n.path = null; r.n.walking = false; r.n.dir = r.d; r.n.bubble = 'puff'; r.n.puffT = 90; }
         yield 30;
         yield* say(null, "Bram has clay up to his elbows. Your dad is soaked to the shoulder. Your mum's hair is full of brass dust. Ives has a feather duster in her apron pocket.", { focus: [X + 31, Y + 22] });
         yield* say('tess', '{worried}Sorry! Sorry. Busy day.');

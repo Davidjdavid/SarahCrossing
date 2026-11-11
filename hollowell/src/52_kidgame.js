@@ -5,6 +5,7 @@
 class KidKeeper extends NPC {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ who: 'otto', face: 'left' }, p));
+        this.paperHat = true;                  /* (his picture wears it too, while he's playing: src/35b_portraits.js) */
         this.weight = WEIGHT.light;            /* a yanked crate knocks him over; one going home by itself waits */
         this.hx = tx; this.hy = ty;
         this.state = 'home'; this.st = 0;

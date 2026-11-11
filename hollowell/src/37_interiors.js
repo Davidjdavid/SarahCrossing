@@ -37,7 +37,9 @@ interior({
         { k: 'portrait', x: 9, y: 1 },
         { k: 'deco', x: 10, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 5, y: 4, look: 'table', ox: 0, oy: 0, solid: [[0, 0], [1, 0]] },
-        { k: 'deco', x: 4, y: 4, look: 'stool', solid: false }, { k: 'deco', x: 7, y: 4, look: 'stool', solid: false },
+        { k: 'deco', x: 4, y: 4, look: 'stool', solid: false }, { k: 'deco', x: 7, y: 4, look: 'chair', solid: false },
+        /* (the morning she's gone: her cup on the table, the tea in it gone cold) */
+        { k: 'deco', x: 6, y: 4, look: 'teacup', solid: false, ox: 3, oy: 2, baseY: 20, if: 'reveal2&!unwound' },
         { k: 'deco', x: 11, y: 6, look: 'plant' },
         { k: 'cellar', x: 1, y: 6 },
         { k: 'warp', x: 1, y: 2, to: 'gran_room', tx2: 1, ty2: 3, face: 'down' },
@@ -181,6 +183,19 @@ SPAWN.cellar = (tx, ty, p) => {
     return pr;
 };
 function initInteriorArt() {
+    /* Gran's chair at the kitchen table, its back to the wall side; and a cup and saucer */
+    ART.chair = paintSprite(14, 18, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        R('#6b4128', 2, 12, 2, 6); R('#6b4128', 10, 12, 2, 6);
+        R('#9a6438', 10, 0, 3, 12); R('#c9925a', 10, 0, 3, 2); R('#c9925a', 11, 3, 1, 7);
+        R('#c9925a', 1, 8, 12, 4); R('#e6c08a', 1, 8, 9, 1); R('#9a6438', 1, 11, 12, 1);
+    });
+    ART.teacup = paintSprite(10, 8, x => {
+        const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+        R('#e8dcc8', 0, 6, 9, 1);
+        R('#fbf6ea', 1, 2, 6, 4); R('#d8d0c0', 5, 2, 2, 4); R('#6b4128', 2, 2, 4, 1);
+        R('#fbf6ea', 7, 3, 1, 1); R('#fbf6ea', 8, 3, 1, 2); R('#fbf6ea', 7, 5, 1, 1);
+    });
     ART.stairs_up = paintSprite(16, 16, x => { for (let i = 0; i < 4; i++) { x.fillStyle = '#c9925a'; x.fillRect(0, i * 4, 16, 3); x.fillStyle = '#7a4e32'; x.fillRect(0, i * 4 + 3, 16, 1); } x.fillStyle = '#5a3a26'; x.fillRect(0, 0, 2, 16); x.fillRect(14, 0, 2, 16); }, false);
     ART.rope_across = paintSprite(16, 16, x => { x.fillStyle = '#c9925a'; x.fillRect(1, 2, 2, 12); x.fillRect(13, 2, 2, 12); x.fillStyle = '#c42b4a'; for (let i = 0; i < 10; i++) x.fillRect(3 + i, 6 + Math.round(Math.sin(i / 9 * Math.PI) * 2), 1, 2); x.fillStyle = '#fbf6ea'; x.fillRect(5, 9, 6, 4); });
     ART.stairs_down = paintSprite(16, 16, x => { x.fillStyle = '#2a1f2d'; x.fillRect(0, 0, 16, 16); for (let i = 0; i < 4; i++) { x.fillStyle = '#9a6438'; x.fillRect(2, i * 4 + 1, 12, 2); } }, false);

@@ -107,7 +107,7 @@ class Matron extends Enemy {
         const x = this.x - cx, y = this.y - cy;
         if (this.state === 'fall') {
             const k = 1 - this.st / 30, im = spr('matron_0');
-            if (!HEADLESS && im && k > 0) { Gfx.alpha(k); Gfx.ctx.drawImage(im, Math.round(x - 8 * k), Math.round(y - 26 * k), Math.round(16 * k), Math.round(28 * k)); Gfx.alpha(1); }
+            if (!HEADLESS && im && k > 0) { Gfx.alpha(k); Gfx.ctx.drawImage(im, Math.round(x - 8 * k), Math.round(y - 30 * k), Math.round(16 * k), Math.round(32 * k)); Gfx.alpha(1); }
             return;
         }
         Gfx.alpha(0.25); Gfx.rect(x - 6, y + 1, 12, 3, PAL.ink); Gfx.alpha(1);
@@ -115,9 +115,9 @@ class Matron extends Enemy {
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         /* puffed up, about to come on fast: she shivers, her "!" up */
         const sh = this.brace > 0 ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
-        Gfx.img(img, x - 8 + sh, y - 26 - Math.round(this.z || 0) - (this.brace > 0 ? 1 : 0));
-        if (this.brace > 0) Tells.bang(x, y - 40);
-        if (this.state === 'dazed' && (this.t >> 3) % 2) Font.draw('z', x + 6, y - 30, '#e8e0ff');
+        Gfx.img(img, x - 8 + sh, y - 30 - Math.round(this.z || 0) - (this.brace > 0 ? 1 : 0));     /* (a tall nurse: a head over Wren) */
+        if (this.brace > 0) Tells.bang(x, y - 44);
+        if (this.state === 'dazed' && (this.t >> 3) % 2) Font.draw('z', x + 6, y - 34, '#e8e0ff');
     }
 }
 SPAWN.matron = (x, y, p) => Progress.flag('slumber_matron') ? new Ent('none') : new Matron(x, y, p);
@@ -369,7 +369,8 @@ class MotherSloth extends Enemy {
             }
             Gfx.alpha(1);
         }
-        const body = spr(this.state === 'slump' ? 'sloth_slump' : this.state === 'sleep' ? 'sloth_sleep' : 'sloth_awake');
+        /* (still asleep while she's first talking in her sleep: her eyes open once she's said her piece) */
+        const body = spr(this.state === 'slump' ? 'sloth_slump' : this.state === 'sleep' || this.dozing ? 'sloth_sleep' : 'sloth_awake');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(body, '#ffffff') : body;
         if (img) Gfx.img(img, this.hx * T - cx + 8 - img.width / 2, this.hy * T - cy - 30 + (this.state === 'slump' ? 22 : 0) + Math.round(Math.sin(this.t / 40) * 1.5));
         /* pillows held up over her nightcap, about to be lobbed */
@@ -457,10 +458,14 @@ const SlumberFoes = {
         Music.play('slumber');
     },
     *slothIntro(s) {
+        s.dozing = true;
         yield 20;
-        yield* say(null, 'Something enormous hangs over the four-poster: a sloth as big as a haycart, upside down, in a nightcap, fast asleep. Its arms are very, very long.');
+        yield* say(null, 'Something enormous hangs over the four-poster: a sloth as big as a haycart, in a nightcap, fast asleep. Its arms are very, very long.');
         yield* say(null, '"Mmmmh," it says, without opening its eyes. "Another one up past bedtime. Come here, dear. Come to bed. Nothing ever gets away from Mother."');
         yield* say(null, '"...Nothing except what\'s going home, anyway. Mmh."');
+        /* and then her eyes open */
+        s.dozing = false; Sfx.play('snort');
+        yield 20;
     },
     /* a round lost: she wakes with a start, thumps the mattress, and the room changes under her */
     *slothTurn(s) {
@@ -496,7 +501,7 @@ function initSlumberFoes() {
     const matron = (arms, eyes) => [
         '.....kkkkkk.....', '....kwwwwwwk....', '...kwwWwwWwwk...', '...kkkkkkkkkk...', '....khhhhhhk....', '....kssssssk....', '....k' + eyes + 'k....', '....kssssssk....', '.....kssssk.....',
         arms[0], arms[1], '..kgwwwwwwwwgk..', '..kgwwWwwWwwgk..', '..kgwwwwwwwwgk..', '..kggwwwwwwggk..', '..kgggwwwwgggk..', '..kggggggggggk..', '.kgggggggggggGk.', '.kggggggggggGGk.', '.kgggggggggGGGk.', '.kggggggggGGGGk.',
-        '.kgggggggGGGGGk.', '.kGGGGGGGGGGGGk.', '..kkkkkkkkkkkk..', '...kWk....kWk...', '...kkk....kkk...', '................', '................'];
+        '.kgggggggGGGGGk.', '.kggggggggGGGGk.', '.kgggggggGGGGGk.', '.kggggggggGGGGk.', '.kgggggggGGGGGk.', '.kGGGGGGGGGGGGk.', '..kkkkkkkkkkkk..', '...kWk....kWk...', '...kkk....kkk...', '................', '................'];
     defSprite('matron_0', matron(['kkkgggggggggkkkk', 'ksssgggggggsssk.'], 'eessee'), mt);
     defSprite('matron_1', matron(['.kkkgggggggkkkk.', '.ksssgggggsssk..'], 'eessee'), mt);
     defSprite('matron_sleep', matron(['...kgggggggk....', '...kgggggggk....'], 'eessee'), mt);

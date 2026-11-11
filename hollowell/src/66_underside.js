@@ -258,7 +258,7 @@ const MAKER_LINES = {
     bram: ["HA! The Wanderer, in the workshop! Mind the clay, it's everywhere. It's ALWAYS everywhere.", "The Kilnwyrm's in bits over there. Took three winters. Tail still sticks.", "My log's honest. Brutally honest. Read it and weep! Or laugh. Laugh's better."],
     ambrose: ["There you are. Hello, love. Mind the puddle, that's mine.", "Grindle's in the millpond still. I go and give him a polish now and then.", "Your mum and I took turns at the sluices, every time you went near the Millrace. Best summer we've had."],
     tess: ["Hello, my darling. Brass dust on everything. Sorry.", "Every bell in the Belfry I tuned myself. The Tollgrim's voice was your dad's idea. He does a good gargoyle.", "Up top, you rang the bells. Down here, we were pulling the ropes. Teamwork!"],
-    mallow: ["*yawn* Hello. Is it morning? It's always morning somewhere. Or night.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
+    mallow: ["Yaaawn. Hello. Is it morning? It's always morning somewhere. Or night.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
     jory: ["Welcome backstage! Well. Underneath-stage.", "Captain Tin's having a lie down. He's earned it.", "Have a look at my log! I've drawn the bits I liked. Mostly you falling over. Lovingly!"],
 };
 for (const who of Object.keys(MAKER_LINES)) UNDER_TALK[who] = function* () { yield* say(who, cycle('under_' + who, MAKER_LINES[who])); };
@@ -277,9 +277,15 @@ const Underside = {
     },
 };
 
-/* the Staff door at the Inn, open after the reveal */
+/* the Staff door at the Inn, open after the reveal (standing ajar: lamplight in the gap and on the boards) */
 SPAWN.staffdoor = (tx, ty) => {
-    const pr = new Prop(tx, ty, { im: ART.staffdoor, solid: [[0, 0]], oy: -16 });
+    const pr = new Prop(tx, ty, { im: ART.staffdoor, solid: [[0, 0]], oy: -16 }), d0 = pr.draw.bind(pr);
+    pr.draw = (cx, cy) => {
+        const open = Progress.flag('reveal1');
+        pr.im = open ? ART.staffdoor_ajar : ART.staffdoor;
+        if (open) { Gfx.alpha(0.18 + 0.04 * Math.sin(G.t / 31)); Gfx.rect(tx * T - cx + 6, ty * T - cy + 14, 10, 4, '#f7d64a'); Gfx.rect(tx * T - cx + 9, ty * T - cy + 18, 7, 3, '#f7d64a'); Gfx.alpha(1); }
+        d0(cx, cy);
+    };
     pr.interact = () => {
         if (!Progress.flag('reveal1')) { Script.run(function* () { yield* say(null, 'A narrow door: STAFF ONLY. Locked. Something hums on the other side.'); }); return true; }
         World.go('underside', UNDER_ENTRY.x, UNDER_ENTRY.y, { dir: UP, fade: true, from: 'inn' });
@@ -290,6 +296,12 @@ SPAWN.staffdoor = (tx, ty) => {
 };
 
 function initUnderside() {
+    /* the Staff door ajar: the leaf swung in, a gap of lamplight beside it */
+    ART.staffdoor_ajar = paintSprite(16, 32, x => {
+        const R = (c, a, b, w, h) => sq(c, a, b, w, h, x);
+        R('#5a3a26', 1, 2, 14, 30); R('#2a1a12', 2, 3, 12, 28); R('#c8903a', 8, 3, 6, 28); R('#f7d64a', 10, 5, 3, 25); R('#fff4c0', 11, 8, 1, 18);
+        R('#7a4e32', 2, 3, 7, 28); R('#9a6438', 8, 3, 1, 28); R('#fbf6ea', 3, 8, 5, 4); R('#c42b4a', 4, 9, 3, 1); R('#c42b4a', 4, 11, 2, 1); R('#f7d64a', 7, 18, 1, 2);
+    });
     ART.peephole = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#2a1e16', 0, 0, 16, 16); R('#4a3626', 1, 1, 14, 14); R('#120c08', 6, 5, 4, 4); R('#f7e8b8', 7, 6, 2, 2); R('#6a4e38', 5, 10, 6, 1); });
     ART.cot = paintSprite(16, 32, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 2, 14, 28); R('#a8784a', 2, 3, 12, 26); R('#fbf6ea', 3, 4, 10, 6); R('#c42b4a', 3, 12, 10, 16); R('#e8463c', 3, 12, 10, 2); R('#5a3a26', 1, 28, 2, 4); R('#5a3a26', 13, 28, 2, 4); });
     ART.bigdoor = paintSprite(48, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#a8784a', 0, 0, 48, 4); R('#c9a24a', 2, 1, 44, 2); R('#6a4e38', 0, 4, 4, 16); R('#6a4e38', 44, 4, 4, 16); R('#f7d64a', 20, 0, 8, 3); });

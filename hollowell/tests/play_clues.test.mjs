@@ -43,7 +43,7 @@ function hall(setup) {
     const lines = listen(HW);
     toHall(HW);
     for (let i = 0; i < 60 && !HW.Progress.flag('reveal2'); i++) { HW.skipTalk(); HW.step(10); }
-    assert.ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_room', 'home in bed');
+    assert.ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_house', 'home, and down to the kitchen');
     noErrors(HW);
     const said = re => lines.find(l => re.test(l)) || '';
     return { HW, lines, spool: said(/^WREN\./), tuck: said(/^TUCK\./), page: said(/^The last page/), gran: said(/^gran: .*(boy|thread\.)/) };
@@ -154,7 +154,7 @@ test('held things wait: holding on to the lectern, Gran can\'t take Wren, and wa
     HW.release(); HW.step(2);
     assert.ok(!p.grip, 'let go');
     for (let i = 0; i < 60 && !HW.Progress.flag('reveal2'); i++) { HW.skipTalk(); HW.step(10); }
-    assert.ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_room', 'pulled home to bed');
+    assert.ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_house', 'pulled home (and down to the kitchen)');
     assert.equal(HW.global('Reveal2').taut, null);
     noErrors(HW);
 });
@@ -167,7 +167,7 @@ test('a tap isn\'t holding on, and nobody has to: without a hold the pull takes 
     assert.ok(HW.Progress.flag('reveal2'), 'pulled home within seconds');
     assert.ok(!HW.Progress.flag('hall_held'), 'taps never took hold');
     for (let i = 0; i < 20; i++) { HW.skipTalk(); HW.step(10); }
-    assert.equal(HW.G.map.id, 'gran_room');
+    assert.equal(HW.G.map.id, 'gran_house');
     noErrors(HW);
 });
 
@@ -175,7 +175,7 @@ test('a tap isn\'t holding on, and nobody has to: without a hold the pull takes 
 
 test('before Reveal 1 the voice behind the walls is nobody by name: it talks the way its Maker does', () => {
     const HOUSES = { tidy: ['afterD1', 'tidy', /Not very tidy/], kiln: ['afterD1', 'kiln', /HA— ahem/], mill: ['afterD2', 'millrace', /Wander rules/],
-        belfry: ['afterD3', 'belfry', /bairn/], slumber: ['afterD4', 'slumber', /yaaawn/], marionette: ['afterD5', 'marionette', /Psst/] };
+        belfry: ['afterD3', 'belfry', /bairn/], slumber: ['afterD4', 'slumber', /yaaawn/i], marionette: ['afterD5', 'marionette', /Psst/] };
     const ask = (preset, area, choice) => {
         const HW = loadGame(); HW.preset(preset); HW.step(10); HW.skipTalk();
         HW.global('Settings').hints = true;

@@ -12,8 +12,9 @@ const Bells = {
     ring(area, x, y, reach = this.REACH, opts = {}) {
         Sfx.play('bell');
         Fx.ring(x, y - 6, '#f7d64a'); Fx.ring(x, y - 6, '#fff4c0');
-        /* a ring fills the room it's rung in, and no further: walls stop it */
-        const room = area.rooms && area.rooms.length > 1 ? area.roomAt(tileOf(x), tileOf(y)) : null;
+        /* a ring fills the room it's rung in, and no further: walls stop it (rung by Wren, the room her feet are in: in a
+           doorway the bell's a little above them, and would be heard in the next room instead) */
+        const room = area.rooms && area.rooms.length > 1 ? opts.room || area.roomAt(tileOf(x), tileOf(y)) : null;
         /* (its reach, drawn: anything whose middle is inside this ring hears it) */
         G.ringFx = { x, y, t: 0, r: reach * T + 4, area, room };
         const here = (tx, ty) => !room || area.roomAt(tx, ty) === room;
@@ -215,7 +216,7 @@ TOOLS.bell = {
     use(p) {
         if (this.cool > 0) return;
         this.cool = 40; p.ringT = 12;
-        Bells.ring(p.area, p.x, p.y - 4, Bells.REACH);
+        Bells.ring(p.area, p.x, p.y - 4, Bells.REACH, { room: p.area.roomAt(p.tx, p.ty) });
     },
     update(area) { if (this.cool > 0) this.cool--; const p = G.player; if (p && p.ringT > 0) p.ringT--; Bells.keepSleeping(area); },
     busy(p) { return p.ringT > 0; },

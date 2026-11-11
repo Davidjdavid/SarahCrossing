@@ -18,7 +18,7 @@ const TOWN_LINES = {
         seam: ["I've had a monstrous order this month, {name}. Scales. Hundreds of them, glazed. Don't ask; I'm sworn. I keep a secret the way I keep a hem."],
         quill: ["Rule five: broken things come home in pieces. Tuck smashed his milk jug to see if it was true. The jug came home. The milk didn't."],
         burr: ["Two Knots. Fog's a shade thicker up the road this week. Not that I'm complaining. It's good fog."],
-        mallow: ["*yawn* Two Knots already. You know what a Wanderer needs most? Sleep. You know what I haven't had all month? Same answer."],
+        mallow: ["Yaaawn. Two Knots already. You know what a Wanderer needs most? Sleep. You know what I haven't had all month? Same answer."],
     },
     d3: {
         rosa: ["Your dad came in for a loaf this morning, wet to the knees. Said he'd fallen in the millpond. Twice. Then he winked, which isn't like him."],
@@ -44,7 +44,7 @@ const TOWN_LINES = {
     reveal1: {
         bram: ["So! You know. HA! What a weight off. Mind, I'd still like a word about what you did to that wyrm."],
         ives: ["No more fibbing about the tidying, love. I HAVE been tidying. Only underneath, mostly."],
-        mallow: ["*yawn* So you know. Good. Then I can tell you why I'm tired: I've been working a giant sloth's arms on pulleys all month. One gets stiff."],
+        mallow: ["Yaaawn. So you know. Good. Then I can tell you why I'm tired: I've been working a giant sloth's arms on pulleys all month. One gets stiff."],
         rosa: ["You know, don't you? About the Houses. Every grown-up in Hollowell knows. We all found out on our own Wanders. I cried for a week. Then I baked."],
         quill: ["Ah. You've found out. Don't tell the little ones. It's the one rule I'll never put up on the board."],
         seam: ["You saw the scales through my back window. Of course you did. The next Wanderer's getting a dragon. Not a word, {name}."],

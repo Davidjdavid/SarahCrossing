@@ -140,7 +140,7 @@ ITEM_LINES.bracelet = () => "You found {blue}Linnet's bracelet{/}! Plaited from 
 SPAWN.lamp = (tx, ty, p) => {
     const pr = new Prop(tx, ty, { im: ART.lamp_off, solid: [[0, 0]], oy: -8 });
     pr.draw = (cx, cy) => { const on = Signals.eval(pr.area, p.sig); Gfx.img(on ? ART.lamp_on : ART.lamp_off, tx * T - cx, ty * T - cy - 8); if (on && (G.t >> 4) % 2) Gfx.rect(tx * T - cx + 7, ty * T - cy - 6, 2, 2, '#fff6c0'); };
-    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.eval(pr.area, p.sig) ? 'A lantern, lit from somewhere else in the house.' : 'A lantern, cold. Its wick runs down into the floor, toward one side of the house.'); }); return true; };
+    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.eval(pr.area, p.sig) ? 'A lantern, lit from somewhere else in the House.' : 'A lantern, cold. Its wick runs down into the floor, toward one side of the House.'); }); return true; };
     pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
     return pr;
 };

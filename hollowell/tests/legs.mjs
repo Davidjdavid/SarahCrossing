@@ -1238,7 +1238,7 @@ export const LEG8 = (HW, chain) => {
     walk(37, 4); HW.face('up'); HW.press('act', 1);
     for (let i = 0; i < 60 && !HW.Progress.flag('reveal2'); i++) { HW.skipTalk(); HW.step(10); }
     for (let i = 0; i < 20; i++) { HW.skipTalk(); HW.step(10); }
-    ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_room', 'Reveal 2; home in bed');
+    ok(HW.Progress.flag('reveal2') && HW.G.map.id === 'gran_house', 'Reveal 2; home, and downstairs to an empty kitchen');
     /* (down to the Guild Hall again, by the Inn's Staff door, as in the leg before) */
     HW.warp('underside', 31, 5); HW.step(20); HW.skipTalk();
     walk(31, 4); act('up');

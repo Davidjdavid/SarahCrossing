@@ -28,7 +28,7 @@ test('the Way Down: the deep store and Tuck\'s spool; the Hall of Names; the led
     for (let i = 0; i < 40 && !HW.Progress.flag('reveal2'); i++) { HW.skipTalk(); HW.step(10); }
     for (let i = 0; i < 20; i++) { HW.skipTalk(); HW.step(10); }
     assert.ok(HW.Progress.flag('reveal2'));
-    assert.equal(HW.G.map.id, 'gran_room', 'home in bed');
+    assert.equal(HW.G.map.id, 'gran_house', 'home, and down to the kitchen');
     assert.ok(/Gundry/.test(HW.Progress.goal), HW.Progress.goal);
     noErrors(HW);
 });

@@ -90,9 +90,9 @@ class Captain extends Enemy {
         }
         Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         const im = spr('captain_' + ((this.anim >> 4) % 2));
-        if (im) Gfx.img(im, x - 10, y - 22, this.march === LEFT);     /* (his boots on his shadow) */
+        if (im) Gfx.img(im, x - 10, y - 26, this.march === LEFT);     /* (his boots on his shadow; taller than Dad) */
         /* twirling his baton overhead, about to fling it */
-        if (this.twirl > 0) { const a = G.t * 0.5; Gfx.line(x - Math.cos(a) * 7, y - 30 - Math.sin(a) * 3, x + Math.cos(a) * 7, y - 30 + Math.sin(a) * 3, '#e8b04a'); Gfx.rect(x + Math.round(Math.cos(a) * 7) - 1, y - 31 + Math.round(Math.sin(a) * 3), 2, 2, '#ffffff'); Tells.bang(x, y - 44); }
+        if (this.twirl > 0) { const a = G.t * 0.5; Gfx.line(x - Math.cos(a) * 7, y - 34 - Math.sin(a) * 3, x + Math.cos(a) * 7, y - 34 + Math.sin(a) * 3, '#e8b04a'); Gfx.rect(x + Math.round(Math.cos(a) * 7) - 1, y - 35 + Math.round(Math.sin(a) * 3), 2, 2, '#ffffff'); Tells.bang(x, y - 48); }
     }
 }
 SPAWN.captain = (x, y, p) => Progress.flag('marionette_tin') ? new Ent('none') : new Captain(x, y, p);
@@ -641,8 +641,9 @@ const MarionetteFoes = {
     },
     *gmIntro(g) {
         yield 20;
+        yield* stepIn();
         yield* say(null, 'The curtain rises on its own. Centre stage, on strings that go up and up into the dark, a marionette three times your height begins to dance. It has your scarf. It has your stick. It has your face.');
-        yield* say(null, 'At the front of the stage, a crossbar on a stand, and two little wooden Wrens on its strings.');
+        yield* say(null, 'At the front of the stage, a crossbar on a stand, and two little wooden Wrens on its strings.', { focus: g.puppets().concat(g.area.ents.filter(e => e.kind === 'rack' && !e.removed)) });
     },
     /* the first knock: it climbs back up its strings, and the second act's a march */
     *toAct2(g) {
@@ -694,7 +695,7 @@ function initMarionetteFoes() {
     ENEMY.captain = { hp: 2, r: 8, tall: 30, yarn: THREAD.jory, harmless: true };
     ENEMY.greatmarionette = { hp: 3, r: 12, tall: 40, yarn: THREAD.jory, harmless: true, flies: true, swims: true };
     const cp = { r: '#d6304e', R: '#9a1e36', b: '#2e3a7a', B: '#1e2a5a', g: '#f7d64a', G: '#c8a83a', s: '#f0c8a0', w: '#fbf6ea', f: '#fbf6ea' };
-    const capt = leg => ['.........ff.........', '........fwwf........', '.......kbbbbk.......', '......kbbbbbbk......', '......kbbbbbbk......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......kswsswsk......', '......kssssssk......', '.......kssssk.......', '.....kkrrrrrrkk.....', '....krRrggggrRrk....', '...ksrrrggggrrrsk...', '...kskrrggggrrksk...', '...kk.krrrrrrk.kk...', '.....kwwwwwwwwk.....', '.....kwgwgwgwgk.....', '.....kwwwwwwwwk.....', '......kbbbbbbk......', '......kbBkkbBk......', '......kbBk' + leg + 'Bk......'.slice(0, 20), '......kkkk.kkkk.....', '....................'];
+    const capt = leg => ['.........ff.........', '........fwwf........', '.......kbbbbk.......', '......kbbbbbbk......', '......kbbbbbbk......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......kswsswsk......', '......kssssssk......', '.......kssssk.......', '.....kkrrrrrrkk.....', '....krRrggggrRrk....', '...ksrrrggggrrrsk...', '...ksrrrggggrrrsk...', '...kskrrggggrrksk...', '...kk.krrrrrrk.kk...', '.....kwwwwwwwwk.....', '.....kwgwgwgwgk.....', '.....kwwwwwwwwk.....', '......kbbbbbbk......', '......kbbbbbbk......', '......kbBkkbBk......', '......kbBkkbBk......', '......kbBkkbBk......', '......kbBk' + leg + 'Bk......'.slice(0, 20), '......kkkk.kkkk.....', '....................'];
     defSprite('captain_0', capt('kbB'), cp); defSprite('captain_1', capt('.bB'), cp);
     defSprite('captain_trap', ['....................', '....................', '.......kbbbbk.......', '......kbbbbbbk......', '.....kkggggggkk.....', '......kssssssk......', '......ksxssxsk......', '......kssssssk......', '....kkrrrrrrrrkk....', '...krrrrggggrrrrk...', '..kkkkkkkkkkkkkkkk..', '..k..............k..', '..kkkkkkkkkkkkkkkk..', '....................'], Object.assign({ x: '#2a1f2d' }, cp));
     const gm = { w: '#e6c08a', W: '#c49a62', d: '#8a6040', r: '#e8463c', R: '#a82a26', e: '#2a1f2d', h: '#8a5a3a', s: '#9a6438' };

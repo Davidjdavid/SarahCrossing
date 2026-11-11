@@ -214,9 +214,19 @@ SPAWN.bolt = (x, y) => {
         Script.run(function* () {
             if (Progress.flag('fair_gate')) { yield* say(null, 'The bolt is drawn. The gate to town stands open.'); return; }
             Progress.set('fair_gate'); Sfx.play('unlock');
-            /* the town's side of the West Gate (a fence in the road) opens with it */
+            /* the town's side of the West Gate (a fence in the road) opens with it: each leaf swings back on its hinge, the
+               upper one north, the lower one south, and folds away against its post */
             const a = G.map;
-            for (const e of a.ents.filter(o => o.skey === 'westGateA' || o.skey === 'westGateB')) { for (const [dx, dy] of e.solid || []) a.staticSolid.delete((e.ty + dy) * 4096 + (e.tx + dx)); a.remove(e); Fx.poof(e.tx * T + 8, e.ty * T + 8); }
+            for (const e of a.ents.filter(o => o.skey === 'westGateA' || o.skey === 'westGateB')) {
+                for (const [dx, dy] of e.solid || []) a.staticSolid.delete((e.ty + dy) * 4096 + (e.tx + dx));
+                e.solid = [];
+                const up = e.skey === 'westGateA', im = e.im, t0 = G.t;
+                e.draw = (cx, cy) => {
+                    const k = Math.min(1, (G.t - t0) / 28), h = Math.round(im.height * (1 - k * k * 0.85));
+                    if (!im || HEADLESS || k >= 1) return;
+                    Gfx.ctx.drawImage(im, 0, 0, im.width, im.height, Math.round(e.x - cx), Math.round(e.y - cy) + (up ? 0 : im.height - h), im.width, h);
+                };
+            }
             yield* say(null, 'A big iron bolt, stiff with rust. You heave it back. The fair gate swings open onto the west road into town.');
         });
         return true;

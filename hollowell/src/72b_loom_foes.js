@@ -9,12 +9,12 @@ class Shuttle extends Ent {
         this.x = tx * T + 8; this.y = ty * T + 8; this.lane = ty; this.hx = tx;
         this.hp = 2; this.state = 'sleep'; this.st = 0; this.t = 0; this.dir = 1; this.flash = 0; this.alive = true;     /* (two knocks: a mini-boss shouldn't outstay its idea) */
     }
-    get sortY() { return this.y + 8; }
+    get sortY() { return this.alive ? this.y + 8 : this.y - 12; }      /* (split, it lies on the floor, under whoever walks by) */
     get arena() { return this.area.roomAt(this.hx, this.lane); }
     shutters(shut) { for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'shuttle') s.shut = shut; }
     hurtBox() { return this.alive && this.state !== 'sleep' ? { x0: this.x - 14, x1: this.x + 14, y0: this.y - 10, y1: this.y + 6 } : null; }
     update() {
-        if (!this.alive) return;
+        if (!this.alive) { this.deadT = (this.deadT || 0) + 1; return; }
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area, r = this.arena;
         if (this.state === 'sleep') {
@@ -65,7 +65,7 @@ class Shuttle extends Ent {
         Script.run(LoomFoes.shuttleDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) return;
+        if (!this.alive) return this.drawSplit(cx, cy);
         const r = this.arena, x = this.x - cx, y = this.y - cy;
         /* its lane's thread, glowing while it waits to go */
         Gfx.line((r.x + 1) * T - cx, y, (r.x + r.w - 1) * T - cx, y, this.state === 'wait' && (this.t >> 2) % 2 ? '#ffffff' : '#aab7c8');
@@ -74,6 +74,17 @@ class Shuttle extends Ent {
         if (this.state === 'stuck' && (this.t >> 3) % 2) Font.draw('*', x - 4, y - 18, '#f7d64a');
     }
 }
+/* split along its grain, the two halves lying apart where it stopped; and all the silver thread wound in it unspooling
+   across the floor, in loose loops, out along its lane both ways to the walls */
+Shuttle.prototype.drawSplit = function (cx, cy) {
+    const t = this.deadT || 0, r = this.arena, x = this.x - cx, y = this.y - cy, im = spr('shuttle');
+    for (const d of [-1, 1]) {
+        const room = d < 0 ? this.x - (r.x + 1) * T - 2 : (r.x + r.w - 1) * T - 2 - this.x, L = Math.min(room, t * 1.5), pts = [];
+        for (let s = 0; s <= L; s += 3) pts.push([x + d * s, y + 4 + Math.round(Math.sin(s / 6 + d) * 3 * Math.min(1, s / 18))]);
+        if (pts.length > 1) Threads.path(pts, '#e4ecf5');
+    }
+    if (im) { const g = Math.round(Math.min(3, t / 5)); Gfx.sub(im, 0, 0, 32, 6, x - 16, y - 10 - g); Gfx.sub(im, 0, 6, 32, 10, x - 16, y - 4 + g); }
+};
 SPAWN.shuttle = (x, y, p) => Progress.flag('loom_shuttle') ? new Ent('none') : new Shuttle(x, y, p);
 
 /* ---------------- the Weaver ----------------
@@ -410,7 +421,7 @@ class Weaver extends Ent {
         for (const e of this.area.ents.slice()) if (e.weaverMoth) this.area.remove(e);
         this.x = this.web[0]; this.y = this.web[1]; this.z = WV.webZ;
         for (const n of this.anchors()) n.tie();
-        const w = this.well(); if (w) w.bare = false;
+        const w = this.well(); if (w) { w.bare = false; w.haul = 0; }
         if (G.player && G.player.pinned === 'silk') G.player.pinned = null;
         this.shutters(false); Music.play('loom');
     }
@@ -553,7 +564,7 @@ class Weaver extends Ent {
     beginBeat(n) {
         if (n <= this.told) return;
         this.told = n;
-        if (n === 3) { const w = this.well(); if (w) w.bare = true; }
+        if (n === 3) { const w = this.well(); if (w) { w.bare = true; w.haul = 0; } }
         G.shake = 8; Sfx.play('rumble');
         Stats.count('boss:weaver:beat' + n);
         Script.run(LoomFoes.weaverBeat(this, n));
@@ -616,6 +627,8 @@ class Weaver extends Ent {
                 Gfx.line(x, y, x, top - 6, tight ? '#ffffff' : '#c8d0dc');
             }
         }
+        /* (climbing out of its well after a knock: one grey thread trailing back down to where it lay) */
+        if (this.trail) Threads.path([[this.trail[0] - cx, this.trail[1] - cy], [x, top - 4]], '#c8d0dc');
         /* (2) where it's about to drop: its shadow, darkening */
         if (this.state === 'aim') {
             const k = Math.min(1, this.st / WV.aim), [gx, gy] = this.target;
@@ -682,7 +695,23 @@ const LoomFoes = {
     },
     *shuttleDown(s) {
         yield 30;
-        yield* say(null, 'The Shuttle splits along its grain, and all the silver thread wound in it unspools across the floor. In the middle of the room, a lid lifts.');
+        yield* say(null, 'The Shuttle splits along its grain, and all the silver thread wound in it unspools across the floor. By the big door, a lid lifts.');
+    },
+    /* knocked, it drags itself up out of its well and up the loom to the breast-beam over the well's head, trailing a grey
+       thread, while it's told (not after); in the last beat the old warp comes up out of the well after it */
+    *climb(w, n) {
+        const [gx, gy] = w.perch, x0 = w.x, y0 = w.y, z0 = w.z || 0, well = w.well();
+        const steps = Math.max(40, Math.round(Math.hypot(gx - x0, gy - y0) / 0.9));
+        w.trail = [x0, well ? well.y + 6 * T - 12 : y0 + 24];          /* (from the bottom of the well, where it lay) */
+        for (let i = 1; i <= steps; i++) {
+            const k = i / steps;
+            w.x = lerp(x0, gx, k); w.y = lerp(y0, gy, k); w.z = lerp(z0, WV.perchZ, k);
+            if (n === 3 && well) well.haul = k;
+            yield 1;
+        }
+        w.x = gx; w.y = gy; w.z = WV.perchZ; w.trail = null;
+        if (n === 3 && well) well.haul = 1;
+        yield 10;
     },
     *weaverIntro(w) {
         const r = w.room, at = [r.x + 9, r.y + 4, 60];
@@ -693,6 +722,7 @@ const LoomFoes = {
     *weaverBeat(w, n) {
         const r = w.room, at = [r.x + 9, r.y + 2, 40];
         yield 30;
+        yield* LoomFoes.climb(w, n);
         if (n === 2) {
             yield* say(null, 'The Weaver drags itself out of its well and up the loom, trailing one grey thread, and crouches on the breast-beam over the well\'s head. Its anchors hang in tatters.', { focus: at });
             yield* say(null, 'It spins no new anchors. It hangs by a thread of its own now, and watches you.', { focus: at });

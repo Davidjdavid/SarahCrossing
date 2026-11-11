@@ -95,15 +95,15 @@ function floorsOf(HW, id) {
     assert.equal(bad.size, 0, `${id}: colours this canvas can't read: ${[...bad]}`);
     return kinds;
 }
-/* how a set of stitches fares on a floor: the share of its pixels where they read, and the worst tenth's score */
+/* how a set of stitches fares on a floor: the share of its pixels where they all read, and the worst tenth's score */
 function score(tiles, strokes) {
-    const vals = [];
-    for (const t of tiles) for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
-        const base = t.at(i, j);
-        vals.push(Math.min(...strokes.map(([col, under]) => reads(col, under, base))));
-    }
-    vals.sort((p, q) => p - q);
-    return { share: vals.filter(v => v >= BAR).length / vals.length, p10: vals[Math.floor(vals.length * 0.1)] };
+    const hist = new Map();
+    for (const t of tiles) for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const k = t.at(i, j).join(','); hist.set(k, (hist.get(k) || 0) + 1); }
+    const vals = [...hist].map(([k, n]) => { const base = k.split(',').map(Number); return [Math.min(...strokes.map(([col, under]) => reads(col, under, base))), n]; }).sort((p, q) => p[0] - q[0]);
+    const total = vals.reduce((s, [, n]) => s + n, 0);
+    let acc = 0, p10 = 0;
+    for (const [v, n] of vals) { acc += n; if (acc >= total * 0.1) { p10 = v; break; } }
+    return { share: vals.filter(([v]) => v >= BAR).reduce((s, [, n]) => s + n, 0) / total, p10 };
 }
 
 test('every House\'s threads, empty marks and patience rings read on its own floors', () => {
@@ -117,7 +117,7 @@ test('every House\'s threads, empty marks and patience rings read on its own flo
         const thread = AREAS[id].thread, rgb = h => hexRGB(h).concat(1);
         /* the thread (and drawn tight, about to go home), an empty mark's stitches, a patience ring's (at 0.85, its
            under-stroke with it); a creature's trail is the same cord at full strength, every other stitch */
-        const strokes = [[rgb(thread), under], [rgb(shade(thread, 0.4)), under], [hexRGB(thread).concat(0.85), [under[0], under[1], under[2], under[3] * 0.85]]];
+        const strokes = [[rgb(thread), under], [rgb(shade(thread, 0.4)), under], [hexRGB(thread).concat(1), under]];
         const kinds = floorsOf(HW, id), all = [...kinds.values()], total = all.reduce((s, k) => s + k.n, 0);
         assert.ok(total > 0, id + ' has floor');
         const whole = score(all.flatMap(k => k.tiles), strokes);

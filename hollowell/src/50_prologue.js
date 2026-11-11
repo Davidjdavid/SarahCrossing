@@ -79,10 +79,13 @@ const Ceremony = {
     *run() {
         const ox = 64, oy = 40;
         const a = G.map, p = G.player;
-        /* the town gathers at the Well */
-        const crowd = [['ives', 27, 21, 'up'], ['bram', 34, 21, 'up'], ['rosa', 28, 22, 'up'], ['thimble', 33, 22, 'up'], ['seam', 26, 20, 'right'], ['mallow', 35, 20, 'left'], ['mabel', 30, 22, 'up'], ['quill', 31, 22, 'up']];
+        /* the town gathers at the Well (round Wren, not behind her: nobody stands in front of her all the while), and Bram,
+           who can't help himself, has brought a pot */
+        const crowd = [['ives', 27, 21, 'up'], ['bram', 34, 21, 'left'], ['rosa', 28, 22, 'up'], ['thimble', 33, 22, 'up'], ['seam', 26, 20, 'right'], ['mallow', 35, 20, 'left'], ['mabel', 29, 22, 'up'], ['quill', 32, 21, 'up']];
         const added = [];
         for (const [who, x, y, f] of crowd) { const n = a.add(new NPC(ox + x, oy + y, { who, face: f })); added.push(n); }
+        const bram = added[1]; bram.holding = 'bram_pot';
+        let pot = null;
         let gran = a.ents.find(e => e.who === 'gran');
         if (!gran) gran = a.add(new NPC(ox + 29, oy + 20, { who: 'gran', face: 'down' }));
         G.hideHud = true;
@@ -90,8 +93,11 @@ const Ceremony = {
         yield* walkTo(p, ox + 30, oy + 21);
         p.dir = UP;
         yield 20;
+        yield* say('gran', "{happy}Hollowell! Hush now, hush. Bram, put the pot down.");
+        /* (he does, at his feet) */
+        bram.holding = null; pot = a.add(new Prop(bram.tx, bram.ty + 1, { im: spr('bram_pot'), solid: [], ox: 3, oy: 2 })); Sfx.play('step');
+        yield 14;
         yield* say('gran', [
-            "{happy}Hollowell! Hush now, hush. Bram, put the pot down.",
             "Every year the Hollow wakes up a little weaker. Strays turn up that won't go home. The Way forgets itself.",
             "So every so often, one of our young ones goes on the Wander: through the six Houses, to tie the six Knots that hold the Hollow in its shape.",
             "{happy}This year, it's {name}.",
@@ -100,10 +106,13 @@ const Ceremony = {
         Sfx.play('appear');
         yield 50;
         for (const n of added) n.bubble = null;
+        /* (Miss Quill turns to say them to Wren's face, and Wren to her) */
+        const quill = added[7]; quill.dir = LEFT; p.dir = RIGHT;
         yield* say('quill', [
             "Ahem. The Rules of the Return, as every child knows them.",
             "One: everything has its place. Two: whatever is moved goes back the way it came. Three: nothing is ever lost in the Hollow.",
         ]);
+        p.dir = UP;
         yield* say('gran', "{happy}And now your Wanderstaff. Your grandad cut it from the old apple tree. It's done this before.");
         yield* Story.getItem('staff')();
         yield* say('gran', [
@@ -112,6 +121,8 @@ const Ceremony = {
         ]);
         yield* say('ives', "{cross}And wipe your feet!");
         /* the town goes back to its day: everyone walks off a little way, then about their business */
+        /* (Bram picks his pot up again first) */
+        if (pot) { a.remove(pot); bram.holding = 'bram_pot'; }
         for (const n of added) { const away = n.tx < ox + 30 ? [-4, 1] : n.tx > ox + 31 ? [4, 1] : [0, 4]; n.walkTo(n.tx + away[0], n.ty + away[1]); }
         for (let i = 0; i < 70 && added.some(n => n.walking); i++) yield 1;
         for (const n of added) { Fx.poof(n.px + 8, n.py + 8); a.remove(n); yield 3; }
@@ -122,3 +133,22 @@ const Ceremony = {
     },
 };
 ITEM_LINES.staff = () => 'You got the {red}Wanderstaff{/}! Press [atk] to swing it: it knocks light things aside and flips crystals.';
+
+/* someone with something in their hands (Bram's pot at the ceremony, Gundry's rag): held out in front of them, or seen
+   at their side when they've their back to us */
+{
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        draw0.call(this, cx, cy);
+        const im = this.holding && spr(this.holding), body = im && this.sprite();
+        if (!body) return;
+        const sx = this.px - cx, top = this.py - cy - (body.height - T) - 2;
+        const x = this.dir === LEFT ? sx - 3 : this.dir === RIGHT ? sx + 19 - im.width : this.dir === UP ? sx + 18 - im.width : sx + 8 - im.width / 2;
+        Gfx.img(im, Math.round(x), top + 10);
+    };
+}
+function initPrologue() {
+    /* a little glazed pot, one of Bram's */
+    defSprite('bram_pot', ['..kkkkkk..', '.kyyoooOk.', '..kkkkkk..', '.koooooOk.', 'kyoooooOOk', 'kyooooOOOk', 'koooooOOOk', '.kOOOOOOk.', '..kkkkkk..'], { o: '#c8743a', O: '#9a5228', y: '#e8a060' });
+}
+CONTENT_INIT.push(initPrologue);

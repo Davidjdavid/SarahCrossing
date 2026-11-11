@@ -240,6 +240,7 @@ class GridThing extends Ent {
     fillPit() {
         this.area.unplace(this, this.tx, this.ty);
         this.area.remove(this);
+        this.area.filled(this.tx, this.ty);
         this.area.setCell(this.tx, this.ty, this.area.family === 'outdoor' ? ':' : ',');
         this.area.flow.delete(key2(this.tx, this.ty));
         Progress.setAreaFlag(this.area.id, `fill:${this.tx},${this.ty}`);
@@ -284,7 +285,7 @@ const Threads = {
     /* every thread is a 1 px line of its colour over a dark 1 px under-stroke (under a shallow stretch, right of a steep
        one: the light is from the top left), so it reads on any floor: a light floor by the dark, a dark one by the
        colour (tests/contrast.test.mjs measures each House's against its floors) */
-    UNDER: 'rgba(20,10,20,0.85)',
+    UNDER: '#1a1018',
     /* a polyline: every under-stroke first, so no stretch's shadow falls across the line where it turns */
     path(pts, col, under = this.UNDER) {
         for (let i = 0; i + 1 < pts.length; i++) {
@@ -310,12 +311,16 @@ const Threads = {
             }
         }
     },
-    /* how long a thing will wait: a ring of stitches round its mark, unpicking as its patience runs down (k: what's left) */
-    ring(mx, my, k, col, held) {
+    /* how long a thing will wait: a ring of stitches round its mark, unpicking as its patience runs down (k: what's left);
+       its under-strokes and its stitches can be drawn apart (part 'under', 'over'), so the thread crossing it lies
+       between them and no stitch's shadow cuts the thread */
+    ring(mx, my, k, col, held, part) {
         const n = Math.ceil(k * 16);
-        Gfx.alpha(held ? 0.45 : 0.85);
-        for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6) + 1, 2, 1, this.UNDER); }
-        for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6), 2, 1, col); }
+        Gfx.alpha(held ? 0.45 : 1);
+        for (const [c, dy] of [[this.UNDER, 1], [col, 0]]) {
+            if (part && part !== (dy ? 'under' : 'over')) continue;
+            for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + i / 16 * Math.PI * 2; Gfx.rect(Math.round(mx + Math.cos(t) * 7) - 1, Math.round(my + Math.sin(t) * 6) + dy, 2, 1, c); }
+        }
         Gfx.alpha(1);
     },
     draw(area, cx, cy) {
@@ -332,15 +337,14 @@ const Threads = {
             /* (a smashed thing's pieces are already flying its thread: the thread ends where its trace does, not at the
                spot the whole thing was last seen) */
             if (pts.length && !e.shattered) pts[pts.length - 1] = [ex, ey];
-            const col = r.color;
-            const tight = r.state === 'returning' || (r.timer < 30 && !Return.held(e));
+            const col = r.color, held = Return.held(e);
+            const tight = r.state === 'returning' || (r.timer < 30 && !held);
+            /* how long it'll wait (full and steady while something holds it) */
+            const ring = r.state === 'away' && r.patience > 0 && !e.quietHome, k = held ? 1 : Math.max(0, r.timer / r.patience);
+            if (ring) this.ring(r.mx * T + 8 - cx, r.my * T + 8 - cy, k, col, held, 'under');
             this.path(pts, tight ? shade(col, 0.4) : col);
             Marks.draw(r.mx * T - cx, r.my * T - cy, col, true);
-            /* how long it'll wait (full and steady while something holds it) */
-            if (r.state === 'away' && r.patience > 0 && !e.quietHome) {
-                const held = Return.held(e);
-                this.ring(r.mx * T + 8 - cx, r.my * T + 8 - cy, held ? 1 : Math.max(0, r.timer / r.patience), col, held);
-            }
+            if (ring) this.ring(r.mx * T + 8 - cx, r.my * T + 8 - cy, k, col, held, 'over');
         }
         /* creatures keep the law too: each walks home along its own trail to its nest, so its thread shows, faintly
            (lure one away and its way home is plain to see, plates and all); not the big ones, who keep their own */

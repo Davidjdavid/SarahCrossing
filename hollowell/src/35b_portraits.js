@@ -24,6 +24,11 @@ const PORTRAIT_TUNE = {
     /* (the girl in green ribbons on the old playbill, and in Miss Quill's old drawing) */
     linnet: { ribbon: true, ribbonC: '#5ab85a' },
 };
+/* someone in costume for the moment, whose picture wears it too: Otto playing the Housekeeper (in the square, on the Making
+   Floor, in the Little Houses) has his folded paper hat on over his hair, not his cap */
+const PORTRAIT_DRESS = {
+    otto: () => { const a = G.map; return a && a.ents && a.ents.some(e => e.kind === 'npc' && e.who === 'otto' && e.paperHat && !e.removed) ? { hair: 'short', paperHat: true, dress: 'hat' } : null; },
+};
 
 /* a leading expression mark, if the line has one: ['happy', 'the rest'] */
 function exprOf(text) {
@@ -83,6 +88,7 @@ function portraitLegend(L) {
         q: cap, Q: shade(cap, -0.3), Y: shade(cap, 0.25),
         g: L.glassC || '#8a7880', G: '#ffffff', d: '#7ec8f0', D: '#e4f6ff',
         r: L.ribbonC || '#5ab85a', R: shade(L.ribbonC || '#5ab85a', -0.3),
+        p: '#f6f1e6', P: '#cfc6b2',
     };
 }
 
@@ -262,22 +268,31 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
         for (let y = 0; y < PORTRAIT; y++) for (let x = 0; x < PORTRAIT; x++) if (cap[y][x] === 'q' && y <= 7 + dy) { if (x >= 21) cap[y][x] = 'Q'; else if (y <= 3 + dy && x >= 9 && x <= 14) cap[y][x] = 'Y'; }
         pLay(g, cap);
     }
+    /* a folded paper hat (playing the Housekeeper), over all: a tall white peak, a band folded up round the bottom of it,
+       shaded on the right */
+    if (L.paperHat) {
+        const hat = pGrid();
+        for (let y = 0; y <= 5; y++) { const hw = 1 + Math.round(y * 1.6); for (let x = 16 - hw; x <= 15 + hw; x++) pSet(hat, x, y + dy - 1, x > 15 + hw - Math.max(1, y) ? 'P' : 'p'); }
+        for (let x = 6; x <= 25; x++) { pSet(hat, x, 5 + dy, x >= 21 ? 'P' : 'p'); pSet(hat, x, 6 + dy, 'P'); }
+        pLay(g, hat);
+    }
     return g.map(r => r.join(''));
 }
 
 const Portraits = {
     cache: new Map(),
     /* the look a portrait is built from: Wren's own, or a person's with any tuning (null: no portrait) */
+    dressOf(who) { const f = PORTRAIT_DRESS[who]; return f ? f() : null; },
     look(who) {
         if (who === 'wren') return WREN_LOOK;
-        const d = PEOPLE_DEF[who], t = PORTRAIT_TUNE[who];
+        const d = PEOPLE_DEF[who], t = PORTRAIT_TUNE[who], dr = this.dressOf(who);
         if (!d || !d.look || (t && t.when && !t.when())) return null;
-        return t ? Object.assign({}, d.look, t) : d.look;
+        return t || dr ? Object.assign({}, d.look, t, dr) : d.look;
     },
     has(who) { return !!(who && this.look(who)); },
     rows(who, expr, mouth, eyes) { const L = this.look(who); return L ? portraitRows(L, expr, mouth, eyes) : null; },
     get(who, expr = 'neutral', mouth = false, eyes = false) {
-        const k = who + '|' + expr + '|' + (mouth ? 1 : 0) + (eyes ? 1 : 0);
+        const dr = this.dressOf(who), k = who + (dr ? '~' + dr.dress : '') + '|' + expr + '|' + (mouth ? 1 : 0) + (eyes ? 1 : 0);
         if (this.cache.has(k)) return this.cache.get(k);
         const L = this.look(who); if (!L) return null;
         const c = compileGrid(portraitRows(L, expr, mouth, eyes), Object.assign({}, LEGEND, portraitLegend(L)));

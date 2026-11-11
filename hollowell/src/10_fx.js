@@ -32,6 +32,53 @@ const Fx = {
         if (same) { same.x = x; same.y = y; same.life = 50; return same; }
         return this.add({ x, y, vy: -0.5, life: 50, text: s, col });
     },
+    /* floating words (from UI.draw, after the notices): each as near where it was said as it can be, a few pixels inside
+       the screen's edges, clear of the HUD, the panels up (notices, the place's name, the box), the little pictures over
+       people's heads and the words placed before it; on a soft dark backing, so the cords and heads behind them don't run
+       through the letters */
+    drawText(cx, cy, panels = []) {
+        const texts = this.list.filter(p => p.text);
+        if (!texts.length) return;
+        const fade = 1 - (typeof UI !== 'undefined' ? UI.fadeA : 0);
+        if (fade <= 0) return;
+        for (const s of this.textSpots(texts, cx, cy, panels)) {
+            const a = Math.min(1, s.p.life / 10) * fade;
+            Gfx.alpha(0.5 * a); Gfx.rect(s.x - 2, s.y - 2, s.w + 4, 12, PAL.ink); Gfx.rect(s.x - 3, s.y - 1, s.w + 6, 10, PAL.ink);
+            Gfx.alpha(a); Font.draw(s.p.text, s.x, s.y, s.p.col, Infinity, PAL.ink); Gfx.alpha(1);
+        }
+    },
+    /* where each goes: { p, x, y (the letters' top left), w } */
+    textSpots(texts, cx, cy, panels = []) {
+        const at = this.view(cx, cy), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at)), out = [];
+        for (const p of texts) {
+            const w = Font.width(p.text), [sx, sy] = at(p.x, p.y);
+            const x = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
+            const free = y => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
+            let y = y0;
+            /* (up out of the way, unless down is under half as far) */
+            if (!free(y)) {
+                let up = 1; while (up <= 70 && !free(y0 - up)) up++;
+                if (up > 70) up = Infinity;
+                let dn = 1; while (dn <= 70 && 2 * dn < up && !free(y0 + dn)) dn++;
+                y = dn <= 70 && 2 * dn < up ? y0 + dn : up < Infinity ? y0 - up : y0;
+            }
+            out.push({ p, x, y, w });
+            keep.push([x - 3, y - 2, x + w + 3, y + 10]);
+        }
+        return out;
+    },
+    /* the HUD's corners (hearts at the left; buttons, the tool in hand, its key and the Needle's stitches at the right) */
+    hudBoxes() {
+        if (G.hideHud || G.scene !== 'play') return [];
+        const n = Math.ceil(Inv.maxHp / 2), rows = n > 10 ? 2 : 1;
+        return [[0, 0, 20 + 9 * Math.min(n, 10), 6 + 8 * rows], [W - 98, 0, W, Inv.equipped ? 37 : 17]];
+    },
+    /* the little pictures over people's heads (a heart, a "!", dots) */
+    bubbles(at) {
+        const a = G.map, out = [];
+        if (a) for (const e of a.ents) if (e.bubble && e.isGrid && !e.hidden && !e.removed) { const [x, y] = at(e.px + 8, e.py - 20); out.push([x - 1, y - 1, x + 10, y + 7]); }
+        return out;
+    },
     /* a sprite shrinking into a pit */
     fallAt(x, y, im) { if (im) this.add({ x, y, life: 24, im, fall: true }); },
     update() {
@@ -44,16 +91,19 @@ const Fx = {
         }
         this.list = this.list.filter(p => p.life > 0);
     },
-    draw(cx, cy) {
-        /* seen from underneath (the third act's Little Houses): what happens in the room above shows through the boards,
-           where that room is drawn */
+    /* where a point in the world shows on the screen. Seen from underneath (the third act's Little Houses), what happens in
+       the room above shows through the boards, where that room is drawn */
+    view(cx, cy) {
         const r = Cam.room, ar = r && r.above && G.map && typeof Layers !== 'undefined' ? Layers.upRoom(G.map, r) : null;
         const ux = ar ? cx + r.above.dx * T : 0, uy = ar ? cy + r.above.dy * T : 0;
+        return (x, y) => { const up = ar && x >= ar.x * T && x < (ar.x + ar.w) * T && y >= ar.y * T && y < (ar.y + ar.h) * T; return [x - (up ? ux : cx), y - (up ? uy : cy)]; };
+    },
+    /* everything but the floating words (those are drawn over the notices: drawText) */
+    draw(cx, cy) {
+        const at = this.view(cx, cy);
         for (const p of this.list) {
-            const up = ar && p.x >= ar.x * T && p.x < (ar.x + ar.w) * T && p.y >= ar.y * T && p.y < (ar.y + ar.h) * T;
-            const x = p.x - (up ? ux : cx), y = p.y - (up ? uy : cy);
-            /* (floating words keep on the screen, clear of the HUD's strip, however near the edge they started) */
-            if (p.text) { const hw = Font.width(p.text) / 2; Font.center(p.text, clamp(x, hw + 2, W - hw - 2), Math.max(y, 24), p.col, PAL.ink); continue; }
+            if (p.text) continue;
+            const [x, y] = at(p.x, p.y);
             if (p.fall) {
                 const k = p.life / 24, im = p.im;
                 if (HEADLESS || !im) continue;

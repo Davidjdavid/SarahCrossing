@@ -108,8 +108,13 @@ class Clangor extends Enemy {
         Gfx.alpha(0.25); Gfx.rect(x - 8, y + 1, 16, 3, PAL.ink); Gfx.alpha(1);
         const im = spr(this.state === 'stunned' ? 'clangor_off' : 'clangor');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        const sh = this.state === 'windup' ? ((this.st >> 1) % 2 ? 1 : -1) : 0;
-        Gfx.img(img, x - 12 + sh, y - 30 - (this.state === 'windup' ? 2 : 0));
+        const sh = this.state === 'windup' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, top = y - 30 - (this.state === 'windup' ? 2 : 0);
+        Gfx.img(img, x - 12 + sh, top);
+        /* the clapper in the upturned bell, swinging like a tongue (faster as he winds up) */
+        if (this.state !== 'stunned') {
+            const sw = Math.round(Math.sin(G.t / (this.state === 'windup' ? 3 : 9)) * 3), bx = x + sh;
+            Gfx.line(bx, top + 8, bx + sw, top + 1, '#5a5264'); Gfx.circle(bx + sw, top, 2, '#3e3a52'); Gfx.rect(bx + sw - 1, top - 1, 1, 1, '#8a8296');
+        }
     }
 }
 SPAWN.clangor = (x, y, p) => Progress.flag('belfry_clangor') ? new Ent('none') : new Clangor(x, y, p);
@@ -346,7 +351,7 @@ class Tollgrim extends Enemy {
             /* his eyes in the dark of the bell's mouth: now and then early on; in the third beat always, following Wren,
                and red while she's near enough to ring the clapper home */
             const watch = this.state === 'hide' && this.phase === 3, p = G.player;
-            if (!watch && !this.pounding && (this.t >> 4) % 4 !== 0) return;
+            if (!watch && !this.pounding && !this.peer && (this.t >> 4) % 4 !== 0) return;
             const near = watch && this.nearClapper(p, this.area.find('clapper'));
             const lx = watch && p ? clamp(Math.round((p.x - this.x) / 40), -1, 1) : 0, ly = watch && p && p.y > this.y + 20 ? 1 : 0;
             /* (in the dark band of the bell's mouth) */
@@ -401,7 +406,10 @@ const BelfryFoes = {
     *tollIntro(t) {
         const bell = [t.hx, t.hy, 48];
         yield 20;
+        /* (his eyes stay showing in the dark of the bell's mouth while he's said to have them) */
+        t.peer = true;
         yield* say(null, 'Something moves inside the great bell: two yellow eyes, and a voice like gravel in a bucket. "MINE. MY BELL. MY TOWER. GO AWAY OR I\'LL TOLL YOU."', { focus: bell });
+        t.peer = false;
         yield* say(null, 'A cold draught blows down through the tower, and the great clapper sways.', { focus: bell });
     },
     /* a new beat of the fight: what's changed in the hall, and in him */
@@ -411,7 +419,7 @@ const BelfryFoes = {
         if (n === 2) {
             yield* say(null, 'Tollgrim scrambles back up into the great bell and heaves on it. The bell swings round on its beam, the shutters in the east wall bang open, and the wind comes in sideways now, without a let-up.', { focus: bell });
             yield* say(null, '"I HEARD YOUR LITTLE BELL," he grates, from the dark inside. "I\'LL HEAR IT NEXT TIME, TOO."', { focus: bell });
-        } else yield* say(null, "Tollgrim drags himself back into the bell, and this time his yellow eyes don't watch the clapper. They watch you. While you're near enough to ring it home, he won't show so much as a horn.", { focus: bell });
+        } else yield* say(null, "Tollgrim drags himself back into the bell, and this time his eyes don't watch the clapper. They watch you. While you're near enough to ring it home, he won't show so much as a horn.", { focus: bell });
     },
     *tollDown(t) {
         const a = t.area;
@@ -432,8 +440,13 @@ function initBelfryFoes() {
     ENEMY.tollgrim = { hp: 3, r: 7, tall: 16, yarn: THREAD.tess, flies: true, swims: true };
     const armour = (off) => paintSprite(24, 32, x => {
         const R = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
-        /* the bell-helm (or the bare neck, knocked off) */
-        if (!off) { x.fillStyle = '#b88a2a'; x.beginPath(); x.moveTo(5, 12); x.quadraticCurveTo(6, 1, 12, 0); x.quadraticCurveTo(18, 1, 19, 12); x.closePath(); x.fill(); R('#e8b04a', 7, 3, 3, 6); R('#f7d64a', 4, 11, 16, 2); R('#3e3a52', 11, 13, 2, 3); }
+        /* the bell-helm, upside down on the neck: its mouth open to the sky, the dark inside it (the clapper swings in there:
+           drawn with him), its crown on his collar (or the bare neck, knocked off) */
+        if (!off) {
+            for (let y = 1; y <= 11; y++) { const hw = Math.round(9.5 - (y - 1) * 0.5 - (y > 8 ? (y - 8) * 0.8 : 0)); R('#b88a2a', 12 - hw, y, hw * 2, 1); R('#e8b04a', 12 - hw + 2, y, 2, 1); R('#8a6420', 12 + hw - 2, y, 2, 1); }
+            R('#f7d64a', 2, 1, 20, 1); R('#3e2a1a', 4, 2, 16, 2); R('#2a1a10', 6, 3, 12, 1); R('#e8b04a', 3, 2, 1, 2); R('#e8b04a', 20, 2, 1, 2);
+            R('#8a6420', 9, 12, 6, 2); R('#3e3a52', 10, 14, 4, 1);
+        }
         else { R('#5a5264', 10, 8, 4, 5); R('#e8b04a', 2, 7, 7, 4); R('#b88a2a', 2, 10, 7, 1); }
         /* the armour */
         R('#8f96a0', 6, 15, 12, 10); R('#c4cbd4', 7, 16, 4, 6); R('#5a6270', 6, 24, 12, 2);

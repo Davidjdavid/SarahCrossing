@@ -77,7 +77,8 @@ defBlock({
     ents: [
         /* the sleeping road */
         { k: 'giant', x: 1, y: 18, id: 'giant' },
-        { k: 'hollowhole', x: 3, y: 16, id: 'hollowHole', if: 'giant_awake' },
+        /* (in the middle of where he lay, across the road) */
+        { k: 'hollowhole', x: 3, y: 19, id: 'hollowHole', if: 'giant_awake' },
         { k: 'sign', x: 9, y: 18, text: 'HUSHWOOD. Please do not wake anything.' },
         { k: 'rest', x: 10, y: 16 },
         /* one asleep in the road itself (walk by and it wakes); followed a while, it lies down in the nearest bed going: the
@@ -281,7 +282,7 @@ const Hushwood = {
         g.goTo(128 + GIANT_BED.x, 40 + GIANT_BED.y);
         g.state = 'home'; g.up = false;
         Progress.set('giant_home');
-        G.player.area.add(SPAWN.hollowhole(128 + 3, 40 + 16, {}));
+        G.player.area.add(SPAWN.hollowhole(128 + 3, 40 + 19, {}));
         Music.play('hush');
         yield* say(null, 'Where he lay, the moss is pressed flat, and in the middle of it is a deep dark hollow.');
         Progress.setGoal('Hushwood: find the Slumberhouse, over the stream.');
@@ -353,7 +354,7 @@ defArea({
                     const i = yield* ask(null, 'Roots hang down the chute you came in by, slick with moss. You could climb them. It would take an age, and you would ache all over.', ['Climb', 'Not now']);
                     if (i !== 0) return;
                     yield* fadeOut(40);
-                    World.enter('hollow', ...HUSH(3, 17), { dir: DOWN });
+                    World.enter('hollow', ...HUSH(3, 20), { dir: DOWN });
                     Inv.hp = Math.max(1, Inv.hp - 2);
                     yield* fadeIn(30);
                     yield* say(null, 'You haul yourself out at last, scraped and filthy and aching. Next time, the Bedroll.');
@@ -737,7 +738,7 @@ SPAWN.lostweight = (x, y) => {
     OW.blocks['2,1'].tick = a => {
         if (tick0) tick0(a);
         const all = Signals.get(a, 'nuA') && Signals.get(a, 'nuB') && Signals.get(a, 'nuC');
-        if (all && !Hushwood.bolted && !Progress.flag('slumber_open') && !Progress.flag('d5')) { G.pendingToast = 'Somewhere inside the Slumberhouse, a bolt slides back.'; Sfx.play('unlock'); }
+        if (all && !Hushwood.bolted && !Progress.flag('slumber_open') && !Progress.flag('d5')) { const d = a.ents.find(e => e.kind === 'warp' && e.to === 'slumber'); G.pendingToast = { s: 'Somewhere inside the Slumberhouse, a bolt slides back.', focus: d && [d.tx, d.ty, 48] }; Sfx.play('unlock'); }
         Hushwood.bolted = all;
     };
     const enter0 = World.enter;

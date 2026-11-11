@@ -428,8 +428,9 @@ const Options = {
         if (Input.pressed('atk') || Input.pressed('menu')) { Settings.save(); back(); Sfx.play('cancel'); }
     },
     draw(inMenu) {
-        const x = inMenu ? 40 : 70, y = inMenu ? 42 : 70;
-        if (!inMenu) stitchedBox(60, 64, 200, 96);
+        /* (on the title screen, a box round however many rows there are, about the screen's middle, the pointer inside it) */
+        const n = this.rows().length, top = 112 - Math.round((n * 14 + 10) / 2), x = inMenu ? 40 : 70, y = inMenu ? 42 : top + 8;
+        if (!inMenu) stitchedBox(54, top, 212, n * 14 + 10);
         this.rows().forEach((r, i) => {
             const yy = y + i * 14;
             const on = (!inMenu || this.focus) && i === this.sel;

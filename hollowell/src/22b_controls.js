@@ -56,6 +56,18 @@ function keyLabel(b) {
 }
 /* "[tool]" and the like in the game's lines: the button's name now */
 function fillKeys(s) { return typeof s === 'string' ? s.replace(/\[(up|down|left|right|act|atk|tool|prev|next|menu|map)\]/g, (m, b) => keyLabel(b)) : s; }
+/* a hold on something that isn't a thing in front of her to grip (a lectern, a hand), as the Gloves' grip goes (Options >
+   Grip): n is how many steps it's been held, from the step before. Hold: while Action is down. Toggle: a tap takes hold
+   at once (as a full hold), the next tap lets go; never a tap on step t0 (the one that closed the last words) or one
+   that just let go of something else */
+function gripSteps(n, can = true, t0 = -1) {
+    if (Settings.grip !== 'toggle') return Input.down('act') ? n + 1 : 0;
+    const p = G.player, tap = Input.pressed('act') && G.t !== t0 && !(p && p.tapSpent === G.t);
+    if (tap) return n > 0 ? 0 : can ? 8 : 0;
+    return n > 0 && can ? n + 1 : 0;
+}
+/* the words for it: "Hold [act]" or "Tap [act]" */
+function gripWord() { return Settings.grip === 'toggle' ? 'Tap' : 'Hold'; }
 
 const Controls = {
     open: false, sel: 0, wait: null, rawPrev: [], msg: '', t: 0,
@@ -151,6 +163,9 @@ const Controls = {
     Options.rows = function () {
         const r = rows0.call(this);
         r.push(['Screen filter', () => ['off', 'soft', 'strong'][Settings.crt | 0], d => { Settings.crt = ((Settings.crt | 0) + (d > 0 ? 1 : 2)) % 3; Pace.dirty = true; }]);
+        /* the Gloves' grip: Action held the whole time, or tapped once to take hold and again to let go (so a tool can be
+           used while holding on, with one thumb on a controller) */
+        r.push(['Grip', () => Settings.grip === 'toggle' ? 'toggle' : 'hold', () => { Settings.grip = Settings.grip === 'toggle' ? 'hold' : 'toggle'; }]);
         r.push(['Controls', () => '', () => { if (Input.pressed('act') || Input.pressed('right')) Controls.start(); }]);
         return r;
     };

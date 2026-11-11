@@ -32,6 +32,7 @@ const SLUMBER_OUT = { x: 128 + 19, y: 40 + 9 };      /* the door out, at the fro
 defHouse({
     id: 'slumber', name: 'The Slumberhouse', place: 'The Slumberhouse', house: 'slumber', theme: 'slumberhouse', thread: THREAD.mallow, music: 'slumber',
     knotName: 'Sleeping Knot',
+    showTrace: true,         /* (with the Bedroll laid in here, Wren's thread back to it is drawn as she goes: 58_bedroll_kit.js) */
     entry: SLUMBER_ENTRY,
     legend: { 'c': { k: 'floor', p: 'floor2', ent: 'crumble' }, 'n': { k: 'pit', p: 'pit', narrow: true } },
     cells: {
@@ -407,6 +408,8 @@ const Slumber = {
     NURSERY_PITS: () => { const r = []; for (let x = 1; x <= 18; x++) r.push([x, 11 + 2]); return r; },
     toyUsed() { return this.NURSERY_PITS().some(([x, y]) => Progress.areaFlag('slumber', `fill:${x},${y}`)); },
     build(a) {
+        /* in at last: the journal's goal is no longer to find the place */
+        if (!Progress.flag('d5') && /find the Slumberhouse/.test(Progress.goal || '')) Progress.setGoal('Inside the Slumberhouse: find its Knot, and tie it.');
         /* the toy block, once it's filled the gap for good, is used up */
         if (this.toyUsed()) { const t = a.find('nuToy'); if (t) a.remove(t); }
         /* the laundry chute's bolt is drawn from the Moonwalk: the camera goes down and looks as it opens (it's out of sight) */
@@ -455,7 +458,7 @@ const Slumber = {
     *afterKnot() {
         Progress.set('d5');
         Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
-        yield* say(null, 'All through the house, very softly, every bed creaks at once, as if everyone in them had turned over in their sleep.');
+        yield* say(null, 'All through the House, very softly, every bed creaks at once, as if everyone in them had turned over in their sleep.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: SLUMBER_OUT.x, ty2: SLUMBER_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
@@ -562,13 +565,16 @@ const Dreams = {
             Sfx.play('appear');
             const first = !Progress.flag('slumber_dreamt');
             Progress.set('slumber_dreamt');
-            G.pendingToast = first ? 'A good dream, all the way home. Somewhere in the House a night-light comes on, and stays on.' : 'Another good dream: another night-light comes on, and stays on.';
+            /* (the third lit, but never all three on one way home: said, so three lamps aren't taken for the Pattern) */
+            const all = this.ROOMS.every(r => this.latched(r));
+            G.pendingToast = all ? 'The last night-light comes on. All three burn now, but apart: they were never dreamt on one way home.' : first ? 'A good dream, all the way home. Somewhere in the House a night-light comes on, and stays on.' : 'Another good dream: another night-light comes on, and stays on.';
         }
     },
     /* a little lamp on a bracket: cold glass till its room is dreamt, then lit for good (a flare for a while after a flight
        that dreamt it; a red gutter after one that went through its bad dream) */
-    lamp(r, x, y, pool, small) {
-        const on = this.latched(r), last = this.lastOf(r), k = Math.sin(G.t / 27 + x * 0.37);
+    lamp(r, x, y, pool, small, one) {
+        /* (each flickers in its own time; three burning as one, together) */
+        const on = this.latched(r), last = this.lastOf(r), k = Math.sin(G.t / 27 + (one ? 0 : x * 0.37)) + (one ? 0.6 : 0);
         const flare = last === 'good' ? Math.max(0, 1 - (G.t - this.lastT) / 300) : 0, lit = on || flare > 0;
         const gr = small ? 2 : 3, c = y + gr + 2;
         if (lit) {
@@ -645,9 +651,24 @@ class DreamLamps extends Ent {
     constructor(tx, ty, p = {}) { super('dreamlamps', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; }
     get sortY() { return this.y + 16; }        /* (over the door, which sorts at its foot) */
     draw(cx, cy) {
-        const x = this.x - cx + 8, y = this.y - cy + 2;
-        Gfx.rect(x - 15, y - 1, 31, 2, PAL.ink); Gfx.rect(x - 14, y - 1, 29, 1, '#c8903a');
-        Dreams.ROOMS.forEach((r, i) => Dreams.lamp(r, x + (i - 1) * 12, y + 2, false, true));
+        const x = this.x - cx + 8, y = this.y - cy + 2, one = Progress.flag('slumber_longway');
+        /* each on a bracket of its own: lit on different nights, they hang apart; all three dreamt on one way home, a gold
+           thread runs through them, a glint going along it, and they burn as one */
+        for (let i = -1; i <= 1; i++) { Gfx.rect(x + i * 12 - 4, y - 1, 9, 2, PAL.ink); Gfx.rect(x + i * 12 - 3, y - 1, 7, 1, '#c8903a'); }
+        if (one) {
+            const way = [[x - 17, y], [x - 12, y + 6], [x, y + 6], [x + 12, y + 6], [x + 17, y]], pts = [];
+            for (let i = 0; i + 1 < way.length; i++) {
+                const [x0, y0] = way[i], [x1, y1] = way[i + 1], sag = i === 0 || i === way.length - 2 ? 1 : 3;
+                for (let s = 0; s < 6; s++) { const u = s / 6; pts.push([Math.round(lerp(x0, x1, u)), Math.round(lerp(y0, y1, u) + Math.sin(u * Math.PI) * sag)]); }
+            }
+            pts.push(way[way.length - 1]);
+            /* one warm glow round all three, breathing together */
+            Gfx.alpha(0.16 + 0.05 * Math.sin(G.t / 27)); for (let i = -1; i <= 1; i++) Gfx.circle(x + i * 12, y + 6, 11, '#fff4c0'); Gfx.alpha(1);
+            Threads.path(pts, '#f7d64a');
+            Gfx.alpha(0.6); for (let i = 0; i + 1 < pts.length; i++) Gfx.line(pts[i][0], pts[i][1] - 1, pts[i + 1][0], pts[i + 1][1] - 1, '#fff4c0'); Gfx.alpha(1);
+            const g = pts[Math.floor(G.t / 3) % pts.length]; Gfx.rect(g[0], g[1], 1, 1, '#fffaf0');
+        }
+        Dreams.ROOMS.forEach((r, i) => Dreams.lamp(r, x + (i - 1) * 12, y + 2, false, true, one));
     }
 }
 SPAWN.dreamlamps = (x, y, p) => new DreamLamps(x, y, p);

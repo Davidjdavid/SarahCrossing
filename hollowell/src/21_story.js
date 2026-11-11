@@ -30,16 +30,35 @@ const Story = {
         else if (first) UI.toast(Story.name(npc.who) + ': "Oop."', 120);
         Story.checkBudgedAll && Story.checkBudgedAll();
     },
+    /* opened from below, a chest is right over her head when she holds its find up: from there it looked as if she were
+       lifting the chest. She steps back a tile first (or aside), onto plain floor in the same room (nothing on it, nothing
+       it could set off); if there's none, the find is held up high over the chest instead */
+    *stepBack(p) {
+        const a = p.area, c = a && p.dir === UP && p.state === 'normal' && a.at(p.tx, p.ty - 1);
+        if (!(c instanceof Chest)) return false;
+        const r = Cam.room, plain = (x, y) => {
+            const k = a.inside(x, y) ? a.kind(x, y) : null;
+            return k && !k.solid && !k.pit && !k.water && !k.hurt && !k.ledge && !k.fog && !k.ice && !k.slow && (!r || (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h))
+                && !a.at(x, y) && !a.blockers.some(b => b.blocks(x, y, p)) && !a.ents.some(e => e !== p && !e.removed && e.tx === x && e.ty === y)
+                && !a.walkers.some(m => m.alive !== false && tileOf(m.x) === x && tileOf(m.y) === y);
+        };
+        const to = [[0, 1], [-1, 0], [1, 0]].find(([dx, dy]) => plain(p.tx + dx, p.ty + dy));
+        if (!to) return 'high';
+        const x0 = p.x, y0 = p.y;
+        for (let i = 1; i <= 8; i++) { p.x = x0 + to[0] * T * i / 8; p.y = y0 + to[1] * T * i / 8; yield 1; }
+        return true;
+    },
     /* the fanfare for a found thing */
     getItem(id, srcId) {
         return function* () {
             const p = G.player;
             const I = ITEMS[id] || { name: id, kind: 'quest' };
             const prevState = p.state;
+            const back = yield* Story.stepBack(p);
             p.state = 'hold'; p.holding = id;
             Music.duck = true;
             Sfx.play(I.kind === 'tool' || id === 'knot' || id === 'heartstitch' ? 'item' : 'smallitem');
-            G.holdUp = { id, t: 0 };
+            G.holdUp = { id, t: 0, high: back === 'high' };
             if (I.kind === 'tool') Inv.giveTool(id);
             else if (id === 'heartpatch') { Inv.patches++; if (srcId) Inv.patchIds.push(srcId); }
             else if (id === 'heartstitch') Inv.addHeart();

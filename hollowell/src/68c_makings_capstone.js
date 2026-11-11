@@ -95,7 +95,7 @@ const CAP_TALK = {
     bram: [["Make it HARD. ...Not that hard. He's six.", "HA! I've never sat on this side of the floor. My knees don't like it."], ["Another! Harder! HA!", "Mine had a hound in it. Just saying."]],
     ambrose: [["We'll be quiet as anything, love. Quieter than in the Millrace. That was me. Sorry.", "Mind where he'll sit. He always sits somewhere."], ["He's asked to do yours again, you know. Twice.", "Your mum's got a hanky out. Don't look."]],
     tess: [["Your first House! I've come over all goosebumps, bairn.", "Don't let him see your hands. That's all of it, really."], ["We could watch these all day, couldn't we.", "That's my bairn's House, that is."]],
-    mallow: [["*yawn* Wake me when he's in. Or don't. I'll know.", "I'll just rest my eyes. It helps me watch."], ["*yawn* Lovely. Again. I'll rest my eyes.", "I dreamt you made another one. And here we are."]],
+    mallow: [["Yaaawn. Wake me when he's in. Or don't. I'll know.", "I'll just rest my eyes. It helps me watch."], ["Yaaawn. Lovely. Again. I'll rest my eyes.", "I dreamt you made another one. And here we are."]],
     jory: [["Opening night! I've brought a hanky. Two. One's for Ives.", "Places, everyone! ...Oh. We're in them."], ["Encore!", "From the top! With feeling!"]],
 };
 
@@ -252,7 +252,7 @@ const Capstone = {
         else if (!f.setOut && !f.pushes) add(['bram', 'ambrose'], "In one door and out the other. That's not a House, that's a corridor. HA!");
         else if (f.cleared) add(['ives', 'tess'], "He moved that himself. He'll be telling everyone for a week.");
         if (f.found) add({ capP: ['tess', 'ambrose'], capW: ['ambrose', 'tess'], capS: ['bram', 'tess'] }[f.under] || ['tess'], { capP: 'Under the pot! Oldest trick there is. Still works.', capW: 'Under the block! He went pink.', capS: "Under the heavy one. He'll say he lifted it. Let him." }[f.under] || 'He found it!');
-        else if (f.button) add(['mallow', 'ives'], `*yawn* The button's still under ${this.noun(f.button)}. Somebody should tell him. Not me.`);
+        else if (f.button) add(['mallow', 'ives'], `Yaaawn. The button's still under ${this.noun(f.button)}. Somebody should tell him. Not me.`);
         else add(['ives', 'tess'], "No button? There's always a button, love.");
         if (f.bumps === 1) add(['tess', 'ambrose'], "One bump. He'll be showing everyone the bruise.");
         else if (f.bumps > 1) add(['tess', 'ambrose'], `${numWords(f.bumps).replace(/^\w/, s => s.toUpperCase())} bumps. Oh, his poor knees.`);
@@ -289,6 +289,8 @@ const Capstone = {
                 Inv.items.tuckdrawing = 1;
                 yield* say(null, "You got Tuck's drawing: a stick figure under a floor, holding a lot of strings, smiling.");
             }
+            /* (after the first go, once: it isn't over for good; it's hers, to set out as often as she likes) */
+            if (first) yield* say('ives', "It's yours now, love, to set out again whenever you like. Gundry's lever puts it all back as he had it, or leave it as it is. He'll go in as often as you let him.");
             yield* fadeOut(20);
             World.enter('underside', CAP_DOOR, 2, { dir: DOWN });
             yield* fadeIn(20);
@@ -303,15 +305,28 @@ const Capstone = {
         Progress.set('cap_given');
         const a = G.map, p = G.player, g = a && a.id === 'underside' ? a.ents.find(e => e.kind === 'npc' && e.who === 'gundry') : null;
         if (g && p) {
-            yield* say(null, 'Through the door from the Guild Hall comes Gundry, with a little wooden House under his arm. There is nothing in it.');
-            yield* Making.fetch(g, p);
+            g.holding = 'little_house';
+            yield* Making.fetch(g, p, 'Through the door from the Guild Hall comes Gundry, with a little wooden House under his arm. There is nothing in it.');
         }
         yield* say('gundry', "Not done yet, apprentice. Here. An empty one: a room up top, a room under, three things, a button and a hoop.");
         yield* say('gundry', 'Your turn. Make one.');
+        const tk = a && a.ents.find(e => e.kind === 'npc' && e.who === 'tuck');
+        if (tk && p) yield* Making.fetch(tk, p);
         yield* say('tuck', 'ANOTHER one? Who made it?');
         yield* say('gundry', 'Nobody, yet.');
         Progress.setGoal("The Making Floor's last little door: set out a Little House of your own, hide the button, then let Tuck in.");
-        if (g) g.walkTo(31, 3, 1);
+        /* Tuck goes back to his spot; Gundry takes it to the last little door and fits it in there, then back to his table,
+           in his own time (the two of them out of the way before you're free to go up) */
+        if (tk) tk.walkTo(47, 6, 1);
+        if (g) {
+            g.walkTo(CAP_DOOR, 2, 1.5);
+            for (let i = 0; i < 300 && (g.path || g.mv); i++) yield 1;
+            if (g.tx === CAP_DOOR && g.ty === 2) { g.dir = UP; yield 12; Sfx.play('click'); Fx.poof(CAP_DOOR * T + 8, T + 6); yield 16; }
+            g.holding = null;
+            g.walkTo(31, 3, 1);
+        }
+        const inWay = n => n && !n.removed && n.tx >= CAP_DOOR - 2 && n.ty <= 3;
+        for (let i = 0; i < 120 && (inWay(g) || inWay(tk)); i++) yield 1;
     },
     /* on the Making Floor: anything the act still owes (a save from before it was here, or one made in the middle of a
        speech) is paid as soon as Wren's back on the Floor */

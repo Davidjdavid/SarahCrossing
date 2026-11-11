@@ -882,11 +882,16 @@ const GreatSpool = {
         if (!gran || !c.linnet || c.linnet.removed || Script.blocking() || Cam.busy || p.state !== 'normal') return;
         const facing = p.adjacentTo(gran);
         gran.noGrip = true;
-        if (facing && !c.told) { c.told = true; UI.toast('Hold [act] to take her hand.', 240); }
-        /* (a hold, not a tap, and pressed for it: a button still down from the last words doesn't count) */
-        if (facing && Input.pressed('act')) c.armed = true;
-        if (!Input.down('act')) c.armed = false;
-        if (p.grip !== gran && c.armed && facing && !p.carry) { if (++c.down >= 8) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } } else c.down = 0;
+        if (facing && !c.told) { c.told = true; UI.toast(gripWord() + ' [act] to take her hand.', 240); }
+        /* (a hold, not a tap, and pressed for it: a button still down from the last words doesn't count; with the grip on
+           toggle (Options), a tap, but not the one that closed the last words) */
+        if (c.t0 === undefined) c.t0 = G.t;
+        if (Settings.grip === 'toggle') { if (p.grip !== gran && facing && !p.carry && gripSteps(0, true, c.t0)) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } }
+        else {
+            if (facing && Input.pressed('act')) c.armed = true;
+            if (!Input.down('act')) c.armed = false;
+            if (p.grip !== gran && c.armed && facing && !p.carry) { if (++c.down >= 8) { if (p.grip) p.release(); p.grip = gran; gran.heldBy = p; } } else c.down = 0;
+        }
         if (p.grip === gran) {
             if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf(c.linnet, gran, p); UI.toasts = UI.toasts.filter(t => !/take her hand/.test(t.s)); }
             c.h++;
@@ -945,6 +950,14 @@ const GreatSpool = {
                 Progress.setGoal('Down the Well, to the Great Spool.');
             });
         }
+    };
+    /* the dragged go backwards, facing away from the Well, every one of them: their feet don't want to; their threads do
+       (turned to face Wren while she talks to them) */
+    const npcTick0 = NPC.prototype.tick;
+    NPC.prototype.tick = function () {
+        npcTick0.call(this);
+        if (this.dragged && !this.cutFree && !Script.running('talk') && Progress.flag('great_pull') && !Progress.flag('unwound') && this.area && this.area.id === 'hollow')
+            this.dir = dirOf(this.tx - 95, this.ty - 59);
     };
     /* while the Pull goes on, the dragged are drawn with their threads streaming to the Well */
     const draw0 = NPC.prototype.draw;

@@ -118,9 +118,43 @@ class Cog extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         this.ret = null; this.cordable = false;
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 6, THREAD.guild);
+        /* the thread wound in him runs off from where he lies, along the cracks between the boards like water (each run
+           turning along the grain now and then, stopping at a wall: the same runs every time), and away down them */
+        this.runs = [];
+        for (let i = 0; i < 6; i++) {
+            const pts = [[0, -2]];
+            let d = [RIGHT, LEFT, UP, DOWN, RIGHT, LEFT][i], x = 0, y = -2;
+            for (let k = 0, n = 3 + Math.floor(hash2(i, 7, 41) * 2); k < n; k++) {
+                let len = 8 + Math.floor(hash2(i, k, 42) * 14);
+                for (; len > 0; len--) { const k2 = this.area.kind(tileOf(this.x + x + DX[d] * 4), tileOf(this.y + y + DY[d] * 4)); if (k2.solid) break; x += DX[d]; y += DY[d]; }
+                pts.push([x, y]);
+                d = d === UP || d === DOWN ? (hash2(i, k, 43) < 0.5 ? LEFT : RIGHT) : (hash2(i, k, 43) < 0.5 ? UP : DOWN);
+            }
+            this.runs.push({ pts, len: pts.reduce((m, q, j) => j ? m + Math.abs(q[0] - pts[j - 1][0]) + Math.abs(q[1] - pts[j - 1][1]) : 0, 0), late: i * 6 });
+        }
+    }
+    /* the stretch of a run from a to b pixels along it */
+    runPart(run, a, b, ox, oy) {
+        const out = []; let s = 0;
+        for (let j = 0; j + 1 < run.pts.length; j++) {
+            const [x0, y0] = run.pts[j], [x1, y1] = run.pts[j + 1], L = Math.abs(x1 - x0) + Math.abs(y1 - y0);
+            const u0 = clamp((a - s) / (L || 1), 0, 1), u1 = clamp((b - s) / (L || 1), 0, 1);
+            if (u1 > u0) { const p0 = [ox + lerp(x0, x1, u0), oy + lerp(y0, y1, u0)], p1 = [ox + lerp(x0, x1, u1), oy + lerp(y0, y1, u1)]; if (!out.length) out.push(p0); out.push(p1); }
+            s += L;
+        }
+        return out;
     }
     draw(cx, cy) {
-        if (!this.alive) { if ((this.yarnT || 0) < 90) { const k = 1 - this.yarnT / 90; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(7 * k), THREAD.guild); } return; }
+        if (!this.alive) {
+            /* what's left of him for a moment, and his thread running off down the cracks */
+            const t = this.yarnT || 0, x = this.x - cx, y = this.y - cy;
+            if (t < 50) { const im = spr('cog_down'); if (im) { Gfx.alpha(1 - t / 50); Gfx.img(im, x - 10, y - 13, this.dir === LEFT); Gfx.alpha(1); } }
+            for (const r of this.runs || []) {
+                const head = clamp((t - r.late) * 0.45, 0, r.len), tail = clamp((t - r.late - 70) * 0.45, 0, r.len);
+                if (head > tail + 0.5) { const pts = this.runPart(r, tail, head, x, y); if (pts.length > 1) Threads.path(pts, THREAD.guild); }
+            }
+            return;
+        }
         const x = this.x - cx, y = this.y - cy;
         Gfx.alpha(0.25); Gfx.rect(x - 7, y + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         let im = spr(this.state === 'toppled' ? 'cog_down' : this.state === 'held' ? 'cog_held' : this.state === 'sit' || this.state === 'sleep' || this.state === 'rundown' ? 'cog_sit' : 'cog_' + ((this.anim >> 3) % 2));
@@ -458,13 +492,19 @@ const SpoolFoes = {
     /* staged as it's told: he sits, he topples, his thread runs off, and then the chest comes up */
     *cogDown(c) {
         Sfx.play('unravel');
-        yield 50;
-        c.state = 'toppled'; c.st = 0; G.shake = 4; Sfx.play('land'); Fx.dust(c.x, c.y);
+        /* (as he runs down he totters back a little from Wren, and topples away from her: so he lies clear of her, not
+           across the top of her head) */
+        const p = G.player, a = c.area, dx = c.x - p.x, dy = c.y - p.y;
+        const d = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
+        const back = (n) => { for (let i = 0; i < n; i++) { const k = a.kind(tileOf(c.x + DX[d] * 9), tileOf(c.y + DY[d] * 7 - 2)); if (k.solid || k.pit) return; c.x += DX[d]; c.y += DY[d]; } };
+        const near = Math.abs(dx) < 22 && Math.abs(dy) < 26;
+        for (let i = 0; i < 50; i++) { if (near && i % 7 === 6) back(1); yield 1; }
+        c.state = 'toppled'; c.st = 0; G.shake = 4; Sfx.play('land'); if (near) back(4); Fx.dust(c.x, c.y);
         yield 30;
         yield* say(null, 'Cog runs down with a long, sad whirr, sits, and topples over.', { focus: c });
         c.unravel();
-        yield 50;
-        yield* say(null, 'All the thread wound in him comes loose and runs away down the cracks in the floor like water.');
+        yield 20;
+        yield* say(null, 'All the thread wound in him comes loose and runs away down the cracks in the floor like water.', { focus: c });
         Progress.set('spool_cog');
         yield 25;
         yield* say(null, 'By the kennel, a little trap in the floor springs open with a ping, and up comes a chest.');
@@ -473,7 +513,7 @@ const SpoolFoes = {
     },
     *tangleIntro(t) {
         yield 20;
-        yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.', { focus: t });
+        yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.', { focus: [t, ...t.bobbins()] });
         t.eyes = true; Sfx.play('click');
         yield 20;
         yield* say(null, 'It opens two eyes made of buttons. It has been here a very long time, and it does not want to be undone.', { focus: t });
@@ -505,6 +545,8 @@ const SpoolFoes = {
         const g = a.add(new NPC(r.x + 9, r.y + 9, { who: 'gundry', face: 'up' }));
         Fx.poof(g.x + 8, g.y + 8);
         yield 20;
+        /* (in at the door and over to Wren, to say it to her face, not from behind a bobbin) */
+        yield* Making.fetch(g, G.player);
         yield* say('gundry', "Well. I'll be. Forty years I've been meaning to do that. Forty years.");
         yield* say('gundry', "You did it the right way, too.");
         a.add(new Pickup((r.x + 9) * T, (r.y + 5) * T, { what: 'heartstitch', id: 'spoolHeart' }));

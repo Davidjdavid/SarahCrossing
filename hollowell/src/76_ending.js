@@ -35,10 +35,14 @@ const Ending = {
         yield* camLook({ x: 98 * T, y: 47 * T }, 120);
         yield 30;
         flock.go();
-        for (let i = 0; i < 125; i++) yield 1;
-        yield* say(null, 'They fly out over the edge of the valley, further than anything has ever flown from here.', { focus: [98, 45] });
+        /* (said as they go: up off the roofs, a few at a time, and away, the camera going up with them) */
+        flock.follow = true;
+        for (let i = 0; i < 20; i++) yield 1;
+        const sky = () => Cam.look ? [tileOf(Cam.look.x), tileOf(Cam.look.y - 24)] : [98, 45];
+        yield* say(null, 'The birds go up off the roofs and fly out over the edge of the valley, further than anything has ever flown from here.', { focus: sky() });
         yield 40;
-        yield* say(null, 'You watch the sky a long time.', { focus: [98, 45] });
+        yield* say(null, 'You watch the sky a long time.', { focus: sky() });
+        flock.follow = false; Cam.look = { x: 98 * T + 8, y: 47 * T + 8 };
         flock.back();
         for (let i = 0; i < 400 && !flock.landed; i++) yield 1;
         yield 20;
@@ -393,7 +397,7 @@ const AFTER_LINES = {
     bram: ["{happy}Nine jugs on order this week! NINE! Annie can't dig fast enough. HA!"],
     ambrose: ["Your mum and I are taking the boat out past the falls tomorrow. Just to see."],
     tess: ["{happy}I rang the big bell this morning for nothing at all, bairn. Half the town came running."],
-    mallow: ["*yawn* Eleven hours' sleep last night. Not a sound of winding anywhere. I'm going back for more."],
+    mallow: ["Yaaawn. Eleven hours' sleep last night. Not a sound of winding anywhere. I'm going back for more."],
     jory: ["{happy}The touring show! I'm painting the wagon. What colour's a road?"],
     gundry: ["The Guild's voted to keep the Spoolworks turning. Then we argued till dark about who'd take the minutes."],
     quill: ["Somebody's been at my Rules with the chalk. I've left it up. The spelling's correct."],
@@ -526,9 +530,15 @@ class Flock extends Ent {
     back() { for (const b of this.birds) { b.st = 'back'; b.t = -b.d; } }
     get landed() { return this.birds.every(b => b.st === 'perch'); }
     update() {
+        /* (the camera keeps them in sight as they go, till they're gone over the edge) */
+        if (this.follow) {
+            const up = this.birds.filter(b => b.st === 'off' && b.t > 0 && b.y > 0);
+            if (up.length) Cam.look = { x: up.reduce((m, b) => m + b.x, 0) / up.length, y: up.reduce((m, b) => m + b.y, 0) / up.length + 24 };
+        }
         for (const b of this.birds) {
             b.t++;
-            if (b.st === 'off' && b.t > 0) { const s = Math.min(1.6, 0.4 + b.t / 25); b.x += b.vx * s; b.y += b.vy * s; }
+            /* (a long unhurried climb away, so they're still to be seen going while it's told) */
+            if (b.st === 'off' && b.t > 0) { const s = Math.min(1.0, 0.35 + b.t / 40); b.x += b.vx * s; b.y += b.vy * s; }
             if (b.st === 'back' && b.t > 0) {
                 const k = Math.min(1, b.t / 140), e = 1 - (1 - k) * (1 - k);
                 b.x = b.hx + b.vx * 160 * (1 - e); b.y = b.hy + b.vy * 160 * (1 - e);

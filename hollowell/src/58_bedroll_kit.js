@@ -70,6 +70,27 @@ const Bedroll = {
         if (p && p.mark && p.mark.bed === 'roll') { if (p.state === 'normal') p.dropBed(); else p.mark.bed = false; }
         G.pendingToast = why || 'Your Bedroll tumbled away... and turned up, rolled, in your pack.';
     },
+    /* in a House that shows it (def.showTrace: the Slumberhouse), while the Bedroll lies there as her mark, Wren's own thread
+       back to it is drawn faintly under everything as she goes: the way a flight home will take. A step back onto it cuts
+       it there, and the loop that drops out fades away where it lay */
+    drops: [],
+    showing(p) { const a = p && p.area; return !!(a && a.def.showTrace && this.lies(a) && p.mark && p.mark.bed === 'roll' && p.mark.area === a.id); },
+    drawTrace(a, cx, cy) {
+        const p = G.player;
+        if (a !== G.map || !p || p.area !== a) return;
+        const at = ([x, y]) => [x * T + 8 - cx, y * T + 9 - cy];
+        for (const d of this.drops) { Gfx.alpha(Math.min(1, d.t / 24) * 0.9); Threads.path(d.pts.map(at), '#ffc8d0'); }
+        Gfx.alpha(1);
+        if (!this.showing(p) || p.state === 'flight') return;
+        const m = p.mark, tr = p.trace, pts = [];
+        if (!tr.length || tr[0][0] !== m.tx || tr[0][1] !== m.ty) pts.push(at([m.tx, m.ty]));        /* (the Bedroll gone off on its float) */
+        /* (straight runs as one stroke) */
+        for (const q of tr.map(at).concat([[p.x - cx, p.y - cy - 4]])) {
+            const n = pts.length, a0 = pts[n - 2], a1 = pts[n - 1];
+            if (n >= 2 && (a1[0] - a0[0]) * (q[1] - a1[1]) === (a1[1] - a0[1]) * (q[0] - a1[0])) pts[n - 1] = q; else pts.push(q);
+        }
+        Gfx.alpha(0.45); Threads.path(pts, THREAD.wren); Gfx.alpha(1);
+    },
     homeward(p) {
         const b = Inv.bedroll; if (!b) return;
         Stats.count('homeward');
@@ -154,6 +175,9 @@ SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
     Save.apply = function (s) {
         apply0.call(this, s);
         const p = G.player, a = G.map, b = Inv.bedroll, m = s && s.pos && s.pos.mark;
+        /* a bed she'd lain down in is her mark still (a load in a House starts her there; anywhere else, her way back to it
+           is straight) */
+        if (p && a && m && m.bed === 'bed' && m.area === a.id) { p.mark = { area: a.id, tx: m.tx, ty: m.ty, bed: 'bed' }; p.trace = [[m.tx, m.ty]]; p.traceStep(); return; }
         if (!p || !a || !a.def.house || !m || m.bed !== 'roll' || !b || !b.fid || b.area !== a.id) return;
         Bedroll.update(a);
         const nb = Inv.bedroll;
@@ -166,7 +190,24 @@ SFX.puff = (o, t) => Audio.hit(o, t, 0.4, 0.14, 600, 2400);
 /* keep the trace in the Bedroll's place when Wren goes elsewhere, so it still leads home on her return */
 {
     const enter = World.enter;
-    World.enter = function (...args) { Bedroll.stash(); Bedroll.float = null; Bedroll.sleeper = null; return enter.apply(this, args); };
+    World.enter = function (...args) { Bedroll.stash(); Bedroll.float = null; Bedroll.sleeper = null; Bedroll.drops = []; return enter.apply(this, args); };
+}
+/* Wren's thread drawn with the things' threads (under everything standing); and the loop a step back cuts off it, kept to
+   fade where it lay */
+{
+    const draw0 = Threads.draw;
+    Threads.draw = function (area, cx, cy) { draw0.call(this, area, cx, cy); Bedroll.drawTrace(area, cx, cy); };
+    const step0 = Player.prototype.traceStep;
+    Player.prototype.traceStep = function () {
+        let loop = null;
+        if (Bedroll.showing(this)) {
+            const tx = this.tx, ty = this.ty, tr = this.trace, last = tr[tr.length - 1];
+            if (last && (last[0] !== tx || last[1] !== ty)) for (let i = tr.length - 2; i >= 0; i--) if (tr[i][0] === tx && tr[i][1] === ty) { loop = tr.slice(i).map(q => q.slice()).concat([[tx, ty]]); break; }
+        }
+        const r = step0.apply(this, arguments);
+        if (loop) { Bedroll.drops.push({ pts: loop, t: 40 }); if (Bedroll.drops.length > 8) Bedroll.drops.shift(); }
+        return r;
+    };
 }
 /* what Wren carries goes the way she goes, a flight home as much as a reel (its trace, and so its shards' way home, runs
    along the flight, tile by tile; a Bell's snap home goes round, not through, so the trace jumps) */
@@ -207,7 +248,7 @@ TOOLS.bedroll = {
         if (Inv.equipped !== 'bedroll' || !p || p.state !== 'normal') return;
         if (Bedroll.near(p)) Bedroll.rollUp(p); else Bedroll.lay(p);
     },
-    update(area) { Bedroll.update(area); if (Bedroll.snapT > 0) Bedroll.snapT--; },
+    update(area) { Bedroll.update(area); if (Bedroll.snapT > 0) Bedroll.snapT--; if (Bedroll.drops.length) Bedroll.drops = Bedroll.drops.filter(d => --d.t > 0); },
     draw(cx, cy) {
         const p = G.player;
         /* just rolled up: Wren's red thread, back along her trace to the doorway's mark (straight where it jumps) */
@@ -328,8 +369,9 @@ class DreamRing extends Ent {
         const dx = x1 - x0, dy = y1 - y0, L = dx * dx + dy * dy;
         const u = L ? clamp(((cx - x0) * dx + (cy - y0) * dy) / L, 0, 1) : 0;
         if (Math.hypot(x0 + dx * u - cx, y0 + dy * u - cy) > 9) return;
-        /* a flight that starts under the ring hasn't gone through it */
-        const f = pl.flight; if (f && f.pts && Math.hypot(f.pts[0][0] - cx, f.pts[0][1] - cy) < 14) return;
+        /* a flight that starts under the ring hasn't gone through it (one that starts on the next tile has, however close
+           to the ring she stood) */
+        const f = pl.flight; if (f && f.pts && tileOf(f.pts[0][0]) === this.tx && tileOf(f.pts[0][1]) === this.ty) return;
         if (!this.lit) { Sfx.play('blip'); Fx.ring(cx, cy - 8, '#d8c8f8'); Stats.count('dreamrings'); }
         this.lit = this.time;
         /* the flight remembers which dreams it went through (a room's pair: its good one, 1, and its bad one, 2) */
@@ -468,7 +510,11 @@ AI.snore = (e, p) => {
         return;
     }
     if (e.mode === 'chase') {
-        if (p && p.area === e.area && p.state === 'normal') {
+        /* she's gone out of its room, through a door: it won't follow her (it can't leave its room), and soon gives up and
+           goes back to bed */
+        const r = e.nestRoom, gone = !!(r && p && p.area === e.area && !(p.tx >= r.x && p.ty >= r.y && p.tx < r.x + r.w && p.ty < r.y + r.h));
+        if (gone) e.modeT += 8;
+        else if (p && p.area === e.area && p.state === 'normal') {
             const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1, sp = e.D.speed || 0.55;
             e.dir = dirOf(dx, dy);
             e.move(dx / d * sp, dy / d * sp);
@@ -521,6 +567,10 @@ class Snoreling extends Enemy {
         Sfx.play('snort'); Fx.text(this.x, this.y - 20, '!', '#f7d64a');
     }
     doze() { if (this.alive && this.mode !== 'sleep') { this.mode = 'sleep'; this.stir = -60; Fx.text(this.x, this.y - 18, 'z', '#d8c8f8'); } }
+    /* in a House it keeps to the room its nest is in: a doorway out is a wall to it (so it stops at the door, and the bed
+       it goes to is in its own room) */
+    get nestRoom() { const a = this.area; if (this._nestRoom === undefined && a) this._nestRoom = a.rooms && a.rooms.length > 1 ? a.roomAt(this.hx, this.hy) : null; return this._nestRoom || null; }
+    solidAt(tx, ty) { const r = this.nestRoom; if (r && (tx < r.x || ty < r.y || tx >= r.x + r.w || ty >= r.y + r.h)) return true; return super.solidAt(tx, ty); }
     struck(by, dmg, dir, shard) { super.struck(by, dmg, dir, shard); if (this.alive) this.wake(); else if (Bedroll.sleeper === this) Bedroll.sleeper = null; }
     shoved(d, pace, by) { super.shoved(d, pace, by); }
 }

@@ -170,7 +170,7 @@ class Keeper extends NPC {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ who: 'otto', marked: false }, p));
         this.person = true; this.weight = WEIGHT.medium; this.noPush = true; this.showThrough = true; this.noKnot = true;
-        this.home0 = [tx, ty]; this.face0 = this.dir;
+        this.home0 = [tx, ty]; this.face0 = this.dir; this.paperHat = true;
         this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.wait = 0;
         /* his own thread, down to his X (like everybody's) */
         this.ret = { mx: tx, my: ty, area: null, color: PEOPLE_DEF.otto.col, state: 'home', trace: [[tx, ty]], timer: 0, patience: 1e9, snap: false, strain: 0, pace: 10 };
@@ -443,7 +443,23 @@ defMaking(8, {
     ]), { nudge: { solved: () => Making.past(40), after: 60 * 60 * 2, at: [2, 5], say: "Up above, the big door. Down here, its weight." } }),
 }, {
     up: 'tidy', thread: THREAD.ives, entry: { x: 56, y: 16 },
-    afterHoop: function* () {
+    afterHoop: function* (a) {
+        /* you go over to the Makers, under the hoop, to watch with them (in among them, not on top of anybody's head);
+           and Otto comes round the back into the hoop's room, the way he always does, to say it to the boy's face */
+        const p = G.player, free = ([x, y]) => { const k = a.kind(x, y); return !k.solid && !k.pit && !a.at(x, y) && !a.blockers.some(b => b.blocks(x, y, p)); };
+        const near = [[11, 16], [10, 16], [12, 16], [11, 17]].find(free);
+        if (near && (p.tx !== near[0] || p.ty !== near[1])) { yield* walkTo(p, near[0], near[1]); p.dir = UP; }
+        const o = a.find('otto'), t = a.find('tuck'), up = a.rooms.find(r => r.key === '0,0');
+        if (o && t && up && a.roomAt(o.tx, o.ty) !== up && !o.mv) {
+            const spot = [[t.tx - 1, t.ty], [t.tx - 1, t.ty + 1], [t.tx - 1, t.ty - 1], [t.tx, t.ty + 2]].find(([x, y]) => a.roomAt(x, y) === up && o.walkable(x, y));
+            if (spot) {
+                a.unplace(o, o.tx, o.ty); Fx.poof(o.px + 8, o.py + 8);
+                o.tx = spot[0]; o.ty = spot[1]; o.x = o.tx * T; o.y = o.ty * T; a.place(o, o.tx, o.ty);
+                o.state = 'home'; o.st = 0; o.target = null; o.dir = dirOf(t.tx - o.tx, t.ty - o.ty); o.fixedFace = true;
+                Fx.poof(o.px + 8, o.py + 8); Sfx.play('step');
+                yield 24;
+            }
+        }
         yield* say('otto', "I got tidied. By my OWN tidying. Again. ...How does that keep HAPPENING?");
         yield* say('tuck', "I beat the GRAND Housekeeper! Nobody beats the Grand Housekeeper!");
     },
@@ -452,7 +468,7 @@ defMaking(8, {
         bram: function* () { yield* say('bram', "HA! (Shh.) HA! (Sorry.) He's got it! Course he's got it."); },
         ambrose: function* () { yield* say('ambrose', "We used to do this for you, love. Every Wander. Lying on our fronts under the floor, not breathing."); },
         tess: function* () { yield* say('tess', "Don't tell him we were here. Don't you dare. It's his."); },
-        mallow: function* () { yield* say('mallow', "*yawn* I wasn't asleep. I was watching with my eyes closed. It's a technique."); },
+        mallow: function* () { yield* say('mallow', "Yaaawn. I wasn't asleep. I was watching with my eyes closed. It's a technique."); },
         jory: function* () { yield* say('jory', "Places, everyone! ...No, wait, we're already in them. Carry on."); },
     },
 });
@@ -460,12 +476,28 @@ defMaking(8, {
 /* after the fifth, the first time: Otto turns up on the Making Floor, in a paper hat, with a duster */
 MAKINGS[4].then = function* () {
     const a = G.map, p = G.player, o = a && a.ents.find(e => e.kind === 'npc' && e.who === 'otto');
-    if (o && p) { yield* say(null, "Somebody else is on the Making Floor: Otto, from the square, in a folded paper hat, holding a feather duster like a sword."); yield* Making.fetch(o, p); }
+    if (o && p) yield* Making.fetch(o, p, "Somebody else is on the Making Floor: Otto, from the square, in a folded paper hat, holding a feather duster like a sword.");
     yield* say('otto', "I'm in the next ones! Jory said every Wander needs a Housekeeper. So I'm the Housekeeper. Tsk!");
+    const tk = a && a.ents.find(e => e.kind === 'npc' && e.who === 'tuck');
+    if (tk && p) yield* Making.fetch(tk, p);
     yield* say('tuck', "He's not ON the Wander. He's just TIDYING. It's MY Wander.");
     yield* say('otto', "Anything out of its place, I tidy. From my side. I wrote my rules down. They're on the wall underneath.");
     Progress.setGoal('The Making Floor: the sixth Little House is open. Otto is coming too, as the Housekeeper.');
 };
+
+/* Otto on the Making Floor between the Little Houses: dressed as the Housekeeper already, his folded paper hat on and the
+   feather duster held up like a sword */
+{
+    const draw0 = NPC.prototype.draw;
+    NPC.prototype.draw = function (cx, cy) {
+        draw0.call(this, cx, cy);
+        if (!this.sword) return;
+        const im = this.sprite(); if (!im) return;
+        const sx = this.px - cx, top = this.py - cy - (im.height - T) - 2;
+        Gfx.img(spr('kid_hat'), sx + 3, top - 3);
+        Gfx.img(spr('kid_duster'), sx + (this.dir === LEFT ? -4 : 12), top + 4, this.dir === LEFT);
+    };
+}
 
 /* Tuck's got west of x (the Little Houses run west to east, or east to west: a room's done once he's out of it) */
 Making.past = function (x, east) {

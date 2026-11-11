@@ -112,7 +112,8 @@ const Game = {
             if (G.selfThread) Shears.drawSelfThread(cx, cy);
             if (G.holdUp) {
                 const im = spr(G.holdUp.id === 'pattern' && G.map ? patternIcon(G.map.def.house) : ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
-                if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - 30);
+                /* (on its glow, drawn with Wren: a chest right behind her that she couldn't step back from, up high over it) */
+                if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - (G.holdUp.high ? 52 : 30));
             }
             if (a.def.dark) Lighting.draw(a, cx, cy);
             UI.drawHUD();

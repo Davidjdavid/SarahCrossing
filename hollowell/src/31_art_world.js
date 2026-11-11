@@ -209,7 +209,8 @@ function initWorldArt() {
         x.fillStyle = '#e8463c'; x.fillRect(6, 3, 1, 1); x.fillRect(9, 3, 1, 1); x.fillRect(7, 4, 2, 1); x.fillRect(6, 5, 1, 1); x.fillRect(9, 5, 1, 1);
     });
     /* the Well: stone ring, wooden posts, a red roof, a winch with its rope */
-    ART.well = paintSprite(48, 50, x => {
+    /* the Well (and, from the Great Pull on, with its cap off: no roof, its mouth open to the sky, the dark inside) */
+    const well = open => paintSprite(48, 50, x => {
         /* ring */
         for (let j = 0; j < 16; j++) for (let i = 0; i < 40; i++) {
             const c = (Math.floor(i / 6) + Math.floor(j / 4)) % 2 ? '#b8aa98' : '#a09280';
@@ -227,6 +228,12 @@ function initWorldArt() {
         /* rope: wound on the winch and hanging down into the dark */
         for (let i = 13; i < 35; i += 2) { x.fillStyle = '#d8b880'; x.fillRect(i, 15, 1, 4); }
         x.fillStyle = '#e8463c'; x.fillRect(23, 19, 1, 13);
+        if (open) {
+            x.fillStyle = '#d6cab6'; x.fillRect(11, 27, 26, 2);
+            x.fillStyle = '#120c14'; x.fillRect(11, 29, 26, 4); x.fillRect(13, 28, 22, 1); x.fillStyle = '#2a1f2d'; x.fillRect(11, 29, 26, 1);
+            x.fillStyle = '#e8463c'; x.fillRect(23, 19, 1, 11);
+            return;
+        }
         /* roof */
         for (let j = 0; j < 10; j++) {
             const inset = Math.max(0, 9 - j) * 0.6;
@@ -237,6 +244,7 @@ function initWorldArt() {
         }
         x.fillStyle = '#6e2a2a'; x.fillRect(0, 9, 48, 1);
     });
+    ART.well = well(false); ART.well_open = well(true);
     /* a wooden fence post and rails */
     ART.fence = paintSprite(16, 16, x => {
         x.fillStyle = '#c9925a'; x.fillRect(0, 5, 16, 3); x.fillRect(0, 10, 16, 3);
@@ -306,5 +314,7 @@ SPAWN.deco = (tx, ty, p) => {
     const pr = new Prop(tx, ty, { im, solid, ox: p.ox !== undefined ? p.ox : x0 + Math.round((fw - im.width) / 2), oy: p.oy !== undefined ? p.oy : 16 - im.height, flip: p.flip });
     pr.baseY = p.baseY !== undefined ? p.baseY : im.height;
     if (p.text) { pr.interact = () => { Script.run(function* () { yield* say(null, p.text); }); return true; }; pr.talkBox = (pl, f) => pr.solid.some(([dx, dy]) => tx + dx === f.tx && ty + dy === f.ty); }
+    /* (the Well: its cap off from the Great Pull on) */
+    if (p.id === 'well' && p.look === 'well') { const d0 = pr.draw.bind(pr); pr.draw = (cx, cy) => { pr.im = Progress.flag('great_pull') ? ART.well_open : ART.well; d0(cx, cy); }; }
     return pr;
 };

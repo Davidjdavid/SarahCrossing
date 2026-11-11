@@ -7,13 +7,24 @@ const Tools = {
         const id = Inv.equipped; if (!id) return;
         const t = TOOLS[id];
         if (t && t.use) { t.use(p); Stats.count('tool:' + id); }
-        else if (id === 'gloves') UI.toast('Hold [act] against something to grip it.');
+        else if (id === 'gloves') UI.toast(gripWord() + ' [act] against something to grip it.');
     },
     hold(p) { const t = TOOLS[Inv.equipped]; if (t && t.hold) t.hold(p); },
     unhold(p) { for (const k in TOOLS) if (TOOLS[k].unhold) TOOLS[k].unhold(p); },
     busy(p) { const t = TOOLS[Inv.equipped]; return t && t.busy ? t.busy(p) : false; },
     update(area) { for (const k in TOOLS) if (TOOLS[k].update) TOOLS[k].update(area); },
     draw(cx, cy) { for (const k in TOOLS) if (TOOLS[k].draw) TOOLS[k].draw(cx, cy); },
+};
+/* the Gloves work through Action, not as a tool; but with the grip on toggle (Options), a hold stays on with no button
+   down, so her two gloved hands show on the thing while it does (and plainly go when a knock lets go) */
+TOOLS.gloves = {
+    draw(cx, cy) {
+        const p = G.player, o = p && p.grip;
+        if (!o || o.removed || !o.isGrid || Settings.grip !== 'toggle') return;
+        const x = o.px - cx, y = o.py - cy, d = p.dir;
+        const at = d === UP ? [[3, 13], [10, 13]] : d === DOWN ? [[3, 1], [10, 1]] : d === LEFT ? [[13, 4], [13, 10]] : [[0, 4], [0, 10]];
+        for (const [u, v] of at) { Gfx.rect(x + u - 1, y + v - 1, 5, 4, PAL.ink); Gfx.rect(x + u, y + v, 3, 2, '#e8c08a'); }
+    },
 };
 
 /* tool icons (16x16) */

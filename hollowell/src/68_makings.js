@@ -16,14 +16,19 @@
    the Maker says after (from wherever they were watching) */
 const MAKINGS = [
     { name: 'The Little Tidyhouse', by: 'Ives', after: "Ives, from somewhere above: \"He thinks he did it all himself. Bless him.\"" },
-    { name: 'Mind the Nibbler', by: 'Bram', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once.\"" },
-    { name: 'The Little Wander', by: 'Tess', after: "Tess, from somewhere above: \"Oh, his face. Did you see his face?\"" },
-    { name: 'The Long Sulk', by: 'Gundry', after: "Gundry, from somewhere above: \"He sulked exactly where we needed him to. Took me forty years to learn that one.\"" },
-    { name: 'The Tidyhouse, Underneath', by: 'Ives', entry: { x: 56, y: 16 }, after: "Ives, from somewhere above: \"That's the Foyer you came in by, and the Hall you were so cross in. Now you know what I was doing all that time, love: sitting under you, holding my breath.\"" },
-    { name: 'The Housekeeper', by: 'Jory', after: "Jory, from somewhere above: \"A two-hander! Two little players, neither knowing the other's lines. Bravo. BRAVO.\"" },
-    { name: 'Tidy and Untidy', by: 'Mallow', after: "Doctor Mallow, from somewhere above, very quietly: \"One makes a mess and one tidies it, and neither of them ever saw you. *yawn* Lovely.\"" },
+    { name: 'Mind the Nibbler', by: 'Bram', tuck: 'I got past the NIBBLER! All by MYSELF!', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once.\"" },
+    { name: 'The Little Wander', by: 'Tess', tuck: 'The heavy one MOVED! I think it was scared of me.', after: "Tess, from somewhere above: \"Oh, his face. Did you see his face?\"" },
+    { name: 'The Long Sulk', by: 'Gundry', tuck: "I wasn't sulking. I was THINKING. And then I did it!", after: "Gundry, from somewhere above: \"He sulked exactly where we needed him to. Took me forty years to learn that one.\"" },
+    { name: 'The Tidyhouse, Underneath', by: 'Ives', entry: { x: 56, y: 16 }, tuck: "That was the REAL Tidyhouse! I bet I did it faster than you.", after: "Ives, from somewhere above: \"That's the Foyer you came in by, and the Hall you were so cross in. Now you know what I was doing all that time, love: sitting under you, holding my breath.\"" },
+    { name: 'The Housekeeper', by: 'Jory', tuck: 'I DID IT! Even with Otto tidying EVERYTHING.', after: "Jory, from somewhere above: \"A two-hander! Two little players, neither knowing the other's lines. Bravo. BRAVO.\"" },
+    { name: 'Tidy and Untidy', by: 'Mallow', tuck: 'Done! He tidied, I untidied, and I STILL got there.', after: "Doctor Mallow, from somewhere above, very quietly: \"One makes a mess and one tidies it, and neither of them ever saw you.\" A yawn. \"Lovely.\"" },
     { name: 'The Grand Hall', by: 'every Maker', entry: { x: 56, y: 16 }, after: "Under the hoop, all six Makers at once, and then everybody shushing everybody: \"HE DID IT!\" \"Shh!\" \"You shush!\"" },
 ];
+/* (what Tuck says at the hoop, if his House doesn't say otherwise: the first and the last) */
+const TUCK_DONE = 'I DID IT! Did you see? I did it ALL by MYSELF!';
+/* where Wren comes in underneath (a Little House can say otherwise): beside his start, not under it, so the two of them
+   aren't drawn one on the other's head */
+const MAKING_ENTRY = { x: 5, y: 16 };
 const MAKING_NAMES = MAKINGS.map(m => m.name);
 const MAKING_COUNT = MAKINGS.length;
 /* each Little House's door on the Making Floor (underside, along the north wall of cell 2,0) */
@@ -262,9 +267,32 @@ const Making = {
     note(what, why) { if (!this.cur) return; if (what === 'bump') { this.cur.bumps++; this.cur.why = why; } if (what === 'sat') this.cur.sat++; },
     aha(id) {
         if (!this.cur || this.cur.ahas.has(id)) return;
+        /* (each kind of Aha is named the first time it's earned; after that it's a pip on the tally up top, not a notice:
+           three notices a House, nine Houses, said the same thing twenty-seven times) */
+        const named = !Stats.c['aha:' + id];
         this.cur.ahas.add(id); Stats.count('aha:' + id);
+        this.cur.lit = G.t;
         Sfx.play('appear');
-        UI.toast({ cleared: 'Aha! Tuck cleared his own way!', found: 'Aha! Tuck found the hidden button!', unhurt: 'Aha! Not a scratch on him!' }[id], 120);
+        if (named) UI.toast({ cleared: 'Aha! Tuck cleared his own way!', found: 'Aha! Tuck found the hidden button!', unhurt: 'Aha! Not a scratch on him!' }[id], 120);
+    },
+    /* the Ahas so far in this go at a Little House, while he's in it: a little tag up top, a pip for each (the newest
+       one popping as it lights) */
+    drawTally(a) {
+        const c = this.cur, t = c && a.find('tuck');
+        if (!t || G.hideHud || (Dialog.active && Dialog.top) || UI.fadeA > 0.5) return;
+        const n = c.ahas.size, x = Math.round(W / 2 - 29), y = 2, pop = c.lit !== undefined && G.t - c.lit < 20;
+        Gfx.alpha(UI.hudA === undefined ? 1 : UI.hudA);
+        stitchedBox(x, y, 58, 14, { fill: '#fbf3df' });
+        Font.draw('Aha', x + 7, y + 4, PAL.ink);
+        /* (a round pip, seven across: gold when it's earned, an empty socket when not; the newest a size up a moment) */
+        for (let i = 0; i < 3; i++) {
+            const px = x + 30 + i * 9, py = y + 7, on = i < n, b = on && pop && i === n - 1 ? 1 : 0;
+            Gfx.rect(px - 2 - b, py - 3 - b, 5 + b * 2, 7 + b * 2, PAL.ink); Gfx.rect(px - 3 - b, py - 2 - b, 7 + b * 2, 5 + b * 2, PAL.ink);
+            const f = on ? '#f7d64a' : '#e6d6b2';
+            Gfx.rect(px - 1 - b, py - 2 - b, 3 + b * 2, 5 + b * 2, f); Gfx.rect(px - 2 - b, py - 1 - b, 5 + b * 2, 3 + b * 2, f);
+            if (on) Gfx.rect(px - 1, py - 1, 1, 1, '#fff6c0');
+        }
+        Gfx.alpha(1);
     },
     tick(a) {
         if (!this.cur || this.cur.n !== a.def.making) this.start(a);
@@ -287,7 +315,7 @@ const Making = {
         Script.run(function* () {
             yield 30;
             Sfx.play('knot');
-            yield* say('tuck', "I DID IT! Did you see? I did it ALL by MYSELF!");
+            yield* say('tuck', MAKINGS[n - 1].tuck || TUCK_DONE);
             if (a.def.afterHoop) yield* a.def.afterHoop(a);
             const ahas = c ? c.ahas.size : 0;
             const first = !Progress.flag('making' + n);
@@ -312,15 +340,22 @@ const Making = {
         });
     },
     /* somebody walks over to Wren (from wherever they are in the place) and turns to her; a moment, not forever */
-    *fetch(n, p) {
-        const a = n.area, spots = [[p.tx, p.ty + 1], [p.tx + 1, p.ty], [p.tx - 1, p.ty], [p.tx + 1, p.ty + 1], [p.tx - 1, p.ty + 1], [p.tx, p.ty + 2]];
+    /* (and a line saying they come: said once they're in sight, in the room she's in, while they're on their way) */
+    *fetch(n, p, line) {
+        /* (beside her, the nearer side first; then a step down and to one side; straight below her only if nothing else
+           will do: there they'd stand with her drawn on top of their head) */
+        const a = n.area, side = n.tx < p.tx ? -1 : 1, r = Cam.room;
+        const spots = [[p.tx + side, p.ty], [p.tx - side, p.ty], [p.tx + side, p.ty + 1], [p.tx - side, p.ty + 1], [p.tx + side * 2, p.ty], [p.tx - side * 2, p.ty], [p.tx, p.ty + 2], [p.tx, p.ty + 1]];
         const spot = spots.find(([x, y]) => a.freeForThing(x, y, n) && findPath(a, n.tx, n.ty, x, y, n));
-        if (!spot) return;
+        if (!spot) { if (line) yield* say(null, line); return; }
+        const there = () => n.tx === spot[0] && n.ty === spot[1] && !n.mv, seen = () => !r || (n.tx >= r.x && n.tx < r.x + r.w && n.ty >= r.y && n.ty < r.y + r.h);
         n.free = true; n.walkTo(spot[0], spot[1], 1.5);
-        for (let i = 0; i < 900 && !(n.tx === spot[0] && n.ty === spot[1] && !n.mv); i++) {
+        for (let i = 0; i < 900 && !there(); i++) {
             if (!n.path && !n.mv && i % 30 === 29) n.walkTo(spot[0], spot[1], 1.5);
+            if (line && seen() && i > 8) { yield* say(null, line); line = null; }
             yield 1;
         }
+        if (line) yield* say(null, line);
         n.dir = dirOf(p.tx - n.tx, p.ty - n.ty); p.dir = OPP[n.dir];
     },
     *afterAll() {
@@ -332,15 +367,15 @@ const Making = {
         /* Gundry's been in the Guild Hall all along: he comes through to say it to Wren's face */
         const g = a && a.id === 'underside' ? a.ents.find(e => e.kind === 'npc' && e.who === 'gundry') : null;
         if (g && p) {
-            yield* say(null, 'Through the door from the Guild Hall comes Gundry, wiping his hands on a rag, not hurrying.');
-            yield* Making.fetch(g, p);
+            g.holding = 'gundry_rag';
+            yield* Making.fetch(g, p, 'Through the door from the Guild Hall comes Gundry, wiping his hands on a rag, not hurrying.');
         }
         yield* say('gundry', `${['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][MAKING_COUNT] || MAKING_COUNT} Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.`);
         yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool of their own for the Wander, a new thread. Tuck's is in the deep store, down the Way Down. Go and fetch it.");
         yield* say('gundry', "Mind, it's old down there. Older than the Guild. Don't touch the big ones.");
         Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
-        /* (and back to his table, in his own time) */
-        if (g) g.walkTo(31, 3, 1);
+        /* (and back to his table, in his own time, the rag in his pocket) */
+        if (g) { g.holding = null; g.walkTo(31, 3, 1); }
     },
 };
 ITEMS.tuckdrawing = { name: "Tuck's drawing", kind: 'quest', desc: 'A stick figure under a floor, holding a lot of strings, smiling. For the fridge.' };
@@ -351,9 +386,10 @@ function defMaking(n, cells, opts = {}) {
     const up = opts.up || ['tidy', 'kilnhouse', 'house', 'millhouse'][(n - 1) % 4];
     defHouse(Object.assign({
         id: 'making' + n, name: MAKING_NAMES[n - 1], place: 'The Making Floor', house: 'making' + n, making: n, theme: 'tidy', thread: THREAD.ives, music: 'makings',
-        entry: MAKINGS[n - 1].entry || { x: 3, y: 16 },
+        entry: MAKINGS[n - 1].entry || MAKING_ENTRY,
         themeAt: (x, y) => y >= 11 ? 'underside' : up,
         drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
+        drawOver: (a, cx, cy) => Making.drawTally(a),
         tick: a => Making.tick(a),
         onEnter: a => Making.start(a),
         cells,
@@ -473,7 +509,7 @@ defMaking(4, {
     MAKINGS.forEach((m, i) => {
         const x = MAKING_DOOR_X[i], n = i + 1, when = i ? 'making' + i : undefined;
         AREAS.underside.ents.push(
-            Object.assign({ k: 'warp', x, y: 1, to: 'making' + n, tx2: (m.entry || { x: 3 }).x, ty2: (m.entry || { y: 16 }).y, dir: 'up', face: 'right', room: '2,0' }, when ? { if: when } : {}),
+            Object.assign({ k: 'warp', x, y: 1, to: 'making' + n, tx2: (m.entry || MAKING_ENTRY).x, ty2: (m.entry || MAKING_ENTRY).y, dir: 'up', face: 'right', room: '2,0' }, when ? { if: when } : {}),
             Object.assign({ k: 'deco', x, y: 0, look: 'littledoor', solid: false, baseY: -100, room: '2,0' }, when ? { if: when } : {}),
             /* (not open yet: barred) */
             ...(when ? [{ k: 'deco', x, y: 0, look: 'littledoor_shut', solid: false, baseY: -100, room: '2,0', if: '!' + when }] : []),
@@ -481,7 +517,7 @@ defMaking(4, {
         );
     });
 }
-AREAS.underside.ents.push({ k: 'npc', who: 'tuck', x: 47, y: 6, face: 'down', room: '2,0', if: 'd7&!makings_done' }, { k: 'npc', who: 'otto', x: 50, y: 6, face: 'down', room: '2,0', if: 'making5&!makings_done' });
+AREAS.underside.ents.push({ k: 'npc', who: 'tuck', x: 47, y: 6, face: 'down', room: '2,0', if: 'd7&!makings_done' }, { k: 'npc', who: 'otto', x: 50, y: 6, face: 'down', room: '2,0', if: 'making5&!makings_done', sword: true, paperHat: true });
 UNDER_TALK.otto = function* () {
     yield* say('otto', cycle('otto_mk', ["I'm the Housekeeper. Anything out of its place, I tidy. I come at it from my side. That's the rules.", "Tuck pushes things and I put them back. That's how a Wander works. Mother Ives said.", "If a thing won't come, I stand there and tsk at it. Tsk! Like that.", "I'm not doing a Wander. I'm doing the HOUSE. It's harder."]));
 };
@@ -517,6 +553,10 @@ function initMakings() {
     /* a little door that isn't open yet: a plank nailed across it */
     ART.littledoor_shut = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 2, 14, 18); R('#8a6040', 2, 3, 12, 17); R('#4a6a4a', 4, 6, 8, 4); R('#3a2618', 0, 10, 16, 4); R('#c9925a', 0, 10, 16, 3); R('#5a3a26', 2, 11, 1, 1); R('#5a3a26', 13, 11, 1, 1); });
     SPR.littledoor_shut = ART.littledoor_shut;
+    /* Gundry's rag; and a little wooden House, empty, under his arm */
+    defSprite('gundry_rag', ['.kkkkk.', 'kwwwWWk', 'kwWwwWk', '.kWWwk.', '..kk...'], { w: '#e8e0d0', W: '#b8ac98' });
+    defSprite('little_house', ['.....kk.....', '....kRRk....', '...kRRRRk...', '..kRRRRRQk..', '.kRRRRRRQQk.', 'kkkkkkkkkkkk', '.kwwwwwwwWk.', '.kwwkkkwwWk.', '.kwwkdkwwWk.', '.kwwkdkwwWk.', '.kkkkkkkkkk.'],
+        { R: '#b0503e', Q: '#843a2e', w: '#c9925a', W: '#9a6438', d: '#3a2618' });
 }
 CONTENT_INIT.push(initMakings);
 

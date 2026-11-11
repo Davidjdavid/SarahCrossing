@@ -77,6 +77,8 @@ class Area {
         return TK[this.cell(x, y).k] || TK.void;
     }
     kindName(x, y) { return this.cell(x, y).k; }
+    /* (a tile filled in for good by a stray: what it was, so water filled with a stone is drawn as the stone in the water) */
+    filled(x, y) { (this.filledFrom || (this.filledFrom = new Map())).set(key2(x, y), this.cell(x, y)); }
     setCell(x, y, ch) { if (this.inside(x, y)) { this.cells[y * this.w + x] = this.legend[ch]; this.chars[y * this.w + x] = ch; this._dirty = true; } }
 
     /* who is standing on a tile (grid things only) */
@@ -152,9 +154,9 @@ const TileDraw = {
         if (HEADLESS || this.warmed.has(area.id)) return;
         this.warmed.add(area.id);
         const scratch = this._scratch || (this._scratch = Gfx.makeCanvas(T, T)), c0 = Gfx.ctx;
-        Gfx.ctx = scratch.getContext('2d');
+        Gfx.ctx = scratch.getContext('2d'); this.warming = true;
         try { for (let ty = 0; ty < area.h; ty++) for (let tx = 0; tx < area.w; tx++) this.draw(area, tx, ty, 0, 0); }
-        catch (e) { } finally { Gfx.ctx = c0; }
+        catch (e) { } finally { Gfx.ctx = c0; this.warming = false; }
     },
     draw(area, tx, ty, sx, sy) {
         const L = area.cell(tx, ty);
@@ -189,7 +191,8 @@ const TileDraw = {
             }
             case 'pit': {
                 const lipN = !['pit', 'void'].includes(area.cell(tx, ty - 1).k);
-                c = tileCanvas(`pit:${lipN}`, x => {
+                /* (a theme may paint its own: the Kiln's heart glows) */
+                c = th.pit ? tileCanvas(`${tn}:pit:${lipN}:${v}`, x => th.pit(x, th, v, lipN)) : tileCanvas(`pit:${lipN}`, x => {
                     Paint.pit(x, th);
                     if (lipN) { fill(x, '#3a2a34', 0, 0, 16, 3); fill(x, '#221722', 0, 3, 16, 2); }
                 });
@@ -281,6 +284,26 @@ const TileDraw = {
         Paint.grass(x, th, v);
     },
 };
+
+/* water filled in for good with a stray: the water as it was, and the stone sitting in it, flat on top (a square of plain
+   path in the middle of a stream read as a hole in the picture). Wrapped round the others once they're all in, so a
+   place's own tile art (the Drift's, the valley's) draws the water under it */
+CONTENT_INIT.push(() => {
+    const draw1 = TileDraw.draw;
+    const wet = (area, x, y) => { const w = area.filledFrom.get(key2(x, y)); return w && TK[w.k] && TK[w.k].water ? w : null; };
+    TileDraw.draw = function (area, tx, ty, sx, sy) {
+        const ff = area.filledFrom;
+        if (!ff || !(wet(area, tx, ty) || wet(area, tx - 1, ty) || wet(area, tx + 1, ty) || wet(area, tx, ty - 1) || wet(area, tx, ty + 1))) return draw1.call(this, area, tx, ty, sx, sy);
+        /* (it, and the water round it, drawn as if it were still water: the stream runs on round the stone) */
+        const o = Object.create(area); o.filledFrom = null; o.cell = (x, y) => wet(area, x, y) || area.cell(x, y);
+        draw1.call(this, o, tx, ty, sx, sy);
+        if (wet(area, tx, ty)) Gfx.img(tileCanvas('fillstone', x => {
+            fill(x, '#2a2430', 2, 3, 12, 11); fill(x, '#2a2430', 1, 4, 14, 9); fill(x, '#8a8478', 2, 4, 12, 9); fill(x, '#8a8478', 3, 3, 10, 1);
+            fill(x, '#aaa498', 2, 4, 11, 6); fill(x, '#c8c2b4', 3, 4, 7, 2); fill(x, '#6a645a', 3, 12, 10, 1); px(x, 4, 4, '#e4dfd2');
+            x.globalAlpha = 0.5; fill(x, '#e8f8ff', 1, 13, 14, 1); fill(x, '#e8f8ff', 0, 8, 1, 4); fill(x, '#e8f8ff', 15, 8, 1, 4); x.globalAlpha = 1;
+        }), sx, sy);
+    };
+});
 
 /* floor painters for interiors and Houses, by theme then legend painter name */
 const FLOORS = {

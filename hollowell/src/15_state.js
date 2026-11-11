@@ -2,7 +2,7 @@
    and the settings. All of it is what a save holds. */
 
 const ITEMS = {
-    gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold [act] against a block to grip it: it stays put while you hold on. Step back to pull it.' },
+    gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold [act] against a block to grip it: it stays put while you hold on. Step back to pull it. (Or tap [act] to take hold and again to let go: Options, Grip.)' },
     hook: { name: 'Hookline', kind: 'tool', desc: '[tool]: throw the hook. Catches on eyelets and empty marks and reels you over; reels light things to you.' },
     paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and paddle it about.' },
     bell: { name: 'Recall Bell', kind: 'tool', desc: '[tool]: ring it. Everything nearby out of place snaps straight home, shoving harder than it would on its own.' },
@@ -123,19 +123,20 @@ const Store = {
 };
 
 const Settings = {
-    textSpeed: 1, shake: true, hints: true,
+    textSpeed: 1, shake: true, hints: true, grip: 'hold',     /* grip: 'hold' (Action held) or 'toggle' (a tap on, a tap off) */
     load() {
         try { Object.assign(this, JSON.parse(Store.get('hollowell-settings') || '{}')); } catch { }
         /* the buttons as the player set them (the arrows and Escape always kept) */
         if (this.keys && typeof this.keys === 'object') Input.keymap = Object.assign({}, this.keys, typeof KEYS_FIXED !== 'undefined' ? KEYS_FIXED : {});
         if (this.pads && typeof this.pads === 'object') Input.padmap = Object.assign({}, typeof PAD_DEFAULT !== 'undefined' ? JSON.parse(JSON.stringify(PAD_DEFAULT)) : {}, this.pads);
         this.crt = this.crt | 0;
+        if (this.grip !== 'toggle') this.grip = 'hold';
         Audio.vol.music = this.music !== undefined ? this.music : 0.6;
         Audio.vol.sfx = this.sfx !== undefined ? this.sfx : 0.8;
     },
     save() {
         this.music = Audio.vol.music; this.sfx = Audio.vol.sfx;
-        Store.set('hollowell-settings', JSON.stringify({ textSpeed: this.textSpeed, shake: this.shake, hints: this.hints, music: this.music, sfx: this.sfx, keys: Input.keymap, pads: Input.padmap, crt: this.crt | 0 }));
+        Store.set('hollowell-settings', JSON.stringify({ textSpeed: this.textSpeed, shake: this.shake, hints: this.hints, music: this.music, sfx: this.sfx, keys: Input.keymap, pads: Input.padmap, crt: this.crt | 0, grip: this.grip }));
         Audio.setVolumes();
     },
 };

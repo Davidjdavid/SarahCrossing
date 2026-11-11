@@ -419,7 +419,7 @@ const TidyLogic = {
 /* the warm pie (S05) */
 SPAWN.pie = (tx, ty) => {
     const pr = new Prop(tx, ty, { im: ART.pie, solid: [], oy: -6 });
-    pr.live = true;
+    pr.live = true; pr.baseY = 24;      /* (it sits on the kitchen table: drawn after it, not behind it) */
     pr.interact = () => {
         if (Progress.flag('pie')) { Script.run(function* () { yield* say(null, 'An empty pie dish. Crumbs.'); }); return true; }
         Script.run(function* () {
@@ -789,10 +789,11 @@ const Tidy = {
     *afterKnot() {
         Progress.set('d1');
         Progress.setGoal("Go back to Hollowell and tell Gran. Next, the Kiln in Kilnridge: the canyon road west of Meadowfold.");
-        yield* say(null, 'A door opens in the far wall of the Grand Hall, letting in daylight and the smell of grass.');
+        /* (the door first, then the words about it: down in the hall's south-east corner) */
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
+        yield* say(null, 'A door opens in the corner of the Grand Hall, letting in daylight and the smell of grass.', { focus: [r.x + 17, r.y + 9] });
     },
 };
 

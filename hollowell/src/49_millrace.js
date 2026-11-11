@@ -46,11 +46,23 @@ FLOORS.millhouse = {
 };
 WALLS.millhouse = {
     edge: '#1c2630',
-    top: (x) => { fill(x, '#46525e'); speckle(x, ['#525e6a'], 6, 0.15); },
+    /* the walls' tops: slate flags laid over them, each a shade apart (a wide stretch of wall beside the races read as a
+       blank third of the screen) */
+    top: (x, th, v) => {
+        fill(x, ['#46525e', '#4a5662', '#434f5b', '#485460'][v]); speckle(x, ['#525e6a', '#3e4a56'], 6 + v, 0.12);
+        fill(x, '#3a4450', 0, 15, 16, 1); fill(x, '#3a4450', 15, 0, 1, 15); fill(x, '#56626e', 0, 0, 15, 1);
+        if (v === 1) { fill(x, '#3a4450', 0, 7, 15, 1); fill(x, '#56626e', 0, 8, 15, 1); }
+        if (v === 2) { px(x, 3, 3, '#6a7682'); px(x, 4, 4, '#2e3844'); px(x, 11, 11, '#6a7682'); px(x, 12, 12, '#2e3844'); }
+    },
     face: (x, th, v) => {
         Paint.bricks(x, ['#8c98a4', '#66727e', '#aab6c0', '#3e4852'], v);
         fill(x, '#4f9be0', 0, 13, 16, 1); fill(x, '#1c2630', 0, 15, 16, 1);
-        if (v === 3) { fill(x, '#3a2418', 5, 4, 6, 6); fill(x, '#7cc8ee', 6, 5, 4, 4); }   /* a little porthole */
+        /* a little round porthole, brass-rimmed (a square one in the top wall, beside the hearts, read as part of the HUD) */
+        if (v === 3) {
+            fill(x, '#1c2630', 6, 2, 4, 9); fill(x, '#1c2630', 5, 3, 6, 7); fill(x, '#1c2630', 4, 4, 8, 5);
+            fill(x, '#c8903a', 6, 3, 4, 7); fill(x, '#c8903a', 5, 4, 6, 5); fill(x, '#e8b860', 6, 3, 3, 1); fill(x, '#e8b860', 5, 4, 1, 2);
+            fill(x, '#4f9be0', 6, 4, 4, 5); fill(x, '#7cc8ee', 6, 4, 3, 3); px(x, 6, 4, '#ffffff'); fill(x, '#2b5aa8', 7, 8, 3, 1);
+        }
     },
 };
 

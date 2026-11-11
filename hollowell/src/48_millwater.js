@@ -79,7 +79,7 @@ defBlock({
         { k: 'rest', x: 53, y: 27 },
         { k: 'sign', x: 50, y: 27, text: 'THE MILLRACE. Wanderers welcome. Hold on to your hat.' },
         /* behind the falls (S19), and the beach below them */
-        { k: 'falls', x: 39, y: 30, w: 6, h: 2 },
+        { k: 'falls', x: 39, y: 30, w: 6, h: 2, river: 3 },
         { k: 'chest', x: 44, y: 30, item: 'heartpatch', id: 'mwCave' },
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
         { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
@@ -164,6 +164,15 @@ class Falls extends Ent {
         }
         Gfx.alpha(0.6); Gfx.rect(x0, y0 + h - 3, w, 3, '#ffffff'); Gfx.alpha(1);
         for (let i = 0; i < 6; i++) Gfx.circle(x0 + ((G.t * 0.7 + i * 17) % w), y0 + h - 1, 2, '#ffffff');
+        /* where the curtain is wider than the river (over the pool behind it), the river spreads over the rock lip above it
+           in a thin sheet first: the whole curtain pours from the river, none of it from under the stone */
+        if (this.river && this.river < this.w) {
+            const rx = x0 + this.river * T, rw = w - this.river * T, ly = y0 - T + 4;
+            Gfx.alpha(0.7); Gfx.rect(rx - 2, ly, rw + 2, T - 4, '#5fb5e8'); Gfx.alpha(1);
+            for (let i = 0; i < rw + 2; i += 3) { const ph = (G.t + hash2(i, 1, 9) * 30) % (T - 6); Gfx.rect(rx - 2 + i, ly + ph, 1, 2, '#a5dcf7'); }
+            Gfx.rect(rx - 2, y0 - 2, rw + 2, 2, '#e8f8ff');
+            Gfx.alpha(0.5); Gfx.rect(rx - 2, ly, rw + 2, 1, '#ffffff'); Gfx.alpha(1);
+        }
     }
 }
 SPAWN.falls = (x, y, p) => new Falls(x, y, p);

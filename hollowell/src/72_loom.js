@@ -393,8 +393,15 @@ class WebLoom extends Prop {
     talkBox(p, f) { return this.solid.some(([dx, dy]) => this.tx + dx === f.tx && this.ty + dy === f.ty); }
     draw(cx, cy) {
         Gfx.img(this.im, this.x - cx, this.y - cy);
-        /* the words on the breast-beam, under a pad of grey silk while the Weaver keeps the loom */
-        if (!Progress.flag('loom_boss')) {
+        const wv = this.area && this.area.ents.find(e => e.kind === 'weaver'), well = this.area && this.area.ents.find(e => e.kind === 'loomwell');
+        /* (its last beat: the old warp it hauled up out of the well, wound round and round the breast-beam either side of
+           where it clings) */
+        if (well && well.bare && wv && wv.alive) {
+            const n = Math.round(24 * clamp(well.haul === undefined ? 1 : well.haul, 0, 1)), bx = this.x - cx + 96, by = this.y - cy + this.im.height - 16;
+            for (let i = 0; i < n; i++) { const xx = bx + i * 4; Threads.stroke(xx, by, xx + 4, by + 13, i % 2 ? '#8a94a4' : '#aab7c8'); }
+        }
+        /* the words on the breast-beam, under a pad of grey silk while the Weaver keeps the loom (gone as it's said to go) */
+        if (!Progress.flag('loom_boss') && !(wv && wv.padGone)) {
             /* (strands wound every which way, thick in the middle, wisps at the ends) */
             const x = this.x - cx + 118, y = this.y - cy + this.im.height - 15;
             Gfx.alpha(0.55); Gfx.rect(x + 6, y + 2, 40, 6, '#c8d0dc'); Gfx.alpha(1);
@@ -412,10 +419,13 @@ class LoomWell extends Ent {
     constructor(tx, ty) { super('loomwell'); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.floor = true; this.bare = false; }
     draw(cx, cy) {
         const x = this.x - cx, y = this.y - cy, h = 6 * T;
-        if (!this.bare) for (let i = 0; i < 7; i++) { const sw = Math.round(Math.sin((G.t + i * 23) / 40)); Gfx.line(x + 3 + i * 4.5, y - 2, x + 3 + i * 4.5 + sw, y + h - 8, i % 2 ? '#aab7c8' : '#6a7484'); }
+        /* (hauled up out of it in the Weaver's last beat: the hanging warp drawn up from the bottom, the tangle with it) */
+        const k = this.bare ? clamp(this.haul === undefined ? 1 : this.haul, 0, 1) : 0;
+        if (k < 1) for (let i = 0; i < 7; i++) { const sw = Math.round(Math.sin((G.t + i * 23) / 40)); Gfx.line(x + 3 + i * 4.5, y - 2, x + 3 + i * 4.5 + sw, lerp(y + h - 8, y - 2, k), i % 2 ? '#aab7c8' : '#6a7484'); }
         /* the tangle at the bottom */
-        Gfx.alpha(0.8);
-        for (let i = 0; i < 9; i++) Gfx.line(x + 2 + ((i * 7) % 27), y + h - 13 + (i % 3) * 3, x + 6 + ((i * 11) % 24), y + h - 4 - (i % 2) * 3, i % 2 ? '#8a94a4' : '#5a6070');
+        if (k >= 1) return;
+        Gfx.alpha(0.8 * (1 - k));
+        for (let i = 0; i < 9; i++) Gfx.line(x + 2 + ((i * 7) % 27), y + h - 13 + (i % 3) * 3 - k * (h - 16), x + 6 + ((i * 11) % 24), y + h - 4 - (i % 2) * 3 - k * (h - 16), i % 2 ? '#8a94a4' : '#5a6070');
         Gfx.alpha(1);
     }
 }
@@ -437,8 +447,11 @@ const LoomHouse = {
         const a = w.area, r = a.rooms.find(q => q.key === '1,0');
         Music.play('silence');
         yield 40;
-        yield* say(null, "The Weaver curls up in the well of its own loom and lies there, a heap of grey silk, still at last. What's left of its web sags and parts and drifts down like snow.");
-        yield* say(null, "The silk on the loom's breast-beam falls away with it. Under it, someone long ago cut a line of words with a very sharp blade: I MEANT TO UNPICK THEM IN THE SPRING. -THE FIRST SPINNER.");
+        yield* say(null, "The Weaver curls up in the well of its own loom and lies there, a heap of grey silk, still at last. What's left of its web sags and parts and drifts down like snow.", { focus: [r.x + 9, r.y + 6] });
+        /* (the pad of silk on the breast-beam comes away, a few wisps falling, and the words under it show) */
+        w.padGone = true; Fx.poof(r.x * T + 160, r.y * T + 40);
+        yield 12;
+        yield* say(null, "The silk on the loom's breast-beam falls away with it. Under it, someone long ago cut a line of words with a very sharp blade: I MEANT TO UNPICK THEM IN THE SPRING. -THE FIRST SPINNER.", { focus: [r.x + 9, r.y + 2] });
         a.add(new Pickup((r.x + LOOM_HEART[0]) * T, (r.y + LOOM_HEART[1]) * T, { what: 'heartstitch', id: 'loomHeart' }));
         Sfx.play('appear');
         Progress.set('loom_boss'); Progress.set('d8');

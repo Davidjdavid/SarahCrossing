@@ -178,6 +178,12 @@ const Spool = {
             if (a.def.drawAboveExtra) a.def.drawAboveExtra(a, ux, uy, ar);
         } catch (e) { reportError(e); }
         Gfx.ctx = ctx0;
+        /* only over open floor down here: nothing up there shows through a wall, or out in the dark round the room (a rack
+           up there stood over the HUD) */
+        g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000000';
+        const rx0 = r.x * T - cx, ry0 = r.y * T - cy, rx1 = rx0 + r.w * T, ry1 = ry0 + r.h * T;
+        g.fillRect(0, 0, W, Math.max(0, ry0)); g.fillRect(0, ry1, W, H); g.fillRect(0, 0, Math.max(0, rx0), H); g.fillRect(rx1, 0, W, H);
+        for (let ty = r.y; ty < r.y + r.h; ty++) for (let tx = r.x; tx < r.x + r.w; tx++) if (a.kind(tx, ty).solid) g.fillRect(tx * T - cx, ty * T - cy, T, T);
         /* faded and cooled, like light through the cracks */
         g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.35; g.fillStyle = '#cfe0ff'; g.fillRect(0, 0, W, H);
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
@@ -352,7 +358,13 @@ const Needle = {
         e.heldBy = e.heldBy || { needle: true };
         p.pinned = 'needle';
         Sfx.play('twang');
-        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). [tool]: that\'s its place now. [act]: never mind.', 200); }
+        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). [tool]: that\'s its place now. [act]: never mind.', 200, { focus: this.focus(this.st) }); }
+    },
+    /* what the Needle's first notice keeps clear of: the thing, and the tiles it could go to (a box round them, as drawn) */
+    focus(s) {
+        const [ox, oy] = s.off, ts = [s.path[0]].concat([...this.reach(s).keys()].map(k => k.split(',').map(Number)));
+        const xs = ts.map(t => (t[0] - ox) * T), ys = ts.map(t => (t[1] - oy) * T);
+        return [s.thing, { x0: Math.min(...xs), y0: Math.min(...ys) - 8, x1: Math.max(...xs) + T, y1: Math.max(...ys) + T }];
     },
     stepOk(e, x, y) {
         const a = e.area, k = a.kind(x, y);
@@ -407,7 +419,7 @@ const Needle = {
             this.unpick(oldest);
             /* (something that's held where it is when its stitch lets go, tied off below or gripped, stays put) */
             const was = oldest.area === a.id && a.ents.find(o => this.key(o) === oldest.key && !o.removed);
-            UI.toast(this.letGo(oldest, !!(was && was.ret && Return.held(was))), 200);
+            UI.toast(this.letGo(oldest, !!(was && was.ret && Return.held(was))), 200, { focus: was || null });
         }
     },
     /* what a stitched thing is called, for saying which one let go */
@@ -418,7 +430,12 @@ const Needle = {
         const room = at && def && def.rooms ? def.rooms.find(r => at[0] >= r.x && at[1] >= r.y && at[0] < r.x + r.w && at[1] < r.y + r.h) : null;
         const here = room && G.map && G.map.id === rec.area && Cam.room && Cam.room.key === room.key, n = room && room.name;
         const where = here ? ' here' : !n ? '' : /^Under /.test(n) ? ' under ' + n.slice(6) : /Floor$/.test(n) ? ' on ' + n.replace(/^The /, 'the ') : ' in ' + n.replace(/^The /, 'the ');
-        return 'The Needle only holds three stitches, so your oldest lets go: ' + (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back to its old place, but something is holding it where it is.' : ' goes back to its old place.');
+        const what = (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where;
+        /* (the whole of it the first two times; after that, just which thing it was and where) */
+        const n2 = Stats.c['said:needleLetGo'] || 0;
+        Stats.count('said:needleLetGo');
+        if (n2 >= 2) return 'Your oldest stitch lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back, but something is holding it.' : ' goes back to its old place.');
+        return 'The Needle only holds three stitches, so your oldest lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back to its old place, but something is holding it where it is.' : ' goes back to its old place.');
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
     unpick(rec) {
@@ -492,13 +509,21 @@ const Needle = {
         }
         if (!s || !p) return;
         const [ox, oy] = s.off, pts = s.path.map(([x, y]) => [(x - ox) * T + 8 - cx, (y - oy) * T + 9 - cy]);
-        /* where it could go: those tiles, stitched faintly round */
-        Gfx.alpha(0.55);
-        for (const k of this.reach(s).keys()) {
-            const [x, y] = k.split(',').map(Number);
-            Tells.stitchTile((x - ox) * T - cx, (y - oy) * T - cy, THREAD.wren);
+        /* where it could go: those tiles washed faintly red, and round their outside edge (the thing's own tile with them)
+           a stitch in Wren's red two pixels wide over a dark under-stroke, so it reads on any floor */
+        const reach = this.reach(s), [hx, hy] = s.path[0], inR = (x, y) => (x === hx && y === hy) || reach.has(key2(x, y)), edges = [];
+        Gfx.alpha(0.14);
+        for (const [x, y] of [[hx, hy]].concat([...reach.keys()].map(k => k.split(',').map(Number)))) {
+            const X = (x - ox) * T - cx, Y = (y - oy) * T - cy;
+            if (x !== hx || y !== hy) Gfx.rect(X, Y, T, T, THREAD.wren);
+            if (!inR(x, y - 1)) edges.push([X, Y, T, 2]);
+            if (!inR(x, y + 1)) edges.push([X, Y + T - 2, T, 2]);
+            if (!inR(x - 1, y)) edges.push([X, Y, 2, T]);
+            if (!inR(x + 1, y)) edges.push([X + T - 2, Y, 2, T]);
         }
         Gfx.alpha(1);
+        for (const [x, y, w, h] of edges) Gfx.rect(x - 1, y - 1, w + 2, h + 2, Threads.UNDER);
+        for (const [x, y, w, h] of edges) for (let i = 0; i < Math.max(w, h); i += 4) Gfx.rect(w > h ? x + i : x, w > h ? y : y + i, w > h ? 3 : 2, w > h ? 2 : 3, THREAD.wren);
         /* the needle's red thread, from Wren to the thing, along the stitch to the new place */
         Gfx.line(p.x - cx + 4, p.y - cy - 12, pts[0][0], pts[0][1] - 4, THREAD.wren);
         Threads.path(pts, THREAD.wren);
@@ -538,7 +563,7 @@ TOOLS._spool = { update(area) { Spool.update(area); }, draw(cx, cy) { Spool.draw
     };
     const hud0 = UI.drawHUD;
     /* (under a notice, a banner or words at the top the little stitches would sit under the panel: left out then) */
-    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.banner && !this.toasts.some(t => !t.low)) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
+    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.topBusy()) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
 }
 
 function initSpoolKit() {

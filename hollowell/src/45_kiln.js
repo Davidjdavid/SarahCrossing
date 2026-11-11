@@ -465,7 +465,7 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
-                Script.run(function* () { yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands.'); });
+                Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands.'); });
             }
             return;
         }
@@ -901,7 +901,7 @@ ITEM_LINES.hook = () => "You found the {red}Hookline{/}! [tool] to throw the hoo
    into the rooms' own walls, clay bins, woodpiles, racks of greenware, glaze stores, kiln mouths (KILN_DRESS, laid over
    the floor like the Tidyhouse's: RoomLook), with their fires flickering (KILN_GLOW). */
 const KILN_ROOM_LOOK = { '1,3': 'work', '0,3': 'work', '1,2': 'work', '2,3': 'work', '2,2': 'work', '0,2': 'work', '2,1': 'glaze', '3,1': 'work',
-    '3,2': 'work', '1,1': 'heart', '0,1': 'work', '0,0': 'shed', '2,0': 'glaze', '1,0': 'heart' };
+    '3,2': 'work', '1,1': 'heart', '0,1': 'work', '0,0': 'shed', '2,0': 'glaze', '1,0': 'core' };
 /* (the glazed floors' chequer: the odd tiles of the floor are the look's second half; walls always the first, as the Tidyhouse's) */
 const kilnLookAt = (x, y) => {
     const n = KILN_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'work', row = AREAS.kiln.rows[y];
@@ -942,6 +942,9 @@ const KILN_LOOKS = {
     glaze: { floor: KilnFloor.glazed(['#efe6d2', '#fbf6ea', '#c8bca4']), alt: KilnFloor.glazed(['#b2e0d8', '#cfeee8', '#7cb4ac']), brick: ['#c4623a', '#93432c', '#e08a5e', '#5e261c'], soot: 0.25, dado: true },
     shed: { floor: TidyFloor.boards({ dir: 'h', tone: ['#968676', '#908070', '#9c8c7c'], hi: '#aa9a88', seam: '#6a5c50', nail: '#4e4238' }), brick: ['#ece2cc', '#d8ccb4', '#f6eedf', '#b8ab92'], soot: 0.12 },
 };
+/* the Kiln's Heart itself: the heart's look, and when its floor cracks open, the pit glows (the dark starry pit the
+   Houses share read as the Slumberhouse's night sky) */
+KILN_LOOKS.core = KILN_LOOKS.heart;
 const KilnWall = {
     face(x, L, v) {
         Paint.bricks(x, L.brick, v);
@@ -968,6 +971,15 @@ for (const [n, L] of Object.entries(KILN_LOOKS)) for (const half of L.alt ? ['',
     FLOORS[tn] = { floor: f, floor2: KilnFloor.brick, floor3: FLOORS.kilnhouse.floor3, vat: (x, th, v) => FLOORS.kilnhouse.vat(x, th, v) };
     WALLS[tn] = { edge: '#3a1810', top: (x) => { fill(x, '#6a2e1e'); fill(x, '#7a3a26', 0, 0, 16, 1); }, face: (x, th, v) => KilnWall.face(x, L, v) };
 }
+THEMES.kiln_core = Object.assign({}, THEMES.kilnhouse, {
+    /* embers far down, brightest in the cracks; the rim dark rock, lit from below */
+    pit: (x, th, v, lip) => {
+        fill(x, '#3e1008'); speckle(x, ['#5e1a0c', '#320c06'], 81 + v, 0.38);
+        speckle(x, ['#98301a'], 91 + v, 0.11); speckle(x, ['#e0702a'], 101 + v, 0.035); speckle(x, ['#ffd060'], 111 + v, 0.01);
+        for (let i = 0; i < 3; i++) { const cx = Math.floor(hash2(v, i, 7) * 13) + 1, cy = Math.floor(hash2(i, v, 8) * 11) + 3; px(x, cx, cy, '#f39a3c'); px(x, cx + 1, cy, '#ffd060'); px(x, cx + 1, cy + 1, '#f39a3c'); }
+        if (lip) { fill(x, '#2a1410', 0, 0, 16, 3); fill(x, '#6a2412', 0, 3, 16, 1); fill(x, '#a8401e', 0, 4, 16, 1); }
+    },
+});
 
 /* each room's own pieces, in room pixels (as TIDY_DRESS) */
 const KILN_DRESS = {
@@ -1021,13 +1033,17 @@ const KilnLook = {
         }
     },
     warm(a) { RoomLook.warm(a, KILN_DRESS); },
-    /* soot round a kiln's foot: the floor darkened about its mouth (the kiln 2x2 at x,y) */
+    /* soot round a kiln's foot (the kiln 2x2 at x,y): its shadow, crisp, a little to the right (the light's from the top
+       left), and ash and soot specks swept out in front of its mouth (a smooth fade read as a blurred, offset smudge) */
     soot(x, R, kilns) {
         for (const [kx, ky] of kilns) {
-            const cx = kx * T + 16, cy = (ky + 2) * T + 2;
-            for (let j = -6; j < 14; j++) for (let i = -26; i <= 26; i++) {
-                const d = Math.hypot(i / 26, (j - 2) / 12); if (d > 1) continue;
-                x.globalAlpha = 0.22 * (1 - d); R('#2a1410', cx + i, cy + j, 1, 1);
+            const cx = kx * T + 17, cy = (ky + 2) * T;
+            x.globalAlpha = 0.24;
+            for (let j = -3; j <= 3; j++) { const hw = Math.round(17 * Math.sqrt(1 - (j / 4) ** 2)); R('#2a1410', cx - hw, cy + j, hw * 2, 1); }
+            x.globalAlpha = 0.5;
+            for (let j = 0; j < 9; j++) for (let i = -12; i <= 12; i++) {
+                const d = Math.hypot(i / 12, j / 9); if (d > 1 || hash2(cx + i, cy + j, 61) > 0.32 * (1 - d) + 0.04) continue;
+                R(hash2(i, j, 62) < 0.7 ? '#2a1410' : '#8a8478', cx - 1 + i, cy + 3 + j, 1, 1);
             }
             x.globalAlpha = 1;
         }
