@@ -507,8 +507,7 @@ const SpoolFoes = {
         Fx.poof(g.x + 8, g.y + 8);
         yield 20;
         yield* say('gundry', "Well. I'll be. Forty years I've been meaning to do that. Forty years.");
-        yield* say('gundry', "You did it the right way, too. Not by pushing. By knowing what each thing was tied to, and where it ought to be.");
-        yield* say('gundry', "That's all a Maker is, Wanderer. Somebody who knows where the threads go.");
+        yield* say('gundry', "You did it the right way, too.");
         a.add(new Pickup((r.x + 9) * T, (r.y + 5) * T, { what: 'heartstitch', id: 'spoolHeart' }));
         Sfx.play('appear');
         yield* say('gundry', "Here. Take this, and come up to the Guild Hall when you're ready. I've got a cot for you, and a job.");

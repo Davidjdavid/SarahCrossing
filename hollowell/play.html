@@ -15563,7 +15563,7 @@ const TOWN_LINES = {
         rosa: [() => Progress.flag('cut:hob') ? "Hob's gone up the river! HOB! He waved at me. Forty years I've known that man and I never once saw him wave." : "They say you can cut a body loose with those. I don't know if I'd want it. I don't know that I wouldn't."],
         tuck: [() => Progress.flag('cut:nell') ? "Nell ran past the posts and came back and she's not even in TROUBLE!" : "Are those the scissors? Can you cut MY string? Have I got a string? Mum says not. Mum's looking at the floor."],
         mabel: ["If you cut me loose, I'll still keep the shop. But I might shut it on Tuesdays. Or go and find out who L is."],
-        gundry: ["The First Spinner's blades. Careful with them, Wanderer. A thread's only a thread. But it's always somebody's."],
+        gundry: ["The First Spinner's blades. Carry them points down, Wanderer, and look before you snip. Most threads have somebody on the end."],
     },
 };
 /* Gran's own: once each, then her usual run of lines (src/50_prologue.js; after the first reveal, new ones, below) */
@@ -23424,7 +23424,7 @@ const R1_SAYS = {
     ives: "{happy}The Tidyhouse is mine. We watch from underneath, love: there are little holes. When you're stuck a long while, we nudge something. Just a little, so you'd find it yourself.",
     bram: "{happy}The Kiln's mine! And the going-home? Not us. Well, it IS us that keeps it running: every mark's got a thread, every thread goes down, and somebody winds them all. HA!",
     ambrose: "{happy}The Millrace is mine, love. After every Wander we take them down and build them again. Every room. Every puzzle. Every crate that shivers before it goes home.",
-    tess: "{happy}The Belfry's mine. It's a gift, {name}, the Wander. The best thing this town knows how to make. Every one of us had one, and now you've had yours. Well, nearly.",
+    tess: "{happy}The Belfry's mine. It's a gift, {name}, the Wander. Every one of us had one, and now you've had yours. Well, nearly.",
     mallow: "*yawn* The Slumberhouse. Mine. And all that winding goes on at night, mostly. Which is why nobody in this valley ever gets any sleep in Wander season.",
     jory: "{happy}This old place is mine. And the bosses. Mostly the bosses. Do you know how long the Kilnwyrm took? Three winters. The tail never did work properly.",
 };
@@ -25842,8 +25842,7 @@ const SpoolFoes = {
         Fx.poof(g.x + 8, g.y + 8);
         yield 20;
         yield* say('gundry', "Well. I'll be. Forty years I've been meaning to do that. Forty years.");
-        yield* say('gundry', "You did it the right way, too. Not by pushing. By knowing what each thing was tied to, and where it ought to be.");
-        yield* say('gundry', "That's all a Maker is, Wanderer. Somebody who knows where the threads go.");
+        yield* say('gundry', "You did it the right way, too.");
         a.add(new Pickup((r.x + 9) * T, (r.y + 5) * T, { what: 'heartstitch', id: 'spoolHeart' }));
         Sfx.play('appear');
         yield* say('gundry', "Here. Take this, and come up to the Guild Hall when you're ready. I've got a cot for you, and a job.");
@@ -25940,8 +25939,8 @@ ITEM_AFTER.needle = function* () { Inv.equipped = 'needle'; };
 /* the Little Houses, in the order they open (their ids stay making1..makingN: old saves keep them); by whom, and what
    the Maker says after (from wherever they were watching) */
 const MAKINGS = [
-    { name: 'The Little Tidyhouse', by: 'Ives', after: "Ives, from somewhere above: \"He thinks he did it all himself. That's the whole trick of it, love.\"" },
-    { name: 'Mind the Nibbler', by: 'Bram', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once. That's the job.\"" },
+    { name: 'The Little Tidyhouse', by: 'Ives', after: "Ives, from somewhere above: \"He thinks he did it all himself. Bless him.\"" },
+    { name: 'Mind the Nibbler', by: 'Bram', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once.\"" },
     { name: 'The Little Wander', by: 'Tess', after: "Tess, from somewhere above: \"Oh, his face. Did you see his face?\"" },
     { name: 'The Long Sulk', by: 'Gundry', after: "Gundry, from somewhere above: \"He sulked exactly where we needed him to. Took me forty years to learn that one.\"" },
     { name: 'The Tidyhouse, Underneath', by: 'Ives', entry: { x: 56, y: 16 }, after: "Ives, from somewhere above: \"That's the Foyer you came in by, and the Hall you were so cross in. Now you know what I was doing all that time, love: sitting under you, holding my breath.\"" },
@@ -27495,7 +27494,7 @@ const Reveal2 = {
             "\"I took every spool in the valley in my two hands and pulled them tight. Nobody else will go.\"",
             "\"Arlo walked to the lake again. Tightened him. Hob halfway up the river. Tightened. The children run so far. Tightened. Tightened.\"",
             "\"The Wander. Six Houses, six Knots. Every Knot the Wanderer ties turns my winch a little further. They never notice. They are always so proud.\"",
-            "\"Wren is so like her. Tightened again. The seventh Knot is the Wanderer's own, at the Well: when Wren ties it she will take my place at the Spool, and nobody, nobody, will ever be lost again. Wren mustn't go. Wren mustn't.\"",
+            "\"{name} is so like her. Tightened again. The seventh Knot is the Wanderer's own, at the Well: when {name} ties it she will take my place at the Spool, and nobody will ever be lost again.\"",
             ledgerTallyPage(),
         ];
         for (const p of pages) yield* say(null, p);
@@ -28391,7 +28390,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'deco', x: 6, y: 1, look: 'tapestry', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: "A tapestry, faded silver. A woman at a loom in a hard winter, tying a thread to everyone in a little valley so nobody would be lost in the snow. In the last panel the snow has melted, and she is still at the loom, holding all the threads, and she has not let go. Stitched underneath: SHE MEANT TO UNPICK THEM IN THE SPRING." },
+                { k: 'deco', x: 6, y: 1, look: 'tapestry', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: "A tapestry, faded silver. A woman at a loom in a hard winter, tying a thread to everyone in a little valley so nobody would be lost in the snow. In the last panel the snow has melted, and she is still at the loom, holding all the threads." },
                 { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'spPatch' },
                 { k: 'sign', x: 3, y: 8, text: 'Scratched into the floor, small: L. CUT HER WAY OUT OF HERE. YOU CAN TOO.' },
             ],
@@ -29756,15 +29755,15 @@ const Drift = {
             yield* say('linnet', "{happy}Something came over the fog the other day: a balloon, striped, from the fair by the look of it. It's caught in the tree by the old wall. I haven't had the heart to get it down.");
             return;
         }
-        if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["{worried}Go on, {name}. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "{happy}Tell Biscuit I said hello. Ha! He knows."])); return; }
+        if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["{worried}Go on, {name}. I'll come. I promise I'll come.", "She can't pull you. Remember that.", "{happy}Tell Biscuit I said hello. Ha! He knows."])); return; }
         Progress.set('met_linnet'); Stats.count('met:linnet');
         /* (her niece: Tess's girl, by whatever name she was given) */
         yield* say('linnet', "{surprised}Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're {name}.");
         yield* say('linnet', "{happy}You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all.");
         const i = yield* ask('linnet', "How does it feel?", ['Light.', 'Frightening.', 'Come home.']);
-        yield* say('linnet', ["{happy}Light. Yes. It's the lightest thing in the world. You'll get used to it. Or you won't, and that's all right too.", "{worried}It is. It's frightening. Nobody's going to bring you back if you get lost. That's the whole of it. That's the price, and it's worth it.", "{sad}Home. ...I've thought about it every day for twenty-five years."][i]);
+        yield* say('linnet', ["{happy}Light. Yes. You'll get used to it. I still lose spoons.", "{worried}It is. Nobody's going to bring you back if you get lost.", "{sad}Home. ...I've thought about it every day for twenty-five years."][i]);
         yield* say('linnet', "I found the Hall of Names on my Wander, the same as you. I read her ledger. I took the old Shears out of the Loom and cut myself loose and walked out into the fog, and the fog let me go.");
-        yield* say('linnet', "{sad}And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. I wanted her to see that the valley didn't come apart. That things could be lost and it would be all right. I wanted her to let go.");
+        yield* say('linnet', "{sad}And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. You'll have seen my L on them.");
         yield* say('linnet', "{sad}I never went back. I was frightened she'd tie me again. She would have.");
         G.shake = 14; Sfx.play('rumble'); Music.play('silence');
         yield 40;
@@ -31244,7 +31243,7 @@ const GreatSpool = {
                 /* (the camera goes to the square while it's told: the ring of people round the Well, the threads) */
                 yield* camLook(95, 59);
                 if (nd) yield* say(null, "The town square. " + (nd > 6 ? 'Everyone you know is' : 'The few with threads still on them are') + " shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
-                else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled. You saw to that.");
+                else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled.");
                 yield* say(null, "The Well's cap is gone. Threads pour into the dark like water going down a drain.");
                 yield* camBack();
                 Progress.setGoal('Down the Well, to the Great Spool.');
@@ -31264,8 +31263,8 @@ const GreatSpool = {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && npc.area && npc.area.id === 'hollow') {
-            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "{happy}We're all right! Nothing's got hold of us! Go on, Wren!"); };
-            if (npc.dragged) return function* () { yield* say(npc.who, ["{worried}I can't... stop... walking. Wren? Is that you?", "{worried}My feet won't listen. It's the Well. It wants us.", "{worried}Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
+            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "{happy}We're all right! Nothing's got hold of us! Go on, {name}!"); };
+            if (npc.dragged) return function* () { yield* say(npc.who, ["{worried}I can't... stop... walking. {name}? Is that you?", "{worried}My feet won't listen. It's the Well. It wants us.", "{worried}Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
         }
         /* everyone else with a thread, wherever they are, is holding on to something */
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && !Progress.flag('cut:' + npc.who) && npc.who !== 'gran' && npc.who !== 'linnet' && PEOPLE_DEF[npc.who]) {
@@ -32133,37 +32132,39 @@ OW.blocks['1,1'].ents.push(
     { k: 'npc', who: 'gran', x: 14, y: 13, face: 'down', if: 'unwound', id: 'granAfter', seated: true },
     { k: 'npc', who: 'linnet', x: 16, y: 13, face: 'down', if: 'unwound', id: 'linnetAfter', seated: true });
 for (const e of AREAS.drift.ents) if (e.who === 'linnet') e.if = '!unwound';
+/* (one line each, about what they're up to now: never what they said when they were cut free, src/73_freed.js; Gran
+   and Linnet two, the bench coming after either, src/80d_after.js) */
 const AFTER_LINES = {
-    gran: ["Sit with us a while, love. There's no hurry. There's never going to be a hurry again.", "I held on so tight I nearly lost everything. Don't you ever hold on like that. Not to anyone.", "Your aunt says the world goes on a long way past the fog. Go and see it. Then come and tell me. If you like."],
-    linnet: ["Twenty-five years. The garden's exactly where I left it. Well. Mum would see to that.", "I used to cut the strays loose at the edge and scratch an L on them, so somebody would know. You knew.", "There's a road through the fog now. I'll show you my garden on the other side, one day."],
-    ives: ["The Tidyhouse is open, love, any time you fancy a puzzle. For fun, now.", "Do you know, I put a box in the wrong place yesterday. On purpose. It was thrilling."],
-    bram: ["Fresh clay! From past the ridge! It's terrible clay. I love it.", "Bring me a pot from somewhere else, Wanderer. Anywhere else."],
-    ambrose: ["Your mum and I are taking the boat out past the falls tomorrow. Just to see.", "I'll keep the Millrace running for the next Wanderer. The river can do as it likes the rest of the time."],
-    tess: ["I rang the big bell this morning for nothing at all. Half the town came out to see. I'll do it again tomorrow.", "Proud of you, Wren. Not for the Knots. For the other thing."],
-    mallow: ["I slept in my own bed last night and woke up somewhere completely different. Well, the same bed. But I felt different.", "Go anywhere you like. Come home when you like. Doctor's orders."],
-    jory: ["The touring show! I'm painting the wagon. What colour's a road?", "Every puppet in the Hall's on a string, and every one of them's glad of it. That's what strings are FOR."],
-    gundry: ["I went to look for the sea. I didn't find it. I'm going again Thursday.", "The Guild votes to keep the Spoolworks turning. For play. Motion carried. Then we all went for a walk."],
-    quill: ["We walked up the hill this morning, the whole school. Nobody wanted to come down.", "Lesson for today: anything at all. Isn't it marvellous?"],
-    arlo: ["Down to the lake and back every morning now. My knees complain. I don't listen.", "Seventy years in this valley and I'm only just seeing it."],
-    hob: ["The pool past the bend. My dad's pool. Caught nothing all morning. Best morning of my life.", "Fish go where they like. Turns out so do I."],
-    burr: ["No post to stand at. I keep going back to it out of habit, and then I go somewhere else.", "Move along! Anywhere you like! Ha!"],
-    tuck: ["I drew a map of EVERYWHERE. It's mostly the bakery.", "I'm going to be a Maker AND a Wanderer. Both. At once."],
-    rosa: ["A cart came through from past the fog and bought every loaf I had. Every one!", "Bread for strangers. Who knew it'd taste better?"],
-    annie: ["Broke a pot this morning. It stayed broken. I made a mosaic out of it. Best thing I've ever made.", "The canyon's the same as ever. I'm not. Funny, that."],
-    tal: ["Things break now and stay broken, so you mend them. I'd forgotten mending.", "Mind my tools. I left them where I liked, and they stayed there."],
-    pip: ["The sheep wander off now! I go and find them. It takes ALL DAY. It's brilliant.", "Baa. Sorry. Still a habit."],
-    fen: ["Cut a field of barley yesterday. It's still cut. I'll have to plant it again. Imagine.", "The scarecrow fell over in the night. I left him. He looked comfy."],
-    wick: ["The fish don't swim home any more. They swim wherever. So do I!", "I went down the river past the falls and nobody came to fetch me. I came back for tea."],
-    hettie: ["The giant's walked off over the hills. Left a dent in the woods the size of a house. I miss him.", "The old roots don't creak home at night now. It's very quiet in Hushwood."],
-    rook: ["My crystal ball shows... the future. Isn't that something? It never used to. It used to show the same afternoon.", "The fair's going on tour. I've told everyone's fortune and they're all different now."],
-    pell: ["The carousel horses walked off into the fields. We'll get them back. Or we won't. The fair'll be different.", "Roll up! Roll up! Nobody has to. That's the beauty of it."],
-    brindle: ["The wind up here blows things away now, and they stay blown. I've lost three hats. Wonderful.", "The bells ring for no reason now. Your mum's doing, mostly."],
-    thimble: ["I'm off to a market two valleys over. I've packed forty buttons. In case.", "I lost a button yesterday and I didn't even mind."],
-    seam: ["Your travelling coat's nearly done. Room in the pockets for anything you find out there.", "Every seam in this town was straight. I'm trying a crooked one. For fun."],
-    mabel: ["I'm giving the strays away. To anyone who wants them. They can go where they like too.", "Every one with an L. She was trying to tell us, all those years."],
-    nell: ["I ran right past the posts and NOTHING HAPPENED!", "Race you to the fog! It's not even fog any more!"],
-    otto: ["That crate's still where I left it. I go and look at it sometimes. It's my favourite crate.", "I moved my house's chair to the window. It's stayed there two whole days."],
-    bea: ["Tag! You're it! You'll always be it!", "We played hide-and-seek and I hid past the river and nobody pulled me back!"],
+    gran: ["Sit with us a while, love. There's no hurry.", "Your aunt says the world goes on a long way past the fog. Go and see it. Then come and tell me."],
+    linnet: ["Twenty-five years. The garden's exactly where I left it. Well. Mum would see to that.", "There's a road through the fog now. I'll show you my garden on the other side, one day."],
+    ives: ["There's a queue for my Trials now, love. Grown-ups, mostly. Your dad's been up four times."],
+    bram: ["{happy}Nine jugs on order this week! NINE! Annie can't dig fast enough. HA!"],
+    ambrose: ["Your mum and I are taking the boat out past the falls tomorrow. Just to see."],
+    tess: ["{happy}I rang the big bell this morning for nothing at all, bairn. Half the town came running."],
+    mallow: ["*yawn* Eleven hours' sleep last night. Not a sound of winding anywhere. I'm going back for more."],
+    jory: ["{happy}The touring show! I'm painting the wagon. What colour's a road?"],
+    gundry: ["The Guild's voted to keep the Spoolworks turning. Then we argued till dark about who'd take the minutes."],
+    quill: ["Somebody's been at my Rules with the chalk. I've left it up. The spelling's correct."],
+    arlo: ["My bench has been moved, six feet to the left. I sat down where it used to be. Bit of a shock, at my age."],
+    hob: ["{worried}Haven't seen Gerald all week. Not on his rock, not anywhere. I hope he's all right."],
+    burr: ["First trouble in twenty years: one of Pip's sheep, loitering on the bridge. I let her off with a warning."],
+    tuck: ["{happy}I drew a map of EVERYWHERE. It's mostly the bakery."],
+    rosa: ["A cart came through from past the fog and bought every loaf I had. Paid in metal buttons with no holes in. I don't know what you'd sew them on."],
+    annie: ["Broke a pot yesterday. It's still in bits. I've made a mosaic out of it."],
+    tal: ["Two kettles, a chair and a doll's arm since breakfast. Mind my tools."],
+    pip: ["The sheep wander off now. I've been calling them for hours. Baa. Sorry. Habit."],
+    fen: ["The scarecrow fell over in the night. I left him. He looked comfy."],
+    wick: ["{happy}I caught one! A real fish! ...I put it back. It looked so surprised."],
+    hettie: ["{sad}The giant's walked off over the hills. Left a dent in the woods the size of a house. I miss him."],
+    rook: ["My crystal ball shows... the future. It never used to. It used to show the same afternoon."],
+    pell: ["The carousel horses walked off into the fields. I've been out all morning with a carrot, for some reason."],
+    brindle: ["The wind up here blows things away now, and they stay blown. I've lost three hats."],
+    thimble: ["The Guild's cut its string order to one ball a week. One ball! I've string up to the rafters."],
+    seam: ["The dragon's got both its wings now, {name}. Not a word to Tuck."],
+    mabel: ["{surprised}Thimble came in asking after a glove. A LOST glove. Thirty years I've kept this shop and nobody's ever asked me that."],
+    nell: ["{happy}Race you to the fog! It's not even fog any more!"],
+    otto: ["{cross}I'm not the Housekeeper any more. I've retired. Bea's the Housekeeper now, and she's rubbish at it."],
+    bea: ["{worried}Has anybody seen my shoe? The other one. It looks like this one."],
 };
 {
     const talk0 = Story.talk;
@@ -32618,7 +32619,7 @@ const StrayHouse = {
     },
     *pileDown(pile) {
         yield 30;
-        yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them. Nothing needs to.");
+        yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them.");
         const a = pile.area;
         for (const [dx, dy] of [[0, 0], [1, 1]]) { const x = pile.tx + dx, y = pile.ty + dy; if (!a.at(x, y)) { const b = a.add(new Block(x, y, { stray: true })); b.skey = 'pile:' + dx; Fx.poof(x * T + 8, y * T + 8); } }
         /* the Heartstitch on a free floor tile where it came apart (never in a wall) */
@@ -32955,7 +32956,7 @@ class IvesWalker extends GridThing {
         Script.run(Unfinished.atChair(this));
     }
     interact(p) {
-        Script.run(function* () { yield* say('mrives', Progress.flag('ives_done') ? cycle('ives_chair', ["Look at it. All of it, real. Well. Three bits at a time. That's how houses are, mostly.", "You'll come and see an old man now and then? Bring that cat."]) : "Off we go, then. You sew, I'll walk. Don't let me fall in; I'm not as bouncy as I was."); });
+        Script.run(function* () { yield* say('mrives', Progress.flag('ives_done') ? cycle('ives_chair', ["Look at it. All of it, real. Well. Three bits at a time.", "You'll come and see an old man now and then? Bring that cat."]) : "Off we go, then. You sew, I'll walk. Don't let me fall in; I'm not as bouncy as I was."); });
         return true;
     }
     sprite() { const fr = this.mv ? [1, 0, 2, 0][Math.floor(this.anim / 6) % 4] : 0; return personFrame('mrives', this.dir, fr); }
@@ -32986,7 +32987,7 @@ const Unfinished = {
     },
     *atChair(w) {
         yield 20;
-        yield* say('mrives', "Oh. Oh, there it is. My chair. I drew this chair in 1971.");
+        yield* say('mrives', "Oh. Oh, there it is. My chair. I drew this chair when I had all my own teeth.");
         yield* say('mrives', "Here. My old hook. Longer line than they make now; I made it for this House, and never had a House to use it in.");
         yield* Story.getItem('longhook')();
         Progress.setGoal('');
@@ -33012,7 +33013,7 @@ SPAWN.ivesdoor = (tx, ty) => {
         { k: 'npc', who: 'mrives', x: 58, y: 7, face: 'down', id: 'mrivesTown2', if: 'ives_done' });
 }
 TALK.mrives = function* (n) {
-    if (n.area && n.area.id === 'unfinished') return yield* say('mrives', cycle('ives_in', ["The Needle holds three. I never could hold more than two in my head at once, so you're ahead of me already.", "Mind where you stand when you sew the next one. I fell through my own floor twice in 1971, and it was only chalk.", "The Gallery's at the top, once you've lit both lamps. That's the bit I wanted to see finished."]));
+    if (n.area && n.area.id === 'unfinished') return yield* say('mrives', cycle('ives_in', ["The Needle holds three. I never could hold more than two in my head at once, so you're ahead of me already.", "Mind where you stand when you sew the next one. I fell through my own floor twice when I drew it, and it was only chalk.", "The Gallery's at the top, once you've lit both lamps. That's the bit I wanted to see finished."]));
     if (Progress.flag('ives_done')) return yield* say('mrives', cycle('ives_town', ["Best afternoon I've had in forty years, that.", "Hesper and I were at school together, you know. She cried at everything. Still does, I expect."]));
     if (!Unfinished.open()) return yield* Unfinished.door();
     yield* say('mrives', "Door's open for you, Maker. In you go.");
@@ -33213,7 +33214,7 @@ SPAWN.bossnap = (tx, ty, p) => {
         return function* () {
             Progress.set('s25'); Stats.count('secret:collar');
             yield* say(null, "Biscuit lets you scratch under its chin, and for the first time you notice the collar: green thread, plaited, very old. A little brass tag on it, worn nearly smooth: L.R.");
-            yield* say(null, "Linnet's cat. It came back by itself, years ago. Nobody pulled it.");
+            yield* say(null, "Linnet's cat.");
         };
     };
 }
@@ -33287,8 +33288,10 @@ for (const h of SILK_HOLLOWS) {
 {
     const bb0 = Story.blackboard;
     Story.blackboard = function* () {
+        /* (after: the old Rules, the later ones wiped off, and one of them answered) */
         if (Progress.flag('unwound')) {
-            yield* say(null, "THE RULES OF THE HOLLOW (NEW). In Miss Quill's best hand:\n1. Things have places.\n2. People choose theirs.\n3. Some things get lost. That's allowed.\n4. Come home for tea, if you like.");
+            yield* bb0();
+            yield* say(null, "Rule three has a chalk line through it. Under it, in a child's hand: 'BEA LOST HER SHOE.'");
             return;
         }
         yield* bb0();

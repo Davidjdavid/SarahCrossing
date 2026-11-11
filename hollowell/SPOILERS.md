@@ -60,8 +60,10 @@ With the bracelet from Linnet's Trail (secret chain), shown to Hesper at the Spo
 throwing and lets a pair of the great threads go herself, and in the epilogue she walks up the north road into the mist
 with Linnet, the one who never left (not shown, Linnet gives it to her on the bench; the post-game bridge over the Drift
 is still to build with O1). With Tuck's drawing (S30) it's on
-Gran's dresser. Either way, a week later somebody re-carves the Well's motto: "EVERYTHING IN ITS PLACE, AND EVERYONE IN
-THEIRS. WHEREVER THAT IS." (S35 reads it in each act.)
+Gran's dresser. Either way, a week later somebody re-carves the Well: under the old EVERYTHING IN ITS PLACE, one new
+word, freshly cut, at the start of a line of its own: AND. Nothing after it; the chips still on the step. (S35 reads it in
+each act. No new motto is spelled out: what comes after AND is left open, as Quill's sixth rule was chalked and rubbed
+out; it rhymes, unsaid, with the title's "a Wander (and after)".)
 
 As built (`src/74_drift.js`, `75_greatspool.js`, `76_ending.js`): the Shears at the fog ask to cut Wren's own thread
 (hearts come undone: nothing left to unravel; falls are climbed out of where they happen). Into the fog, out in the
@@ -601,7 +603,11 @@ Wren's face at the Spool's top, once (`granCount`).
 ## Act IV so far: the north gate, the Loomwood, the Loom, cutting free (`src/71_loomwood.js`, `src/72_loom.js`, `src/73_freed.js`)
 The north gate opens when its counterweight in the Seams takes a new place from the Needle. Burr, after: "Go on, then."
 The Loomwood: silver birches, moths that go for movement, silk strands, the Frayed Edge (strays; the Stray House's
-door with a slot for a folded note: Linnet's note 8, O1). The Loom: the First Spinner's; its tapestry tells she tied
-the valley in a hard winter and meant to unpick it in spring; L. cut her way out of here. With the Shears, townsfolk
-cut free say something new and walk a little round of their own (CUT_LINES); Old Arlo walks to the river (S24).
+door with a slot for a folded note: Linnet's note 8, O1). The Loom: the First Spinner's; its tapestry shows she tied
+the valley in a hard winter, and in its last panel the snow has gone and she's still holding every thread (that she
+meant to unpick them in the spring is only on the breast-beam, under the Weaver's silk); L. cut her way out of here.
+With the Shears, townsfolk cut free do something new as it's cut (CUT_LINES) and walk a little round of their own,
+with one line each about what they're up to (FREE_LINES); after the Unwinding, one more each (AFTER_LINES), never the
+same beat as before: practical and particular (Bram's jug orders, Hob's missing Gerald, Rosa's coins "with no holes in",
+Bea's lost shoe, which a child has chalked under the struck-out third Rule). Old Arlo walks to the river (S24).
 

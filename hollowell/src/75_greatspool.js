@@ -939,7 +939,7 @@ const GreatSpool = {
                 /* (the camera goes to the square while it's told: the ring of people round the Well, the threads) */
                 yield* camLook(95, 59);
                 if (nd) yield* say(null, "The town square. " + (nd > 6 ? 'Everyone you know is' : 'The few with threads still on them are') + " shuffling towards the Well, step by step, threads streaming from them down into it. Their feet don't want to; their threads do.");
-                else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled. You saw to that.");
+                else yield* say(null, "The town square. Everyone you cut free is standing about the Well, watching. Threads are pouring into it from every direction: from the hills, the river, the fields, every marked thing in the valley. Nobody here is being pulled.");
                 yield* say(null, "The Well's cap is gone. Threads pour into the dark like water going down a drain.");
                 yield* camBack();
                 Progress.setGoal('Down the Well, to the Great Spool.');
@@ -959,8 +959,8 @@ const GreatSpool = {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && npc.area && npc.area.id === 'hollow') {
-            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "{happy}We're all right! Nothing's got hold of us! Go on, Wren!"); };
-            if (npc.dragged) return function* () { yield* say(npc.who, ["{worried}I can't... stop... walking. Wren? Is that you?", "{worried}My feet won't listen. It's the Well. It wants us.", "{worried}Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
+            if (Progress.flag('cut:' + npc.who)) return function* () { yield* say(npc.who, "{happy}We're all right! Nothing's got hold of us! Go on, {name}!"); };
+            if (npc.dragged) return function* () { yield* say(npc.who, ["{worried}I can't... stop... walking. {name}? Is that you?", "{worried}My feet won't listen. It's the Well. It wants us.", "{worried}Go on, love. Down the Well. Don't mind us."][Math.floor(G.rng() * 3)]); };
         }
         /* everyone else with a thread, wherever they are, is holding on to something */
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && !Progress.flag('cut:' + npc.who) && npc.who !== 'gran' && npc.who !== 'linnet' && PEOPLE_DEF[npc.who]) {
