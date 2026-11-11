@@ -27,7 +27,7 @@ WALLS.loomhouse = {
 
 /* the Hanging Gallery's weights: hung out at the trench's west end, home along it, then down the far side to the east */
 /* the Bridge Room's weight, wedged in its nook (and any spare dropped into the nook after it) */
-const BR_WEDGED = { noPull: true, stitchName: 'the wedged weight',
+const BR_WEDGED = { noPull: true, stitchName: 'the wedged weight', pullLine: 'Wedged in its nook, iron to the stone: no hand will get it out.',
     onPushed(p, d) { if (!this.canPush(d)) UI.toast('Wedged in its nook, iron to the stone: no hand will get it out.', 120); } };
 function HANG_PATH(hx, hy, sx) {
     const p = [[hx, hy], [hx, 7]];

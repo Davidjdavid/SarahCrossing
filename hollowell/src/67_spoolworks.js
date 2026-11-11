@@ -619,6 +619,7 @@ SPAWN.bobbin = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy
 /* a crossbar rack in the Under-works: its strings run up through the floor to puppets on the floor above (drawn where
    they show through), and the rack walks them as any rack does */
 class UnderRack extends Rack {
+    interact(p) { UI.toast("The rack's strings run up through the boards to the puppets above. A rack's worked with a crossbar, not by hand.", 170); Sfx.play('hitthing', 0.4); return true; }
     draw(cx, cy) {
         const im = spr('rack'); if (im) Gfx.img(im, this.px - cx, this.py - cy - 8);
         const r = this.area.roomAt(this.tx, this.ty), ab = r && r.above;

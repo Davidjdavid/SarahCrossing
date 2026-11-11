@@ -18,6 +18,21 @@ export function hearMakers(HW) {
     }
 }
 
+/* up the Climb as a person who watches: in each row between the lanes, wait till nothing's coming past (a train flying,
+   or one the lit lane says is coming) for the moment it takes to cross, then go up a row. The lanes' rows are given in
+   the room's own rows (8, 6, 4, 2); origin is the room's corner */
+export function climbWatching(HW, origin, maxWait = 600) {
+    const p = HW.player(), [ox, oy] = origin, lanes = HW.G.map.ents.filter(e => e.kind === 'junklane');
+    for (const row of [8, 6, 4, 2]) {
+        const l = lanes.find(q => q.ty === oy + row);
+        assert.ok(l, 'a lane in row ' + row);
+        for (let i = 0; i < maxWait && l.passing(p.x, 22); i++) HW.step(1);
+        HW.hold('up');
+        for (let i = 0; i < 120 && (p.ty > oy + row - 1 || p.y > (oy + row - 1) * 16 + 10); i++) HW.step(1);
+        HW.release(); HW.step(1);
+    }
+}
+
 /* at the top: throw a crate so it lands on a great thread near its post, let the Pull drag it along (slack), and cut */
 export function slackAndCut(HW, post, origin) {
     const a = HW.G.map, p = HW.player(), top = a.roomAt(post.tx, post.ty);
@@ -1293,8 +1308,9 @@ export const LEG9 = (HW, chain) => {
     ok(HW.find('gsMaGate').open, 'the painted rock on the plate');
     go('mario', 16, 6); go('mario', 18, 6); go('mario', 18, 3); act('up');
     ok(HW.Progress.flag('spool_all'), 'all six Knots undone');
-    /* up the Climb by the pillars' lee; Gran; the six great threads */
-    for (const [x, y] of [[15, 9], [15, 8], [15, 7], [3, 7], [3, 6], [3, 5], [15, 5], [15, 4], [15, 3], [3, 3], [3, 2], [3, 1], [9, 1]]) go('climb', x, y);
+    /* up the Climb, watching the lanes (a train goes by, then across behind it); Gran; the six great threads */
+    go('climb', 9, 9); climbWatching(HW, G.climb);
+    ok(HW.player().ty === g('climb', 0, 1)[1] && !(HW.Stats.c['climb:hit'] > 0), 'up the Climb, never caught');
     HW.hold('up'); HW.step(60); HW.release(); HW.step(40); HW.skipTalk(); HW.step(20); HW.skipTalk();
     ok(HW.Progress.flag('spool_met'), 'Gran at the Spool');
     HW.G.cheats.god = true;     /* (the junk only knocks you about; this keeps the walk tidy) */

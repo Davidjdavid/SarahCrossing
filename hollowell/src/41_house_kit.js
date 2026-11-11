@@ -120,8 +120,10 @@ const Knots = {
         /* the Well: its stone side, its rim, the dark inside */
         for (let j = 0; j < 16; j++) for (let i = 0; i < 76; i += 2) Gfx.rect(x + 18 + i, y + 54 + j, 2, 1, (j % 4 === 3 || (i + (j >> 2) * 4) % 12 === 0) ? '#5e5648' : ((i >> 3) + (j >> 2)) % 2 ? '#a89a86' : '#94877a');
         Gfx.rect(x + 16, y + 50, 80, 4, '#cfc3ae'); Gfx.rect(x + 22, y + 51, 68, 2, '#0c0a10');
-        /* the posts and the drum between them */
+        /* the posts and the drum between them, under the Well's red roof */
         for (const px of [22, 86]) { Gfx.rect(x + px, y + 12, 4, 40, '#7a4e32'); Gfx.rect(x + px, y + 12, 2, 40, '#9a6438'); }
+        for (let j = 0; j < 9; j++) { const ins = Math.round((8 - j) * 1.6); Gfx.rect(x + 12 + ins, y + 4 + j, 88 - ins * 2, 1, j < 2 ? '#e07a64' : j % 3 === 2 ? '#a84a40' : '#c45a4a'); }
+        Gfx.rect(x + 12, y + 13, 88, 1, '#6e2a2a');
         Gfx.rect(x + 26, y + 22, 60, 10, '#c9925a'); Gfx.rect(x + 26, y + 22, 60, 1, '#e6c08a'); Gfx.rect(x + 26, y + 31, 60, 1, '#8a5a38');
         /* a band of thread on the drum for each Knot, in its House's colour, running down into the dark; the newest winds
            on as the winch turns */
@@ -133,11 +135,11 @@ const Knots = {
             Gfx.line(bx + 3, y + 33, bx + 3 + quiver, y + 51, col);
         }
         /* the crank on the right-hand post, turned a notch by nobody, and the pawl that clicks */
-        const hx = x + 92, hy = y + 27, an = -Math.PI / 2 + (n - 1 + ease) * Math.PI / 4;
-        Gfx.line(hx, hy, hx + Math.round(Math.cos(an) * 9), hy + Math.round(Math.sin(an) * 9), '#45281c');
-        Gfx.rect(hx + Math.round(Math.cos(an) * 9) - 1, hy + Math.round(Math.sin(an) * 9) - 1, 3, 3, '#6b4128');
-        Gfx.rect(hx - 1, hy - 1, 3, 3, '#3a3440');
-        Gfx.rect(hx - 1, hy - 4 + (turn > 0 && turn < 1 ? 1 : 0), 1, 2, '#8a8096');
+        const hx = x + 93, hy = y + 27, an = -Math.PI / 2 + (n - 1 + ease) * Math.PI / 4, ex = hx + Math.round(Math.cos(an) * 10), ey = hy + Math.round(Math.sin(an) * 10);
+        Gfx.line(hx, hy, ex, ey, '#45281c'); Gfx.line(hx + 1, hy, ex + 1, ey, '#6b4128');
+        Gfx.rect(ex - 1, ey - 1, 4, 4, '#45281c'); Gfx.rect(ex, ey, 2, 2, '#c9925a');
+        Gfx.rect(hx - 2, hy - 2, 5, 5, '#3a3440'); Gfx.rect(hx - 1, hy - 1, 2, 2, '#8a8096');
+        Gfx.rect(hx - 4, hy - 6 + (turn > 0 && turn < 1 ? 1 : 0), 2, 3, '#aab0c0');
         Gfx.alpha(1);
     },
     /* every thread in the House streaming into the hoop (drawn over the room) */

@@ -5,9 +5,11 @@
    the Slumberhouse (House 5, Doctor Mallow's); sleep puffs line the trail through Puffball Hollow; Snorelings
    doze in the ferns; Hettie the forager camps by Lantern Pond, where a weir (wound open from this side only)
    lets a raft run down the channel to the lake at Millwater. The cliff stair up the east side stays walled off.
-   The Slumberhouse's door opens while Mallow's three Snorelings sleep in the three cradles in the stream's south
-   bank (they follow you; a puffball's spores put one to sleep where it stands; somebody in a cradle, nobody else
-   gets in); a fourth cradle by the house is for the little wooden one. Lantern Pond's four lanterns light only while
+   The Slumberhouse's door opens while somebody sleeps in each of the three cradles in the stream's south bank (a lamp
+   over the door for each, on a cord to its cradle): Snorelings follow you a while, then lie down in the nearest bed
+   they can get to, a cradle as soon as their own spot (src/58_bedroll_kit.js); a puffball's spores put one to sleep
+   where it stands; somebody in a cradle, nobody else gets in. One asleep in the road shows it on the way in, and a
+   fourth cradle by the house is for the little wooden one. Lantern Pond's four lanterns light only while
    their stones weigh on them; all four, and the lantern on the isle lights. Map drafted by tools/mapgen/hushwood.py. */
 
 const SLUMBER_ENTRY = { x: 29, y: 42 };
@@ -78,13 +80,16 @@ defBlock({
         { k: 'hollowhole', x: 3, y: 16, id: 'hollowHole', if: 'giant_awake' },
         { k: 'sign', x: 9, y: 18, text: 'HUSHWOOD. Please do not wake anything.' },
         { k: 'rest', x: 10, y: 16 },
-        { k: 'snoreling', x: 15, y: 22, id: 'hwSnore1' },
+        /* one asleep in the road itself (walk by and it wakes); followed a while, it lies down in the nearest bed going: the
+           cradle by the road, or one of the garden's if you've led it there */
+        { k: 'snoreling', x: 8, y: 20, id: 'hwSnore1' },
+        { k: 'cradle', x: 13, y: 21, sig: 'hwCot' },
         /* over the stream to the Slumberhouse: bouncy moss, one each way */
         { k: 'moss', x: 12, y: 15, dir: 'up', dist: 4, id: 'hwMossN' },
         { k: 'moss', x: 10, y: 11, dir: 'down', dist: 4, id: 'hwMossS' },
         { k: 'sign', x: 11, y: 16, text: 'MIND THE MOSS. It is VERY bouncy. (The stream is cold.)' },
         { k: 'building', x: 15, y: 3, w: 10, h: 6, door: 4, art: 'slumber' },
-        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. From somewhere inside comes a long, slow yawn." },
+        { k: 'warp', x: 19, y: 8, to: 'slumber', tx2: SLUMBER_ENTRY.x, ty2: SLUMBER_ENTRY.y, face: 'up', dir: 'up', when: 'nuA&nuB&nuC|flag:slumber_open|flag:d5', lockedLine: "The round lavender door won't open. Over it hang three little lamps, dark, each on a cord that runs away over the stream. From somewhere inside comes a long, slow yawn." },
         { k: 'sign', x: 17, y: 9, text: 'THE SLUMBERHOUSE. Visiting hours: whenever you wake up. Doctor M.' },
         { k: 'puffball', x: 9, y: 10, id: 'hwPuffN' },
         /* Old Hummock's own bed */
@@ -128,9 +133,9 @@ defBlock({
         { k: 'puffball', x: 15, y: 14, id: 'nuPuffA' }, { k: 'cradle', x: 16, y: 14, sig: 'nuA' },
         { k: 'puffball', x: 19, y: 14, id: 'nuPuffB' }, { k: 'cradle', x: 20, y: 14, sig: 'nuB' },
         { k: 'puffball', x: 23, y: 14, id: 'nuPuffC' }, { k: 'cradle', x: 24, y: 14, sig: 'nuC' },
-        { k: 'snoreling', x: 8, y: 16, id: 'nuSnoreA', type: 'snoreling_n' },
-        { k: 'snoreling', x: 16, y: 16, id: 'nuSnoreB', type: 'snoreling_n' },
-        { k: 'snoreling', x: 20, y: 16, id: 'nuSnoreC', type: 'snoreling_n' },
+        { k: 'snoreling', x: 8, y: 16, id: 'nuSnoreA' },
+        { k: 'snoreling', x: 16, y: 16, id: 'nuSnoreB' },
+        { k: 'snoreling', x: 20, y: 16, id: 'nuSnoreC' },
         /* by the house, a fourth cradle behind a little round hole in the hedge, and the wooden one Jory carved */
         { k: 'cradle', x: 14, y: 7, sig: 'nuD' },
         { k: 'puppet', x: 17, y: 10, id: 'nuDolly', look: 'puppet_snore' },
@@ -668,6 +673,7 @@ CONTENT_INIT.push(initHushArt);
    already, nobody else gets in */
 SPAWN.cradle = (x, y, p) => {
     const c = new Plate(x, y, p);
+    c.cot = true;       /* (a bed: a Snoreling done chasing may pick it, src/58_bedroll_kit.js) */
     c.blocks = function (tx, ty, who) {
         if (tx !== this.tx || ty !== this.ty || !this.area) return false;
         const pl = G.player;
@@ -814,12 +820,50 @@ OWA.ground.hush = {
     },
 };
 Object.assign(Hushwood, {
+    /* the door's three lamps, on the board over it, and their cords: each runs down beside the door and away over the
+       stream to one of the garden's cradles, slack while the cradle's empty, drawn taut (and its lamp lit) while
+       somebody's in it */
+    CORDS: [['nuA', 16, -12], ['nuB', 20, 0], ['nuC', 24, 12]],
+    lampAt(i) { return [(128 + 15) * T + 66 + i * 14, (40 + 3) * T - 6 + 58]; },
+    cords(a, cx, cy) {
+        const dx = (128 + 19) * T + 8, dy = (40 + 9) * T - 2;
+        if (dx - cx < -80 || dx - cx > W + 80 || dy - cy < -40 || dy - cy > H + 120) return;
+        this.CORDS.forEach(([sig, c, off]) => {
+            const on = Signals.get(a, sig), sx = dx + off - cx, sy = dy - cy, ex = (128 + c) * T + 8 - cx, ey = (40 + 14) * T + 4 - cy;
+            const n = Math.max(3, Math.round(Math.hypot(ex - sx, ey - sy) / 8));
+            let px0 = sx, py0 = sy;
+            Gfx.alpha(on ? 0.95 : 0.6);
+            for (let i = 1; i <= n; i++) {
+                const u = i / n, qx = sx + (ex - sx) * u + (on ? 0 : Math.sin(u * Math.PI) * 3), qy = sy + (ey - sy) * u + (on ? 0 : Math.sin(u * Math.PI) * 7);
+                Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, on ? '#e8d8ff' : THREAD.mallow);
+                px0 = qx; py0 = qy;
+            }
+            Gfx.alpha(1);
+            /* tied to the cradle's head */
+            Gfx.rect(ex - 1, ey - 1, 3, 2, PAL.ink); Gfx.rect(ex, ey - 1, 1, 1, on ? '#fff4c0' : '#d8c8f8');
+        });
+    },
+    lamps(a, cx, cy) {
+        const by = (40 + 9) * T - 2 - cy;
+        this.CORDS.forEach(([sig, c, off], i) => {
+            const on = Signals.get(a, sig), [lx0, ly0] = this.lampAt(i), lx = lx0 - cx, ly = ly0 - cy, fx = (128 + 19) * T + 8 + off - cx;
+            if (lx < -12 || lx > W + 12 || ly < -12 || by > H + 12) return;
+            /* the cord, from the lamp down the door frame to the ground */
+            Gfx.alpha(on ? 0.95 : 0.7); Gfx.line(lx, ly + 3, fx, by, on ? '#e8d8ff' : THREAD.mallow); Gfx.alpha(1);
+            if (on) { Gfx.alpha(0.3 + 0.08 * Math.sin(G.t / 13 + i)); Gfx.circle(lx, ly, 8, '#ffe08a'); Gfx.alpha(1); }
+            /* a little round lamp on a hook: lavender glass, dark till lit */
+            Gfx.rect(lx, ly - 7, 1, 3, PAL.ink); Gfx.rect(lx - 2, ly - 5, 5, 2, PAL.ink); Gfx.rect(lx - 1, ly - 5, 3, 1, '#c8903a');
+            Gfx.circle(lx, ly, 4, PAL.ink); Gfx.circle(lx, ly, 3, on ? '#f7e08a' : '#5a4a8a'); Gfx.circle(lx, ly, 2, on ? '#fff4c0' : '#3e2e6a');
+            Gfx.rect(lx - 2, ly - 2, 1, 1, on ? '#ffffff' : '#9a8ac8');
+        });
+    },
     /* how deep in the wood a point is, 0 at its edges (with the town, the Heights, the Reaches) to 1 four tiles in */
     depth(wx, wy) { return clamp(Math.min(wx - 128 * T, wy - 40 * T, 80 * T - wy) / (4 * T), 0, 1); },
     /* small things on the ground: across the edge with the town, moss creeping out over the town's grass and road and the
        town's grass in tufts among the moss, more of each nearer the edge (so it never changes on a line); in the wood, fallen
        leaves and toadstools here and there */
     ground(a, cx, cy) {
+        this.cords(a, cx, cy);
         if (HEADLESS || cx + W < 124 * T || cy + H < 40 * T || cy > 80 * T) return;
         const tx0 = Math.max(124, Math.floor(cx / T)), tx1 = Math.floor((cx + W) / T), ty0 = Math.max(40, Math.floor(cy / T)), ty1 = Math.min(79, Math.floor((cy + H) / T));
         for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
@@ -840,6 +884,7 @@ Object.assign(Hushwood, {
         }
     },
     over(a, cx, cy) {
+        this.lamps(a, cx, cy);
         if (HEADLESS || cx + W < 128 * T || cy + H < 40 * T || cy > 80 * T) return;
         const k0 = Math.min(this.depth(cx, cy), this.depth(cx, cy + H), this.depth(cx + W, cy), this.depth(cx + W, cy + H));
         /* the dimness under the trees: deepening over the wood's first few tiles, its edge wandering (runs of equal shade
@@ -881,8 +926,6 @@ Object.assign(Hushwood, {
 });
 
 function initHushArt2() {
-    ENEMY.snoreling_n = Object.assign({}, ENEMY.snoreling, { chase: 1500 });
-    ENEMY_DRAW.snoreling_n = ENEMY_DRAW.snoreling;
     treeArt('tree_hush2', { leaf: ['#3a6e66', '#4a8a78', '#6eb294', '#24504a'], bark: ['#8a7a9a', '#64547a', '#3a2e4a'] }, 9, { clumps: [[16, 15, 10], [8, 18, 7], [24, 18, 7], [11, 10, 6], [21, 10, 6], [16, 21, 8]] });
     {
         /* moss hanging from its boughs */

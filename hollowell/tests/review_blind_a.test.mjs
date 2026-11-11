@@ -218,3 +218,112 @@ test('the Night Ferry: saved west of the channel with the Bedroll laid there, a 
     assert.ok(outOfFerry(H2), 'and out');
     noErrors(H2);
 });
+
+/* ---------------- 6: the Climb, a test of hands ---------------- */
+import { climbWatching } from './legs.mjs';
+function climbAt(delay) {
+    const HW = spool(); inSpool(HW, 'climb', 9, 9);
+    for (const h of ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette']) HW.Progress.set('untie:' + h);
+    HW.Progress.set('spool_all'); HW.step(delay);
+    return HW;
+}
+test('the Climb: every throw is told first (its lane lit at least half a second before); holding Up no longer gets through clean, watching does', () => {
+    /* the tell: lit for its whole length before every train */
+    {
+        const HW = climbAt(10), lanes = HW.G.map.ents.filter(e => e.kind === 'junklane');
+        assert.equal(lanes.length, 4);
+        for (const l of lanes) {
+            let lit = 0, trains = 0, ok = true;
+            for (let i = 0; i < 400; i++) {
+                const before = l.flying.length; HW.step(1);
+                if (i > 40 && l.flying.length > before && l.t % l.period === 0) { trains++; ok = ok && lit >= 30; }
+                lit = l.tellK > 0 ? lit + 1 : 0;
+            }
+            assert.ok(ok && trains >= 3, 'every train in row ' + l.ty + ' told first');
+        }
+    }
+    /* holding Up, at twenty start times: never clean, knocked back again and again; watching: clean every time */
+    const mash = [], watch = [];
+    for (let s = 0; s < 20; s++) {
+        const HW = climbAt(5 + 23 * s), p = HW.player();
+        HW.hold('up'); until(HW, () => p.ty <= GS.climb[1] + 1, 3000); HW.release();
+        mash.push(HW.Stats.c['climb:hit'] || 0);
+        const H2 = climbAt(5 + 23 * s);
+        climbWatching(H2, GS.climb);
+        assert.equal(H2.player().ty, GS.climb[1] + 1, 'up');
+        watch.push(H2.Stats.c['climb:hit'] || 0);
+        noErrors(HW); noErrors(H2);
+    }
+    assert.ok(mash.every(n => n >= 1), 'holding Up is caught every time: ' + mash.join(' '));
+    assert.ok(mash.reduce((a, n) => a + n, 0) / mash.length >= 2.5, 'two or three times a climb: ' + mash.join(' '));
+    assert.ok(watch.every(n => n === 0), 'watching the lanes, never: ' + watch.join(' '));
+});
+
+/* ---------------- 7: the Needle's reach, shown ---------------- */
+test('the Needle: while a new place is chosen, every tile it could go to is known (four steps, round walls, never over a hole or onto Wren); too far off, it says so', () => {
+    const HW = loadGame(); HW.newGame('Wren', { area: 'lab', x: 3, y: 5, noAutosave: true }); HW.step(5);
+    HW.Inv.tools.push('needle'); HW.Inv.items.needle = 1; HW.Inv.stitches = [];
+    const a = HW.G.map, N = HW.global('Needle');
+    a.setCell(5, 3, 'o');                                     /* (a hole two east of the block) */
+    HW.face('up'); HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(3);
+    assert.ok(N.st && N.st.thing.tx === 3 && N.st.thing.ty === 3, 'the block taken up');
+    const R = N.reach(N.st), has = (x, y) => R.has(x + ',' + y);
+    assert.ok(has(3, 1) && has(1, 2) && has(4, 3) && has(2, 4), 'near tiles');
+    assert.ok(!has(3, 5), 'not where Wren stands');
+    assert.ok(!has(5, 3), 'not over the hole');
+    assert.ok(!has(1, 1) && !has(6, 3), 'nor where something stands (the sign, the wooden block)');
+    assert.ok(has(6, 2) && has(6, 4) && !has(7, 2), 'round the hole, four steps and no further');
+    assert.ok([...R.values()].every(d => d >= 1 && d <= 4), 'all within four');
+    HW.press('act', 1); HW.step(3);
+    assert.ok(!N.st, 'let go');
+    /* a pot six tiles off along the line faced: not "nothing there", but too far */
+    const pot = a.add(HW.global('SPAWN').pot(2, 5, {})); pot.skey = 'farpot';
+    HW.player().x = 8 * 16 + 8; HW.player().y = 5 * 16 + 10; HW.step(1);
+    clearToasts(HW); HW.face('left'); HW.press('tool', 1); HW.step(3);
+    assert.ok(!N.st && toasts(HW).some(t => /Too far/.test(t)), 'too far off, it says');
+    noErrors(HW);
+});
+
+/* ---------------- 8: refusals, said ---------------- */
+test('refusals are said: a block tied off below won\'t be pushed or gripped; a wedged weight won\'t be pulled; the practice rack isn\'t worked by hand; the Needle and a knot', () => {
+    const HW = works(); HW.Inv.tools.push('needle'); HW.Inv.items.needle = 1;
+    inWorks(HW, 'gate', 11, 3);
+    const b = HW.find('gaBlock');
+    assert.ok(b.knotted, 'tied off below');
+    const [bx, by] = [b.tx, b.ty];
+    assert.ok(HW.walkTo(bx + 1, by)); clearToasts(HW);
+    HW.hold('left'); HW.step(40); HW.release(); HW.step(2);
+    assert.ok(b.tx === bx && toasts(HW).some(t => /holding it fast from underneath/.test(t)), 'pushed: it says it\'s held from underneath');
+    HW.step(100); clearToasts(HW); HW.face('left'); HW.press('act', 1); HW.step(5);
+    assert.ok(toasts(HW).some(t => /holding it fast/.test(t)), 'gripped: the same');
+    /* from below, the Needle on its cord */
+    const c = HW.G.map.ents.find(e => e.kind === 'cord' && e.thing === b);
+    HW.warp('spoolworks', c.tx, c.ty + 1); HW.step(30); HW.skipTalk();
+    clearToasts(HW); HW.face('up'); HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(3);
+    assert.ok(toasts(HW).some(t => /tied off/.test(t)), 'the Needle on a knotted cord says so');
+    /* the practice rack, by hand */
+    inWorks(HW, 'upractice', 12, 4); clearToasts(HW); HW.face('up'); HW.press('act', 1); HW.step(5);
+    assert.ok(toasts(HW).some(t => /crossbar/i.test(t)), 'the rack says how it\'s worked');
+    noErrors(HW);
+    /* the Loom's wedged weight, pulled (from the silk in front of its nook) */
+    const H2 = loadGame(); H2.preset('afterD7'); H2.step(10); H2.skipTalk();
+    H2.warp('loom', 49, 13); H2.step(30); H2.skipTalk(); H2.step(5);
+    clearToasts(H2); H2.face('left'); H2.hold('act'); H2.step(15);
+    assert.ok(H2.player().grip, 'gripped');
+    H2.hold(['act', 'right']); H2.step(40); H2.release(); H2.step(5);
+    assert.ok(H2.G.map.at(48, 13) && toasts(H2).some(t => /Wedged/.test(t)), 'pulled: it says it\'s wedged');
+    noErrors(H2);
+});
+
+/* ---------------- 9: small lines ---------------- */
+test('lines: the top\'s failed snip says what happens, not what to do; the Bell says its snap shoves harder', () => {
+    const HW = spool(); inSpool(HW, 'top', 9, 9);
+    for (let i = 0; i < 20 && !HW.Progress.flag('spool_met'); i++) { HW.skipTalk(); HW.step(20); }
+    const post = HW.G.map.ents.find(e => e.kind === 'greatpost' && e.house === 'slumber');
+    assert.ok(HW.walkTo(post.tx + 1, post.ty)); clearToasts(HW);
+    HW.face('left'); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(5);
+    const t = toasts(HW).find(s => /Too taut/.test(s));
+    assert.ok(t && !/dragged|drag|slack/i.test(t), 'what happens: ' + t);
+    assert.match(HW.global('ITEMS').bell.desc, /shov\w* harder/);
+    noErrors(HW);
+});

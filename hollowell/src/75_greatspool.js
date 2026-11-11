@@ -317,9 +317,10 @@ defHouse({
             ents: [
                 { k: 'door', x: 9, y: 0, type: 'gate', when: 'flag:spool_all', dir: 'h', id: 'gsTop' },
                 { k: 'sign', x: 11, y: 9, text: 'UP: THE SPOOL. (The way opens when every Knot is undone.)' },
-                /* (four lanes, each on a beat of its own, a train of five from one end; between them, rows nothing crosses) */
-                { k: 'junklane', x: 18, y: 2, dir: -1, period: 104, phase: 0 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 112, phase: 40 },
-                { k: 'junklane', x: 18, y: 6, dir: -1, period: 100, phase: 70 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 108, phase: 25 },
+                /* (four lanes on one beat, staggered: a train of six nose to tail from one end, then a clear spell; between the
+                   lanes, rows nothing crosses. Staggered so that walking straight up without looking is caught most of the way) */
+                { k: 'junklane', x: 18, y: 2, dir: -1, period: 96, phase: 32 }, { k: 'junklane', x: 1, y: 4, dir: 1, period: 96, phase: 80 },
+                { k: 'junklane', x: 18, y: 6, dir: -1, period: 96, phase: 32 }, { k: 'junklane', x: 1, y: 8, dir: 1, period: 96, phase: 0 },
             ],
         },
         /* ---------------- the Slumberhouse's Knot: the arch is too low to ride under; send your place, then go home to it ---------------- */
@@ -473,7 +474,7 @@ class GreatPost extends GridThing {
     onCut() {
         if (this.cut || !Progress.flag('spool_met')) return;
         /* the Spool keeps its threads taut: the Shears only bite one that something's just been dragged along */
-        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : "Too taut: the Shears skid right off it. If something were dragged along it, it might go slack for a moment...", 200); Progress.set('taut_told'); return; }
+        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : 'Too taut: the Shears skid right off it. It hums, pulled tight as a bowstring toward the drum.', 200); Progress.set('taut_told'); return; }
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
@@ -537,13 +538,14 @@ SPAWN.greatspool = (x, y, p) => new SpoolDrum(x, y, p);
    time, on a beat. Every throw shows itself first, as every blow in the valley does: the whole lane lights up, blinking
    faster as it comes, a glow gathers at the end it'll come from, and a warning chirps if it's the lane in front of you.
    One that catches you knocks you back to the start of that lane (the row you came up from), never further, and
-   leaves you dazed a moment. Nothing in a lane shelters you: you watch it, and go behind a train */
-const CLIMB_DAZE = 40;
+   leaves you dazed till that train's gone by (never caught twice by one). Nothing in a lane shelters you: you watch
+   it, and go behind a train */
+const CLIMB_DAZE = { min: 20, max: 90 };
 class JunkLane extends Ent {
     constructor(tx, ty, p = {}) {
         super('junklane', p);
         this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = p.phase || 0; this.flying = [];
-        this.n = p.n || 5; this.every = p.every || 8; this.speed = p.speed || 2.6; this.tellN = p.tell || 36; this.dazed = 0;
+        this.n = p.n || 6; this.every = p.every || 7; this.speed = p.speed || 2.4; this.tellN = p.tell || 36; this.dazed = 0;
     }
     get sortY() { return this.y + 20; }
     get on() { return Progress.flag('spool_all') && !Progress.flag('unwound'); }
@@ -554,7 +556,7 @@ class JunkLane extends Ent {
     hits(p, x) { return Math.abs(p.x - x) < 10 && Math.abs(p.y - 6 - (this.ty * T + 6)) < 9; }
     update() {
         const p = G.player;
-        if (this.dazed > 0 && --this.dazed === 0 && p && p.pinned === 'dazed') p.pinned = null;
+        if (this.dazed > 0 && ++this.dazed > CLIMB_DAZE.min && (this.dazed > CLIMB_DAZE.max || !this.passing(this.dazeX, 22))) { this.dazed = 0; if (p && p.pinned === 'dazed') p.pinned = null; }
         if (!this.on || Script.blocking()) return;
         const a = this.area, r = a.roomAt(this.tx, this.ty), k = ++this.t % this.period;
         /* (the chirp for the lane in front of you only: four at once would be no warning at all) */
@@ -569,7 +571,7 @@ class JunkLane extends Ent {
                 /* back to the start of this lane: the row below it; knocked silly a moment (no walking; a tool still works) */
                 const [lx, ly] = p.landingSpot(clamp(p.tx, r.x + 1, r.x + r.w - 2), this.ty + 1);
                 p.x = lx * T + 8; p.y = ly * T + 10; p.kx = p.ky = 0; p.unstick(); Fx.poof(p.x, p.y);
-                if (!p.pinned) { p.pinned = 'dazed'; this.dazed = CLIMB_DAZE; }
+                if (!p.pinned) { p.pinned = 'dazed'; this.dazed = 1; this.dazeX = p.x; }
                 Fx.text(p.x, p.y - 24, '* * *', '#f7d64a'); Stats.count('climb:hit');
                 if (!Progress.flag('junk_hit')) { Progress.set('junk_hit'); G.pendingToast = 'Something flying knocks you clean off your feet, back to the start of the lane.'; }
             }

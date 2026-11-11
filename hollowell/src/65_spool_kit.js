@@ -229,6 +229,36 @@ SFX.tie = (o, t) => { Audio.hit(o, t, 0.08, 0.1, 500, 1800); Audio.tone(o, t + 0
     Puppet.prototype.step = function (d) { return this.knotted ? false : step0.call(this, d); };
 }
 
+/* refusals, said (what the world does, not what to do about it): a thing tied off below won't be pushed or gripped up
+   here; a thing no hand can shift won't come when pulled */
+{
+    const said = (p, s) => { if (!p._refT || G.t - p._refT > 90) { p._refT = G.t; UI.toast(s, 130); Sfx.play('hitthing', 0.5); } };
+    const KNOT_LINE = "It won't budge: something is holding it fast from underneath.";
+    const push0 = Player.prototype.tryPush;
+    Player.prototype.tryPush = function (d) {
+        const f = this.front(), o = this.area.at(f.tx, f.ty);
+        if (o && o.isGrid && o.knotted) {
+            if (this.pushDir !== d) { this.pushT = 0; this.pushDir = d; }
+            this.pushing = true;
+            if (++this.pushT >= 16) { this.pushT = 0; said(this, o.pushLine || KNOT_LINE); }
+            return;
+        }
+        return push0.call(this, d);
+    };
+    const grip0 = Player.prototype.tryGrip;
+    Player.prototype.tryGrip = function () {
+        const o = this.thingInFront();
+        if (o && o.isGrid && o.knotted && Input.pressed('act')) said(this, o.pushLine || KNOT_LINE);
+        return grip0.call(this);
+    };
+    const gm0 = Player.prototype.gripMove;
+    Player.prototype.gripMove = function (ax) {
+        const o = this.grip, back = OPP[this.dir], want = ax.x < 0 ? LEFT : ax.x > 0 ? RIGHT : ax.y < 0 ? UP : DOWN;
+        if (o && o.noPull && want === back && !o.mv && !this.pullT && !this.solidAt(this.tx + DX[back], this.ty + DY[back])) said(this, o.pullLine || o.pushLine || "It won't come. No hand could pull that.");
+        return gm0.call(this, ax);
+    };
+}
+
 /* hatches: a ladder up from the Underside, a trapdoor down from the room above */
 class Hatch extends GridThing {
     constructor(tx, ty, p = {}) { super('hatch', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false }, p)); }
@@ -286,9 +316,20 @@ const Needle = {
         }
         return null;
     },
+    /* the first thing along the line Wren faces past the Needle's reach (before a wall), if any */
+    beyond(p) {
+        const a = p.area;
+        for (let i = this.REACH + 1; i <= 12; i++) {
+            const x = p.tx + DX[p.dir] * i, y = p.ty + DY[p.dir] * i;
+            if (!a.inside(x, y) || a.kind(x, y).solid) return null;
+            if (a.at(x, y)) return a.at(x, y);
+        }
+        return null;
+    },
     use(p) {
         if (this.st) return this.confirm(p);
         const t = this.target(p);
+        if (!t && this.beyond(p)) { UI.toast("Too far off: the Needle's thread reaches four tiles, no further."); Sfx.play('hitthing', 0.4); return; }
         if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }
@@ -412,6 +453,22 @@ const Needle = {
             r.color0 = rec.color0 || r.color; r.color = THREAD.wren; e.stitched = true;
         }
     },
+    /* every tile the needle could still be walked to (four steps from where the thing is, round walls, never over a hole
+       or onto Wren herself) */
+    reach(s) {
+        const e = s.thing, [x0, y0] = s.path[0], seen = new Map([[key2(x0, y0), 0]]), q = [[x0, y0]];
+        while (q.length) {
+            const [x, y] = q.shift(), d = seen.get(key2(x, y));
+            if (d >= this.REACH) continue;
+            for (const k of [UP, RIGHT, DOWN, LEFT]) {
+                const nx = x + DX[k], ny = y + DY[k];
+                if (seen.has(key2(nx, ny)) || !this.stepOk(e, nx, ny)) continue;
+                seen.set(key2(nx, ny), d + 1); q.push([nx, ny]);
+            }
+        }
+        seen.delete(key2(x0, y0));
+        return seen;
+    },
     draw(cx, cy) {
         const s = this.st, p = G.player;
         /* a stitched thing at home: Wren's own little red cross peeping out under it */
@@ -420,8 +477,28 @@ const Needle = {
             const x = e.px - cx, y = e.py - cy;
             Gfx.rect(x + 2, y + 13, 2, 1, THREAD.wren); Gfx.rect(x + 12, y + 13, 2, 1, THREAD.wren);
         }
+        /* the Needle in hand: what it would take, marked at its corners (the first thing in line, four tiles at most) */
+        if (!s && p && a && p.area === a && Inv.equipped === 'needle' && p.state === 'normal' && !p.pinned && !Script.blocking()) {
+            const t = this.target(p), e = t && !t.off ? t.thing : null;
+            if (e && this.able(e) && !e.knotted) {
+                const x = e.px - cx, y = e.py - cy, k = (G.t >> 4) % 2;
+                Gfx.alpha(0.85);
+                for (const [u, v, du, dv] of [[0, 0, 1, 1], [15, 0, -1, 1], [0, 15, 1, -1], [15, 15, -1, -1]]) {
+                    const X = x + u - du * k, Y = y + v - dv * k;
+                    Gfx.rect(du > 0 ? X : X - 2, Y, 3, 1, THREAD.wren); Gfx.rect(X, dv > 0 ? Y : Y - 2, 1, 3, THREAD.wren);
+                }
+                Gfx.alpha(1);
+            }
+        }
         if (!s || !p) return;
         const [ox, oy] = s.off, pts = s.path.map(([x, y]) => [(x - ox) * T + 8 - cx, (y - oy) * T + 9 - cy]);
+        /* where it could go: those tiles, stitched faintly round */
+        Gfx.alpha(0.55);
+        for (const k of this.reach(s).keys()) {
+            const [x, y] = k.split(',').map(Number);
+            Tells.stitchTile((x - ox) * T - cx, (y - oy) * T - cy, THREAD.wren);
+        }
+        Gfx.alpha(1);
         /* the needle's red thread, from Wren to the thing, along the stitch to the new place */
         Gfx.line(p.x - cx + 4, p.y - cy - 12, pts[0][0], pts[0][1] - 4, THREAD.wren);
         for (let i = 0; i + 1 < pts.length; i++) {

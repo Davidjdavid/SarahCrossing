@@ -240,10 +240,14 @@ test('the Climb: shut till every Knot is undone; then a hit sends Wren back to t
     assert.ok(!HW.walkTo(...at('climb', 9, 0), 600), 'the way up shut');
     for (const h of HOUSES) HW.Progress.set('untie:' + h);
     HW.Progress.set('spool_all'); HW.step(30);
-    for (const [x, y] of [[15, 9], [15, 8], [15, 7], [9, 7]]) go(HW, 'climb', x, y);
+    /* over the first lane behind a train, then straight on into the next without looking */
+    const p = HW.player(), l8 = HW.G.map.ents.find(e => e.kind === 'junklane' && e.ty === at('climb', 0, 8)[1]);
+    until(HW, () => !l8.passing(p.x, 22), 400);
+    HW.hold('up'); until(HW, () => p.ty === at('climb', 0, 7)[1] && p.y <= at('climb', 0, 7)[1] * 16 + 10, 120);
+    assert.ok(!HW.Progress.flag('junk_hit'), 'over the first, behind a train');
     let hit = false;
-    for (let i = 0; i < 30 && !hit; i++) { HW.walkTo(...at('climb', 9, 6)); HW.step(20); hit = HW.Progress.flag('junk_hit'); if (!hit) HW.walkTo(...at('climb', 9, 7)); }
-    HW.step(5); HW.skipTalk();
+    for (let i = 0; i < 600 && !hit; i++) { HW.step(1); hit = HW.Progress.flag('junk_hit'); if (p.ty <= at('climb', 0, 5)[1]) { HW.release(); go(HW, 'climb', 9, 7); HW.hold('up'); } }
+    HW.release(); HW.step(5); HW.skipTalk();
     assert.ok(hit, 'knocked');
     assert.equal(HW.player().ty, at('climb', 0, 7)[1], 'back to the start of that lane');
     noErrors(HW);

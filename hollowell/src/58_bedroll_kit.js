@@ -413,7 +413,35 @@ SPAWN.puffball = (x, y, p) => new Puffball(x, y, p);
 }
 
 /* Snorelings: asleep where they lie; disturbed, they shuffle after you with their arms out; after a while they
-   go back to bed (the nearest one: a Bedroll counts) and drop off again */
+   go to bed and drop off again: the nearest bed they can get to, their own spot, a cradle nobody's in (anything set out
+   for a little one to sleep in: `cot`) or the Bedroll. The same in the wood as in the House */
+const Snooze = {
+    REACH: 12,
+    /* the way to the nearest free bed, by the tiles it would walk (nearest first); null if none is in reach */
+    route(e) {
+        const a = e.area, b = Inv.bedroll, beds = new Map();
+        beds.set(key2(e.hx, e.hy), { nest: true });
+        if (b && b.area === a.id && !Bedroll.sleeper && e.D.likesBeds !== false) beds.set(key2(b.tx, b.ty), { roll: true });
+        for (const c of a.ents) if (c.cot && !c.removed && !c.blocks(c.tx, c.ty, e)) beds.set(key2(c.tx, c.ty), { cot: c });
+        const sx = e.tx, sy = e.ty, prev = new Map([[key2(sx, sy), null]]), q = [[sx, sy]];
+        for (let i = 0; i < q.length; i++) {
+            const [x, y] = q[i], bed = beds.get(key2(x, y));
+            if (bed) { const path = []; for (let c = [x, y]; c; c = prev.get(key2(c[0], c[1]))) path.unshift(c); return Object.assign({ x, y, path, i: 1 }, bed); }
+            for (const d of [UP, DOWN, LEFT, RIGHT]) {
+                const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                if (prev.has(k) || Math.abs(nx - sx) > this.REACH || Math.abs(ny - sy) > this.REACH || e.solidAt(nx, ny)) continue;
+                prev.set(k, [x, y]); q.push([nx, ny]);
+            }
+        }
+        return null;
+    },
+    /* still free for it? (somebody else may have got into the cradle first, or onto the Bedroll, or picked it up) */
+    free(e, r) {
+        if (r.roll) { const b = Inv.bedroll; return !!(b && b.area === e.area.id && b.tx === r.x && b.ty === r.y && !Bedroll.sleeper); }
+        if (r.cot) return !r.cot.removed && !r.cot.blocks(r.x, r.y, e);
+        return true;
+    },
+};
 AI.snore = (e, p) => {
     e.modeT++;
     const near = p && p.area === e.area && p.state === 'normal' && Math.hypot(p.x - e.x, p.y - e.y) < 2.6 * T;
@@ -432,32 +460,37 @@ AI.snore = (e, p) => {
             if (d > 9 * T) e.modeT += 3;
         }
         if (e.modeT > (e.D.chase || 420)) {
-            /* off to the nearest bed: a Bedroll lying free close by, or its own */
-            const b = Inv.bedroll;
-            const dRoll = b && b.area === e.area.id && !Bedroll.sleeper && e.D.likesBeds !== false ? Math.hypot(b.tx * T + 8 - e.x, b.ty * T + 10 - e.y) : Infinity;
-            e.mode = 'bed'; e.modeT = 0; e.stuck = 0;
-            e.toRoll = dRoll < 12 * T && dRoll <= Math.hypot(e.hx * T + 8 - e.x, e.hy * T + 10 - e.y);
+            /* off to bed: the nearest it can get to (its own, a cradle, a Bedroll lying free) */
+            e.mode = 'bed'; e.modeT = 0; e.stuck = 0; e.lost = 0;
+            e.bed = Snooze.route(e);
         }
         return;
     }
     if (e.mode === 'bed') {
-        const b = Inv.bedroll;
-        const roll = e.toRoll && b && b.area === e.area.id && !Bedroll.sleeper;
-        const gx = roll ? b.tx * T + 8 : e.hx * T + 8, gy = roll ? b.ty * T + 10 : e.hy * T + 10;
-        const dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
-        if (d < 1.5) {
-            e.x = gx; e.y = gy; e.mode = 'sleep'; e.stir = 0;
-            if (roll) { Bedroll.sleeper = e; e.onRoll = true; Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); }
-            else { e.trace = [[e.hx, e.hy]]; }
+        let r = e.bed;
+        /* somebody's in it already (or the Bedroll's gone): the next nearest */
+        if (r && !Snooze.free(e, r)) r = e.bed = Snooze.route(e);
+        /* none in reach: back along its own trace to its own */
+        if (!r) { e.mode = 'home'; e.modeT = 0; return; }
+        const [nx, ny] = r.path[Math.min(r.i, r.path.length - 1)];
+        const gx = nx * T + 8, gy = ny * T + 10, dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
+        const sp = (e.D.speed || 0.55) * 0.9;
+        if (d < sp + 0.5) {
+            e.x = gx; e.y = gy;
+            if (r.i < r.path.length - 1) { r.i++; return; }
+            /* in bed: asleep */
+            e.mode = 'sleep'; e.stir = 0; e.bed = null;
+            if (r.roll) { Bedroll.sleeper = e; e.onRoll = true; }
+            if (r.nest) e.trace = [[e.hx, e.hy]];
+            else { Fx.text(e.x, e.y - 16, 'z z', '#d8c8f8'); Sfx.play('yawn', 0.5); }
             return;
         }
-        const sp = (e.D.speed || 0.55) * 0.9;
         e.dir = dirOf(dx, dy); e.anim++;
         const ox = e.x, oy = e.y;
-        if (!e.move(dx / d * Math.min(sp, d), dy / d * Math.min(sp, d)) || (Math.abs(e.x - ox) + Math.abs(e.y - oy) < 0.05)) e.stuck++;
-        /* lost its way: back along its own trace instead */
-        if (e.stuck > 40 && !roll) { e.mode = 'home'; e.modeT = 0; }
-        if (e.stuck > 90 && roll) { e.mode = 'home'; e.modeT = 0; }
+        e.move(dx / d * sp, dy / d * sp);
+        if (Math.abs(e.x - ox) + Math.abs(e.y - oy) < 0.05) e.stuck++; else e.stuck = 0;
+        /* something's standing in the way: find the way again; still stuck, back along its own trace instead */
+        if (e.stuck > 40) { e.stuck = 0; r = e.bed = ++e.lost < 3 ? Snooze.route(e) : null; if (!r) { e.mode = 'home'; e.modeT = 0; } }
         return;
     }
     if (e.mode === 'home') { if (e.goHome(0.6)) { e.mode = 'sleep'; e.stir = 0; } }

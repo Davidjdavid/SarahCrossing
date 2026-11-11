@@ -247,7 +247,7 @@ const Reveal2 = {
             down = Input.down('act') ? down + 1 : 0;
             if (down >= 8 && lect && Inv.has('gloves') && p.adjacentTo(lect)) {
                 if (!s.held) { p.grip = lect; lect.heldBy = p; Sfx.play('click'); Progress.set('hall_held'); }
-                const h = ++s.held; p.z = 0;
+                const h = ++s.held; p.z = 0; p.liftT = 2;                           /* (both hands on it) */
                 if (h === 40 || h === 100) { Sfx.play('tug'); s.jerk = 8; }       /* she tries, twice */
                 if (h === 170) UI.toast('Gran: "I can wait, love."', 300);
             } else {
