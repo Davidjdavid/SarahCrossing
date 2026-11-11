@@ -15,8 +15,8 @@
 /* the Little Houses, in the order they open (their ids stay making1..makingN: old saves keep them); by whom, and what
    the Maker says after (from wherever they were watching) */
 const MAKINGS = [
-    { name: 'The Little Tidyhouse', by: 'Ives', after: "Ives, from somewhere above: \"He thinks he did it all himself. That's the whole trick of it, love.\"" },
-    { name: 'Mind the Nibbler', by: 'Bram', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once. That's the job.\"" },
+    { name: 'The Little Tidyhouse', by: 'Ives', after: "Ives, from somewhere above: \"He thinks he did it all himself. Bless him.\"" },
+    { name: 'Mind the Nibbler', by: 'Bram', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once.\"" },
     { name: 'The Little Wander', by: 'Tess', after: "Tess, from somewhere above: \"Oh, his face. Did you see his face?\"" },
     { name: 'The Long Sulk', by: 'Gundry', after: "Gundry, from somewhere above: \"He sulked exactly where we needed him to. Took me forty years to learn that one.\"" },
     { name: 'The Tidyhouse, Underneath', by: 'Ives', entry: { x: 56, y: 16 }, after: "Ives, from somewhere above: \"That's the Foyer you came in by, and the Hall you were so cross in. Now you know what I was doing all that time, love: sitting under you, holding my breath.\"" },

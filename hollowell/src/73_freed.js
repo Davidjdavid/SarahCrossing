@@ -2,7 +2,7 @@
    say something new, and do things they haven't done in years. Old Arlo walks down to the river (S24). */
 
 const CUT_LINES = {
-    quill: "Miss Quill blinks, takes off her spectacles, and looks at the schoolhouse as if she'd never seen it from outside. \"I used to walk the children up the hill,\" she says. \"Every spring. Why did we stop?\"",
+    quill: "Miss Quill blinks, takes off her spectacles, and looks at the schoolhouse as if she'd never seen it from outside. \"I used to walk the children up the hill,\" she says. \"Every spring.\"",
     arlo: "Old Arlo stands up without his stick. \"Well,\" he says. \"WELL.\" And he sets off east, towards the river, not fast, but going.",
     bram: "Bram rolls his shoulders, laughs like a kiln door banging open, and says, \"I've a mind to go and dig some new clay. FRESH clay. From somewhere I've never been!\"",
     hob: "Fisher Hob looks at the river. Then up it. \"There's a pool up past the bend,\" he says slowly. \"My dad fished it. I haven't been since I was your age.\"",
@@ -11,35 +11,36 @@ const CUT_LINES = {
     tuck: "Tuck goes very still, and then very fast. \"I can go ANYWHERE!\" He doesn't go anywhere. He hugs your leg. Then he goes everywhere.",
     rosa: "Rosa puts down her rolling pin. \"I've always wanted to bake for somebody who doesn't live here,\" she says. \"Is that silly?\"",
     thimble: "Thimble counts her buttons, stops halfway, and laughs. \"I'll go to market. A real one. In another town!\"",
-    seam: "Sebastian Seam lets out the breath he's been holding for twenty years and starts measuring you for a travelling coat.",
-    mabel: "Auntie Mabel looks at her shelves of strays, every one with its little L, and starts to cry, and then to smile.",
+    seam: "Sebastian Seam takes the tape measure from round his neck and, without a word, starts measuring you for a travelling coat.",
+    mabel: "Auntie Mabel looks along her shelves of strays, every one with its little L, and sits down rather suddenly.",
     mallow: "Doctor Mallow yawns, stretches, and for the first time in your memory, looks wide awake.",
-    ives: "Mother Ives straightens your collar. \"I'll keep the Tidyhouse,\" she says. \"Because I want to. Not because I'm tied to it. That's the difference, love.\"",
+    ives: "Mother Ives straightens your collar. \"I'll keep the Tidyhouse,\" she says. \"Somebody's got to dust it.\"",
     ambrose: "Your dad picks you up and swings you round, the way he did when you were small. \"Let's go and see where the river goes,\" he says. \"All of us.\"",
-    tess: "Your mum rings a little bell she keeps in her pocket, just once, just for the sound. \"There,\" she says. \"I've always wanted to ring something for no reason at all.\"",
+    tess: "Your mum rings a little bell she keeps in her pocket, just once, just for the sound. \"There,\" she says.",
     jory: "Jory clicks his heels. \"A touring show!\" he says. \"The Marionette Hall, on wheels! Why not?\"",
     nell: "Nell runs. All the way to the posts. And past them. And back again, shrieking.",
     otto: "Otto puts the crate down where it is and walks away from it, and it stays there, and he looks back at it, astonished.",
     bea: "Bea starts a game of tag and doesn't stop.",
 };
-/* and after that, what they say now (src/51b_town_life.js asks, every time, once they're cut) */
+/* and after that, what they say now (src/51b_town_life.js asks, every time, once they're cut): one line each, about
+   what they're doing (none of them repeats what they say after the Unwinding, src/76_ending.js AFTER_LINES) */
 const FREE_LINES = {
-    quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next. It was wonderful.", "Lesson for today: look at something you've never looked at. I'm still deciding what mine is."],
-    arlo: ["The water goes somewhere. All this time, it was going somewhere, and I never once followed it.", "My knees are furious with me. I've never been happier."],
-    bram: ["Fresh clay, from up the north road! It's AWFUL clay. I've never been so happy in my life. HA!"],
-    hob: ["Up past the bend. My dad's pool. I'm going back tomorrow. And the day after. Because I can."],
-    gundry: ["Still looking for the sea. I'm told it's further than the fog. Most things are, it turns out."],
-    burr: ["No post. Feels like a missing tooth. Nice, though. Mostly nice."],
-    tuck: ["I went ALL the way to the bridge and back by myself and nobody pulled me! I'm going to the bridge again in a minute."],
-    rosa: ["I've baked a loaf for nobody in particular and set it on the step. It's still there. Nothing's told it to go anywhere."],
+    quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next."],
+    arlo: ["Down to the river and back, twice. My knees are furious with me."],
+    bram: ["Fresh clay, from up the north road! It's AWFUL clay. HA!"],
+    hob: ["Up past the bend. My dad's pool. I'm going back tomorrow."],
+    gundry: ["Still looking for the sea. I'm told it's further than the fog."],
+    burr: ["No post. Feels like a missing tooth."],
+    tuck: ["I went ALL the way to the bridge and back by myself! I'm going to the bridge again in a minute."],
+    rosa: ["I've baked a loaf for nobody in particular and set it on the step. It's still there."],
     thimble: ["I've written to a market two valleys over. I don't know if letters get out. We'll see!"],
-    seam: ["Your travelling coat's coming on. Big pockets. You'll be going places, I think. Everybody will."],
-    mabel: ["I've let three of my strays go already. Set them on the step and watched them not come back. Lovely, it was."],
-    mallow: ["I'm awake. I've been awake for hours. I don't know what to do with all of it."],
-    ives: ["I left a teacup on the wrong shelf. On purpose. Then I had to go and sit down for a bit. It was all too exciting."],
-    nell: ["Past the posts and back, and past the posts and back! Nobody stops me! NOBODY!"],
+    seam: ["Your travelling coat's coming on, {name}. Big pockets, and a hood in case it rains out there. Does it rain out there?"],
+    mabel: ["I've let three of my strays go already. Set them on the step and watched them not come back."],
+    mallow: ["I'm awake. I've been awake since four this morning. What does a person DO at four in the morning?"],
+    ives: ["I left a teacup on the wrong shelf. On purpose. Then I had to go and sit down for a bit."],
+    nell: ["Past the posts and back, and past the posts and back! That's nineteen times. I'm going for twenty!"],
     otto: ["I put my crate down by the bench. It's STILL there. I keep going to check."],
-    bea: ["Tag! ...You're supposed to run. Everybody can run now."],
+    bea: ["Tag! ...You're supposed to run."],
 };
 /* (Burr's talk is the north gate's, src/71_loomwood.js, once it's open: cut free, he's moved on from that too) */
 {

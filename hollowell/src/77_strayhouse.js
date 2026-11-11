@@ -270,7 +270,7 @@ const StrayHouse = {
     },
     *pileDown(pile) {
         yield 30;
-        yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them. Nothing needs to.");
+        yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them.");
         const a = pile.area;
         for (const [dx, dy] of [[0, 0], [1, 1]]) { const x = pile.tx + dx, y = pile.ty + dy; if (!a.at(x, y)) { const b = a.add(new Block(x, y, { stray: true })); b.skey = 'pile:' + dx; Fx.poof(x * T + 8, y * T + 8); } }
         /* the Heartstitch on a free floor tile where it came apart (never in a wall) */

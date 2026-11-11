@@ -154,7 +154,7 @@ defHouse({
                 '####################',
             ],
             ents: [
-                { k: 'deco', x: 6, y: 1, look: 'tapestry', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: "A tapestry, faded silver. A woman at a loom in a hard winter, tying a thread to everyone in a little valley so nobody would be lost in the snow. In the last panel the snow has melted, and she is still at the loom, holding all the threads, and she has not let go. Stitched underneath: SHE MEANT TO UNPICK THEM IN THE SPRING." },
+                { k: 'deco', x: 6, y: 1, look: 'tapestry', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: "A tapestry, faded silver. A woman at a loom in a hard winter, tying a thread to everyone in a little valley so nobody would be lost in the snow. In the last panel the snow has melted, and she is still at the loom, holding all the threads." },
                 { k: 'chest', x: 16, y: 2, item: 'heartpatch', id: 'spPatch' },
                 { k: 'sign', x: 3, y: 8, text: 'Scratched into the floor, small: L. CUT HER WAY OUT OF HERE. YOU CAN TOO.' },
             ],

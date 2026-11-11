@@ -171,7 +171,7 @@ SPAWN.bossnap = (tx, ty, p) => {
         return function* () {
             Progress.set('s25'); Stats.count('secret:collar');
             yield* say(null, "Biscuit lets you scratch under its chin, and for the first time you notice the collar: green thread, plaited, very old. A little brass tag on it, worn nearly smooth: L.R.");
-            yield* say(null, "Linnet's cat. It came back by itself, years ago. Nobody pulled it.");
+            yield* say(null, "Linnet's cat.");
         };
     };
 }

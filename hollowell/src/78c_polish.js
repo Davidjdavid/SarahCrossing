@@ -5,8 +5,10 @@
 {
     const bb0 = Story.blackboard;
     Story.blackboard = function* () {
+        /* (after: the old Rules, the later ones wiped off, and one of them answered) */
         if (Progress.flag('unwound')) {
-            yield* say(null, "THE RULES OF THE HOLLOW (NEW). In Miss Quill's best hand:\n1. Things have places.\n2. People choose theirs.\n3. Some things get lost. That's allowed.\n4. Come home for tea, if you like.");
+            yield* bb0();
+            yield* say(null, "Rule three has a chalk line through it. Under it, in a child's hand: 'BEA LOST HER SHOE.'");
             return;
         }
         yield* bb0();

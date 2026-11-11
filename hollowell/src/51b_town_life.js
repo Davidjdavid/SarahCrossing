@@ -70,7 +70,7 @@ const TOWN_LINES = {
         rosa: [() => Progress.flag('cut:hob') ? "Hob's gone up the river! HOB! He waved at me. Forty years I've known that man and I never once saw him wave." : "They say you can cut a body loose with those. I don't know if I'd want it. I don't know that I wouldn't."],
         tuck: [() => Progress.flag('cut:nell') ? "Nell ran past the posts and came back and she's not even in TROUBLE!" : "Are those the scissors? Can you cut MY string? Have I got a string? Mum says not. Mum's looking at the floor."],
         mabel: ["If you cut me loose, I'll still keep the shop. But I might shut it on Tuesdays. Or go and find out who L is."],
-        gundry: ["The First Spinner's blades. Careful with them, Wanderer. A thread's only a thread. But it's always somebody's."],
+        gundry: ["The First Spinner's blades. Carry them points down, Wanderer, and look before you snip. Most threads have somebody on the end."],
     },
 };
 /* Gran's own: once each, then her usual run of lines (src/50_prologue.js; after the first reveal, new ones, below) */

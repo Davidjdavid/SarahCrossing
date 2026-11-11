@@ -183,7 +183,7 @@ const Reveal2 = {
             "\"I took every spool in the valley in my two hands and pulled them tight. Nobody else will go.\"",
             "\"Arlo walked to the lake again. Tightened him. Hob halfway up the river. Tightened. The children run so far. Tightened. Tightened.\"",
             "\"The Wander. Six Houses, six Knots. Every Knot the Wanderer ties turns my winch a little further. They never notice. They are always so proud.\"",
-            "\"Wren is so like her. Tightened again. The seventh Knot is the Wanderer's own, at the Well: when Wren ties it she will take my place at the Spool, and nobody, nobody, will ever be lost again. Wren mustn't go. Wren mustn't.\"",
+            "\"{name} is so like her. Tightened again. The seventh Knot is the Wanderer's own, at the Well: when {name} ties it she will take my place at the Spool, and nobody will ever be lost again.\"",
             ledgerTallyPage(),
         ];
         for (const p of pages) yield* say(null, p);

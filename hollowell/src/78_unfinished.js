@@ -264,7 +264,7 @@ class IvesWalker extends GridThing {
         Script.run(Unfinished.atChair(this));
     }
     interact(p) {
-        Script.run(function* () { yield* say('mrives', Progress.flag('ives_done') ? cycle('ives_chair', ["Look at it. All of it, real. Well. Three bits at a time. That's how houses are, mostly.", "You'll come and see an old man now and then? Bring that cat."]) : "Off we go, then. You sew, I'll walk. Don't let me fall in; I'm not as bouncy as I was."); });
+        Script.run(function* () { yield* say('mrives', Progress.flag('ives_done') ? cycle('ives_chair', ["Look at it. All of it, real. Well. Three bits at a time.", "You'll come and see an old man now and then? Bring that cat."]) : "Off we go, then. You sew, I'll walk. Don't let me fall in; I'm not as bouncy as I was."); });
         return true;
     }
     sprite() { const fr = this.mv ? [1, 0, 2, 0][Math.floor(this.anim / 6) % 4] : 0; return personFrame('mrives', this.dir, fr); }
@@ -295,7 +295,7 @@ const Unfinished = {
     },
     *atChair(w) {
         yield 20;
-        yield* say('mrives', "Oh. Oh, there it is. My chair. I drew this chair in 1971.");
+        yield* say('mrives', "Oh. Oh, there it is. My chair. I drew this chair when I had all my own teeth.");
         yield* say('mrives', "Here. My old hook. Longer line than they make now; I made it for this House, and never had a House to use it in.");
         yield* Story.getItem('longhook')();
         Progress.setGoal('');
@@ -321,7 +321,7 @@ SPAWN.ivesdoor = (tx, ty) => {
         { k: 'npc', who: 'mrives', x: 58, y: 7, face: 'down', id: 'mrivesTown2', if: 'ives_done' });
 }
 TALK.mrives = function* (n) {
-    if (n.area && n.area.id === 'unfinished') return yield* say('mrives', cycle('ives_in', ["The Needle holds three. I never could hold more than two in my head at once, so you're ahead of me already.", "Mind where you stand when you sew the next one. I fell through my own floor twice in 1971, and it was only chalk.", "The Gallery's at the top, once you've lit both lamps. That's the bit I wanted to see finished."]));
+    if (n.area && n.area.id === 'unfinished') return yield* say('mrives', cycle('ives_in', ["The Needle holds three. I never could hold more than two in my head at once, so you're ahead of me already.", "Mind where you stand when you sew the next one. I fell through my own floor twice when I drew it, and it was only chalk.", "The Gallery's at the top, once you've lit both lamps. That's the bit I wanted to see finished."]));
     if (Progress.flag('ives_done')) return yield* say('mrives', cycle('ives_town', ["Best afternoon I've had in forty years, that.", "Hesper and I were at school together, you know. She cried at everything. Still does, I expect."]));
     if (!Unfinished.open()) return yield* Unfinished.door();
     yield* say('mrives', "Door's open for you, Maker. In you go.");

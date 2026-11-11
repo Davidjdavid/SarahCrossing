@@ -54,7 +54,7 @@ const Ending = {
         yield* camBack(120);
         for (let i = 0; i < 120 && Ending.walks.some(([n, x, y]) => n.tx !== x || n.ty !== y || n.mv); i++) { Ending.nudge(); yield 1; }
         for (const e of ring) if (['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].includes(e.who) && !e.walking && !e.mv) e.dir = Math.abs(p.tx - e.tx) > Math.abs(p.ty - e.ty) ? (p.tx < e.tx ? LEFT : RIGHT) : (p.ty < e.ty ? UP : DOWN);
-        yield* say('ives', "{happy}We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
+        yield* say('ives', "{happy}We'll keep our Houses' threads, love. For the next Wanderer.");
         /* the road north, through what's left of the fog */
         G.mist = { t: 0 };
         yield* camLook(96, 36, 150);
@@ -78,7 +78,7 @@ const Ending = {
         yield 10;
         yield* say(null, "Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch.", { focus: [79, 53] });
         if (Progress.flag('seed_planted')) yield* say(null, 'By the gate, the seed you brought back from past the fog has opened.', { focus: [73, 51] });
-        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
+        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
         /* Tuck's drawing, on Gran's dresser (a close look) */
         if (Progress.flag('s30')) {
             yield* fadeOut(24);
@@ -193,9 +193,9 @@ const Ending = {
         const pages = [
             ['HOLLOWELL', '', 'a Wander'],
             ['Made by the Makers of Hollowell', '', 'Mother Ives, the Tidyhouse', 'Bram, the Kiln', 'Ambrose, the Millrace', 'Tess, the Belfry', 'Doctor Mallow, the Slumberhouse', 'Jory, the Marionette Hall', 'Gundry and the Guild, the Spoolworks'],
-            ['and the Loom', '', 'the First Spinner, long ago,', 'who only meant to keep things safe'],
+            ['and the Loom', '', 'the First Spinner, long ago'],
             ['Wanderer:', '', name],
-            ['with Linnet, who came home', 'and Hesper, who let go', '', 'and Biscuit, who never needed telling'],
+            ['with Linnet', 'and Hesper', '', 'and Biscuit, who never needed telling'],
             ['The End.', '', '(Carry on.)'],
         ];
         G.credits = { pages, i: 0, t: 0 };
@@ -229,7 +229,8 @@ const MOTTO = [
     ['act1', () => !Progress.flag('reveal1'), 'The Well. Carved round its stones: EVERYTHING IN ITS PLACE.'],
     ['act2', () => Progress.flag('reveal1') && !Progress.flag('reveal2'), "The Well. EVERYTHING IN ITS PLACE. Underneath, very small, freshly scratched: (AND WE PUT IT THERE. -B.)"],
     ['act3', () => Progress.flag('reveal2') && !Progress.flag('unwound'), "The Well. EVERYTHING IN ITS PLACE. The letters look deeper than you remember. Tighter, somehow."],
-    ['act4', () => Progress.flag('unwound'), "The Well, its cap off and its winch at rest. Re-carved: EVERYTHING IN ITS PLACE, AND EVERYONE IN THEIRS. WHEREVER THAT IS."],
+    /* (after: somebody has begun a new line under the old words, and got one word into it) */
+    ['act4', () => Progress.flag('unwound'), "The Well, its cap off and its winch at rest. EVERYTHING IN ITS PLACE. Under it, one new word, freshly cut: AND. The stone chips are still on the step."],
 ];
 {
     const deco0 = SPAWN.deco;
@@ -383,37 +384,39 @@ OW.blocks['1,1'].ents.push(
     { k: 'npc', who: 'gran', x: 14, y: 13, face: 'down', if: 'unwound', id: 'granAfter', seated: true },
     { k: 'npc', who: 'linnet', x: 16, y: 13, face: 'down', if: 'unwound', id: 'linnetAfter', seated: true });
 for (const e of AREAS.drift.ents) if (e.who === 'linnet') e.if = '!unwound';
+/* (one line each, about what they're up to now: never what they said when they were cut free, src/73_freed.js; Gran
+   and Linnet two, the bench coming after either, src/80d_after.js) */
 const AFTER_LINES = {
-    gran: ["Sit with us a while, love. There's no hurry. There's never going to be a hurry again.", "I held on so tight I nearly lost everything. Don't you ever hold on like that. Not to anyone.", "Your aunt says the world goes on a long way past the fog. Go and see it. Then come and tell me. If you like."],
-    linnet: ["Twenty-five years. The garden's exactly where I left it. Well. Mum would see to that.", "I used to cut the strays loose at the edge and scratch an L on them, so somebody would know. You knew.", "There's a road through the fog now. I'll show you my garden on the other side, one day."],
-    ives: ["The Tidyhouse is open, love, any time you fancy a puzzle. For fun, now.", "Do you know, I put a box in the wrong place yesterday. On purpose. It was thrilling."],
-    bram: ["Fresh clay! From past the ridge! It's terrible clay. I love it.", "Bring me a pot from somewhere else, Wanderer. Anywhere else."],
-    ambrose: ["Your mum and I are taking the boat out past the falls tomorrow. Just to see.", "I'll keep the Millrace running for the next Wanderer. The river can do as it likes the rest of the time."],
-    tess: ["I rang the big bell this morning for nothing at all. Half the town came out to see. I'll do it again tomorrow.", "Proud of you, Wren. Not for the Knots. For the other thing."],
-    mallow: ["I slept in my own bed last night and woke up somewhere completely different. Well, the same bed. But I felt different.", "Go anywhere you like. Come home when you like. Doctor's orders."],
-    jory: ["The touring show! I'm painting the wagon. What colour's a road?", "Every puppet in the Hall's on a string, and every one of them's glad of it. That's what strings are FOR."],
-    gundry: ["I went to look for the sea. I didn't find it. I'm going again Thursday.", "The Guild votes to keep the Spoolworks turning. For play. Motion carried. Then we all went for a walk."],
-    quill: ["We walked up the hill this morning, the whole school. Nobody wanted to come down.", "Lesson for today: anything at all. Isn't it marvellous?"],
-    arlo: ["Down to the lake and back every morning now. My knees complain. I don't listen.", "Seventy years in this valley and I'm only just seeing it."],
-    hob: ["The pool past the bend. My dad's pool. Caught nothing all morning. Best morning of my life.", "Fish go where they like. Turns out so do I."],
-    burr: ["No post to stand at. I keep going back to it out of habit, and then I go somewhere else.", "Move along! Anywhere you like! Ha!"],
-    tuck: ["I drew a map of EVERYWHERE. It's mostly the bakery.", "I'm going to be a Maker AND a Wanderer. Both. At once."],
-    rosa: ["A cart came through from past the fog and bought every loaf I had. Every one!", "Bread for strangers. Who knew it'd taste better?"],
-    annie: ["Broke a pot this morning. It stayed broken. I made a mosaic out of it. Best thing I've ever made.", "The canyon's the same as ever. I'm not. Funny, that."],
-    tal: ["Things break now and stay broken, so you mend them. I'd forgotten mending.", "Mind my tools. I left them where I liked, and they stayed there."],
-    pip: ["The sheep wander off now! I go and find them. It takes ALL DAY. It's brilliant.", "Baa. Sorry. Still a habit."],
-    fen: ["Cut a field of barley yesterday. It's still cut. I'll have to plant it again. Imagine.", "The scarecrow fell over in the night. I left him. He looked comfy."],
-    wick: ["The fish don't swim home any more. They swim wherever. So do I!", "I went down the river past the falls and nobody came to fetch me. I came back for tea."],
-    hettie: ["The giant's walked off over the hills. Left a dent in the woods the size of a house. I miss him.", "The old roots don't creak home at night now. It's very quiet in Hushwood."],
-    rook: ["My crystal ball shows... the future. Isn't that something? It never used to. It used to show the same afternoon.", "The fair's going on tour. I've told everyone's fortune and they're all different now."],
-    pell: ["The carousel horses walked off into the fields. We'll get them back. Or we won't. The fair'll be different.", "Roll up! Roll up! Nobody has to. That's the beauty of it."],
-    brindle: ["The wind up here blows things away now, and they stay blown. I've lost three hats. Wonderful.", "The bells ring for no reason now. Your mum's doing, mostly."],
-    thimble: ["I'm off to a market two valleys over. I've packed forty buttons. In case.", "I lost a button yesterday and I didn't even mind."],
-    seam: ["Your travelling coat's nearly done. Room in the pockets for anything you find out there.", "Every seam in this town was straight. I'm trying a crooked one. For fun."],
-    mabel: ["I'm giving the strays away. To anyone who wants them. They can go where they like too.", "Every one with an L. She was trying to tell us, all those years."],
-    nell: ["I ran right past the posts and NOTHING HAPPENED!", "Race you to the fog! It's not even fog any more!"],
-    otto: ["That crate's still where I left it. I go and look at it sometimes. It's my favourite crate.", "I moved my house's chair to the window. It's stayed there two whole days."],
-    bea: ["Tag! You're it! You'll always be it!", "We played hide-and-seek and I hid past the river and nobody pulled me back!"],
+    gran: ["Sit with us a while, love. There's no hurry.", "Your aunt says the world goes on a long way past the fog. Go and see it. Then come and tell me."],
+    linnet: ["Twenty-five years. The garden's exactly where I left it. Well. Mum would see to that.", "There's a road through the fog now. I'll show you my garden on the other side, one day."],
+    ives: ["There's a queue for my Trials now, love. Grown-ups, mostly. Your dad's been up four times."],
+    bram: ["Nine jugs on order this week! NINE! Annie can't dig the clay fast enough. HA!"],
+    ambrose: ["Your mum and I are taking the boat out past the falls tomorrow. Just to see."],
+    tess: ["I rang the big bell this morning for nothing at all, bairn. Half the town came running."],
+    mallow: ["*yawn* Eleven hours' sleep last night. Not a sound of winding anywhere. I'm going back for more."],
+    jory: ["The touring show! I'm painting the wagon. What colour's a road?"],
+    gundry: ["The Guild's voted to keep the Spoolworks turning. Then we argued till dark about who'd take the minutes."],
+    quill: ["Somebody's been at my Rules with the chalk. I've left it up. The spelling's correct."],
+    arlo: ["My bench has been moved, six feet to the left. I sat down where it used to be. Bit of a shock, at my age."],
+    hob: ["Haven't seen Gerald all week. Not on his rock, not anywhere. I hope he's all right."],
+    burr: ["First trouble in twenty years: one of Pip's sheep, loitering on the bridge. I let her off with a warning."],
+    tuck: ["I drew a map of EVERYWHERE. It's mostly the bakery."],
+    rosa: ["A cart came through from past the fog and bought every loaf I had. Paid in metal buttons with no holes in. I don't know what you'd sew them on."],
+    annie: ["Broke a pot yesterday. It's still in bits. I've made a mosaic out of it."],
+    tal: ["Two kettles, a chair and a doll's arm since breakfast. Mind my tools."],
+    pip: ["The sheep wander off now. I've been calling them for hours. Baa. Sorry. Habit."],
+    fen: ["The scarecrow fell over in the night. I left him. He looked comfy."],
+    wick: ["I caught one! A real fish! ...I put it back. It looked so surprised."],
+    hettie: ["The giant's walked off over the hills. Left a dent in the woods the size of a house. I miss him."],
+    rook: ["My crystal ball shows... the future. It never used to. It used to show the same afternoon."],
+    pell: ["The carousel horses walked off into the fields. I've been out all morning with a carrot, for some reason."],
+    brindle: ["The wind up here blows things away now, and they stay blown. I've lost three hats."],
+    thimble: ["The Guild's cut its string order to one ball a week. One ball! I've string up to the rafters."],
+    seam: ["The dragon's got both its wings now, {name}. Not a word to Tuck."],
+    mabel: ["Thimble came in asking after a glove. A LOST glove. Thirty years I've kept this shop and nobody's ever asked me that."],
+    nell: ["Race you to the fog! It's not even fog any more!"],
+    otto: ["I'm not the Housekeeper any more. I've retired. Bea's the Housekeeper now, and she's rubbish at it."],
+    bea: ["Has anybody seen my shoe? The other one. It looks like this one."],
 };
 {
     const talk0 = Story.talk;
@@ -493,9 +496,13 @@ Object.assign(Ending, {
             stitchedBox(x - 2, y - 2, w + 4, hh + 4, { fill: '#8a8070', edge: PAL.ink, stitch: '#8a8070', shadow: '#6a6050' });
             for (let j = 0; j < hh; j++) for (let i = 0; i < w; i++) { const v = hash2(i >> 1, j >> 1, 61); Gfx.rect(x + i, y + j, 1, 1, v < 0.2 ? '#a89c88' : v > 0.85 ? '#857a6a' : '#988c78'); }
             Gfx.rect(x, y, w, 1, '#c4b8a2'); Gfx.rect(x, y, 1, hh, '#c4b8a2'); Gfx.rect(x, y + hh - 1, w, 1, '#6a6050'); Gfx.rect(x + w - 1, y, 1, hh, '#6a6050');
-            ['EVERYTHING IN ITS PLACE,', 'AND EVERYONE IN THEIRS.', 'WHEREVER THAT IS.'].forEach((l, i) => { Font.center(l, W / 2, y + 12 + i * 15 + 1, '#cfc4ae'); Font.center(l, W / 2, y + 12 + i * 15, '#3a3228'); });
-            /* (fresh chips of stone under the new letters) */
-            for (let i = 0; i < 9; i++) Gfx.rect(x + 20 + Math.floor(hash2(i, 3, 62) * (w - 40)), y + hh - 6 + Math.floor(hash2(3, i, 63) * 3), 1, 1, '#d8ceba');
+            /* the old words, worn; under them, at the start of a line of its own, one new word cut sharp and pale; the rest of
+               the line bare stone */
+            const old = 'EVERYTHING IN ITS PLACE', lx = Math.round(W / 2 - Font.width(old) / 2), ly = y + 20;
+            Font.draw(old, lx, ly + 1, '#b4a892'); Font.draw(old, lx, ly, '#4a4034');
+            Font.draw('AND', lx, ly + 17, '#e4dac6'); Font.draw('AND', lx, ly + 16, '#2a2219');
+            /* (fresh chips of stone under the new word) */
+            for (let i = 0; i < 7; i++) Gfx.rect(lx - 2 + Math.floor(hash2(i, 3, 62) * (Font.width('AND') + 6)), ly + 27 + Math.floor(hash2(3, i, 63) * 4), 1, 1, '#d8ceba');
         }
     },
 });

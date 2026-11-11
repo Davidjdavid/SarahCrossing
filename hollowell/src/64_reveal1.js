@@ -12,7 +12,7 @@ const R1_SAYS = {
     ives: "{happy}The Tidyhouse is mine. We watch from underneath, love: there are little holes. When you're stuck a long while, we nudge something. Just a little, so you'd find it yourself.",
     bram: "{happy}The Kiln's mine! And the going-home? Not us. Well, it IS us that keeps it running: every mark's got a thread, every thread goes down, and somebody winds them all. HA!",
     ambrose: "{happy}The Millrace is mine, love. After every Wander we take them down and build them again. Every room. Every puzzle. Every crate that shivers before it goes home.",
-    tess: "{happy}The Belfry's mine. It's a gift, {name}, the Wander. The best thing this town knows how to make. Every one of us had one, and now you've had yours. Well, nearly.",
+    tess: "{happy}The Belfry's mine. It's a gift, {name}, the Wander. Every one of us had one, and now you've had yours. Well, nearly.",
     mallow: "*yawn* The Slumberhouse. Mine. And all that winding goes on at night, mostly. Which is why nobody in this valley ever gets any sleep in Wander season.",
     jory: "{happy}This old place is mine. And the bosses. Mostly the bosses. Do you know how long the Kilnwyrm took? Three winters. The tail never did work properly.",
 };

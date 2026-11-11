@@ -20456,7 +20456,7 @@ const Dreams = {
     last: {}, lastT: -9999,
     latched(r) { return Progress.areaFlag('slumber', 'dream:' + r); },
     /* how the last flight's dreams went, for a few seconds after it came down: 'good', 'bad', or neither */
-    lastOf(r) { return G.t - this.lastT < 300 ? this.last[r] : null; },
+    lastOf(r) { const dt = G.t - this.lastT; return dt >= 0 && dt < 300 ? this.last[r] : null; },
     land(p, f) {
         const a = p.area, d = f && f.dreams;
         if (!a || a.id !== 'slumber' || !d) return;
@@ -29522,7 +29522,7 @@ CONTENT_INIT.push(initLoomFoes);
    say something new, and do things they haven't done in years. Old Arlo walks down to the river (S24). */
 
 const CUT_LINES = {
-    quill: "Miss Quill blinks, takes off her spectacles, and looks at the schoolhouse as if she'd never seen it from outside. \"I used to walk the children up the hill,\" she says. \"Every spring. Why did we stop?\"",
+    quill: "Miss Quill blinks, takes off her spectacles, and looks at the schoolhouse as if she'd never seen it from outside. \"I used to walk the children up the hill,\" she says. \"Every spring.\"",
     arlo: "Old Arlo stands up without his stick. \"Well,\" he says. \"WELL.\" And he sets off east, towards the river, not fast, but going.",
     bram: "Bram rolls his shoulders, laughs like a kiln door banging open, and says, \"I've a mind to go and dig some new clay. FRESH clay. From somewhere I've never been!\"",
     hob: "Fisher Hob looks at the river. Then up it. \"There's a pool up past the bend,\" he says slowly. \"My dad fished it. I haven't been since I was your age.\"",
@@ -29531,35 +29531,36 @@ const CUT_LINES = {
     tuck: "Tuck goes very still, and then very fast. \"I can go ANYWHERE!\" He doesn't go anywhere. He hugs your leg. Then he goes everywhere.",
     rosa: "Rosa puts down her rolling pin. \"I've always wanted to bake for somebody who doesn't live here,\" she says. \"Is that silly?\"",
     thimble: "Thimble counts her buttons, stops halfway, and laughs. \"I'll go to market. A real one. In another town!\"",
-    seam: "Sebastian Seam lets out the breath he's been holding for twenty years and starts measuring you for a travelling coat.",
-    mabel: "Auntie Mabel looks at her shelves of strays, every one with its little L, and starts to cry, and then to smile.",
+    seam: "Sebastian Seam takes the tape measure from round his neck and, without a word, starts measuring you for a travelling coat.",
+    mabel: "Auntie Mabel looks along her shelves of strays, every one with its little L, and sits down rather suddenly.",
     mallow: "Doctor Mallow yawns, stretches, and for the first time in your memory, looks wide awake.",
-    ives: "Mother Ives straightens your collar. \"I'll keep the Tidyhouse,\" she says. \"Because I want to. Not because I'm tied to it. That's the difference, love.\"",
+    ives: "Mother Ives straightens your collar. \"I'll keep the Tidyhouse,\" she says. \"Somebody's got to dust it.\"",
     ambrose: "Your dad picks you up and swings you round, the way he did when you were small. \"Let's go and see where the river goes,\" he says. \"All of us.\"",
-    tess: "Your mum rings a little bell she keeps in her pocket, just once, just for the sound. \"There,\" she says. \"I've always wanted to ring something for no reason at all.\"",
+    tess: "Your mum rings a little bell she keeps in her pocket, just once, just for the sound. \"There,\" she says.",
     jory: "Jory clicks his heels. \"A touring show!\" he says. \"The Marionette Hall, on wheels! Why not?\"",
     nell: "Nell runs. All the way to the posts. And past them. And back again, shrieking.",
     otto: "Otto puts the crate down where it is and walks away from it, and it stays there, and he looks back at it, astonished.",
     bea: "Bea starts a game of tag and doesn't stop.",
 };
-/* and after that, what they say now (src/51b_town_life.js asks, every time, once they're cut) */
+/* and after that, what they say now (src/51b_town_life.js asks, every time, once they're cut): one line each, about
+   what they're doing (none of them repeats what they say after the Unwinding, src/76_ending.js AFTER_LINES) */
 const FREE_LINES = {
-    quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next. It was wonderful.", "Lesson for today: look at something you've never looked at. I'm still deciding what mine is."],
-    arlo: ["The water goes somewhere. All this time, it was going somewhere, and I never once followed it.", "My knees are furious with me. I've never been happier."],
-    bram: ["Fresh clay, from up the north road! It's AWFUL clay. I've never been so happy in my life. HA!"],
-    hob: ["Up past the bend. My dad's pool. I'm going back tomorrow. And the day after. Because I can."],
-    gundry: ["Still looking for the sea. I'm told it's further than the fog. Most things are, it turns out."],
-    burr: ["No post. Feels like a missing tooth. Nice, though. Mostly nice."],
-    tuck: ["I went ALL the way to the bridge and back by myself and nobody pulled me! I'm going to the bridge again in a minute."],
-    rosa: ["I've baked a loaf for nobody in particular and set it on the step. It's still there. Nothing's told it to go anywhere."],
+    quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next."],
+    arlo: ["Down to the river and back, twice. My knees are furious with me."],
+    bram: ["Fresh clay, from up the north road! It's AWFUL clay. HA!"],
+    hob: ["Up past the bend. My dad's pool. I'm going back tomorrow."],
+    gundry: ["Still looking for the sea. I'm told it's further than the fog."],
+    burr: ["No post. Feels like a missing tooth."],
+    tuck: ["I went ALL the way to the bridge and back by myself! I'm going to the bridge again in a minute."],
+    rosa: ["I've baked a loaf for nobody in particular and set it on the step. It's still there."],
     thimble: ["I've written to a market two valleys over. I don't know if letters get out. We'll see!"],
-    seam: ["Your travelling coat's coming on. Big pockets. You'll be going places, I think. Everybody will."],
-    mabel: ["I've let three of my strays go already. Set them on the step and watched them not come back. Lovely, it was."],
-    mallow: ["I'm awake. I've been awake for hours. I don't know what to do with all of it."],
-    ives: ["I left a teacup on the wrong shelf. On purpose. Then I had to go and sit down for a bit. It was all too exciting."],
-    nell: ["Past the posts and back, and past the posts and back! Nobody stops me! NOBODY!"],
+    seam: ["Your travelling coat's coming on, {name}. Big pockets, and a hood in case it rains out there. Does it rain out there?"],
+    mabel: ["I've let three of my strays go already. Set them on the step and watched them not come back."],
+    mallow: ["I'm awake. I've been awake since four this morning. What does a person DO at four in the morning?"],
+    ives: ["I left a teacup on the wrong shelf. On purpose. Then I had to go and sit down for a bit."],
+    nell: ["Past the posts and back, and past the posts and back! That's nineteen times. I'm going for twenty!"],
     otto: ["I put my crate down by the bench. It's STILL there. I keep going to check."],
-    bea: ["Tag! ...You're supposed to run. Everybody can run now."],
+    bea: ["Tag! ...You're supposed to run."],
 };
 /* (Burr's talk is the north gate's, src/71_loomwood.js, once it's open: cut free, he's moved on from that too) */
 {
@@ -31802,7 +31803,7 @@ const Ending = {
         yield* camBack(120);
         for (let i = 0; i < 120 && Ending.walks.some(([n, x, y]) => n.tx !== x || n.ty !== y || n.mv); i++) { Ending.nudge(); yield 1; }
         for (const e of ring) if (['ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'].includes(e.who) && !e.walking && !e.mv) e.dir = Math.abs(p.tx - e.tx) > Math.abs(p.ty - e.ty) ? (p.tx < e.tx ? LEFT : RIGHT) : (p.ty < e.ty ? UP : DOWN);
-        yield* say('ives', "{happy}We'll keep our Houses' threads, love. By choice. For the next Wanderer. For play. That's the difference.");
+        yield* say('ives', "{happy}We'll keep our Houses' threads, love. For the next Wanderer.");
         /* the road north, through what's left of the fog */
         G.mist = { t: 0 };
         yield* camLook(96, 36, 150);
@@ -31826,7 +31827,7 @@ const Ending = {
         yield 10;
         yield* say(null, "Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch.", { focus: [79, 53] });
         if (Progress.flag('seed_planted')) yield* say(null, 'By the gate, the seed you brought back from past the fog has opened.', { focus: [73, 51] });
-        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
+        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
         /* Tuck's drawing, on Gran's dresser (a close look) */
         if (Progress.flag('s30')) {
             yield* fadeOut(24);
@@ -31941,9 +31942,9 @@ const Ending = {
         const pages = [
             ['HOLLOWELL', '', 'a Wander'],
             ['Made by the Makers of Hollowell', '', 'Mother Ives, the Tidyhouse', 'Bram, the Kiln', 'Ambrose, the Millrace', 'Tess, the Belfry', 'Doctor Mallow, the Slumberhouse', 'Jory, the Marionette Hall', 'Gundry and the Guild, the Spoolworks'],
-            ['and the Loom', '', 'the First Spinner, long ago,', 'who only meant to keep things safe'],
+            ['and the Loom', '', 'the First Spinner, long ago'],
             ['Wanderer:', '', name],
-            ['with Linnet, who came home', 'and Hesper, who let go', '', 'and Biscuit, who never needed telling'],
+            ['with Linnet', 'and Hesper', '', 'and Biscuit, who never needed telling'],
             ['The End.', '', '(Carry on.)'],
         ];
         G.credits = { pages, i: 0, t: 0 };
@@ -31977,7 +31978,8 @@ const MOTTO = [
     ['act1', () => !Progress.flag('reveal1'), 'The Well. Carved round its stones: EVERYTHING IN ITS PLACE.'],
     ['act2', () => Progress.flag('reveal1') && !Progress.flag('reveal2'), "The Well. EVERYTHING IN ITS PLACE. Underneath, very small, freshly scratched: (AND WE PUT IT THERE. -B.)"],
     ['act3', () => Progress.flag('reveal2') && !Progress.flag('unwound'), "The Well. EVERYTHING IN ITS PLACE. The letters look deeper than you remember. Tighter, somehow."],
-    ['act4', () => Progress.flag('unwound'), "The Well, its cap off and its winch at rest. Re-carved: EVERYTHING IN ITS PLACE, AND EVERYONE IN THEIRS. WHEREVER THAT IS."],
+    /* (after: somebody has begun a new line under the old words, and got one word into it) */
+    ['act4', () => Progress.flag('unwound'), "The Well, its cap off and its winch at rest. EVERYTHING IN ITS PLACE. Under it, one new word, freshly cut: AND. The stone chips are still on the step."],
 ];
 {
     const deco0 = SPAWN.deco;
@@ -32241,9 +32243,13 @@ Object.assign(Ending, {
             stitchedBox(x - 2, y - 2, w + 4, hh + 4, { fill: '#8a8070', edge: PAL.ink, stitch: '#8a8070', shadow: '#6a6050' });
             for (let j = 0; j < hh; j++) for (let i = 0; i < w; i++) { const v = hash2(i >> 1, j >> 1, 61); Gfx.rect(x + i, y + j, 1, 1, v < 0.2 ? '#a89c88' : v > 0.85 ? '#857a6a' : '#988c78'); }
             Gfx.rect(x, y, w, 1, '#c4b8a2'); Gfx.rect(x, y, 1, hh, '#c4b8a2'); Gfx.rect(x, y + hh - 1, w, 1, '#6a6050'); Gfx.rect(x + w - 1, y, 1, hh, '#6a6050');
-            ['EVERYTHING IN ITS PLACE,', 'AND EVERYONE IN THEIRS.', 'WHEREVER THAT IS.'].forEach((l, i) => { Font.center(l, W / 2, y + 12 + i * 15 + 1, '#cfc4ae'); Font.center(l, W / 2, y + 12 + i * 15, '#3a3228'); });
-            /* (fresh chips of stone under the new letters) */
-            for (let i = 0; i < 9; i++) Gfx.rect(x + 20 + Math.floor(hash2(i, 3, 62) * (w - 40)), y + hh - 6 + Math.floor(hash2(3, i, 63) * 3), 1, 1, '#d8ceba');
+            /* the old words, worn; under them, at the start of a line of its own, one new word cut sharp and pale; the rest of
+               the line bare stone */
+            const old = 'EVERYTHING IN ITS PLACE', lx = Math.round(W / 2 - Font.width(old) / 2), ly = y + 20;
+            Font.draw(old, lx, ly + 1, '#b4a892'); Font.draw(old, lx, ly, '#4a4034');
+            Font.draw('AND', lx, ly + 17, '#e4dac6'); Font.draw('AND', lx, ly + 16, '#2a2219');
+            /* (fresh chips of stone under the new word) */
+            for (let i = 0; i < 7; i++) Gfx.rect(lx - 2 + Math.floor(hash2(i, 3, 62) * (Font.width('AND') + 6)), ly + 27 + Math.floor(hash2(3, i, 63) * 4), 1, 1, '#d8ceba');
         }
     },
 });
