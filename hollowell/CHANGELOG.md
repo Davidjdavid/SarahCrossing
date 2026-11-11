@@ -161,4 +161,6 @@
   newest tool can finally fix, one leading to the next.
 - Bosses worth beating: each has moves of its own with a clear warning before every attack, quicker as the fight
   goes on, harder House by House; hits land with weight, and being hit leaves a moment's safety.
+- The journal keeps a note of a favour only once someone has asked it in person, so nothing waiting to be noticed
+  is given away.
 

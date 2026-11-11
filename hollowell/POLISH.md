@@ -208,9 +208,23 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   moves, a new one in its last beat; every mini-boss one dangerous move. Fainting unchanged (David). Bot wins 23-52 s;
   a player who knows a late fight about 1.5-2.5 minutes. Probe over legs 1-8 drawn every step: 0 errors.
 - Full suite at this point: 560/560 (npm test, everything combined).
-- Running: two blind solvers (A: Houses 7-8 and the Great Spool; B: Houses 5-6 and the new world puzzles); what's owed
-  (owed_brief.md: Millwater's revisits, a Larkspur Needle teaser, the quilt's counts, the satchel, the Heart Patch
-  count with a test, Linnet's expressions); dressing for Houses 1 and 2 (dressing_brief.md).
+- An outside review (11 November; full spoilers, kept out of the repository: scratchpad review_ext/REVIEW_EXTERNAL.md),
+  from a reviewer who read the full-spoiler overview and asked David nine questions. What it adds about David: he
+  loves meta-narratives that change how he understands the game, its conventions and his own earlier play (Outer
+  Wilds' recognition, The Messenger's escalation: an intermediate reveal he can predict, then the bigger picture he
+  didn't); long logical puzzle chains (15-30 minutes, sometimes very hard, never number-order or rainbow-order
+  chores); dungeons that differ in structure, not skin; bosses that want deduction and execution; Nintendo-like
+  lightness and restraint over earnest AI-written speeches; the current length is plenty (no manufactured hours). Its
+  priorities: first audit the build (reveal pacing, House structure, the biggest puzzles, the final act); then one or
+  two signature puzzle chains, three or four structurally distinct Houses, boss inference; then reveals made playable
+  through mechanics-first clue/payoff loops; then identity, town, secrets, dialogue restraint. Its testing rule: never
+  call an AI evaluation a human playtest, never claim a measured playtime that wasn't. Kept from David's own word
+  over the review's doubt: no quick boss retry. Done at once: the journal no longer lists the town's favours before
+  someone has asked in person. Running: a design audit against the review (audit_brief.md), read-only, which turns it
+  into a scoped plan (effort, impact, risk) within about 15-25 helper hours.
+- Running: two AI blind solvers (A: Houses 7-8 and the Great Spool; B: Houses 5-6 and the new world puzzles), now also
+  logging when each rule was inferred, confusion and annoyance, execution tolerance, feedback on wrong ideas and
+  unintended shortcuts; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); the audit.
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes
