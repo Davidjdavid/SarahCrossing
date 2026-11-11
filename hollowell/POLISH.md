@@ -258,7 +258,12 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   (38; DESIGN_DOCUMENT §5 and SPOILERS item 36 must agree); faces on Linnet's first meeting, her lines using the
   player's chosen name. Suite 572/572 at its finish. Dressing for Houses 1 and 2 done (one colour script each, calm
   floors, a few big set pieces per room; the Tidyhouse in teal, cream, crimson and gilt; the Kiln in sooty brick, grey
-  flags and fire); a contrast check of marks and threads on the new floors running.
+  flags and fire). Contrast check of marks and threads on every new floor (CIELAB difference against the floor under
+  each stroke): six floors recoloured (the potting shed, linen room, laundry, conservatory, the Kiln's brick paving
+  and flags); now every floor gives at least 42 for the thread and empty mark and 39 for the patience ring.
+- Running: P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
+  Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
+  capstone_brief.md.
 - Running (earlier line kept for the record): AI blind solver B; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); fix round A
   (fixA_brief.md: findings 29-36); the story through play (meta_brief.md: P2, P5, P6, the Hall of Names part of P1).
   Queued: the Spool's top and the ending (P1's climax, P4, P2's count at the Spool, P8) after fix round A; the
