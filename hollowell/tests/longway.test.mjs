@@ -345,3 +345,52 @@ test('saves: the night-lights and the long way home are kept; a save that alread
     assert.equal(thing(H4, 'dgPattern').item, 'b50', 'a purse of buttons now');
     noErrors(HW); noErrors(H2); noErrors(H3); noErrors(H4);
 });
+
+test("the wash's other way: the basket, left going round since an earlier ride, boarded from the bank past the bad dream and ridden with the current over the top: the good one, not the bad", () => {
+    const HW = game();
+    /* a ride from the dock, ashore early on the near side: the basket goes on round without her (and keeps going) */
+    enter(HW, 'laundry', 1, 5);
+    const b = thing(HW, 'ldBasket'), p = HW.player();
+    steps(HW, 'laundry', [[1, 6], [1, 7], [1, 8], [2, 8], [3, 8]]);
+    HW.Inv.equipped = 'paddle'; HW.hold(['tool', 'up']); HW.step(20); HW.release();
+    assert.ok(until(HW, () => b.tx === at('laundry', 5, 0)[0] && b.ty === at('laundry', 0, 7)[1] && !b.mv, 600), 'out on the current');
+    HW.hold('down'); until(HW, () => p.ty === at('laundry', 0, 8)[1] && !p.ride && p.state === 'normal', 120); HW.step(8); HW.release();
+    assert.deepEqual(here(HW, 'laundry'), [5, 8], 'ashore on the bottom bank');
+    assert.ok(until(HW, () => b.tx >= at('laundry', 15, 0)[0], 1500), 'the basket goes on round');
+    /* the Bedroll in the ward; back in, along the bottom bank to past the bad dream; on board as the basket comes by */
+    assert.ok(HW.walkTo(...at('ward', 17, 5)), 'out to the ward'); lay(HW);
+    steps(HW, 'ward', [[18, 5], [19, 5]]);
+    steps(HW, 'laundry', [[0, 5], [1, 5], [1, 6], [1, 7], [1, 8], [2, 8], [2, 9], [3, 9], [4, 9], [5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [13, 8]]);
+    assert.ok(until(HW, () => b.tx === at('laundry', 13, 0)[0] && b.ty === at('laundry', 0, 7)[1] && !b.mv, 4000), 'the basket comes round');
+    HW.hold('up'); assert.ok(until(HW, () => p.ty === at('laundry', 0, 7)[1], 30), 'on board as it passes'); HW.release();
+    assert.ok(until(HW, () => !!p.ride, 60), 'and carried along');
+    assert.ok(until(HW, () => b.ty === at('laundry', 0, 2)[1] && b.tx <= at('laundry', 5, 0)[0] && !b.mv, 3000), 'round the far side and along the top, under the good dream');
+    HW.hold('up'); until(HW, () => p.ty === at('laundry', 0, 1)[1] && !p.ride && p.state === 'normal', 120); HW.step(8); HW.release();
+    const { order } = homeward(HW);
+    assert.deepEqual(order, ['laundry'], 'the good one only');
+    assert.ok(latched(HW, 'laundry'));
+    noErrors(HW);
+});
+
+test('the Dreaming Door the other way: the Bedroll laid on its boards a couple of steps past the bad dream and rolled up there (her thread drawn straight to the doorway); a fall from the island comes home under the good one and then straight to the door: through it (rolled up right beside the bad one, the straight thread clips it)', () => {
+    for (const [x, opens] of [[9, true], [7, false]]) {
+        const HW = game();
+        enter(HW, 'dream', 1, 5);
+        const p = HW.player(), good = thing(HW, 'dgGood'), bad = thing(HW, 'dgBad');
+        HW.walkTo(...at('dream', 4, 8));
+        const out = []; for (let i = 5; i <= x; i++) out.push([i, 8]);
+        steps(HW, 'dream', out);
+        lay(HW); rollUp(HW);
+        assert.deepEqual([p.mark.tx, p.mark.ty], at('dream', 1, 5), 'her place is the doorway again');
+        const rest = []; for (let i = x + 1; i <= 17; i++) rest.push([i, 8]); for (let y = 7; y >= 2; y--) rest.push([17, y]); for (let i = 16; i >= 6; i--) rest.push([i, 2]);
+        steps(HW, 'dream', rest);
+        let g = false, b = false;
+        HW.hold('down'); until(HW, () => p.state !== 'normal', 200); HW.release();
+        for (let i = 0; i < 400 && p.state !== 'normal'; i++) { HW.step(1); g = g || good.lit > 0; b = b || bad.lit > 0; }
+        assert.ok(g, 'the good dream lit');
+        assert.equal(b, !opens, opens ? 'the bad one dark' : 'too close: the straight thread clips the bad one');
+        HW.walkTo(...at('dream', 2, 4)); HW.hold('up'); HW.step(40); HW.release();
+        assert.equal(here(HW, 'dream')[1] <= 3, opens, opens ? 'through the door' : 'shut');
+        noErrors(HW);
+    }
+});

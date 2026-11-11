@@ -208,7 +208,7 @@ first, Wren sandwiched lifts the crate); the Cistern (the ride, waiting and padd
 the stair; an old save's big door; saving and loading (the drawbridge stays down, a fight saved mid-way starts over); both new
 rooms' nudges; the kit's hook-held and switched-off gusts. Scripted playthrough (LEG4); probe: clean.
 
-## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/review_d5.test.mjs`, `tests/hushwood.test.mjs`) - tested
+## D5 Slumberhouse (`src/60_slumber.js`, `src/60b_slumber_foes.js`, kit `src/58_bedroll_kit.js`; tests `tests/slumber.test.mjs`, `tests/longway.test.mjs`, `tests/bedroll_kit.test.mjs`, `tests/review_d5.test.mjs`, `tests/hushwood.test.mjs`) - tested
 
 Rules: lie in a bed and it is Wren's mark till she leaves the House or chooses another; rooms don't move it, and a
 fall (or a doze in sleep spores) home onto your own bed costs nothing. Flights home follow Wren's trace (loops
@@ -221,40 +221,71 @@ shards' way home) runs along the flight as along a reel. The Recall Bell rung in
 walks near them a while, shuffle after you, then go to the nearest bed they can get to (their own spot, a cradle nobody's
 in, a Bedroll), the same in Hushwood. Rolled up, the Bedroll gives Wren back the room's own mark, the doorway she came in
 by, her thread to it drawn straight (shown a moment), so a fall then flies her straight to it, through whatever's between
-(Mallow's Study has no other way out). Bedsprings: indoor bouncy moss, sprung one way, three tiles.
+(Mallow's Study has no other way out). Bedsprings: indoor bouncy moss, sprung one way, three tiles. A flight home through
+one room is as quick as ever (at most 110 frames); one through several takes up to that in each (so it can be watched, and
+nothing it passes is skipped). Three rooms have a pair of dreamcatchers over a way they already have, a good dream (a gilt
+hoop) and a bad one (dark willow), each with the room's charm hanging under it (a folded sheet, a basket, a jug); a flight
+home remembers which it went through, and one that went through a room's good dream and not its bad one dreams that room
+for good: its night-light comes on and stays on (one in the room, one of the three over the Long Ward's north door and the
+three over the big door; for a few seconds after a flight they flare for a good dream, gutter red for a bad one). As each
+flight sets off, the three rooms' dreamcatchers go dark.
+
+**The Long Way Home (the Pattern).** All three good dreams on one flight home, and none of the bad, and the Pattern's chest
+comes down in the Long Ward (the camera goes to look if she woke elsewhere). Any flight counts, wherever it lands: the Bedroll
+in the Long Ward, a bed there or in the Porch, or the Drying Loft's bed. The Linen Cupboard and the Laundry are dead ends off
+the ward, so walking in and back out over a doorway erases every room since (the ward is a trap for your own trace); the way
+round is a loop through the House that never crosses itself: from the Bedroll in the ward's south-east, the Laundry (the
+basket paddled up the near side against the current, or boarded past the bad dream; ashore under the chute), up the laundry
+chute (its bolt drawn by the Moonwalk's lever) into the Moonwalk, round its east side to the Milk Kitchen, over on the lower
+springs, down the hole in the far bank into the Moonwalk again (its west side), the Landing, back into the ward by its north
+door and across its top to the Linen Cupboard, its north boards; Homeward. The flight lights the linen's, the milk's and the
+wash's good dreams in that order (about 7 s); a folded route comes straight home from the fold, and only what's after it
+lights (the night-lights over the ward door show which).
 
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
 | The Night Porch | 1,3 | Beds; boards that go; falls are travel | Lie in the bed; over the boards to the lever on the island; the boards are gone: fall home onto the bed, unhurt | the gate north |
-| The Long Ward | 1,2 | Hub; Snorelings | Beds all along; W open, E (lock) and N (lock) | - |
-| The Linen Cupboard | 0,2 | One walk over the boards | Light the three toggle lamps in one walk without treading a board twice; fall home | key A |
-| The Laundry | 2,2 | The trace remembers a ride | Ride the basket round the current under all three dreamcatchers; step ashore before the loop comes round (or the trace folds up); dive in: flying home lights them all | Plan |
+| The Long Ward | 1,2 | Hub; Snorelings; the trap for your own trace | Beds all along; W open, E (lock) and N (lock). Three night-lights over the N door (the linen's, the milk's, the wash's, as the rooms lie: W, N, E) and a sign: a good dream lights its own; all three on one way home and the House gives up its Pattern. The Long Way Home (above) | Pattern (its chest comes down here) |
+| The Linen Cupboard | 0,2 | One walk over the boards | Light the three toggle lamps in one walk without treading a board twice; fall home. Its pair: the bad dream over the south boards (the walk that usually lights the lamps), the good one over the north (the other walk, which lights them too) | key A; its night-light |
+| The Laundry | 2,2 | The trace remembers a ride | Ride the basket round the current under all three dreamcatchers; step ashore before the loop comes round (or the trace folds up); dive in: flying home lights them all. Its pair: the bad dream over the bottom of the tub (where the current takes you first), the good one over the top near the near side: paddle up the near side against the current (or board past the bad one). The laundry chute in the north wall: bolted from the Moonwalk's side. A basket left going round never stops; board it as it passes, or ring it home | Plan; its night-light |
 | Mallow's Study | 3,2 | Signature (S06) | Lay the Bedroll on the sleeping barrel by the grate, ring: it snaps home through the grate (riderless floats only); Homeward: you land on it in the study. No door out: the Bedroll's your place, so a fall only brings you back to it; rolled up, your place is the doorway you came into the laundry by, your thread drawn straight to it, and a drop in the water flies you there (the rule the Dreaming Door can also be done by) | Heart Patch, Maker's mark |
 | The Drying Loft | 2,3 | Hookline + an empty mark; the Bell the wrong idea; falls | A boulder sleeps up top; its own place is out on the island, empty while it sleeps: hook over onto it, take the key, fall home. Rung awake, it goes home and fills its place (the hook then only drops you in the drop); leave and it lies down again | key B |
-| The Landing | 1,1 | Mini-boss: Matron Hush | She follows your footsteps exactly: cross the boards, they give way under her, she falls and flies home dazed; hit her (2x). Moves: now and then she stops dead and puffs up (her "!", 26 frames), then comes on twice as fast for a second (a heart) | Bedroll |
+| The Landing | 1,1 | Mini-boss: Matron Hush | She follows your footsteps exactly: cross the boards, they give way under her, she falls and flies home dazed; hit her (2x). Moves: now and then she stops dead and puffs up (her "!", 26 frames), then comes on twice as fast for a second (a heart). Over its big door, the three night-lights of the Long Way Home | Bedroll |
 | The Nursery | 0,1 | Homeward carries | Lay the Bedroll up top, drop into the playpen, pick up the stray toy block (too big to throw), Homeward with it, set it down in the pit under the north door | the way to the fort (lock C) |
-| The Moonwalk | 2,1 | Homeward is quicker | Lay the Bedroll by the gate, push the block onto the far plate, Homeward, through the gate before the block goes home. North: lock D to the Milk Kitchen | key C |
+| The Moonwalk | 2,1 | Homeward is quicker | Lay the Bedroll by the gate, push the block onto the far plate, Homeward, through the gate before the block goes home. North: lock D to the Milk Kitchen. The lever by the hole in its south wall draws the laundry chute's bolt (the camera goes to look): the Laundry is then always reachable from here, whatever key went where. The hole in the Milk Kitchen's far bank drops Wren onto its floor west of the pillars (not into the gated corner) | key C; the chute |
 | Pillow Fort | 0,0 | Bait | Lay the Bedroll on the plate; wake a Snoreling; it chases, gives up and goes to the nearest bed, the Bedroll, and holds the plate | key D |
-| The Milk Kitchen | 2,0 | Synthesis (Kiln: a broken pot's pieces fly home the way it was carried, ringing a bell hung where only flying things reach; Slumber: Homeward carries, the Bedroll as the way back) | A gap the full height of the room; the old bedsprings go one way only, west, across it; the milk jug on the far side; the little bell hangs over the middle of the gap, five tiles from either side (no throw reaches it). Lay the Bedroll this side, spring across, take the jug, Homeward with it (its trace follows the flight back over the gap), smash it: its pieces fly home that way and ring the bell. Smashed or thrown on the far side, its way home never crosses; a fall drops it home | the gate E |
-| The Dreaming Door | 3,0 | Synthesis (Belfry: the Recall Bell, rung in flight; Slumber: flights follow the trace and light dreamcatchers, boards remembered) | The door opens while the good dream is lit and the bad one dark. Old boards (they give way behind) run out round the room to an island, under the bad dreamcatcher near the start and the good one near the end. Lay the Bedroll by the door, walk out, fly home (Homeward or a fall): the good one lights first, the bad one last (the door blinks open mid-flight between them); ring the Bell after the good one lights: Wren snaps home before the bad one, through the door. Rung too soon, nothing lights | Pattern |
+| The Milk Kitchen | 2,0 | Synthesis (Kiln: a broken pot's pieces fly home the way it was carried, ringing a bell hung where only flying things reach; Slumber: Homeward carries, the Bedroll as the way back) | A gap the full height of the room; the old bedsprings go one way only, west, across it (two rows of them); the milk jug on the far side; the little bell hangs over the middle of the gap, five tiles from either side (no throw reaches it), over the upper springs. Lay the Bedroll this side, spring across, take the jug, Homeward with it (its trace follows the flight back over the gap), smash it: its pieces fly home that way and ring the bell. Smashed or thrown on the far side, its way home never crosses; a fall drops it home; crossed on the lower springs, its pieces fly back under the lower ones and miss the bell. A hole in the far bank's floor drops into the Moonwalk. Its pair: the bad dream over the upper springs (the bell's), the good one over the hole: cross on the lower springs, go down the hole, fly home back up through it | the gate E; its night-light |
+| The Dreaming Door | 3,0 | Synthesis (Belfry: the Recall Bell, rung in flight; Slumber: flights follow the trace and light dreamcatchers, boards remembered); optional since the Long Way Home | The door opens while the good dream is lit and the bad one dark. Old boards (they give way behind) run out round the room to an island, under the bad dreamcatcher near the start and the good one near the end. Lay the Bedroll by the door, walk out, fly home (Homeward or a fall): the good one lights first, the bad one last (the door blinks open mid-flight between them); ring the Bell after the good one lights: Wren snaps home before the bad one, through the door. Rung too soon, nothing lights. Or the Bedroll laid on the bottom boards a couple of steps past the bad one and rolled up there (her thread then drawn straight from there to the doorway): a fall from the island comes home under the good one, then straight to the door (rolled up right beside the bad one, the straight thread still clips it) | 50 buttons (the Pattern was here before the Long Way Home) |
 | Mother Sloth's Room | 1,0 | Boss: Mother Sloth (her arms catch you and reel you to her bed to be tucked in; an arm pulled out past the ring of stars snaps; both snapped, she slumps: knock her nightcap), three rounds, each taking the last one's way away | 1: lay the Bedroll out past the stars; caught, fly Homeward: snap. 2: she thumps the bed and the floor past the stars drops into the dark (a Bedroll lying there falls back into the pack), all but a row of old boards along the bottom: nowhere to lay it out of reach, but the flight follows the trace: out over the boards (they give way behind) and back in, then caught, Homeward goes back over them: snap. 3: the boards drop too; the old bedposts they lay across stand out in the dark, ringed with brass: caught in line with one, turn in her grip and hook it: the reel drags Wren out past the stars (snap) and she drops home onto the Bedroll, unhurt. Out of reach she throws pillows; flown out of the room the fight waits, its arms grown back. About 50 s for a player who never hesitates (was 102). Moves (tells 26/23/21): a hand rises and spreads its fingers before it reaches (tucked in: a heart); pillows lifted over her head first (one, two, three); round 3 the sheep: a row lit, then a flock along it (a heart); two knocks a round; a heart each round. Tests: slumber.test.mjs | Knot, Heartstitch |
 
-Keys: 4 keys (Linen, Loft, Moonwalk, Fort), 4 locks (Ward E, Ward N, Nursery N, Moonwalk N). Pattern: the Dreaming Door,
-for the Landing's north door. Any order works and none strands you (spent elsewhere, key C skips the Nursery and the Fort,
-which are then optional). The way back from the Dreaming Door: the Milk Kitchen's east bank and its south door, the
-Moonwalk, the Landing. A game that found the Pattern in Pillow Fort before these rooms were built finds key D there (a new
-chest) and buttons in the Dreaming Door.
+Keys: 4 keys (Linen, Loft, Moonwalk, Fort), 4 locks (Ward E, Ward N, Nursery N, Moonwalk N). Pattern: the Long Way Home
+(its chest in the Long Ward), for the Landing's north door. Any order works and none strands you (spent elsewhere, key C skips
+the Nursery and the Fort, which are then optional; the Long Way Home needs the Laundry, and if the ward's east door is still
+locked with no key left, the laundry chute opened from the Moonwalk is the way in). The Milk Kitchen's jug and the Dreaming
+Door past it are optional now. Old games: one that holds the Pattern (from the Dreaming Door, or from Pillow Fort before
+those rooms were built) keeps it, and the Long Ward's chest gives it buttons; one mid-House finishes by the Long Way Home
+(the chute's lever, the hole and the lower springs are there whenever it's next built; a basket left going round in the
+laundry since the Plan is boarded as it passes, or rung home). A game that found the Pattern in Pillow Fort finds key D
+there (a new chest).
 Dressing: Mother Sloth's four-poster with velvet curtains tied back with gold cord, a scalloped valance with tassels and a
 draped back; nightstands with night-lights either side; night-lights along the walls of the Long Ward, the Milk Kitchen and
 the Dreaming Door (their glow falls on the floor below, not on a drop); the Milk Kitchen's stove, table and milk jug; the
 bedsprings; the Dreaming Door's dreamcatchers, the good and the bad, and the little pair either side of the door that light
-with them. The House keeps its own soft starry carpet.
+with them; the three rooms' pairs with their charms, a night-light in each of those rooms, and the three on a brass rail over
+the Long Ward's north door and over the big door. The House keeps its own soft starry carpet.
 Tests: every room's solution; Matron's two knocks; each of Mother Sloth's rounds (her floor in each, the Bedroll lost with the
 floor, Homeward in reach holds, over the boards and back snaps, the boards mend on landing, the bedposts, turning in her grip
 and hooking out unhurt, the floor back after), an arm snaps only past the stars, the whole fight's time, waiting while Wren's
 out of the room (arms regrown, floor restored and back again); the Milk Kitchen (the solution; thrown or smashed on the far
-side, the springs one way, a fall); the Dreaming Door (both lit on a plain flight, the Bell between them, rung too soon); the
-way through lock D; an old save's Pattern; the kit's carried trace along a flight. Scripted playthrough (LEG5); probe: clean.
+side, the springs one way, a fall); the Dreaming Door (both lit on a plain flight, the Bell between them, rung too soon, the
+Bedroll rolled up past the bad one); the way through lock D; an old save's Pattern; the kit's carried trace along a flight.
+The Long Way Home (tests/longway.test.mjs): the whole way round, one flight, the three good dreams in order, the Pattern and
+the big door; its timing (one room as quick as ever, the House at a few pixels a step); each room dreamt on its own (its
+night-lights kept through a rebuild) but no Pattern from three flights; the old ways are bad dreams (each room's usual route);
+a folded route (only what's after the fold lights; the lamps over the ward door show it); a bed does as well as the Bedroll
+(from the Drying Loft); the rolled-up Bedroll no way round; the chute (bolted, the lever, the camera, the bad key order);
+saves (the night-lights kept, an old Pattern kept, buttons). Scripted playthrough (LEG5, by the Long Way Home); probe: clean
+over LEG5 (its one finding, a nibbler in a wall in the overworld, is there without these changes too).
 
 ## D6 Marionette Hall (`src/63_marionette.js`, `src/63b_marionette_foes.js`, kit `src/61_crossbar_kit.js`, the reveal `src/64_reveal1.js`; tests `tests/marionette.test.mjs`, `tests/crossbar_kit.test.mjs`, `tests/review_d6.test.mjs`, `tests/larkspur.test.mjs`) - tested
 

@@ -28841,11 +28841,11 @@ SPAWN.shuttle = (x, y, p) => Progress.flag('loom_shuttle') ? new Ent('none') : n
       from below, it's hauled down its own well toward you, and hangs there dazed, low over the well, before it climbs
       home: cut it at the thing itself (or its thread, on the way home) while it's over the well.
    Nothing to set up again between beats: the posts stay bare once cut; it climbs to its new perch by itself. */
-/* Its blows (TELL[8], the last and hardest): silk spat after it rears back (in its web, swung back), its belly aglow (bound, the Shears cut you
-   free; caught again while bound, a heart and a half; two at once in the last beat); a warp thread under Wren plucked
-   taut, the column lit first, then snapping down it (a heart and a half; two columns from the second beat); its drop
-   from the breast-beam (its shadow first: two hearts); and in the last beat, silk moths shaken down out of the web. Each
-   beat it's knocked into, a heart drifts down. */
+/* Its blows (TELL[8], the last and hardest): silk spat after it rears back, its belly aglow (in its web it swings back
+   away from Wren as it does; bound, the Shears cut you free; caught again while bound, a heart and a half; two at once
+   in the last beat); a warp thread under Wren plucked taut, the column lit first, then snapping down it (a heart and a
+   half; two columns from the second beat); its drop from the breast-beam (its shadow first: two hearts); and in the last
+   beat, silk moths shaken down out of the web. Each beat it's knocked into, a heart drifts down. */
 const WV = {
     spit: [0, 70, 0, 54], spitSp: [0, 1.7, 1.8, 2.0],      /* (by beat) */
     warp: [0, 200, 180, 160], moths: 300, maxMoths: 3,
@@ -28898,10 +28898,12 @@ const AnchorWays = {
     /* the Shears at it (at its post, or along it): cut, or said why not */
     snipBy(w, atPost) {
         if (this.taut(w)) { Shears.cut(this); Stats.count('boss:weaver:anchor:' + this.way); return true; }
-        UI.toast(atPost && this.way === 'asleep' ? ANCHOR_LINE.asleep : ANCHOR_LINE.slack, 150); Sfx.play('hitthing', 0.5);
+        this.say(atPost && this.way === 'asleep' ? ANCHOR_LINE.asleep : ANCHOR_LINE.slack); Sfx.play('hitthing', 0.5);
         if (atPost && this.way === 'asleep') Fx.text(this.top[0], this.top[1] - 8, 'z', '#e8e0ff');
         return true;
     },
+    /* a line about it (at the foot of the screen if its knot's up where notices go: they'd hide what they're about) */
+    say(s) { UI.toast(s, 150); const t = UI.toasts.find(q => q.s === s); if (t && this.top[1] - Cam.y < 64) t.low = true; },
     tie() { this.cut = false; this.cuttable = true; this.sleeping = this.way === 'asleep'; this.unwind = 0; },
     onCut() { if (this.cut) return; this.cut = true; this.cuttable = false; this.sleeping = false; this.unwind = 0; Fx.ring(this.top[0], this.top[1], '#e4ecf5'); },
     /* its thread, from where it's tied to the Weaver: tight and straight (pulled tight, the long one shivers, bright); slack,
@@ -28943,7 +28945,7 @@ class Anchor extends GridThing {
         if (!Progress.flag('weaver_cocoon')) { Progress.set('weaver_cocoon'); G.pendingToast = 'At the bell the cocoon stirs, and its silk unwinds back up into the web. Under it, a knot.'; }
     }
     /* the stick on its cocoon: asleep, and nothing moves it but a bell */
-    onStruck() { Sfx.play('hitthing'); if (this.sleeping) UI.toast(Return.sleepLine(this)); }
+    onStruck() { Sfx.play('hitthing'); Fx.dust(this.tx * T + 8, this.ty * T + 8); if (this.sleeping) UI.toast(Return.sleepLine(this)); }
     tick() { if (this.unwind > 0) this.unwind--; }
     sprite() { return spr('greatpost'); }
     draw(cx, cy) {
@@ -28973,7 +28975,9 @@ class Anchor extends GridThing {
     }
 }
 withAnchorWays(Anchor);
-SPAWN.anchor = (x, y, p) => new Anchor(x, y, p);
+/* (the Weaver beaten, the place built again: its anchors hang in tatters) */
+const spentAnchor = n => { if (Progress.flag('loom_boss')) { n.cut = true; n.cuttable = false; n.sleeping = false; } return n; };
+SPAWN.anchor = (x, y, p) => spentAnchor(new Anchor(x, y, p));
 /* the one tied up on the loom, into its cloth over the well's head (no post: under it there's only the well) */
 class LoomAnchor extends Ent {
     constructor(tx, ty, p = {}) { super('anchor', Object.assign({ way: 'loom' }, p)); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.tie(); }
@@ -28989,7 +28993,7 @@ class LoomAnchor extends Ent {
     }
 }
 withAnchorWays(LoomAnchor);
-SPAWN.loomanchor = (x, y, p) => new LoomAnchor(x, y, p);
+SPAWN.loomanchor = (x, y, p) => spentAnchor(new LoomAnchor(x, y, p));
 
 class Weaver extends Ent {
     constructor(tx, ty, p = {}) {
@@ -29221,7 +29225,7 @@ class Weaver extends Ent {
         const ans = this.anchors().filter(n => n.over(f.tx, f.ty, this));
         if (ans.length) return (ans.find(n => n.taut(this)) || ans[0]).snipBy(this, false);
         const up = this.anchors().find(n => n.way === 'loom' && !n.cut);
-        if (up && a.kind(f.tx, f.ty).solid && f.ty <= up.ty + 1 && Math.abs(f.tx * T + 8 - up.top[0]) <= 2 * T) { UI.toast(ANCHOR_LINE.loom, 150); Sfx.play('hitthing', 0.5); return true; }
+        if (up && a.kind(f.tx, f.ty).solid && f.ty <= up.ty + 1 && Math.abs(f.tx * T + 8 - up.top[0]) <= 2 * T) { up.say(ANCHOR_LINE.loom); Sfx.play('hitthing', 0.5); return true; }
         return false;
     }
     cutThread() {

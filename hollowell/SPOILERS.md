@@ -516,6 +516,20 @@ words crossed out hard), his monogram in the rug. Back in town he knows things a
 it's comfy? One hears things"). The schoolhouse rules gained, faintly, "6. You have a place too" after Knot 4: the
 Bedroll is the first thing in the game that lets Wren choose where home is (it matters at the ending). Gran, after
 Knot 5: "Mind you always roll it up and bring it home. A Wanderer's place is at home."
+**The Long Way Home (the House's Pattern, its signature chain; DUNGEON_TRACKER.md D5).** Three rooms each hang a good dream
+and a bad one over a way they already have: the Linen Cupboard over its boards (bad over the south walk that usually lights
+the lamps, good over the north one), the Laundry over its tub (bad over the bottom, where the current takes you first; good
+over the top, reached by paddling up the near side against the current), the Milk Kitchen over its gap (bad over the bell's
+springs; good over a hole in the far bank that drops into the Moonwalk, lit only by a flight back up through it, after
+crossing on the lower springs). A flight home that goes through a room's good dream and not its bad one lights that room's
+night-light for good (in the room, and one of three over the Long Ward's north door and the big door). The Pattern: all three
+on ONE flight home, which the ward makes hard, since its side rooms are dead ends and walking back over a doorway erases
+everything since. The answer is a loop: the Bedroll in the ward's south-east; the Laundry (upstream, ashore under the chute);
+up the laundry chute (bolt drawn by the Moonwalk's lever) into the Moonwalk; round its east side to the Milk Kitchen; lower
+springs, down the hole into the Moonwalk's west side; the Landing; back into the ward by the north door, across its top, to
+the Linen Cupboard's north boards; Homeward. About 7 s of flight, lighting the linen's, the milk's and the wash's in that
+order; the chest comes down in the ward. Any bed works as the place too. The Dreaming Door is optional now (50 buttons),
+done by the Bell rung in mid-flight or by the Bedroll rolled up on the boards past its bad dream.
 
 ## Larkspur Fair and the Marionette Hall (Knot 6, `src/62_larkspur.js`, `src/63_marionette.js`)
 The way in is a jump off Kilnridge's high mesa into a straw heap (only with a Bedroll laid up top); the way out is

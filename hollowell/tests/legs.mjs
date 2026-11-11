@@ -748,6 +748,8 @@ export const LEG5 = (HW, chain) => {
     walk(...s('landing', 18, 5)); walk(...s('moonwalk', 2, 4)); lay();
     walk(...s('moonwalk', 15, 9)); HW.push('right', 1); homeward();
     walk(...s('moonwalk', 2, 2)); HW.face('up'); talk(); ok(HW.Inv.keys('slumber') === 1, 'key C');
+    /* the lever by the hole in the moonwalk's floor draws the laundry chute's bolt (the camera goes down to look) */
+    walk(...s('moonwalk', 8, 8)); HW.face('down'); talk(); ok(thing('ldChute').open, 'the laundry chute open from above');
     /* the nursery: the toy home over the drop; the fort: key D */
     walk(...s('moonwalk', 1, 5)); walk(...s('landing', 1, 5)); walk(...s('nursery', 8, 3)); lay();
     walk(...s('nursery', 4, 5)); HW.hold('down'); until(() => p().ty === s('nursery', 0, 7)[1] && p().state === 'normal', 120); HW.release();
@@ -770,20 +772,48 @@ export const LEG5 = (HW, chain) => {
     walk(...s('kitchen', 2, 3)); HW.face('up'); HW.press('act', 1); HW.step(10); ok(p().carry, 'the jug');
     homeward(); HW.face('down'); HW.press('act', 1);
     ok(until(() => thing('mkGate').open, 400), 'its pieces rang the milk bell: the gate');
-    /* the dreaming door: out along the old boards, home with the Bell rung between the good dream and the bad: the Pattern */
-    walk(...s('kitchen', 18, 5)); HW.hold('right'); HW.step(40); HW.release(); HW.step(30);
-    walk(...s('dream', 2, 4)); lay();
-    const dpath = [[5, 8]]; for (let x = 6; x <= 17; x++) dpath.push([x, 8]); for (let y = 7; y >= 2; y--) dpath.push([17, y]); for (let x = 16; x >= 6; x--) dpath.push([x, 2]);
-    walk(...s('dream', 4, 8)); steps('dream', dpath);
-    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); until(() => p().state === 'flight', 60); HW.release();
-    ok(until(() => thing('dgGood').lit > 0, 200), 'the good dream lit');
-    HW.Inv.equipped = 'bell'; HW.press('tool', 1); landed();
-    ok(thing('dgDoor').open && !thing('dgBad').lit, 'snapped home before the bad dream: the door');
-    walk(...s('dream', 2, 2)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
-    /* back round to the landing's big door */
-    walk(...s('dream', 1, 5)); HW.hold('left'); HW.step(30); HW.release(); HW.step(30);
+    /* (the dreaming door past the gate is a purse of buttons now, and left) */
+    /* the long way home, for the Pattern: the Bedroll rolled up and laid again in the long ward's south-east corner; out of the
+       ward's east door to the laundry; the basket paddled up its near side against the current and along the top (the wash's
+       good dream), ashore under the chute; up it, round the moonwalk's east side to the milk kitchen; over the gap on the lower
+       springs (not the bell's: those have the milk's bad dream) and down the hole in the far bank (its good dream over it); the
+       moonwalk's west side, the landing, back into the ward by its north door and across its top, never over the way out; the
+       linen cupboard's north boards (its good dream, not the bad one over the south); and Homeward, the long way round */
+    const round = (r, path) => { for (const [x, y] of path) { const [tx, ty] = s(r, x, y), d = tx > p().tx ? 'right' : tx < p().tx ? 'left' : ty > p().ty ? 'down' : 'up'; for (let i = 0; i < 80 && (p().tx !== tx || p().ty !== ty); i++) { HW.hold(d); HW.step(1); } HW.release(); until(() => !HW.Cam.busy, 60); const h = d === 'left' || d === 'right'; for (let i = 0; i < 16; i++) { const off = h ? p().x - (tx * 16 + 8) : p().y - (ty * 16 + 10); if (Math.abs(off) <= 2) break; HW.hold(h ? (off > 0 ? 'left' : 'right') : (off > 0 ? 'up' : 'down')); HW.step(1); } HW.release(); ok(p().state === 'normal' && p().tx === tx && p().ty === ty, `stepped round to ${r} ${x},${y}`); } };
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(3); ok(!HW.Inv.bedroll, 'the Bedroll rolled up');
     walk(...s('kitchen', 15, 9)); HW.hold('down'); HW.step(40); HW.release(); HW.step(30);
-    walk(...s('moonwalk', 1, 5)); walk(...s('landing', 9, 1));
+    walk(...s('moonwalk', 1, 5)); walk(...s('landing', 9, 9)); HW.hold('down'); HW.step(40); HW.release(); HW.step(30);
+    walk(...s('ward', 17, 6)); lay();
+    round('ward', [[18, 6], [18, 5], [19, 5]]);
+    round('laundry', [[0, 5], [1, 5], [2, 5]]);
+    /* (the basket, going round and round since the Plan, rung home to its dock as it comes past) */
+    const bs = thing('ldBasket');
+    if (!HW.Return.isHome(bs)) {
+        ok(until(() => Math.hypot(bs.tx - p().tx, bs.ty - p().ty) < 6 && !bs.mv, 3000), 'the basket comes round past');
+        HW.Inv.equipped = 'bell'; HW.press('tool', 1); ok(until(() => HW.Return.isHome(bs) && !bs.mv, 300), 'rung home to its dock');
+    }
+    round('laundry', [[2, 6], [2, 7], [2, 8], [3, 8]]);
+    HW.Inv.equipped = 'paddle';
+    HW.hold(['tool', 'up']); ok(until(() => bs.tx === s('laundry', 3, 0)[0] && bs.ty === s('laundry', 0, 2)[1] && !bs.mv, 600), 'the basket paddled up against the current');
+    HW.hold(['tool', 'right']); ok(until(() => bs.tx === s('laundry', 6, 0)[0] && !bs.mv, 400), 'and along the top'); HW.release();
+    HW.hold('up'); until(() => p().ty === s('laundry', 0, 1)[1] && !p().ride && p().state === 'normal', 120); HW.step(8); HW.release();
+    round('laundry', [[6, 1], [7, 1], [7, 0]]);
+    round('moonwalk', [[7, 10], [7, 9], [7, 8], [8, 8], [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8], [15, 8], [15, 7], [15, 6], [15, 5], [15, 4], [15, 3], [15, 2], [15, 1], [15, 0]]);
+    round('kitchen', [[15, 10], [15, 9], [15, 8], [15, 7]]);
+    HW.hold('left'); until(() => p().state === 'normal' && p().tx <= s('kitchen', 4, 0)[0], 400); HW.release(); HW.step(5);
+    round('kitchen', [[2, 7], [3, 7], [4, 7], [4, 8], [4, 9]]);
+    HW.hold('down'); until(() => p().state === 'normal' && p().ty >= s('moonwalk', 0, 4)[1], 300); HW.release(); until(() => !HW.Cam.busy, 60); HW.step(2);
+    round('moonwalk', [[4, 4], [3, 4], [2, 4], [1, 4], [1, 5], [0, 5]]);
+    round('landing', [[19, 5], [18, 5], [18, 6], [18, 7], [18, 8], [17, 8], [16, 8], [15, 8], [14, 8], [13, 8], [12, 8], [11, 8], [10, 8], [10, 9], [9, 9], [9, 10]]);
+    round('ward', [[9, 0], [9, 1], [9, 2], [9, 3], [9, 4], [8, 4], [7, 4], [6, 4], [5, 4], [4, 4], [3, 4], [2, 4], [1, 4], [1, 5], [0, 5]]);
+    round('linen', [[19, 5], [18, 5], [17, 5], [16, 5], [15, 5], [14, 5], [14, 6], [13, 6], [12, 6], [11, 6], [11, 5], [11, 4], [11, 3], [10, 3], [9, 3], [8, 3]]);
+    homeward();
+    ok(HW.Progress.flag('slumber_longway'), 'three good dreams on one way home');
+    const pc = thing('lwPattern'); ok(until(() => !pc.hidden, 120), "the Pattern's chest in the long ward");
+    walk(pc.tx, pc.ty + 1); HW.face('up'); talk(); ok(HW.Inv.hasPattern('slumber'), 'the Pattern');
+    /* to the landing's big door */
+    walk(...s('ward', 9, 1)); HW.hold('up'); HW.step(40); HW.release(); HW.step(30);
+    walk(...s('landing', 9, 1));
     HW.hold('up'); HW.step(60); HW.release(); HW.step(30);
     /* Mother Sloth: three rounds */
     const sl = HW.G.map.ents.find(e => e.type === 'mothersloth');
