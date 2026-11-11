@@ -230,9 +230,28 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   over the review's doubt: no quick boss retry. Done at once: the journal no longer lists the town's favours before
   someone has asked in person. Running: a design audit against the review (audit_brief.md), read-only, which turns it
   into a scoped plan (effort, impact, risk) within about 15-25 helper hours.
-- Running: two AI blind solvers (A: Houses 7-8 and the Great Spool; B: Houses 5-6 and the new world puzzles), now also
-  logging when each rule was inferred, confusion and annoyance, execution tolerance, feedback on wrong ideas and
-  unintended shortcuts; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); the audit.
+- The design audit against the outside review is done (scratchpad audit/AUDIT.md; read-only; AI-checked, no human
+  play). Agreed with the review: all eight Houses share one shape (keys, a mini-boss giving the tool, the Pattern, the
+  big door, a three-beat boss; only House 7's two layers, the optional Houses and the Great Spool break it); the final
+  choice changes one word; the bracelet's chain buys three fewer cuts; the top room is six of the same action; from
+  the Loom on, the theme is said outright many times; the first reveal is given away in House 1 by the nudge voice.
+  Out of date in the review: the bosses (now three beats with moves), the music (dungeon loops 58-82 s), signs and
+  hints. Already strong: the mechanical clues (a pushed townsperson shows a thread from minute one; House threads in
+  their Maker's colours; the town measurably stops moving as Knots are tied; strays carry Linnet's L).
+  The plan, ranked (effort: S under 2 h, M 2-5, L over 5): 1 P2 falls, faints and fog-pulls counted on Wren's spool and
+  in Gran's ledger, the respawn convention Gran's hand (S); 2 P1 hold on in the Hall of Names, the climax a hand held,
+  not a menu (S-M); 3 P3 restraint: the twenty worst thesis lines, the motto, credits (S-M); 4 P5 the nudge voice by
+  tics not names, the Well's creak a wordless shot (S); 5 P4 the Spool's top in three pairs, Gran adapting, the
+  bracelet changing the shape (M-L); 6 P6 Linnet's note 5 made playable (S); 7 P7 the quilt growing while Gran's locked
+  in, no denominator (S); 8 P8 a quiet post-ending discovery (S); 9 P9 one signature chain, the Slumberhouse's Long Way
+  Home (M-L); then P10 the Makings' capstone, a Little House Wren designs (M); P12 small fairness fixes. About 23 h for
+  1-9. Not to do: new cosmology or fourth-wall tricks, restructuring all eight Houses, changing the Return's core
+  numbers, longer bosses or a quick retry, hints, required optional content, trimming the Makings blind, added hours.
+- Running: AI blind solver B; what's owed (owed_brief.md); dressing for Houses 1 and 2 (dressing_brief.md); fix round A
+  (fixA_brief.md: findings 29-36); the story through play (meta_brief.md: P2, P5, P6, the Hall of Names part of P1).
+  Queued: the Spool's top and the ending (P1's climax, P4, P2's count at the Spool, P8) after fix round A; the
+  signature chain (P9); restraint (P3) and the quilt (P7) once the story files settle; P10 if the budget allows; fix
+  round B (solver B's findings, the Trap Room, the Tangle's third beat).
 - David's direction of 10 November (vibes, not a list; the game stays its own thing, not a copy): puzzles simple in
   the first House and the land open then, harder House by House up to real ahas that combine tools; no hints unless
   asked (the opt-in nudges stay as they are; no new hint character), no answer signs; the road to later Houses takes
