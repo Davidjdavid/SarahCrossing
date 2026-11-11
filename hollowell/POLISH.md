@@ -292,6 +292,21 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   pulled taut only when the Weaver swings back to spit; a knot cocooned asleep until rung awake within the drawn
   reach; a thread tied up into the loom, cut from the well's rim anywhere along it); the Tangle's wrong ring says why;
   lengths and tells unchanged; suite 662/662 at its finish.
+- Done too: the signature chain (chain_brief.md, P9): the fifth House's Pattern from one Homeward flight that lights
+  three rooms' good dreams and none of their bad, without crossing its own path (a laundry chute up to the Moonwalk and
+  a hole in the Milk Kitchen's bank make the loop possible); each room latches on its own (a night-light in the room,
+  over the Ward's door and over the big door); a folded route shows where it turned back; the Dreaming Door is now an
+  optional reward; a flight gets 110 frames per room it crosses; tests/longway.test.mjs (11); LEG5 plays it. An AI
+  helper's estimate for a first-timer: 20-35 minutes (not measured).
+- Done too: the restraint pass (restraint_brief.md, P3): after-the-end lines 62 to 32, one each, about what the person
+  is doing; the summing-up lines, the credits' summaries, the four new chalked Rules and the tapestry's caption gone;
+  the re-carved motto now one new word under the old line ("AND"); a dozen explaining tags trimmed (Gundry's after the
+  Tangle by the coordinator); tests/after_lines.test.mjs keeps the old summing-up lines out. Suite 668/668.
+- The audit's plan is complete (P1-P12), but P13 (music for the Makings and the Unfinished House: running,
+  music3_brief.md) and P14 (not planned).
+- Verification started: live run 2 (all nine legs in Chromium, a picture at every room, line and notice; then contact
+  sheets and picture reviews); two fresh AI blind solvers on the newest pieces (C: the way into House 5, House 5 with
+  its chain, the ninth Little House; D: the two late bosses, the Spool's top and the end).
 - Running now too (earlier line, for the record): inference for the two late bosses (latebosses_brief.md: the Weaver's beat 1 read four ways, the
   Tangle's beat 3 failing informatively).
 - Running (earlier line, for the record): P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
