@@ -82,12 +82,12 @@ const SpoolArt = {
         for (let i = 0; i < n; i++) {
             const lx = r.x * T + T + Math.floor((i + 0.25 + hash2(i, r.x, r.y) * 0.5) * (r.w - 2) * T / n), tx = Math.floor(lx / T), sx = lx - cx, col = run[i % run.length];
             for (let ty = r.y + 1; ty < r.y + r.h - 1; ty++) {
-                const k = a.kind(tx, ty); if (k.solid && !k.arch) continue;
+                const k = a.kind(tx, ty); if ((k.solid && !k.arch) || k.pit) continue;
                 Gfx.alpha(k.water ? 0.12 : 0.24); Gfx.rect(sx, ty * T - cy, 1, T, col);
             }
             for (let f = 0; f < 2; f++) {
                 const y = bot - (G.t * 0.3 + hash2(i, f, r.x * 7 + r.y) * len) % len, k = a.kind(tx, Math.floor(y / T));
-                if (k.solid && !k.arch) continue;
+                if ((k.solid && !k.arch) || k.pit) continue;
                 Gfx.alpha(k.water ? 0.3 : 0.6); Gfx.rect(sx, Math.round(y) - cy, 1, 3, shade(col, 0.45));
             }
         }
@@ -113,6 +113,16 @@ const SpoolArt = {
             Gfx.alpha(0.7); Gfx.line(x, y1, x, y0, e.ret.color); Gfx.alpha(1);
             const k = (G.t * 2) % Math.max(1, y0 - y1); Gfx.rect(x - 1, y0 - k, 2, 2, shade(e.ret.color, 0.5));
         }
+        /* at the top: where Gran's next throw will come down, the tile stitched round, blinking faster as it comes, and its
+           shadow growing (as every blow in the valley shows itself first) */
+        const d = a.find('theSpool'), t = d && d.toss;
+        if (t && a.roomAt(t.tx, t.ty) === r) {
+            const k = Math.min(1, t.t / t.tell), x = t.tx * T - cx, y = t.ty * T - cy, red = '#e8463c';
+            const blink = ((t.t / Math.max(3, Math.round(10 - 7 * k))) | 0) % 2 === 0;
+            Gfx.alpha(0.12 + 0.25 * k); Gfx.rect(x + 1, y + 1, 14, 14, red); Gfx.alpha(1);
+            Tells.stitchTile(x, y, blink ? shade(red, 0.45) : red);
+            Gfx.alpha(0.2 + 0.4 * k); Tells.ellipse(x + 8, y + 10, Math.round(2 + 5 * k), PAL.ink); Gfx.alpha(1);
+        }
     },
     over(a, cx, cy) {
         /* the foot of the Well: things tumbling down after you */
@@ -120,6 +130,13 @@ const SpoolArt = {
             const im = spr(['pot', 'crate', 'block_wood', 'barrel_g'][j.k]); if (!im) continue;
             if (j.z <= 0) { Gfx.alpha(0.25); Gfx.rect(j.x - cx - 5, j.y - cy + 4, 10, 2, PAL.ink); Gfx.alpha(1); }
             Gfx.alpha(0.85); Gfx.img(im, j.x - cx - 8, j.y - cy - 10 - j.z); Gfx.alpha(1);
+        }
+        /* Gran's throw, on its way: up off the drum and down onto its shadow */
+        const d = a.find('theSpool'), t = d && d.toss;
+        if (t && t.t > t.tell - 22) {
+            const im = spr(t.look), k = (t.t - (t.tell - 22)) / 22, x0 = d.x + 32, y0 = d.y + 30, x1 = t.tx * T + 8, y1 = t.ty * T + 8;
+            const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 26;
+            if (im) Gfx.img(im, Math.round(x - cx - 8), Math.round(y - cy - 12));
         }
         /* wound into the face: drawn up into it, shrinking */
         for (const f of Pull.fx) {
@@ -149,7 +166,19 @@ const SpoolArt = {
         if (turn) for (let i = 0; i < 28; i += 3) { const ph = (turn * 0.6 + i * 9) % 64; Gfx.alpha(0.5); Gfx.rect(x + ph, y + i, 4, 1, '#ffffff'); Gfx.alpha(1); }
         Gfx.rect(x - 5, y - 7, 74, 7, PAL.ink); Gfx.rect(x - 4, y - 6, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y - 6, 72, 1, '#f7d64a');
         Gfx.rect(x - 5, y + 28, 74, 7, PAL.ink); Gfx.rect(x - 4, y + 29, 72, 5, '#c9a24a'); Gfx.rect(x - 4, y + 29, 72, 1, '#f7d64a');
-        for (const j of d.junk) Gfx.img(spr(['block_wood', 'pot', 'crate'][j.k]) || spr('block_wood'), j.x - cx - 8, j.y - cy - 12);
+        /* things on their way into the drum: dragged along a great thread, or (high over your head) off the walls */
+        for (const j of d.junk) {
+            const im = (j.thing && j.thing.sprite()) || spr(j.look) || spr('crate');
+            if (j.high) { Gfx.alpha(0.2); Gfx.rect(j.x - cx - 5, j.y - cy + 3, 10, 2, PAL.ink); Gfx.alpha(1); }
+            if (im) Gfx.img(im, j.x - cx - 8, j.y - cy - 12 - (j.high ? 14 : 0));
+        }
+    },
+    /* a thing Gran threw, lying where it came down: her thread on it, up to the drum, pulled tight as she takes it back */
+    thrown(e, cx, cy) {
+        const im = e.sprite(); if (!im) return;
+        const s = e.area.find('theSpool'), late = e.life < 30 && !e.heldBy && !e.mv, x = e.px - cx, y = e.py - cy;
+        if (s) { Gfx.alpha(late ? 0.8 : 0.35); Gfx.line(x + 8, y + 4, s.x + 32 - cx, s.y + 30 - cy, late ? shade(THREAD.hesper, 0.4) : THREAD.hesper); Gfx.alpha(1); }
+        Gfx.img(im, x + (late ? ((G.t >> 1) % 2 ? 1 : -1) : 0), y - (im.height - T));
     },
     post(e, cx, cy) {
         const x = e.tx * T - cx, y = e.ty * T - cy, col = KNOT_COL[e.house];
@@ -159,7 +188,16 @@ const SpoolArt = {
         Gfx.rect(x + 1, y - 13, 14, 3, '#c9a24a'); Gfx.rect(x + 1, y + 13, 14, 3, '#c9a24a'); Gfx.rect(x + 2, y - 13, 12, 1, '#f7d64a');
         if (e.cut) { Gfx.line(x + 8, y - 6, x + 14, y + 4, shade(col, -0.4)); return; }
         const s = e.area.find('theSpool'); if (!s) return;
-        const x1 = s.tx * T + 32 - cx, y1 = s.ty * T + 16 - cy;
+        /* still in Gran's hands: it runs to her fist, wound round it, and hums there */
+        const gran = e.held && e.area.ents.find(n => n.who === 'gran' && !n.removed);
+        if (gran) {
+            const left = e.tx < gran.tx, hx = gran.px + (left ? 3 : 13) - cx, hy = gran.py + 5 - cy;
+            Gfx.line(x + 8, y - 6, hx, hy, col); Gfx.line(x + 8, y - 5, hx, hy + 1, shade(col, -0.3));
+            Gfx.rect(hx - 2, hy - 1, 4, 3, PAL.ink); Gfx.rect(hx - 1, hy, 2, 1, col);
+            return;
+        }
+        /* free: to the drum's near side, low */
+        const x1 = s.x + (e.tx < s.tx ? 1 : 63) - cx, y1 = s.y + 22 - cy;
         if (e.slack > 0) {
             /* slack: it sags, wobbling */
             const sag = 10 + Math.sin(G.t / 4) * 3; let px0 = x + 8, py0 = y - 6;
@@ -221,6 +259,9 @@ AREAS.greatspool.drawOver = (a, cx, cy) => SpoolArt.over(a, cx, cy);
 }
 
 function initSpoolArt() {
+    /* a board of the Spool's own floor, pulled up (the top room's last pair) */
+    defSprite('gs_board', ['................', '................', '................', '................', '.kkkkkkkkkkkkkk.', 'kbbbbbbbbbbbbbbk', 'kBbbbbbbbbBbbbbk', 'kbbbbBbbbbbbbbbk', 'kkkkkkkkkkkkkkkk', '................', '................', '................', '................', '................', '................', '................'],
+        { b: '#4a3a3a', B: '#2e2226' });
     /* the old mangle: two wooden rollers in an iron frame, a crank on its side */
     defSprite('gs_mangle', ['....kkkkkkkk....', '...kxxxxxxxxk...', '..kxkkkkkkkkxk..', '..kxkuuuuuukxkk.', '..kxkUUUUUUkxkyk', '..kxkkkkkkkkxkyk', '..kxkuuuuuukxk.k', '..kxkUUUUUUkxk..', '..kxkkkkkkkkxk..', '..kxxxxxxxxxxk..', '...kxk....kxk...', '...kxk....kxk...', '..kxxxk..kxxxk..', '..kkkkk..kkkkk..', '................', '................'],
         { x: '#5a5264', u: '#e6c08a', U: '#b48a52', y: '#c9a24a' });

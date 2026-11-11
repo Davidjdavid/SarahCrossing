@@ -60,6 +60,16 @@ const Ending = {
         yield* camLook(96, 36, 150);
         for (let i = 0; i < 50; i++) { G.mist.t++; yield 1; }
         yield* say(null, 'Over the north woods the fog has thinned to nothing but a morning mist, and through it, there is a road.');
+        /* shown Linnet's bracelet at the Spool, Gran goes a little way up it with her (Gran, who has never been past the
+           fog) */
+        if (Progress.flag('bracelet_top')) {
+            const two = [['gran', 95], ['linnet', 96]].map(([who, x]) => { const n = a.add(new NPC(x, 44, { who, face: 'up', marked: false })); n.free = n.cutFree = true; n.walkTo(x, 29, 0.5); return n; });
+            for (let i = 0; i < 90; i++) { G.mist.t++; yield 1; }
+            yield* say(null, 'Two people are walking up it, not in any hurry: Linnet, and Gran, with a green bracelet on her wrist.', { focus: [96, 38] });
+            for (let i = 0; i < 150; i++) { G.mist.t++; yield 1; }
+            for (const n of two) a.remove(n);
+            delete Inv.items.bracelet; Progress.set('bracelet_given');
+        }
         G.mist = null;
         /* Gran and Linnet on the bench by her gate, Biscuit between them; by the gate, the bloom */
         G.benchCat = true;
@@ -68,7 +78,7 @@ const Ending = {
         yield 10;
         yield* say(null, "Gran and Linnet sit on the bench together, not saying much. Biscuit sits between them, purring like a winch.", { focus: [79, 53] });
         if (Progress.flag('seed_planted')) yield* say(null, 'By the gate, the seed you brought back from past the fog has opened.', { focus: [73, 51] });
-        if (Inv.items.bracelet) { yield* say(null, Progress.flag('bracelet_top') ? "Gran has Linnet's bracelet on her wrist now, the green thread a little faded. Every so often she turns it round, and Linnet pretends not to see." : "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
+        if (Inv.items.bracelet) { yield* say(null, "You give Linnet her bracelet back, and Linnet gives it to Gran: plaited from green thread, a little faded. Gran puts it on and doesn't say anything, and doesn't need to."); delete Inv.items.bracelet; Progress.set('bracelet_given'); }
         /* Tuck's drawing, on Gran's dresser (a close look) */
         if (Progress.flag('s30')) {
             yield* fadeOut(24);

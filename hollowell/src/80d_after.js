@@ -130,8 +130,9 @@ const After = {
         add('lean', ln >= 4, e.lean ? `leant on ${lw} most: ${ln} times` : 'leant on nobody', ['lean'], 55 + Math.min(15, ln), 55, 2,
             () => [['gran', `{happy}${Num(ln)} times you leant on ${this.said(lw)}. I felt every one.`], ['linnet', '{happy}Somebody had to.']],
             () => `{name} leaning on ${this.written(lw)} again. The ${ordWords(ln)} time.`);
-        add('waited', e.waited >= 5, `sat and waited for things to come home ${e.waited} times`, ['waited'], 50, 0, 0,
-            () => [['gran', `In the Houses you'd sit down and wait for everything to come home. ${Num(e.waited)} times. I'd feel you go still.`]]);
+        add('waited', e.waited >= 5, `sat and waited for things to come home ${e.waited} times`, ['waited'], 50, 40, 1.5,
+            () => [['gran', `In the Houses you'd sit down and wait for everything to come home. ${Num(e.waited)} times. I'd feel you go still.`]],
+            () => '{name} sat down in a House again and waited for it all to come home. She does that.');
         add('straight', e.kept && e.fog === 0 && e.atSelf === 0, 'kept from the first step: the fog never turned her round, and she cut nobody before her own thread', ['fog', 'cuts'], 45, 0, 0,
             () => [['gran', "{happy}That fog never had to turn you round once. And with the Shears, you didn't cut a soul loose before your own."], ['linnet', '{happy}Saving them for later.']]);
         add('nocut', e.atSelf === 0, e.atSelf === null ? 'her own thread cut before any of this was kept' : `cut ${e.atSelf} people before her own thread`, ['cuts'], 40, 0, 0,
@@ -178,7 +179,7 @@ const After = {
         return !e.home ? 'Never once had to catch her, this Wander.' : e.home === 1 ? 'Caught her once, this Wander.' : `Caught her ${numWords(e.home)} times, this Wander.`;
     },
     ledgerLines(e) {
-        const q = s => '"' + s + '"', ent = this.pick(e).ledger.map(x => q(x.write(e))), out = ["Down the steps it's cool and quiet. On the cushion, her ledger lies open at the last page with any writing on it."];
+        const q = s => '"' + s + '"', ent = this.pick(e).ledger.map(x => q(x.write(e))), out = ["Down the steps it's cool and quiet. On the cushion, her ledger lies open near the back, at a page in her small, careful hand."];
         for (let i = 0; i < ent.length; i += 2) out.push(ent.slice(i, i + 2).join(' '));
         out.push(q('{name} at the fog with the Shears.') + ' Under that, nothing. The rest of the page is empty, all the way down, but for one line at the very bottom, in fresh ink:');
         out.push(q(this.caught(e) + ' Last night she fell out of bed. Nobody caught her. She laughed.'));

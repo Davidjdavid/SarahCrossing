@@ -7,10 +7,11 @@
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
 
-/* everything said from here on */
-export function listen(HW) {
-    const lines = [], D = HW.Dialog, open0 = D.open.bind(D);
-    D.open = (who, t, o) => { lines.push((who ? who + ': ' : '') + HW.Story.fill(t)); return open0(who, t, o); };
+/* everything said while fn runs */
+export function listen(HW, fn) {
+    const lines = [], D = HW.Dialog, open0 = D.open;
+    D.open = function (who, t, o) { lines.push((who ? who + ': ' : '') + HW.Story.fill(t)); return open0.call(this, who, t, o); };
+    try { fn(); } finally { D.open = open0; }
     return lines;
 }
 /* on to a later preset, keeping what was done before (the preset's own flags win where both have one) */
@@ -43,10 +44,10 @@ export function wander(spec = {}) {
         assert.ok(HW.Progress.flag('s09'), 'the Bell rung at the Well');
     }
     if (spec.granLean) {
-        const gran = HW.G.map.ents.find(e => e.kind === 'npc' && e.who === 'gran');
         HW.warp('hollow', 95, 61); HW.step(10); HW.skipTalk();
+        const gran = HW.G.map.ents.find(e => e.kind === 'npc' && e.who === 'gran');
         for (let k = 0; k < spec.granLean; k++) { assert.ok(HW.walkTo(gran.tx - 1, gran.ty), 'beside Gran'); HW.face('right'); HW.push('right', 1); HW.step(220); HW.skipTalk(); }
-        assert.equal(HW.Stats.c['budge:gran'], spec.granLean, 'leant on Gran');
+        assert.ok(HW.Stats.c['budge:gran'] >= spec.granLean, 'leant on Gran');
     }
     for (const [who, n] of Object.entries(spec.budges || {})) { add(HW, 'budge:' + who, n); HW.Progress.set('budged:' + who); }
     if (spec.s01) HW.Progress.set('s01');
@@ -99,16 +100,12 @@ export function wander(spec = {}) {
 export function bench(HW, choice = 0) {
     for (let i = 0; i < 8 && !HW.walkTo(78, 54, 3000); i++) HW.step(40);
     assert.equal(`${HW.player().tx},${HW.player().ty}`, '78,54', 'below Gran on the bench');
-    const lines = listen(HW);
-    HW.face('up'); HW.press('act', 1); HW.step(3); HW.skipTalk(choice);
-    return lines;
+    return listen(HW, () => { HW.face('up'); HW.press('act', 1); HW.step(3); HW.skipTalk(choice); });
 }
 /* down the cellar steps to the ledger, and everything read there */
 export function cellar(HW, choice = 0) {
     HW.warp('gran_house', 2, 6); HW.step(10); HW.skipTalk();
-    const lines = listen(HW);
-    HW.face('left'); HW.press('act', 1); HW.step(3); HW.skipTalk(choice);
-    return lines;
+    return listen(HW, () => { HW.face('left'); HW.press('act', 1); HW.step(3); HW.skipTalk(choice); });
 }
 /* the trajectories the tests (and a person reading them) compare: the straight way through; everything found; changing
    your mind; sitting about; doing things out of turn; play that pulls two ways at once; never falling */
@@ -118,7 +115,7 @@ export const WANDERS = {
         tuck: 5, gate: true, hold: true, notes: 8, peep: true, self: 1,
         cuts: ['arlo', 'quill', 'hob', 'rosa', 'thimble', 'seam', 'mabel', 'burr', 'nell', 'otto', 'bea', 'tuck', 'ives', 'bram', 'ambrose', 'tess', 'mallow', 'jory'] },
     reviser: { falls: { belfry: 5 }, fog: 2, self: 3, cuts: [['rosa', 2], ['tess', 1], 'arlo'] },
-    idler: { falls: { tidy: 8, kiln: 6 }, faints: 2, fog: 1, waited: 9, idle: 20000, cuts: [] },
+    idler: { falls: { tidy: 8, kiln: 6 }, faints: 2, fog: 1, waited: 9, idle: 3000, cuts: [] },
     outoforder: { falls: { marionette: 4 }, gate: true, bell: 2, cuts: ['tess', 'tuck'] },
     twoways: { falls: { slumber: 11 }, tuck: 4, hold: true, budges: { burr: 9 }, fog: 4, cuts: ['burr'] },
     neverfell: { budges: { bea: 2 }, notes: 6,

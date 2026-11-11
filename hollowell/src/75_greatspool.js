@@ -456,79 +456,245 @@ class KnotLock extends GridThing {
 }
 SPAWN.knotlock = (x, y, p) => new KnotLock(x, y, p);
 
-/* ---------------- the top: the Spool, its six great threads, Gran ---------------- */
+/* ---------------- the top: the Spool, its six great threads, Gran ----------------
+   The six great threads come down in three pairs, the lowest first, and after each pair Gran changes the room:
+   1. the crates. She has the four higher threads wound round her hands (held things wait: drag what you like along one,
+      it won't give); the lowest two run free to the drum. Anything out of its place lying under a free one, or wound
+      north across one, is dragged along it into the drum (and spat back onto its shelf after), and the thread sags a
+      moment: cut it then.
+   2. her own junk. She winds the crates up into the drum and keeps them there, lets the middle two run free, and
+      throws things off the drum at wherever you're standing (its shadow first). One lies where it lands a little while,
+      then she has it back; come down on a free thread, it's dragged along it like anything else.
+   3. the dark. She lets the last two run free and pulls the floor up from under them into the drum, and she needs
+      both hands for that, so the crates come back down onto their shelves. Nothing can lie on those two now; but a
+      thing being wound north hangs on its thread over the dark, as it would anywhere, and wound across one of them,
+      it's dragged along it.
+   Linnet's bracelet, shown to her: she stops throwing (the room goes quiet) and lets the middle pair go herself, or the
+   last pair if the middle's gone. Saved: the threads cut (`great:<house>`) and how far she's changed the room (`gs_s1`,
+   `gs_s2`); everything else is worked out from those. */
+const SPOOL_PAIRS = [['slumber', 'marionette'], ['mill', 'belfry'], ['tidy', 'kiln']];
+/* what she throws: things of the valley's she's already wound in */
+const JUNK_LOOKS = ['basket', 'parcel', 'barrel_g', 'toyblock', 'guild_crate'];
+const SPOOL_TOSS = { tell: 34, wait: 45, life: 150 };
+const SpoolTop = {
+    /* the floor that goes from under the last two (room tiles: the top two rows either side of the drum, but the posts) */
+    DARK: [],
+    pairOf(h) { return SPOOL_PAIRS.findIndex(q => q.includes(h)); },
+    done(i) { return SPOOL_PAIRS[i].every(h => Progress.flag('great:' + h)); },
+    /* the first pair still standing (3 once all six are cut) */
+    stage() { for (let i = 0; i < 3; i++) if (!this.done(i)) return i; return 3; },
+    /* the highest pair she's let run free to the drum */
+    freed() { return Progress.flag('gs_s2') ? 2 : Progress.flag('gs_s1') ? 1 : 0; },
+    quiet() { return Progress.flag('bracelet_top'); },
+    throwing() { return this.stage() === 1 && this.freed() === 1 && !this.quiet(); },
+    room(a) { return a.rooms.find(q => q.key === '1,0'); },
+    crates(a) { const r = this.room(a); return a.ents.filter(e => e.kind === 'crate' && e.ret && !e.removed && a.roomAt(e.ret.mx, e.ret.my) === r); },
+    goal() { return `Cut the Spool's great threads, at their posts round the walls (${KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length} of 6). Too taut to cut, unless something knocks one slack.`; },
+    /* the room as she's left it (built afresh: a load, or back up the Climb) */
+    apply(a) {
+        if (Progress.flag('unwound')) return;
+        const r = this.room(a); if (!r) return;
+        if (Progress.flag('gs_s2')) for (const [x, y] of this.DARK) a.setCell(r.x + x, r.y + y, 'o');
+        else if (Progress.flag('gs_s1')) for (const e of this.crates(a)) this.stow(e);
+    },
+    /* a crate up in the drum, and kept there */
+    stow(e) {
+        const a = e.area;
+        if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
+        a.unplace(e, e.tx, e.ty); e.pendingHome = false; e.stowed = true; e.hiddenYank = true; e.inert = true;
+        e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
+    },
+    /* ...and let down onto its shelf again, the moment the shelf's clear */
+    unstow(e) { e.stowed = false; e.hiddenYank = false; e.inert = false; Return.sendHome(e); },
+    /* two great threads out of her hands, up to the drum */
+    loose(a, i) {
+        for (const e of a.ents) if (e.kind === 'greatpost' && SPOOL_PAIRS[i].includes(e.house) && !e.cut) Fx.ring(e.tx * T + 8, e.ty * T - 6, KNOT_COL[e.house]);
+        Sfx.play('twang'); G.shake = Math.max(G.shake, 4);
+    },
+    /* everything she's thrown, back up into the drum, and no more coming */
+    hush(a) {
+        const s = a.find('theSpool');
+        if (s) { s.toss = null; s.junk = s.junk.filter(j => j.thing); }
+        for (const e of a.ents.filter(e => e.kind === 'gsjunk')) e.takeBack();
+    },
+    /* after the first pair: the crates up into the drum, the middle two let go to the drum, and she starts throwing */
+    *changeCrates() {
+        const a = G.map, p = G.player, s = a.find('theSpool');
+        if (p.carry && p.carry.kind === 'crate') p.dropCarry();
+        if (p.grip) p.release();
+        yield 24;
+        yield* say('gran', "{cross}No. No more of that.");
+        for (const e of this.crates(a)) {
+            if (e.stowed) continue;
+            if (!e.hiddenYank) Pull.fx.push({ im: e.sprite(), x: e.tx * T, y: e.ty * T, col: e.ret.color, t: 0 });
+            this.stow(e); Sfx.play('twang', 0.5);
+            yield 8;
+        }
+        yield 16;
+        Progress.set('gs_s1'); this.loose(a, 1);
+        yield 30;
+        yield* say('gran', "{worried}Keep back from them, love. Please.");
+        if (s) s.tossWait = 30;
+        Progress.setGoal(this.goal());
+        Save.autosave();
+    },
+    /* after the second: the last two let go, and the floor under them up into the drum, board by board; she needs both
+       hands for it, so no more throwing, and the crates come back down */
+    *changeDark() {
+        const a = G.map, p = G.player, r = this.room(a);
+        if (p.grip) p.release();
+        if (p.carry && p.carry.kind === 'gsjunk') p.carry.takeBack();
+        this.hush(a);
+        yield 24;
+        /* (anybody standing where the floor's going steps off it first) */
+        if (this.DARK.some(([x, y]) => r.x + x === p.tx && r.y + y === p.ty)) yield* walkTo(p, p.tx, r.y + 3);
+        Progress.set('gs_s2'); this.loose(a, 2);
+        yield 24;
+        G.shake = 4; Sfx.play('rumble');
+        const order = this.DARK.slice().sort((u, v) => (Math.abs(u[0] - 9.5) - Math.abs(v[0] - 9.5)) || (v[1] - u[1]));
+        for (let i = 0; i < order.length; i++) {
+            const x = r.x + order[i][0], y = r.y + order[i][1];
+            a.setCell(x, y, 'o');
+            const o = a.at(x, y); if (o && !o.fixed && !o.mv && o.landed) o.landed(false);
+            Pull.fx.push({ im: spr('gs_board'), x: x * T, y: y * T, col: THREAD.hesper, t: 0 });
+            if (i % 3 === 0) Sfx.play('push', 0.4);
+            G.shake = Math.max(G.shake, 2);
+            yield 3;
+        }
+        yield 20;
+        for (const e of this.crates(a)) if (e.stowed) { this.unstow(e); yield 8; }
+        yield 24;
+        yield* say('gran', "{sad}There. Nothing can lie on them now.");
+        Progress.setGoal(this.goal());
+        Save.autosave();
+    },
+};
+for (const y of [1, 2]) for (let x = 1; x <= 18; x++) if ((x <= 7 || x >= 12) && !((x === 1 || x === 18) && y === 2)) SpoolTop.DARK.push([x, y]);
+
 class GreatPost extends GridThing {
     constructor(tx, ty, p = {}) { super('greatpost', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false, hookable: false, noNeedle: true }, p)); this.cuttable = true; this.slack = 0; }
     get cut() { return Progress.flag('great:' + this.house); }
-    /* the tiles its thread runs over, from beside the post to the drum's foot */
+    /* still wound round Gran's hand: it won't give, whatever's dragged along it */
+    get held() { return !this.cut && SpoolTop.pairOf(this.house) > SpoolTop.freed(); }
+    /* where its thread meets the drum: low on the drum's near side */
+    get end() { const s = this.area.find('theSpool'); return s ? [this.tx < s.tx ? s.tx - 1 : s.tx + 4, s.ty + 1] : [this.tx, this.ty]; }
+    /* the tiles its thread runs over, from beside the post to the drum */
     get tiles() {
         if (this._tiles) return this._tiles;
-        const s = this.area.find('theSpool'), out = [];
-        if (!s) return out;
-        const x1 = s.tx + 2, y1 = s.ty + 2, n = Math.max(Math.abs(x1 - this.tx), Math.abs(y1 - this.ty));
-        for (let i = 1; i < n; i++) { const x = Math.round(this.tx + (x1 - this.tx) * i / n), y = Math.round(this.ty + (y1 - this.ty) * i / n); if (!out.some(([u, v]) => u === x && v === y) && !(x === this.tx && y === this.ty)) out.push([x, y]); }
+        const [x1, y1] = this.end, out = [], n = Math.max(Math.abs(x1 - this.tx), Math.abs(y1 - this.ty));
+        for (let i = 1; i < n; i++) { const x = Math.round(this.tx + (x1 - this.tx) * i / n), y = Math.round(this.ty + (y1 - this.ty) * i / n); if (!out.some(([u, v]) => u === x && v === y)) out.push([x, y]); }
         return (this._tiles = out);
     }
-    under(x, y) { return !this.cut && this.tiles.some(([u, v]) => u === x && v === y); }
+    under(x, y) { return !this.cut && !this.held && this.tiles.some(([u, v]) => u === x && v === y); }
     update() { if (this.slack > 0) this.slack--; }
     onCut() {
         if (this.cut || !Progress.flag('spool_met')) return;
+        if (this.held) { Sfx.play('hitthing'); UI.toast("Gran has this one wound round her hand. It won't give.", 160); return; }
         /* the Spool keeps its threads taut: the Shears only bite one that something's just been dragged along */
         if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : 'Too taut: the Shears skid right off it. It hums, pulled tight as a bowstring toward the drum.', 200); Progress.set('taut_told'); return; }
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
-        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120); Save.autosave(); }
+        else { UI.toast(`A great thread parts with a sound like a bell cracking. (${n} of 6.)`, 120); Progress.setGoal(SpoolTop.goal()); Save.autosave(); }
     }
     draw(cx, cy) { SpoolArt.post(this, cx, cy); }
 }
 SPAWN.greatpost = (x, y, p) => new GreatPost(x, y, p);
+
+/* something Gran's thrown: a thing of the valley's she'd already wound in, marked to nowhere in this room. It lies where
+   it lands a while (lift it, push it, knock it with the stick, as anything light) and then she has it back */
+class SpoolJunk extends Liftable {
+    constructor(tx, ty, p = {}) { super('gsjunk', tx, ty, Object.assign({ marked: false }, p)); this.life = SPOOL_TOSS.life; }
+    sprite() { return spr(this.look) || spr('crate'); }
+    tick() {
+        if (this.carried || this.heldBy || this.flying || this.mv || this.hookPulled) { this.life = Math.max(this.life, 40); return; }
+        if (Script.blocking()) return;
+        if (--this.life <= 0) this.takeBack();
+    }
+    /* back up into the drum */
+    takeBack() {
+        if (this.removed) return;
+        const a = this.area, p = G.player;
+        if (p && p.carry === this) { p.carry = null; this.carried = false; this.heldBy = null; }
+        if (p && p.grip === this) p.release();
+        Thrown.list = Thrown.list.filter(t => t.o !== this);
+        if (a === G.map) { Pull.fx.push({ im: this.sprite(), x: this.px, y: this.py, col: THREAD.hesper, t: 0 }); Sfx.play('twang', 0.4); }
+        a.remove(this);
+    }
+    /* (into the dark: the drum has it at once) */
+    onLost() { this.takeBack(); }
+    draw(cx, cy) { if (!this.carried) SpoolArt.thrown(this, cx, cy); }
+}
+
 class SpoolDrum extends Ent {
-    constructor(tx, ty, p = {}) { super('greatspool', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = 0; this.junk = []; }
+    constructor(tx, ty, p = {}) { super('greatspool', p); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.t = 0; this.junk = []; this.toss = null; this.tossWait = 60; }
     get sortY() { return this.y + 40; }
     onAdd(area) { for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) area.staticSolid.add((this.ty + j) * 4096 + this.tx + i); }
     update() {
         this.t++;
         const p = G.player, a = this.area;
-        /* Gran pulls everything else: things fly in from the walls toward the Spool (they'd knock you flat, if there were
-           anything left in you to unravel; as it is, they knock you about) */
-        if (Progress.flag('spool_met') && !Progress.flag('unwound') && !Script.blocking()) {
-            /* the Pull: a thing out of its place, lying under a great thread (or being wound in across one: they're the
-               Pull's own lines), is dragged along it into the drum, and the thread goes slack a moment; the Spool spits
-               the thing back onto its shelf after */
-            const posts = a.ents.filter(e => e.kind === 'greatpost' && !e.cut);
-            for (const e of a.ents) {
-                if (!e.ret || !e.isGrid || e.removed || e.carried || e.flying || e.pendingHome || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== a.roomAt(this.tx, this.ty)) continue;
-                if (e.ret.state === 'home') { e.yankT = 0; continue; }
-                const hit = posts.filter(q => q.under(e.tx, e.ty));
-                if (!hit.length) { e.yankT = 0; continue; }
-                if (e.ret.state !== 'returning' && ++e.yankT < 24) continue;
-                e.yankT = 0;
-                if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
-                for (const q of hit) { q.slack = 300; Sfx.play('twang'); Fx.ring(q.tx * T + 8, q.ty * T, KNOT_COL[q.house]); }
-                this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: 2, thing: e, harmless: true });
-                a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
-                if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.'; }
-            }
-            if (this.t % 140 === 0) {
-                const r = a.roomAt(this.tx, this.ty), y = r.y + 3 + Math.floor(G.rng() * 6), fromL = G.rng() < 0.5;
-                this.junk.push({ x: (fromL ? r.x + 1 : r.x + r.w - 2) * T + 8, y: y * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, k: Math.floor(G.rng() * 3) });
-            }
-            for (const j of this.junk) {
-                const dx = j.tx - j.x, dy = j.ty - j.y, d = Math.hypot(dx, dy);
-                if (d < 4) {
-                    j.gone = true;
-                    /* spat back onto its shelf: the moment the shelf is clear, as anything the drum lays back (while Wren or
-                       anything else is on it, it hangs over it, waiting) */
-                    const e = j.thing;
-                    if (e && !e.removed && e.ret) { e.hiddenYank = false; e.inert = false; Return.sendHome(e); }
-                    continue;
-                }
-                j.x += dx / d * 1.6; j.y += dy / d * 1.6;
-                if (!j.harmless && p.area === a && p.state === 'normal' && Math.abs(p.x - j.x) < 8 && Math.abs(p.y - 6 - j.y) < 8) { p.hurt(1, j.x, j.y); j.gone = true; }
-            }
-            this.junk = this.junk.filter(j => !j.gone);
+        if (!Progress.flag('spool_met') || Progress.flag('unwound') || Script.blocking()) return;
+        const top = a.roomAt(this.tx, this.ty);
+        /* the Pull: a thing out of its place lying under a free great thread (or being wound in across one: they're the
+           Pull's own lines) is dragged along it into the drum, and the thread goes slack a moment; the Spool spits the
+           thing back onto its shelf after (what she threw, she keeps). Held, it waits; people are never dragged */
+        const posts = a.ents.filter(e => e.kind === 'greatpost' && !e.cut && !e.held);
+        for (const e of a.ents) {
+            if (!e.isGrid || e.removed || e.carried || e.flying || e.pendingHome || e.hiddenYank || e.person || e.kind === 'greatpost' || a.roomAt(e.tx, e.ty) !== top) continue;
+            const junk = e.kind === 'gsjunk';
+            if (!junk && (!e.ret || e.ret.state === 'home')) { e.yankT = 0; continue; }
+            const hit = posts.filter(q => q.under(e.tx, e.ty));
+            if (!hit.length) { e.yankT = 0; continue; }
+            if (e.heldBy) continue;
+            if ((junk || e.ret.state !== 'returning') && (e.mv || ++e.yankT < 24)) continue;
+            e.yankT = 0;
+            if (e.mv) { a.unplace(e, e.mv.fx, e.mv.fy); e.mv = null; }
+            for (const q of hit) { q.slack = 300; Sfx.play('twang'); Fx.ring(q.tx * T + 8, q.ty * T, KNOT_COL[q.house]); }
+            const [ex, ey] = hit[0].end;
+            this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: ex * T + 8, ty: ey * T + 8, thing: e });
+            a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
+            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.'; }
         }
+        /* the second pair: she throws at you */
+        if (SpoolTop.throwing()) this.throws(a, p, top);
+        else this.toss = null;
+        /* the first: things come off the walls into the drum, high over your head */
+        if (SpoolTop.stage() === 0 && !SpoolTop.quiet() && this.t % 200 === 0) {
+            const y = top.y + 3 + Math.floor(G.rng() * 6), fromL = G.rng() < 0.5;
+            this.junk.push({ x: (fromL ? top.x + 1 : top.x + top.w - 2) * T + 8, y: y * T + 8, tx: (this.tx + 2) * T, ty: (this.ty + 1) * T + 8, look: JUNK_LOOKS[Math.floor(G.rng() * JUNK_LOOKS.length)], high: true });
+        }
+        for (const j of this.junk) {
+            const dx = j.tx - j.x, dy = j.ty - j.y, d = Math.hypot(dx, dy);
+            if (d < 4) {
+                j.gone = true;
+                /* spat back onto its shelf: the moment the shelf is clear, as anything the drum lays back (while Wren or
+                   anything else is on it, it hangs over it, waiting); or, hers, kept */
+                const e = j.thing;
+                if (e && !e.removed) { if (e.kind === 'gsjunk') e.area.remove(e); else if (e.ret && !e.stowed) { e.hiddenYank = false; e.inert = false; Return.sendHome(e); } }
+                continue;
+            }
+            j.x += dx / d * 1.6; j.y += dy / d * 1.6;
+        }
+        this.junk = this.junk.filter(j => !j.gone);
+    }
+    /* she throws at wherever you're standing: its shadow on the floor first; landed, it lies a while and she has it back.
+       Come down on you, it knocks you about and goes straight back up */
+    throws(a, p, top) {
+        const t = this.toss;
+        if (t) {
+            if (++t.t < t.tell) return;
+            this.toss = null; this.tossWait = SPOOL_TOSS.wait;
+            const x = t.tx * T + 8, y = t.ty * T + 8, j = new SpoolJunk(t.tx, t.ty, { look: t.look });
+            G.shake = Math.max(G.shake, 3); Fx.dust(x, y + 4); Sfx.play('land');
+            if (p.area === a && p.state === 'normal' && p.onTile(t.tx, t.ty)) { p.hurt(1, x, y - 6); Pull.fx.push({ im: j.sprite(), x: t.tx * T, y: t.ty * T, col: THREAD.hesper, t: 0 }); return; }
+            if (a.kind(t.tx, t.ty).pit || !a.freeForThing(t.tx, t.ty, j)) { Pull.fx.push({ im: j.sprite(), x: t.tx * T, y: t.ty * T, col: THREAD.hesper, t: 0 }); return; }
+            a.add(j);
+            return;
+        }
+        if (p.area !== a || p.state !== 'normal' || a.roomAt(p.tx, p.ty) !== top || p.ty >= top.y + top.h - 1) return;
+        if (--this.tossWait > 0 || a.ents.filter(e => e.kind === 'gsjunk').length >= 2) return;
+        this.toss = { tx: p.tx, ty: p.ty, t: 0, tell: SPOOL_TOSS.tell, look: JUNK_LOOKS[Math.floor(G.rng() * JUNK_LOOKS.length)] };
+        Sfx.play('warn', 0.7);
     }
     draw(cx, cy) { SpoolArt.drum(this, cx, cy); }
 }
@@ -593,6 +759,15 @@ class JunkLane extends Ent {
 }
 SPAWN.junklane = (x, y, p) => new JunkLane(x, y, p);
 
+/* Gran's tally, said to Wren's face at the top (src/80b_tally.js; a save that can't say gets it without a number) */
+function granCount() {
+    const n = Tally.home();
+    if (n === null) return "{sad}...No. Every time you fell this Wander, I brought you home. I can't now.";
+    if (!n) return "{sad}...No. Not once this Wander did I have to bring you home. And now I can't.";
+    const t = numTimes(n);
+    return `{sad}...No. ${t[0].toUpperCase() + t.slice(1)} this Wander I brought you home. I can't now.`;
+}
+
 const GreatSpool = {
     /* stepping into the top room: Gran */
     tick(a) {
@@ -614,47 +789,62 @@ const GreatSpool = {
             if (!k.solid && !k.deep && p.boxFree(cx, cy)) { p.x = cx; p.y = cy; }
         }
         if (!Progress.flag('spool_met') && r && r.name === 'The Top of the Spool' && p.state === 'normal' && !Script.blocking() && !Cam.busy) Script.run(this.meet());
-        /* back after a save: Gran is still at the Spool; and if every great thread was cut, the end goes on */
+        /* back after a save: Gran is still at the Spool, the room as she's changed it (each pair cut, she changes it
+           again: SpoolTop); and once every great thread's cut, the end goes on */
         if (Progress.flag('spool_met') && !Progress.flag('unwound')) {
-            const s = a.find('theSpool');
-            if (s && !a.ents.some(e => e.who === 'gran')) a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
-            if (KNOT_HOUSES.every(h => Progress.flag('great:' + h)) && !Script.running('finale') && !Script.blocking()) Script.run(this.finale(), { name: 'finale' });
+            const s = a.find('theSpool'), top = s && a.roomAt(s.tx, s.ty);
+            let gran = a.ents.find(e => e.who === 'gran');
+            if (s && !gran) gran = a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
+            if (gran) gran.noBudge = gran.noPull = true;
+            const st = SpoolTop.stage(), here = !!top && r === top && p.state === 'normal' && !Script.blocking() && !Cam.busy;
+            /* (an older save that showed her the bracelet: she'd have let the middle pair go already) */
+            if (st === 1 && SpoolTop.quiet()) for (const h of SPOOL_PAIRS[1]) Progress.set('great:' + h);
+            else if (here && st === 1 && !Progress.flag('gs_s1')) Script.run(SpoolTop.changeCrates(), { name: 'gschange' });
+            else if (here && st === 2 && !Progress.flag('gs_s2')) Script.run(SpoolTop.changeDark(), { name: 'gschange' });
+            if (here && st >= 3 && !a.climax) Script.run(this.finale(), { name: 'finale' });
+            if (a.climax) this.climaxTick(a);
         }
         SpoolArt.tick(a);
     },
     *meet() {
         Progress.set('spool_met');
         const a = G.map, s = a.find('theSpool');
-        if (!a.ents.some(e => e.who === 'gran')) a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
+        let gran = a.ents.find(e => e.who === 'gran');
+        if (!gran) gran = a.add(new NPC(s.tx + 1, s.ty + 2, { who: 'gran', face: 'down' }));
+        gran.noBudge = gran.noPull = true;
         Music.play('pull');
         yield 20;
-        yield* say('gran', "{sad}You came back. You walked. I felt you go out past the edge, love, and I pulled, and I pulled, and there was nothing on the end.");
-        yield* say('gran', "{worried}So I pulled everything else. Everyone. Down here, safe, where nobody can wander off. Where nobody gets lost.");
+        yield* say('gran', "{sad}You came back. You walked. I felt you go out past the edge, love, and I pulled, and there was nothing on the end.");
+        yield* say('gran', "{worried}So I pulled everything else. Down here, where nobody gets lost.");
         yield* say('wren', "You can't pull me, Gran.");
-        yield* say('gran', "{sad}...No. I can't, can I.");
-        yield* say(null, "Her hands don't stop. The Spool's six great threads, one to every House, hum like bowstrings. Things come flying off the walls toward the drum: pots, crates, blocks, every marked thing in the valley, wound in.");
-        yield* say(null, "The great threads are pulled so taut they ring. Every crate and pot near them shivers, wanting to be wound in.");
-        Progress.setGoal('Cut the Spool\'s six great threads, at their posts round the walls. (Too taut to cut, unless something knocks one slack.)');
+        yield* say('gran', granCount());
+        yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.");
+        yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.");
+        Progress.setGoal(SpoolTop.goal());
     },
     *finale() {
-        const a = G.map, p = G.player;
+        const a = G.map, p = G.player, r = SpoolTop.room(a);
         Progress.set('spool_cut');
+        SpoolTop.hush(a);
+        if (p.carry) p.dropCarry();
+        if (p.grip) p.release();
         G.shake = 14; Sfx.play('rumble');
         yield 30;
         const gran = a.ents.find(e => e.who === 'gran');
         yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
-        yield* say('gran', "{worried}Don't. Don't, love, please. If I let go, I'll lose them. I'll lose you. I lost her.");
-        const r = a.rooms.find(q => q.name === 'The Top of the Spool');
+        yield* say('gran', "{worried}Don't, love. If I let go of it, I'll lose you.");
+        yield* say(null, "She keeps hold of the Spool, both hands on it.");
         /* Linnet, down the Well after you: in at the door and up the room towards her mother (walks here keep round
            you and whatever's to be left clear, not through) */
-        const free = (x, y, who) => a.inside(x, y) && !a.kind(x, y).solid && (!a.at(x, y) || a.at(x, y) === who) && !(p.tx === x && p.ty === y);
+        const free = (x, y, who) => a.inside(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && (!a.at(x, y) || a.at(x, y) === who) && !(p.tx === x && p.ty === y);
         const route = (n, x, y, avoid = []) => {
             const b = { blocks: (bx, by) => (bx === p.tx && by === p.ty) || avoid.some(([ax, ay]) => ax === bx && ay === by) };
             a.blockers.push(b); const path = findPath(a, n.tx, n.ty, x, y, n); a.blockers.splice(a.blockers.indexOf(b), 1);
             return path;
         };
-        const go = (n, x, y, sp, avoid) => { n.free = true; n.path = route(n, x, y, avoid); n.walking = !!(n.path && n.path.length); n.walkSpeed = sp; };
+        const go = (n, x, y, sp) => { n.free = true; n.path = route(n, x, y); n.walking = !!(n.path && n.path.length); n.walkSpeed = sp; };
         const linnet = a.add(new NPC(r.x + 9, free(r.x + 9, r.y + 10) ? r.y + 10 : r.y + 9, { who: 'linnet', face: 'up' }));
+        linnet.noBudge = linnet.noPull = true;
         const lt = [[9, 6], [10, 6], [8, 6], [9, 7]].map(([x, y]) => [r.x + x, r.y + y]).find(([x, y]) => free(x, y, linnet) && route(linnet, x, y));
         if (lt) go(linnet, lt[0], lt[1], 0.8);
         for (let t = 0; t < 150 && (linnet.walking || linnet.mv); t++) yield 1;
@@ -662,35 +852,62 @@ const GreatSpool = {
         yield 10;
         yield* say('linnet', "{sad}Mum.", gran ? { focus: gran } : {});
         yield* say(null, "Gran's hands go still on the Spool.");
-        yield* say('linnet', "{happy}I came back. Nobody pulled me. I walked all the way, because I wanted to.", gran ? { focus: gran } : {});
-        yield* say('linnet', "That's the only way anyone ever really comes home, Mum. You have to let them choose it.", gran ? { focus: gran } : {});
-        const i = yield* ask(null, "Gran looks at you. You hold out your hand.", ['Let go, Gran.', 'Come home with us.']);
-        yield* say('gran', i === 0 ? "{sad}...Let go." : "{happy}...Home.");
-        /* and she takes her hands off the Spool and comes to you, and Linnet to her other side: one hand in yours, one in
-           Linnet's (shown, not told: Ending.hands draws the hands held) */
         if (gran) {
-            const fits = s => free(p.tx + s, p.ty, gran) && free(p.tx + 2 * s, p.ty, linnet) && route(gran, p.tx + s, p.ty) && route(linnet, p.tx + 2 * s, p.ty, [[p.tx + s, p.ty]]);
-            let s = p.tx < r.x + 10 ? 1 : -1;
-            if (!fits(s)) s = -s;
-            if (!fits(s)) { yield* walkTo(p, r.x + 8, r.y + 6); s = 1; }
-            p.dir = s > 0 ? RIGHT : LEFT;
-            const spots = [[gran, p.tx + s, 0.6, []], [linnet, p.tx + 2 * s, 0.8, [[p.tx + s, p.ty]]]];
-            go(gran, p.tx + s, p.ty, 0.6);
-            yield 40;
-            go(linnet, p.tx + 2 * s, p.ty, 0.8, [[p.tx + s, p.ty]]);
-            for (let t = 0; t < 420 && spots.some(([n, x]) => n.walking || n.mv || n.tx !== x || n.ty !== p.ty); t++) {
-                /* (one held up by the other a while finds its way again) */
-                if (t % 90 === 89) for (const [n, x, sp, avoid] of spots) if (!n.mv && (n.tx !== x || n.ty !== p.ty)) go(n, x, p.ty, sp, avoid);
-                yield 1;
+            /* up to her mother's side (the side you're not on), and she takes one of her hands */
+            const s = p.tx > gran.tx ? -1 : 1;
+            const spot = [[gran.tx + s, gran.ty], [gran.tx - s, gran.ty], [gran.tx, gran.ty + 1]].find(([x, y]) => free(x, y, linnet) && route(linnet, x, y));
+            if (spot) {
+                go(linnet, spot[0], spot[1], 0.7);
+                for (let t = 0; t < 360 && (linnet.walking || linnet.mv || linnet.tx !== spot[0] || linnet.ty !== spot[1]); t++) { if (t % 90 === 89 && !linnet.mv) go(linnet, spot[0], spot[1], 0.7); yield 1; }
+                if ((linnet.tx !== spot[0] || linnet.ty !== spot[1]) && free(spot[0], spot[1], linnet)) { a.unplace(linnet, linnet.tx, linnet.ty); linnet.mv = null; linnet.path = null; linnet.walking = false; linnet.tx = spot[0]; linnet.ty = spot[1]; linnet.x = linnet.tx * T; linnet.y = linnet.ty * T; a.place(linnet, linnet.tx, linnet.ty); }
             }
-            for (const [n, x] of spots) if (n.tx !== x || n.ty !== p.ty) { a.unplace(n, n.tx, n.ty); n.mv = null; n.path = null; n.walking = false; n.tx = x; n.ty = p.ty; n.x = n.tx * T; n.y = n.ty * T; a.place(n, n.tx, n.ty); }
-            yield 12;
-            p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
-            Ending.hands = s > 0 ? [p, gran, linnet] : [linnet, gran, p];
-            yield 100;
+            linnet.dir = linnet.tx < gran.tx ? RIGHT : linnet.tx > gran.tx ? LEFT : UP; linnet.fixedFace = true;
+            gran.dir = DOWN; gran.fixedFace = true;
+            yield 16;
+            Ending.hands = this.handsOf([linnet, gran]); Sfx.play('click');
+            yield 30;
+            yield* say('gran', "{sad}Linnet.");
+            yield* say(null, "Linnet takes one of her mother's hands off the Spool. The other's still on it.");
         }
+        Progress.setGoal("Take Gran's other hand.");
+        a.climax = { linnet, h: 0, down: 0 };
+    },
+    /* the end, in Wren's hands: Linnet has one of Gran's, and the other's still on the Spool. Take it (hold [act], facing
+       her, as you'd hold on to anything): held things wait. She tries twice to take it back to the Spool; then she lets
+       go. Let go first and her hand goes back to it, for as long as you like */
+    climaxTick(a) {
+        const c = a.climax, p = G.player, gran = a.ents.find(e => e.who === 'gran');
+        if (!gran || !c.linnet || c.linnet.removed || Script.blocking() || Cam.busy || p.state !== 'normal') return;
+        const facing = p.adjacentTo(gran);
+        if (facing && !c.told) { c.told = true; UI.toast('Hold [act] to take her hand.', 240); }
+        /* (a hold, not a tap: the Gloves take hold by themselves; without them, held a moment) */
+        if (!p.grip && facing && !p.carry && Input.down('act')) { if (++c.down >= 8) { p.grip = gran; gran.heldBy = p; } } else c.down = 0;
+        if (p.grip === gran) {
+            if (!c.h) { Sfx.play('click'); Ending.hands = this.handsOf([c.linnet, gran, p]); }
+            c.h++;
+            /* (she tries twice: her hand pulls back toward the Spool) */
+            if (c.h === 40 || c.h === 100) { Sfx.play('tug'); gran.dir = UP; G.shake = Math.max(G.shake, 2); }
+            if (c.h === 52 || c.h === 112) gran.dir = DOWN;
+            if (c.h >= 160) { a.climax = null; Script.run(this.letGo(gran, c.linnet), { name: 'finale' }); }
+        } else if (c.h) { c.h = 0; gran.dir = DOWN; Ending.hands = this.handsOf([c.linnet, gran]); }
+    },
+    *letGo(gran, linnet) {
+        const a = G.map, p = G.player;
+        yield 8;
+        if (p.grip) p.release();
+        gran.dir = DOWN;
+        Sfx.play('unclick'); G.shake = 6;
+        yield* say(null, "She lets go of the Spool.");
+        /* the three of you in a row, facing out, hands held */
+        const sx = linnet.tx < gran.tx ? gran.tx + 1 : gran.tx - 1, k = a.kind(sx, gran.ty);
+        if ((p.tx !== sx || p.ty !== gran.ty) && !a.at(sx, gran.ty) && !k.solid && !k.pit) yield* walkTo(p, sx, gran.ty);
+        p.dir = gran.dir = linnet.dir = DOWN; gran.fixedFace = linnet.fixedFace = true;
+        Ending.hands = this.handsOf([linnet, gran, p]);
+        yield 100;
         yield* Ending.unwinding();
     },
+    /* hands held, left to right */
+    handsOf(l) { const x = e => e === G.player ? e.x - 8 : e.px; return l.slice().sort((u, v) => x(u) - x(v)); },
 };
 
 /* ---------------- the Great Pull, up in the town ---------------- */
@@ -791,20 +1008,26 @@ CONTENT_INIT.push(initGreatSpool);
 {
     const talk0 = Story.talk;
     Story.talk = function (npc) {
+        /* (at the very end there's nothing to say: Linnet has one of her hands, and the other's for holding) */
+        if ((npc.who === 'gran' || npc.who === 'linnet') && npc.area && npc.area.climax) return null;
         if (npc.who === 'gran' && npc.area && npc.area.id === 'greatspool' && !Progress.flag('unwound')) return function* () {
-            /* Linnet's bracelet, from the Stray House: shown to her, it does what nothing else could */
-            if (Inv.items.bracelet && !Progress.flag('bracelet_top') && Progress.flag('spool_met')) {
+            /* Linnet's bracelet, from the Stray House: shown to her, she stops throwing (the room goes quiet) and lets a
+               pair of the great threads go herself: the middle pair, the one her throwing kept, or the last if that's gone */
+            if (Inv.items.bracelet && !Progress.flag('bracelet_top') && Progress.flag('spool_met') && SpoolTop.stage() < 3) {
                 const i = yield* ask(null, "Linnet's bracelet is in your satchel: green thread, plaited, with a little brass L. Show it to Gran?", ['Show her', 'Not now']);
                 if (i === 0) {
+                    const a = npc.area, pair = SpoolTop.done(1) ? 2 : 1;
                     Progress.set('bracelet_top'); Stats.count('secret:bracelet_top');
+                    SpoolTop.hush(a);
                     yield* say('gran', "{surprised}...Where did you... I plaited that. I plaited that for her, the spring before her Wander. She never took it off.");
                     yield* say('gran', "{sad}She left it. She left it for somebody to find. For me to find.");
-                    yield* say(null, "Gran's hands go slack on the Spool. One after another, of their own accord, three of the great threads loosen and part, and she doesn't reach for them.");
-                    const left = KNOT_HOUSES.filter(h => !Progress.flag('great:' + h));
-                    for (const h of left.slice(0, 3)) Progress.set('great:' + h);
+                    for (const h of SPOOL_PAIRS[pair]) Progress.set('great:' + h);
+                    for (const e of a.ents) if (e.kind === 'greatpost' && SPOOL_PAIRS[pair].includes(e.house)) Fx.ring(e.tx * T + 8, e.ty * T, KNOT_COL[e.house]);
                     G.shake = 8; Sfx.play('snip');
-                    if (KNOT_HOUSES.every(h => Progress.flag('great:' + h))) { Script.run(GreatSpool.finale(), { name: 'finale' }); return; }
+                    yield* say(null, "Gran's hands go slack on the Spool, and the room goes quiet. Two of the great threads loosen and part, and she doesn't reach for them.");
+                    if (SpoolTop.stage() >= 3) { Script.run(GreatSpool.finale(), { name: 'finale' }); return; }
                     yield* say('gran', "{worried}I can't... I can't let go of the rest, love. My hands won't. You'll have to.");
+                    Progress.setGoal(SpoolTop.goal());
                     Save.autosave();
                     return;
                 }
@@ -813,6 +1036,11 @@ CONTENT_INIT.push(initGreatSpool);
         };
         return talk0.call(this, npc);
     };
+}
+/* Gran and Linnet at the Spool don't budge when leant on; Gran held doesn't come away with you */
+{
+    const push0 = NPC.prototype.onPushed;
+    NPC.prototype.onPushed = function (p, d) { if (this.noBudge) return false; return push0.call(this, p, d); };
 }
 /* while the Pull goes on, nobody with a thread is indoors or down below: they're all out at the Well, or holding on */
 {
