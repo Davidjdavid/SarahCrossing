@@ -406,8 +406,7 @@ class Tangle extends Ent {
         for (const b of this.bobbins()) {
             const bx = b.px + 8 - cx, by = b.py + 6 - cy, o = this.out(b);
             const col = (gather || (this.tight > 0 && !o)) && (G.t >> 1) % 2 ? '#fff4c0' : o ? '#f7d64a' : THREAD.guild;
-            if (L > 4) { const mx = (x + bx) / 2, my = Math.max(hy, by) + 4; Gfx.line(x, hy, mx, my, col); Gfx.line(mx, my, bx, by, col); }
-            else Gfx.line(x, hy, bx, by, col);
+            Threads.path(L > 4 ? [[x, hy], [(x + bx) / 2, Math.max(hy, by) + 4], [bx, by]] : [[x, hy], [bx, by]], col);
         }
         const R = 22 - this.pulled * 3 - Math.round(this.tight / 12);     /* (winding tight: a little smaller, a moment) */
         if (this.state === 'open' || this.state === 'down') {

@@ -305,9 +305,8 @@ const Loomwood = {
             if (Math.max(wx, ex) < -10 || Math.min(wx, ex) > W + 10 || Math.max(wy, ey) < -10 || Math.min(wy, ey) > H + 10) return;
             const held = Signals.get(a, id), n = Math.max(2, Math.round(Math.hypot(ex - wx, ey - wy) / 10));
             const at = u => [wx + (ex - wx) * u, wy + (ey - wy) * u + (held ? 0 : Math.sin(u * Math.PI) * 6)];
-            let [px0, py0] = at(0);
-            Gfx.alpha(held ? 0.95 : 0.75);
-            for (let i = 1; i <= n; i++) { const [qx, qy] = at(i / n); Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, held ? '#ffffff' : '#dfe6ef'); px0 = qx; py0 = qy; }
+            const pts = []; for (let i = 0; i <= n; i++) pts.push(at(i / n));
+            Gfx.alpha(held ? 0.95 : 0.85); Threads.path(pts, held ? '#ffffff' : '#dfe6ef');
             if (!held) { const u = ((G.t + k * 53) % 200) / 120; if (u <= 1) { const [gx, gy] = at(u); Gfx.alpha(0.9); Gfx.rect(Math.round(gx) - 1, Math.round(gy) - 1, 2, 2, '#ffffff'); } }
             Gfx.alpha(1);
         });

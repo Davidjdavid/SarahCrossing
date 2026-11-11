@@ -69,7 +69,7 @@ class Cord extends Ent {
             const d = Layers.down(a, e.tx, e.ty);
             const lean = d ? clamp((d[0] - this.pos[0]) * 2, -6, 6) : 0;
             const shiver = (r.state === 'returning' || r.timer < 30) && (G.t >> 1) % 2 ? 1 : 0;
-            Gfx.line(x, y - 9, x + lean + shiver, y + 2, col);
+            Threads.stroke(x, y - 9, x + lean + shiver, y + 2, col);
             Gfx.rect(x + lean + shiver - 1, y + 2, 3, 3, '#8a6a4e');
             return;
         }
@@ -501,10 +501,7 @@ const Needle = {
         Gfx.alpha(1);
         /* the needle's red thread, from Wren to the thing, along the stitch to the new place */
         Gfx.line(p.x - cx + 4, p.y - cy - 12, pts[0][0], pts[0][1] - 4, THREAD.wren);
-        for (let i = 0; i + 1 < pts.length; i++) {
-            Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.4)');
-            Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.wren);
-        }
+        Threads.path(pts, THREAD.wren);
         const [ex, ey] = s.path[s.path.length - 1];
         Marks.draw((ex - ox) * T - cx, (ey - oy) * T - cy, THREAD.wren, (G.t >> 4) % 2 === 0);
         const nd = spr('needle_cursor'); if (nd) Gfx.img(nd, (ex - ox) * T - cx + 8, (ey - oy) * T - cy - 10);

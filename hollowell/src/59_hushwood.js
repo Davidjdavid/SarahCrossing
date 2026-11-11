@@ -831,14 +831,9 @@ Object.assign(Hushwood, {
         this.CORDS.forEach(([sig, c, off]) => {
             const on = Signals.get(a, sig), sx = dx + off - cx, sy = dy - cy, ex = (128 + c) * T + 8 - cx, ey = (40 + 14) * T + 4 - cy;
             const n = Math.max(3, Math.round(Math.hypot(ex - sx, ey - sy) / 8));
-            let px0 = sx, py0 = sy;
-            Gfx.alpha(on ? 0.95 : 0.6);
-            for (let i = 1; i <= n; i++) {
-                const u = i / n, qx = sx + (ex - sx) * u + (on ? 0 : Math.sin(u * Math.PI) * 3), qy = sy + (ey - sy) * u + (on ? 0 : Math.sin(u * Math.PI) * 7);
-                Gfx.line(px0, py0 + 1, qx, qy + 1, 'rgba(20,10,20,0.35)'); Gfx.line(px0, py0, qx, qy, on ? '#e8d8ff' : THREAD.mallow);
-                px0 = qx; py0 = qy;
-            }
-            Gfx.alpha(1);
+            const pts = [[sx, sy]];
+            for (let i = 1; i <= n; i++) { const u = i / n; pts.push([sx + (ex - sx) * u + (on ? 0 : Math.sin(u * Math.PI) * 3), sy + (ey - sy) * u + (on ? 0 : Math.sin(u * Math.PI) * 7)]); }
+            Gfx.alpha(on ? 0.95 : 0.8); Threads.path(pts, on ? '#e8d8ff' : THREAD.mallow); Gfx.alpha(1);
             /* tied to the cradle's head */
             Gfx.rect(ex - 1, ey - 1, 3, 2, PAL.ink); Gfx.rect(ex, ey - 1, 1, 1, on ? '#fff4c0' : '#d8c8f8');
         });
@@ -849,7 +844,7 @@ Object.assign(Hushwood, {
             const on = Signals.get(a, sig), [lx0, ly0] = this.lampAt(i), lx = lx0 - cx, ly = ly0 - cy, fx = (128 + 19) * T + 8 + off - cx;
             if (lx < -12 || lx > W + 12 || ly < -12 || by > H + 12) return;
             /* the cord, from the lamp down the door frame to the ground */
-            Gfx.alpha(on ? 0.95 : 0.7); Gfx.line(lx, ly + 3, fx, by, on ? '#e8d8ff' : THREAD.mallow); Gfx.alpha(1);
+            Gfx.alpha(on ? 0.95 : 0.8); Threads.stroke(lx, ly + 3, fx, by, on ? '#e8d8ff' : THREAD.mallow); Gfx.alpha(1);
             if (on) { Gfx.alpha(0.3 + 0.08 * Math.sin(G.t / 13 + i)); Gfx.circle(lx, ly, 8, '#ffe08a'); Gfx.alpha(1); }
             /* a little round lamp on a hook: lavender glass, dark till lit */
             Gfx.rect(lx, ly - 7, 1, 3, PAL.ink); Gfx.rect(lx - 2, ly - 5, 5, 2, PAL.ink); Gfx.rect(lx - 1, ly - 5, 3, 1, '#c8903a');

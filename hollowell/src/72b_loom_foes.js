@@ -163,12 +163,9 @@ const AnchorWays = {
         const [ax, ay] = this.top, [bx, by] = this.end(w);
         if (!this.taut(w)) {
             const k = this.way === 'slack' ? clamp(1 - this.stretch(w) / WV.tautAt, 0, 1) : 0.5, sag = 3 + 9 * k, n = 9;
-            let lx = ax, ly = ay;
-            for (let i = 1; i <= n; i++) {
-                const u = i / n, x = lerp(ax, bx, u), y = lerp(ay, by, u) + Math.sin(u * Math.PI) * (sag + Math.sin(G.t / 17 + this.tx) * k * 1.5);
-                Gfx.line(lx - cx, ly - cy + 1, x - cx, y - cy + 1, 'rgba(20,10,20,0.35)');
-                Gfx.line(lx - cx, ly - cy, x - cx, y - cy, this.way === 'asleep' ? '#9aa8b8' : '#d4dbe5'); lx = x; ly = y;
-            }
+            const pts = [[ax - cx, ay - cy]];
+            for (let i = 1; i <= n; i++) { const u = i / n; pts.push([lerp(ax, bx, u) - cx, lerp(ay, by, u) + Math.sin(u * Math.PI) * (sag + Math.sin(G.t / 17 + this.tx) * k * 1.5) - cy]); }
+            Threads.path(pts, this.way === 'asleep' ? '#9aa8b8' : '#d4dbe5');
             return;
         }
         const pulled = this.way === 'slack', sh = pulled && (G.t >> 1) % 2 ? 1 : 0;
@@ -613,13 +610,9 @@ class Weaver extends Ent {
             Gfx.line(px - cx, py - cy, px - cx, py - cy - WV.perchZ - 6, '#c8d0dc');
             if (this.path) {
                 const tight = this.state === 'home', col = tight ? '#ffffff' : '#9aa8b8', n = Math.max(2, Math.ceil(this.s / 6));
-                let [lx, ly] = this.pointAt(0);
-                for (let i = 1; i <= n; i++) {
-                    const d = this.s * i / n, [qx, qy] = this.pointAt(d), wob = tight ? 0 : Math.sin(G.t / 12 + i) * 1.2;
-                    Gfx.line(lx - cx, ly - cy + 1, qx - cx, qy - cy + 1, 'rgba(20,10,20,0.35)');
-                    Gfx.line(lx - cx, ly - cy, qx - cx + wob, qy - cy, col);
-                    lx = qx + wob; ly = qy;
-                }
+                const [x0, y0] = this.pointAt(0), pts = [[x0 - cx, y0 - cy]];
+                for (let i = 1; i <= n; i++) { const [qx, qy] = this.pointAt(this.s * i / n), wob = tight ? 0 : Math.sin(G.t / 12 + i) * 1.2; pts.push([qx - cx + wob, qy - cy]); }
+                Threads.path(pts, col);
                 Gfx.line(x, y, x, top - 6, tight ? '#ffffff' : '#c8d0dc');
             }
         }

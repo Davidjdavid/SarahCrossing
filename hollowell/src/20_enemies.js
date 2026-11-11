@@ -412,11 +412,7 @@ class Flung extends Ent {
         /* its thread, back along the way it came to its place; bright and straight once it's about to go */
         const pts = this.path.slice(0, this.i + 1).map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
         pts.push([this.x - cx, this.y + 1 - cy]);
-        const col = this.tight ? shade(this.col, 0.45) : this.col;
-        for (let i = 0; i + 1 < pts.length; i++) {
-            Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.35)');
-            Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], col);
-        }
+        Threads.path(pts, this.tight ? shade(this.col, 0.45) : this.col);
         const sh = this.state === 'lie' && this.tight ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
         const x = Math.round(this.x - cx) + sh, y = Math.round(this.y - cy) - (this.state === 'lie' ? 0 : 5);
         if (this.state !== 'lie') { Gfx.alpha(0.25); Gfx.rect(x - 3, Math.round(this.y - cy) + 4, 6, 2, PAL.ink); Gfx.alpha(1); }

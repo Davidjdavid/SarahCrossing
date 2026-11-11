@@ -183,10 +183,11 @@ const PAL = {
     crimson: '#c42b4a', umber: '#7a5233',
 };
 
-/* the colour of each Maker's thread (and the player's) */
+/* the colour of each Maker's thread (and the player's); the Guild's is a light umber (its darker brown was the colour of
+   the Spoolworks' own floor: Save.migrate moves a remembered one on) */
 const THREAD = {
     none: '#cfc6b8', wren: '#e8463c', ives: '#3fc1b5', bram: '#e0913a', ambrose: '#4f9be0',
-    tess: '#e8c04a', mallow: '#b48ce8', jory: '#d6304e', guild: '#a8784a', loom: '#e4ecf5',
+    tess: '#e8c04a', mallow: '#b48ce8', jory: '#d6304e', guild: '#d8a868', loom: '#e4ecf5',
     hesper: '#f0e6d0', linnet: '#8fd46a', tuck: '#5ab85a', chalk: '#eeeeee', town: '#d9c9a8',
 };
 

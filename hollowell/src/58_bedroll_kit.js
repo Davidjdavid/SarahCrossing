@@ -216,7 +216,7 @@ TOOLS.bedroll = {
             const pts = p.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
             pts.push([p.x - cx, p.y - cy - 4]);
             Gfx.alpha(Math.min(1, Bedroll.snapT / 40));
-            for (let i = 0; i + 1 < pts.length; i++) { Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, 'rgba(20,10,20,0.35)'); Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.wren); }
+            Threads.path(pts, THREAD.wren);
             Marks.draw(m.tx * T - cx, m.ty * T - cy, THREAD.wren, true);
             Gfx.alpha(1);
         }

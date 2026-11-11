@@ -33,6 +33,8 @@ const Save = {
         s.inv = Object.assign({ hp: 6, maxHp: 6, buttons: 0, tools: [], keyCount: {}, patterns: [], plans: [], knots: [], patches: 0, patchIds: [], items: {}, bedroll: null }, s.inv || {});
         s.progress = Object.assign({ flags: {}, areaFlags: {}, notes: [], journal: [], goal: '' }, s.progress || {});
         s.stats = Object.assign({ c: {}, rooms: {}, playFrames: 0, visited: {} }, s.stats || {});
+        /* (the Guild's thread was lightened to read on its floors: a Needle stitch remembers a thing's old colour) */
+        for (const st of s.inv.stitches || []) if (st && st.color0 === '#a8784a') st.color0 = THREAD.guild;
         s.v = SAVE_V;
         return s;
     },
