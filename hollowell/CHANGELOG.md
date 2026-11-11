@@ -170,4 +170,8 @@
 - The first two Houses dressed with floors and set pieces of their own; puzzle marks checked for contrast on every
   new floor.
 - Late moments shown rather than told; one scene waits for as long as you choose.
+- Two new tunes for places that shared one; music thins out after a long stay in one room and comes back as you
+  make progress; a tiny click at the start of some notes is gone.
+- The late game's writing trimmed: fewer lines, each about what someone is doing rather than what it all meant.
+- A puzzle that spans a whole House; two late bosses that want working out; a capstone to the middle of the game.
 

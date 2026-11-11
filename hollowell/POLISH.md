@@ -304,8 +304,11 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   is doing; the summing-up lines, the credits' summaries, the four new chalked Rules and the tapestry's caption gone;
   the re-carved motto now one new word under the old line ("AND"); a dozen explaining tags trimmed (Gundry's after the
   Tangle by the coordinator); tests/after_lines.test.mjs keeps the old summing-up lines out. Suite 668/668.
-- The audit's plan is complete (P1-P12), but P13 (music for the Makings and the Unfinished House: running,
-  music3_brief.md) and P14 (not planned).
+- The audit's plan is complete (P1-P13; P14 not planned). P13: `makings` (93 s, A minor, the Underside's motif in a
+  skipping rhythm, a bridge on the boy's march, a quieter pass on the Tidyhouse minuet) and `unfinished` (96 s, the
+  motif three times, finished a little more each pass, resolving to A major); long-stay thinning after 150 s in a room
+  with nothing solved (one pass in three rests the melody; a new room, a cutscene or a progress sound brings it back);
+  a one-sample click at note starts fixed; tests/music.test.mjs.
 - Verification started: live run 2 (all nine legs in Chromium, a picture at every room, line and notice; then contact
   sheets and picture reviews); two fresh AI blind solvers on the newest pieces (C: the way into House 5, House 5 with
   its chain, the ninth Little House; D: the two late bosses, the Spool's top and the end).
