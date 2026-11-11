@@ -261,9 +261,15 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   flags and fire). Contrast check of marks and threads on every new floor (CIELAB difference against the floor under
   each stroke): six floors recoloured (the potting shed, linen room, laundry, conservatory, the Kiln's brick paving
   and flags); now every floor gives at least 42 for the thread and empty mark and 39 for the patience ring.
+- Done too: the story through play (meta_brief.md): P2 the tally (src/80b_tally.js: every time Wren is brought home
+  without choosing it, by House or region; a card under her spool in the Hall, the ledger's last page, Gran on Tuck's
+  yanks; old saves and presets get wording with no numbers); P5 the nudge voice by each Maker's tic, the Well's creak a
+  wordless card of the winch winding the House's colour, Biscuit's line trimmed; P6 Linnet's note 5 playable where the
+  river meets the fog in Meadowfold's south (src/80c_fog_hand.js); P1's Hall part (hold on and Gran waits; let go or
+  never grip and the scene goes on as before). Its 11 tests fail on the old source and pass now.
 - A private direction from David (11 November), kept in hollowell/private/ for him to read after the game; never
-  shown, summarised or hinted to him. Considered against what the game already does; a helper starts it once the
-  ledger work lands (scratchpad private_brief.md). Never named in the changelog, commit messages or anything he reads.
+  shown, summarised or hinted to him. Considered against what the game already does; a helper is on it (scratchpad
+  private_brief.md). Never named in the changelog, commit messages or anything he reads.
 - Running: P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
   Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
   capstone_brief.md.
