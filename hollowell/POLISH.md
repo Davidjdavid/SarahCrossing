@@ -261,6 +261,9 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   flags and fire). Contrast check of marks and threads on every new floor (CIELAB difference against the floor under
   each stroke): six floors recoloured (the potting shed, linen room, laundry, conservatory, the Kiln's brick paving
   and flags); now every floor gives at least 42 for the thread and empty mark and 39 for the patience ring.
+- A private direction from David (11 November), kept in hollowell/private/ for him to read after the game; never
+  shown, summarised or hinted to him. Considered against what the game already does; a helper starts it once the
+  ledger work lands (scratchpad private_brief.md). Never named in the changelog, commit messages or anything he reads.
 - Running: P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
   Ahas; pays off Jory's line; the Making 5 memo says which solution she really used) with P7 (the quilt) in
   capstone_brief.md.
