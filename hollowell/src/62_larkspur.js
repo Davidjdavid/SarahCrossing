@@ -81,6 +81,9 @@ defBlock({
         /* the fortune teller */
         { k: 'deco', x: 10, y: 10, look: 'tent_fortune', solid: [[0, 0], [1, 0], [2, 0]], ox: 0, oy: -20, text: "MADAME ROOK SEES ALL. (Madame Rook is round the front.)" },
         { k: 'npc', who: 'rook', x: 12, y: 12, face: 'down' },
+        /* her wheel of fortune, painted on the grass: a brass pointer that always comes home to NOTHING */
+        { k: 'rookwheel', x: 14, y: 10 }, { k: 'rookhub', x: 15, y: 11 }, { k: 'rooktoken', x: 15, y: 10, id: 'rookToken' },
+        { k: 'sign', x: 18, y: 13, text: "MADAME ROOK'S WHEEL OF FORTUNE. Push the pointer round. Where it stops, so goes your fortune." },
         /* the painted hedge, and what's behind it */
         { k: 'flat', x: 10, y: 7, id: 'larkFlat', look: 'flat_hedge' },
         { k: 'chest', x: 10, y: 4, item: 'b50', id: 'larkNook' },
@@ -153,6 +156,7 @@ TALK.rook = function* () {
         "That hedge by my tent. Don't you think it's a bit... flat?",
         "The fog over there pulls you home if you go in. Unless you've somewhere else to come home to. Then who knows what you'd bring back.",
         "The lift? The stagehand winds it, from the top. He's a puppet. Somebody would have to work him.",
+        "My wheel's stopped on Nothing every day for forty years. I'm starting to take it personally.",
     ]));
 };
 TALK.pell = function* () {
@@ -501,3 +505,98 @@ function initLarkspurArt2() {
     });
 }
 CONTENT_INIT.push(initLarkspurArt2);
+
+/* ---------- Madame Rook's wheel of fortune (the Needle) ----------
+   Painted on the grass by her tent: twelve fortunes round a hub, and a brass pointer on the rim that's pushed round to
+   one. It has its place on NOTHING, and home it goes, the long way round whichever way it was pushed. THE TRUTH is
+   right across the hub from NOTHING, six fortunes either way: further than the Needle reaches in one stitch, and further
+   than a pointer can be pushed round the corners before it sets off home. Pushed partway, then stitched the rest of the way
+   (or stitched partway, pushed, and stitched again), its place is THE TRUTH, and there it stops. */
+const ROOK_RIM = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]];
+const ROOK_FORTUNES = ['A JOURNEY', 'NOTHING', 'A BUTTON', 'RAIN', 'A WISH', 'A FRIEND', 'A SURPRISE', 'THE TRUTH', 'SECRETS', 'A LONG WALK', 'LOVE', 'TEA'];
+const RookWheel = {
+    at: [14, 10],
+    /* which fortune a tile is (by the wheel's own corner, in the Hollow), or -1 */
+    fortune(tx, ty) { const [x0, y0] = LARK(...this.at); return ROOK_RIM.findIndex(([dx, dy]) => tx === x0 + dx && ty === y0 + dy); },
+    /* the pointer, if it's stopped on a fortune for good (its place there, or no place at all any more) */
+    stopped(a) {
+        const e = a && a.find('rookToken');
+        if (!e || e.mv || e.carried || e.heldBy) return -1;
+        if (e.ret && !(e.ret.state === 'home' && e.ret.mx === e.tx && e.ret.my === e.ty)) return -1;
+        return this.fortune(e.tx, e.ty);
+    },
+};
+class RookWheelPaint extends FloorThing {
+    constructor(tx, ty, p = {}) { super('rookwheel', tx, ty, p); }
+    draw(cx, cy) {
+        const x0 = this.x - cx, y0 = this.y - cy;
+        if (x0 < -64 || y0 < -64 || x0 > W || y0 > H) return;
+        const cols = ['#e8463c', '#f7d64a', '#4f9be0', '#fbf6ea'];
+        /* a brass edge round the whole wheel, then each fortune's patch in turn, its sign in the middle */
+        Gfx.rect(x0 - 1, y0 - 1, 66, 66, '#a8742a');
+        ROOK_RIM.forEach(([dx, dy], i) => {
+            const sx = x0 + dx * T, sy = y0 + dy * T;
+            Gfx.rect(sx, sy, T, T, i === 7 ? '#7d5bc4' : cols[i % 4]); Gfx.rect(sx, sy, T, 1, '#fff4c0'); Gfx.rect(sx, sy + 15, T, 1, '#6a4e2a');
+            const c = i === 3 ? '#4a6ab8' : i % 4 === 1 ? '#a8742a' : '#2a1f2d', mx = sx + 8, my = sy + 8;
+            switch (i) {
+                case 1: Gfx.rect(mx - 2, my - 2, 4, 1, c); Gfx.rect(mx - 2, my + 1, 4, 1, c); Gfx.rect(mx - 3, my - 1, 1, 2, c); Gfx.rect(mx + 2, my - 1, 1, 2, c); break;  /* an O */
+                case 2: Gfx.rect(mx - 2, my - 2, 5, 5, c); Gfx.rect(mx - 1, my - 1, 1, 1, '#fbf6ea'); Gfx.rect(mx + 1, my + 1, 1, 1, '#fbf6ea'); break;
+                case 4: for (let j = -2; j <= 2; j++) { Gfx.rect(mx + j, my, 1, 1, c); Gfx.rect(mx, my + j, 1, 1, c); } break;            /* a star */
+                case 7: Gfx.rect(mx - 4, my - 1, 9, 3, '#fbf6ea'); Gfx.rect(mx - 1, my - 1, 3, 3, '#2a1f2d'); Gfx.rect(mx - 3, my - 2, 7, 1, '#2a1f2d'); Gfx.rect(mx - 3, my + 2, 7, 1, '#2a1f2d'); break;   /* an eye */
+                case 10: Gfx.rect(mx - 3, my - 2, 2, 2, c); Gfx.rect(mx + 1, my - 2, 2, 2, c); Gfx.rect(mx - 3, my, 6, 1, c); Gfx.rect(mx - 2, my + 1, 4, 1, c); Gfx.rect(mx - 1, my + 2, 2, 1, c); break;   /* a heart */
+                default: Gfx.rect(mx - 1, my - 1, 3, 3, c);
+            }
+        });
+    }
+}
+SPAWN.rookwheel = (x, y, p) => new RookWheelPaint(x, y, p);
+SPAWN.rookhub = (tx, ty) => {
+    const pr = new Prop(tx, ty, { solid: [[0, 0], [1, 0], [0, 1], [1, 1]] });
+    pr.baseY = 30;
+    pr.draw = function (cx, cy) {
+        const x = this.x - cx + 16, y = this.y - cy + 16;
+        Gfx.circle(x, y, 13, PAL.ink); Gfx.circle(x, y, 12, '#9a1e36'); Gfx.circle(x, y, 9, '#d6304e'); Gfx.circle(x, y, 4, '#f7d64a');
+        Gfx.rect(x - 1, y - 14, 3, 12, PAL.ink); Gfx.rect(x, y - 14, 1, 11, '#fff4c0'); Gfx.circle(x, y - 15, 3, '#f7d64a');
+    };
+    pr.interact = () => { Script.run(function* () { yield* say(null, 'The hub of the wheel, a painted drum with a brass spindle. Twelve fortunes run round it. The pointer always seems to end up back on NOTHING.'); }); return true; };
+    pr.talkBox = (pl, f) => f.tx >= tx && f.tx <= tx + 1 && f.ty >= ty && f.ty <= ty + 1;
+    return pr;
+};
+/* the pointer: a brass arrowhead on the rim, pushed round; it has its place on NOTHING */
+class RookToken extends GridThing {
+    constructor(tx, ty, p = {}) { super('rooktoken', tx, ty, Object.assign({ weight: WEIGHT.light, thread: THREAD.jory, stitchName: "Madame Rook's pointer" }, p)); }
+    interact() {
+        const i = RookWheel.fortune(this.tx, this.ty);
+        Script.run(function* () { yield* say(null, i >= 0 ? `The wheel's brass pointer. It points at: ${ROOK_FORTUNES[i]}.` : 'The brass pointer off Madame Rook\'s wheel, out on the grass.'); });
+        return true;
+    }
+    sprite() { return spr('rook_pointer'); }
+}
+SPAWN.rooktoken = (x, y, p) => new RookToken(x, y, p);
+CONTENT_INIT.push(() => {
+    defSprite('rook_pointer', ['................', '................', '................', '.......kk.......', '......kyyk......', '.....kyyyyk.....', '....kyywyyyk....', '...kyyyyyyyyk...',
+        '...kkkkYYkkkk...', '......kYYk......', '......kYYk......', '......kYYk......', '.....kkkkkk.....', '....kYYYYYYk....', '.....kkkkkk.....', '................'], { y: '#f7d64a', Y: '#b88a2a', w: '#fff4c0' });
+    /* what Madame Rook makes of it (before anything else she'd say, and after the Unwinding too) */
+    const talk0 = Story.talk;
+    Story.talk = function (npc) {
+        if (npc.who !== 'rook' || (Progress.flag('great_pull') && !Progress.flag('unwound'))) return talk0.call(this, npc);
+        const a = G.map, i = RookWheel.stopped(a);
+        if (i === 7 && !Progress.flag('rook_truth')) return function* () {
+            Progress.set('rook_truth'); Stats.count('secret:rook');
+            yield* say('rook', "{surprised}It's stopped. On THE TRUTH. In forty years it has never once... Well. You'd better sit down, dear. So had I.");
+            if (Progress.flag('unwound')) yield* say('rook', "{happy}The truth is that everything I can see has happened already. A fortune-teller with nothing left to tell! Isn't it wonderful?");
+            else if (Progress.flag('met_linnet')) yield* say('rook', "You've met the woman with the green thread already. I see that too. Then here's another truth: she'll come home. And nobody will have to pull her.");
+            else yield* say('rook', "Past the fog there's a woman who plaits green thread. She keeps a garden where nothing comes back, and she's waited twenty-five years for somebody with your chin.");
+            yield* say('rook', "{happy}That one's free. They're all free, really. Here: your button back, and nineteen more. I haven't been surprised since I was a girl.");
+            Favours.buttons(20);
+        };
+        const e = a && a.find('rookToken');
+        if (e && e.ret && e.ret.state !== 'home' && !e.mv && !e.carried && RookWheel.fortune(e.tx, e.ty) >= 0) {
+            const f = ROOK_FORTUNES[RookWheel.fortune(e.tx, e.ty)];
+            return function* () { yield* say('rook', `{surprised}${f}! ...No. Look at it, creeping off home. NOTHING, after all. It always is.`); };
+        }
+        return talk0.call(this, npc);
+    };
+    /* the quilt counts it (src/78c_polish.js) */
+    QUILT[0][1].push(() => Progress.flag('rook_truth'));
+});

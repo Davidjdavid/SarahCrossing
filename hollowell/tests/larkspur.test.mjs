@@ -177,3 +177,47 @@ test('the balloon by the fog: its thread cut with the Shears, it lifts off and d
     assert.ok(!HW.G.map.find('lkBalloon'), 'gone over the fog');
     noErrors(HW);
 });
+
+/* ---------- Madame Rook's wheel of fortune (the Needle) ---------- */
+function wheel(pre) {
+    const HW = loadGame(); HW.preset(pre); HW.step(10); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 28;
+    HW.warp('hollow', ...lk(13, 10)); HW.step(20); HW.skipTalk();
+    return { HW, tok: HW.G.map.find('rookToken'), p: HW.player() };
+}
+const rook = HW => { const n = HW.G.map.ents.find(e => e.who === 'rook'), D = HW.global('Dialog'); HW.Script.run(HW.global('Story').talk(n)()); const out = []; for (let i = 0; i < 40; i++) { HW.step(3); if (D.active) { out.push(D.pages.flat().join(' ')); D.page = D.pages.length - 1; D.shown = 9999; HW.press('act', 1); } } return out.join(' '); };
+/* walk into the pointer till it's shoved a tile on, then wait till it's still */
+const push = (HW, d) => { const tok = HW.G.map.find('rookToken'), x0 = tok.tx, y0 = tok.ty; HW.hold(d); until(HW, () => tok.tx !== x0 || tok.ty !== y0, 60); HW.release(); until(HW, () => !tok.mv, 30); HW.step(2); };
+
+test("Madame Rook's wheel: pushed round, the pointer always sets off home to NOTHING; Rook reads where it's got to, and no more", () => {
+    const { HW, tok } = wheel('afterD6');
+    go(HW, ...lk(14, 10)); HW.face('right'); push(HW, 'right');
+    assert.deepEqual([tok.tx, tok.ty], lk(16, 10), 'pushed on round the rim');
+    go(HW, ...lk(13, 12));
+    assert.match(rook(HW), /A BUTTON.*NOTHING, after all/);
+    assert.ok(until(HW, () => HW.Return.isHome(tok) && !tok.mv, 600) && tok.tx === lk(15, 0)[0], 'home to NOTHING');
+    assert.doesNotMatch(rook(HW), /THE TRUTH/);
+    assert.ok(!HW.Progress.flag('rook_truth'));
+    noErrors(HW);
+});
+
+test("Madame Rook's wheel: THE TRUTH is out of one stitch's reach from NOTHING; pushed two round and stitched four, its place is there, and Rook tells a true fortune", () => {
+    const { HW, tok } = wheel('afterD7');
+    /* (every tile four free steps from NOTHING, round the rim or off it: THE TRUTH isn't one) */
+    const a = HW.G.map, seen = new Set([tok.tx + ',' + tok.ty]); let front = [[tok.tx, tok.ty]];
+    for (let s = 0; s < 4; s++) { const nx = []; for (const [x, y] of front) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (x + dx) + ',' + (y + dy); if (!seen.has(k) && a.freeForThing(x + dx, y + dy, tok)) { seen.add(k); nx.push([x + dx, y + dy]); } } front = nx; }
+    assert.ok(!seen.has(lk(16, 13).join(',')), 'THE TRUTH is five steps or more from NOTHING');
+    go(HW, ...lk(14, 10)); HW.face('right'); push(HW, 'right'); push(HW, 'right');
+    assert.deepEqual([tok.tx, tok.ty], lk(17, 10), 'two round, to the corner');
+    HW.Inv.equipped = 'needle'; HW.face('right'); HW.press('tool', 1); HW.step(3);
+    for (const d of ['down', 'down', 'down', 'left']) { HW.press(d, 1); HW.step(9); }
+    HW.press('tool', 1); HW.step(40);
+    assert.ok(HW.Return.isHome(tok) && tok.tx === lk(16, 0)[0] && tok.ty === lk(0, 13)[1], 'its place: THE TRUTH');
+    go(HW, ...lk(13, 12)); const b0 = HW.Inv.buttons;
+    assert.match(rook(HW), /green thread/);
+    assert.ok(HW.Progress.flag('rook_truth') && HW.Inv.buttons === b0 + 20, 'the fortune, and twenty buttons');
+    assert.doesNotMatch(rook(HW), /sit down/, 'told once');
+    /* the fair built afresh: the pointer's still on THE TRUTH (its place is a stitch); and the quilt counts it */
+    HW.warp('hollow', ...lk(13, 12)); HW.step(10);
+    assert.deepEqual([HW.G.map.find('rookToken').tx, HW.G.map.find('rookToken').ty], lk(16, 13));
+    noErrors(HW);
+});

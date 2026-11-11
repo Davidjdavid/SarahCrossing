@@ -901,7 +901,11 @@ ITEM_LINES.hook = () => "You found the {red}Hookline{/}! [tool] to throw the hoo
    the floor like the Tidyhouse's: RoomLook), with their fires flickering (KILN_GLOW). */
 const KILN_ROOM_LOOK = { '1,3': 'work', '0,3': 'work', '1,2': 'work', '2,3': 'work', '2,2': 'work', '0,2': 'work', '2,1': 'glaze', '3,1': 'work',
     '3,2': 'work', '1,1': 'heart', '0,1': 'work', '0,0': 'shed', '2,0': 'glaze', '1,0': 'heart' };
-const kilnLookAt = (x, y) => { const n = KILN_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'work'; return 'kiln_' + n + (KILN_LOOKS[n].alt && (x + y) & 1 ? '_b' : ''); };
+/* (the glazed floors' chequer: the odd tiles of the floor are the look's second half; walls always the first, as the Tidyhouse's) */
+const kilnLookAt = (x, y) => {
+    const n = KILN_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'work', row = AREAS.kiln.rows[y];
+    return 'kiln_' + n + (KILN_LOOKS[n].alt && (x + y) & 1 && row && row[x] !== '#' ? '_b' : '');
+};
 const KilnFloor = {
     /* a flagstone a tile: lit along its top and left, in shade along its bottom and right, pale clay dust in its joints
        and a scuff at one corner of some */

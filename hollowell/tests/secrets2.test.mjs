@@ -118,3 +118,20 @@ test('the quilt by Wren\'s bed reads out the tally', () => {
     HW.skipTalk();
     noErrors(HW);
 });
+
+test("the quilt counts the later regions' finds and the town's favours, and every patch sewn on is the whole set", () => {
+    const HW = game();
+    const Q = HW.global('Quilt'), row = name => Q.tally().find(r => r[0] === name);
+    const [, s0, sm] = row('Secrets of the valley');
+    HW.Progress.setAreaFlag('hollow', 'chest:nuPatch'); HW.Progress.setAreaFlag('hollow', 'chest:lpIsle'); HW.Progress.setAreaFlag('drift', 'chest:drToll');
+    for (const f of ['oldweight_got', 'oldweight_at', 'balloon_away', 'drift_balloon', 'drift_millpond']) HW.Progress.set(f);
+    assert.equal(row('Secrets of the valley')[1], s0 + 8, 'the wooden one, the isle, the old weight found and set, the balloon cut and found, the mill pond and its toll box');
+    const fav = row('Good turns done in town');
+    assert.ok(fav && fav[1] === 0 && fav[2] === 6, 'six favours, none done yet');
+    for (const f of ['crates', 'kite', 'marble', 'tin', 'stick', 'saucer']) HW.Progress.set('fav_' + f);
+    assert.equal(row('Good turns done in town')[1], 6);
+    /* everything at once: the border stitched round */
+    for (const [, list] of HW.global('QUILT')) for (const f of list) assert.equal(typeof f(), 'boolean');
+    assert.ok(sm > 30, `${sm} secrets of the valley`);
+    noErrors(HW);
+});

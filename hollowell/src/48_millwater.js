@@ -10,8 +10,8 @@ const MILLWATER_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
     'YYY...,..............RR--RR--VV----R##.......###################',
-    'YYY,T..........R------~~~~~~~~~~|~~~~~~~~~~-~~~~~~~~~~~~~~~~~###',
-    'YYY.........R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY,T..........R------~~~~~~~~~~|~~~~~~~~~~-;;;;;;;;;;;;;;~~~###',
+    'YYY.........R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;~~~###',
     'YYY.....RRR--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY...,--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
     'YYY..R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
@@ -106,7 +106,8 @@ defBlock({
         { k: 'tessboat', x: 34, y: 22 },
         { k: 'pondgate', x: 36, y: 23, id: 'mwPondGate' },
         /* the Gulls' Rock: a rock in a ring of low rocks, nothing on it to catch a hook, a cleft in the ring too narrow for
-           anybody; the eel-catcher's float bobbing off it, and his post on the far bank */
+           anybody; the eel-catcher's float bobbing off it (his ledge runs out to it along the foot of the north cliffs), and
+           his post on the far bank */
         { k: 'cleft', x: 57, y: 9 },
         { k: 'gullfloat', x: 57, y: 7, id: 'gullFloat' },
         { k: 'gullnest', x: 56, y: 11 },
@@ -128,7 +129,7 @@ PEOPLE_DEF.fen = { name: 'Fen', col: '#9ad870', look: { body: 'adult', hair: 'bu
 PEOPLE_DEF.wick = { name: 'Wick', col: '#f0c060', look: { body: 'child', hair: 'short', hairC: '#e8b04a', top: '#e8463c', accent: '#fbf6ea', bottom: '#3f6ad8', skin: 'light' } };
 
 TALK.ambrose = function* () {
-    if (Progress.flag('d3')) { yield* say('ambrose', cycle('amb3', ["Three Knots! Your gran'll be... well. She'll be Gran about it. I'm proud as anything.", "The mill's been grinding sweeter since you came out of the Millrace. Don't ask me why. I'm sure I don't know why.", "Mind the falls on your way, love. Everything comes back. Still: mind them."])); return; }
+    if (Progress.flag('d3')) { yield* say('ambrose', cycle('amb3', ["Three Knots! Your gran'll be... well. She'll be Gran about it. I'm proud as anything.", "The mill's been grinding sweeter since you came out of the Millrace. Don't ask me why. I'm sure I don't know why.", "Mind the falls on your way, love. Everything comes back. Still: mind them.", "That's the old mill pond, behind the wall. I keep one or two things in there I'd sooner didn't drift off."])); return; }
     if (!Progress.flag('met:ambrose')) {
         Progress.set('met:ambrose');
         yield* say('ambrose', "{name}! Look at you! Two Knots already! Come here. Mind the flour.");
@@ -136,7 +137,7 @@ TALK.ambrose = function* () {
         yield* say('ambrose', "I'd come and see you off at the door, but... the mill. Always the mill. Busy, busy.");
         return;
     }
-    yield* say('ambrose', cycle('amb1', ["Things in the water drift off, and come back the long way, slower against the current. Every miller knows that. Mind you use it.", "I'm not allowed to help, you know. Wander rules. But if I WERE allowed, I'd say: ride it there, ride it back.", "Your mum rang the noon bell five minutes early today. She's excited. She'd never say."]));
+    yield* say('ambrose', cycle('amb1', ["Things in the water drift off, and come back the long way, slower against the current. Every miller knows that. Mind you use it.", "I'm not allowed to help, you know. Wander rules. But if I WERE allowed, I'd say: ride it there, ride it back.", "Your mum rang the noon bell five minutes early today. She's excited. She'd never say.", "That's the old mill pond, behind the wall. I keep one or two things in there I'd sooner didn't drift off."]));
 };
 TALK.fen = function* () {
     yield* firstThen('fen', "Reeds, mostly. I cut them, they grow back where they were. Steady work.",
@@ -144,7 +145,7 @@ TALK.fen = function* () {
 };
 TALK.wick = function* () {
     yield* firstThen('wick', "Shh! I'm fishing. ...I've never caught one. They all swim home.",
-        ["If you drop something in the river it goes off down the falls and comes back up later all by itself. I tried it with my shoe.", "Dad says behind the falls there's nothing. I think there's a cave. Caves are always behind falls.", "You can't swim in the deep bits. You go under and then you're back where you started, coughing."]);
+        ["If you drop something in the river it goes off down the falls and comes back up later all by itself. I tried it with my shoe.", "Dad says behind the falls there's nothing. I think there's a cave. Caves are always behind falls.", "You can't swim in the deep bits. You go under and then you're back where you started, coughing.", "Jory made me three wooden ducks for my birthday, on strings, with a crossbar to work them. They're meant to swim into their houses. Mine just go round in circles."]);
 };
 BUDGE.fen = 'Fen: "Careful, I\'ve a sickle."';
 BUDGE.wick = 'Wick: "Hey! You scared the fish!"';
@@ -381,7 +382,7 @@ SPAWN.tessboat = (tx, ty) => {
             if (Progress.flag('mw_boat')) { yield* say(null, 'The little blue boat. THE TESS, & A.'); return; }
             Progress.set('mw_boat'); Stats.count('secret:tessboat');
             yield* say(null, 'A little blue rowing boat, drawn up on the bank and tied to a ring in the wall. On her bow, in white paint: THE TESS. Under it, smaller, in another hand: & A.');
-            yield* say(null, 'Under the seat, wrapped in oilcloth, a tin with thirty buttons in it, and a note: "For the mooring. A."');
+            yield* say(null, 'Under the seat, wrapped in oilcloth, a tin with thirty buttons in it, and a note in Dad\'s hand: "For a new coat of paint. One of these years."');
             Favours.buttons(30);
         });
         return true;
@@ -468,16 +469,16 @@ const MILL_OWED = {
         yield* Story.getItem('wickfloat')();
     },
     ambrose: () => {
+        if (Progress.flag('mw_boat') && !Progress.flag('mw_boatTold')) return function* () {
+            Progress.set('mw_boatTold');
+            yield* say('ambrose', "{surprised}You've been in the old mill pond? Then you've seen her: the little blue boat. I built her the summer I was courting your mum, and rowed her round the lake under the bell-keeper's steps every evening till Tess gave in and came out in her.");
+            yield* say('ambrose', "{happy}She painted the '& A.' on herself. I keep the boat in the pond now, where nothing can carry her off.");
+        };
         if (Inv.items.mwring && !Progress.flag('mw_ringHome')) return function* () {
             Progress.set('mw_ringHome'); delete Inv.items.mwring;
             yield* say('ambrose', "{surprised}Where did you... Oh. Oh, that's the ring. I rowed your mum out to the middle of the lake to ask her, and I was shaking so hard I dropped it over the side. A gull had it before it ever touched the water.");
             yield* say('ambrose', "{happy}She said yes anyway. Said a ring's only a thing, and things come home. ...Took its time, didn't it?");
             yield* say('ambrose', "I'll give it back to her tonight. Thank you, love. Don't tell her I cried.");
-        };
-        if (Progress.flag('mw_boat') && !Progress.flag('mw_boatTold')) return function* () {
-            Progress.set('mw_boatTold');
-            yield* say('ambrose', "{surprised}You've been in the old mill pond? Then you've seen her: the little blue boat. I built her the summer I was courting your mum, and rowed her round the lake under the bell-keeper's steps every evening till Tess gave in and came out in her.");
-            yield* say('ambrose', "{happy}She painted the '& A.' on herself. I keep the boat in the pond now, where nothing can carry her off.");
         };
         return null;
     },

@@ -894,8 +894,12 @@ ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
    (TIDY_DRESS, painted into the room's own picture: TidyLook), or standing where something already stood. */
 const TIDY_ROOM_LOOK = { '1,3': 'hall', '0,3': 'kitchen', '2,3': 'gallery', '1,2': 'hall', '0,2': 'pantry', '2,2': 'parlour', '3,2': 'garden',
     '2,1': 'linen', '3,1': 'laundry', '1,1': 'ball', '0,1': 'library', '0,0': 'attic', '2,0': 'hall', '1,0': 'grand' };
-/* (a chequer or a basket weave needs to know which tile it's on: the odd tiles are the look's second half, '_b') */
-const tidyLookAt = (x, y) => { const n = TIDY_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'hall'; return 'tidy_' + n + (TIDY_LOOKS[n].alt && (x + y) & 1 ? '_b' : ''); };
+/* (a chequer or a basket weave needs to know which tile it's on: the odd tiles of the floor are the look's second half,
+   '_b'; a wall or the kitchen counter is the same either way, so it's always the first, and painted once) */
+const tidyLookAt = (x, y) => {
+    const n = TIDY_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'hall', row = AREAS.tidy.rows[y];
+    return 'tidy_' + n + (TIDY_LOOKS[n].alt && (x + y) & 1 && row && row[x] !== '#' && row[x] !== 'l' ? '_b' : '');
+};
 const TidyFloor = {
     /* a slab of stone or marble, a tile to itself: lit along its top and left, in shade along its bottom and right, a
        faint vein across one corner (never through the middle, where a mark is stitched) */
