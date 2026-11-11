@@ -282,6 +282,12 @@ overworld_brief.md); each helper reports, then the coordinator reviews, tests an
   happened; Jory's first-finish line pays off his Reveal 1 promise; can't strand the act; resets on demand; S30 now
   wants all nine; tests/capstone.test.mjs, 19) and P7 (the quilt: a count with no total, observation-only secrets
   off it, finds noticed while Gran is shut in); the Ballroom memo says which solution the player really used.
+- Done too: the Spool's top and the climax (finale_brief.md): three pairs, the room changing after each (the crates;
+  then Gran keeps the crates and throws at wherever Wren stands, each throw told; then the floor goes dark under the
+  last pair and a crate left off its shelf hangs over the dark on its thread, the Glazing Gallery's rule); the
+  bracelet quiets the room and Gran lets a pair go herself, with a new epilogue shot on the north road; the climax a
+  held hand, Linnet taking the other, no menu; the tally said once; old saves carry on (flags gs_s1, gs_s2);
+  tests/spooltop.test.mjs (9); LEG9 to the credits. Running now: the restraint pass (restraint_brief.md: P3).
 - Running now too: inference for the two late bosses (latebosses_brief.md: the Weaver's beat 1 read four ways, the
   Tangle's beat 3 failing informatively).
 - Running (earlier line, for the record): P10 "Make one", the Makings' capstone (a Little House Wren sets out and Tuck walks, graded by the existing
