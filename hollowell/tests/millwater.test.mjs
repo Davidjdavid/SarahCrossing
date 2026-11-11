@@ -72,17 +72,17 @@ const DUCKS = ['mwDuck1', 'mwDuck2', 'mwDuck3'];
 
 test("Wick's ducks: walled in, and nothing but their crossbar moves them; before the Crossbar they stay put", () => {
     const HW = game('afterD5');
-    const a = at(HW, 8, 24), p = HW.player(), ducks = DUCKS.map(i => a.find(i));
+    const a = at(HW, 13, 20), p = HW.player(), ducks = DUCKS.map(i => a.find(i));
     assert.equal(HW.walkTo(...mw(8, 20)), false, 'the pond is walled all round');
-    for (const t of ['hook', 'bell']) { HW.Inv.equipped = t; HW.face('up'); HW.press('tool', 1); HW.step(80); }
+    for (const t of ['hook', 'bell']) { HW.Inv.equipped = t; HW.face('left'); HW.press('tool', 1); HW.step(80); }
     assert.ok(ducks.every((d, i) => d.tx === mw(6 + 2 * i, 0)[0] && d.ty === mw(0, 22)[1]), 'all three still on their stands');
     noErr(HW);
 });
 
 test("Wick's ducks: the rack walks all three; the rocks hold one back while the others go on; all three home at once: Wick's lucky float", () => {
     const HW = game('afterD6');
-    const a = at(HW, 8, 24), ducks = DUCKS.map(i => a.find(i)), C = HW.global('Crossbar');
-    HW.Inv.equipped = 'crossbar'; HW.face('up'); HW.press('tool', 1); HW.step(5);
+    const a = at(HW, 13, 20), ducks = DUCKS.map(i => a.find(i)), C = HW.global('Crossbar');
+    HW.Inv.equipped = 'crossbar'; HW.face('left'); HW.press('tool', 1); HW.step(5);
     assert.ok(C.ctl && C.ctl.puppets.length === 3, 'the rack: all three ducks');
     /* straight up, the three can't spread out to the houses, which are further apart than the ducks */
     const dir = { L: 'left', R: 'right', U: 'up', D: 'down' };
@@ -155,45 +155,46 @@ test('the old mill pond: without a Bedroll on it the barrel goes in alone, and c
 test("the Gulls' Rock: nothing there to catch a hook, and the cleft lets nobody through; the float pulled over onto the rock is no way across", () => {
     const HW = game('afterD6');
     const a = at(HW, 41, 2), f = a.find('gullFloat'), p = HW.player();
-    const onRock = () => p.tx >= mw(56, 0)[0] && p.tx <= mw(58, 0)[0] && p.ty >= mw(0, 10)[1] && p.ty <= mw(0, 12)[1];
-    go(HW, ...mw(57, 4)); HW.Inv.equipped = 'hook';
-    /* the float reeled in from the ledge, then its empty mark (out in the water) hooked: in Wren goes, and home */
-    HW.face('down'); HW.press('tool', 1); HW.step(60);
-    assert.deepEqual([f.tx, f.ty], mw(57, 5), 'the float reeled in');
-    HW.face('down'); HW.press('tool', 1);
-    for (let i = 0; i < 400; i++) { HW.step(1); assert.ok(!onRock(), 'never on the rock'); }
-    /* from the far bank, over the low rocks: nothing on the rock to catch */
-    HW.step(400); at(HW, 57, 18); go(HW, ...mw(57, 18));
-    HW.Inv.equipped = 'hook'; HW.face('up'); HW.press('tool', 1); HW.step(60);
-    assert.deepEqual([p.tx, p.ty], mw(57, 18), 'the hook comes back empty');
-    assert.ok(until(HW, () => HW.Return.isHome(f) && !f.mv, 600), 'the float back at its mooring');
+    const onRock = () => p.tx >= mw(56, 0)[0] && p.tx <= mw(58, 0)[0] && p.ty >= mw(0, 8)[1] && p.ty <= mw(0, 10)[1];
+    /* from the pier: the float's at your feet (there's nowhere nearer to reel it); over the low rocks, nothing to catch */
+    for (const x of [56, 57, 58]) {
+        go(HW, ...mw(x, 5)); HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1);
+        for (let i = 0; i < 90; i++) { HW.step(1); assert.ok(!onRock(), 'never on the rock'); }
+        assert.deepEqual([p.tx, p.ty], mw(x, 5), 'still on the pier');
+    }
+    /* reeled off its mooring onto the pier, the float leaves its empty mark out in the water: hooked, in Wren goes, and home */
+    go(HW, ...mw(57, 3)); HW.face('down'); HW.press('tool', 1);
+    assert.ok(until(HW, () => f.ty === mw(0, 4)[1] && !f.mv && !f.hookPulled, 120), 'the float reeled up onto the pier');
+    go(HW, ...mw(56, 4)); go(HW, ...mw(56, 5)); go(HW, ...mw(57, 5)); HW.face('down'); HW.press('tool', 1);
+    for (let i = 0; i < 300; i++) { HW.step(1); assert.ok(!onRock(), 'never on the rock'); }
+    assert.ok(until(HW, () => HW.Return.isHome(f) && !f.mv, 900), 'the float back at its mooring');
     /* the cleft: nobody walks it, no barrel goes through it */
     assert.equal(HW.walkTo(...mw(57, 10)), false, 'no way over on foot');
     const C = a.ents.find(e => e.kind === 'cleft'), bar = a.find('millBarrel');
-    assert.ok(C.blocks(...mw(57, 9), p) && C.blocks(...mw(57, 9), bar) && !C.blocks(...mw(57, 9), f), 'too narrow for Wren or a barrel; not for the little float');
+    assert.ok(C.blocks(...mw(57, 7), p) && C.blocks(...mw(57, 7), bar) && !C.blocks(...mw(57, 7), f), 'too narrow for Wren or a barrel; not for the little float');
     noErr(HW);
 });
 
 test("the Gulls' Rock: the Needle gives the float a place on the rock; pulled off it, its empty mark is something to hook onto; the gulls' hoard; off by the eel-catcher's post", () => {
     const HW = game('afterD7');
     const a = at(HW, 41, 2), f = a.find('gullFloat'), p = HW.player();
-    go(HW, ...mw(57, 4));
+    go(HW, ...mw(57, 5));
     HW.face('down'); HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(3);
-    for (const d of ['down', 'down', 'down']) { HW.press(d, 1); HW.step(9); }
+    for (const d of ['down', 'down']) { HW.press(d, 1); HW.step(9); }
     HW.press('tool', 1); HW.step(40);
-    assert.ok(HW.Return.isHome(f) && f.ret.mx === mw(57, 0)[0] && f.ret.my === mw(0, 10)[1], 'through the cleft to its new place on the rock');
+    assert.ok(HW.Return.isHome(f) && f.ret.mx === mw(57, 0)[0] && f.ret.my === mw(0, 8)[1], 'through the cleft to its new place on the rock');
     HW.Inv.equipped = 'hook'; HW.face('down'); HW.press('tool', 1);
-    assert.ok(until(HW, () => f.ty === mw(0, 5)[1] && !f.mv && !f.hookPulled, 200), 'hooked back out through the cleft');
+    assert.ok(until(HW, () => f.ty === mw(0, 6)[1] && !f.mv && !f.hookPulled, 200), 'hooked back out through the cleft');
     HW.face('down'); HW.press('act', 1); HW.step(15);
     assert.ok(p.carry === f, 'lifted out of the line');
     HW.face('down'); HW.press('tool', 1);
-    assert.ok(until(HW, () => p.state === 'normal' && p.ty === mw(0, 10)[1] && p.tx === mw(57, 0)[0], 200), 'over onto its empty mark, on the rock');
+    assert.ok(until(HW, () => p.state === 'normal' && p.ty === mw(0, 8)[1] && p.tx === mw(57, 0)[0], 200), 'over onto its empty mark, on the rock');
     HW.face('left'); HW.press('act', 1); HW.step(30);
-    go(HW, ...mw(57, 11)); HW.face('left'); const b0 = HW.Inv.buttons;
+    go(HW, ...mw(57, 10)); HW.face('left'); const b0 = HW.Inv.buttons;
     HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(5); HW.skipTalk(); HW.step(5); HW.skipTalk();
     assert.ok(HW.Progress.flag('mw_gulls') && HW.Inv.items.mwring && HW.Inv.buttons === b0 + 40, "the gulls' hoard: forty buttons and a ring");
-    go(HW, ...mw(57, 12)); HW.face('down'); HW.press('tool', 1);
-    assert.ok(until(HW, () => p.state === 'normal' && p.ty === mw(0, 18)[1], 200), "off by the eel-catcher's post, onto the far bank");
+    go(HW, ...mw(58, 8)); HW.face('up'); HW.press('tool', 1);
+    assert.ok(until(HW, () => p.state === 'normal' && p.ty === mw(0, 5)[1], 200), "back by the eel-catcher's post on the pier");
     assert.ok(until(HW, () => HW.Return.isHome(f) && !f.mv, 1500), 'the float home on the rock again');
     at(HW, 28, 23);
     assert.match(talk(HW, 'ambrose'), /ring/);

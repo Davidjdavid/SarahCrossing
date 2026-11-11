@@ -509,9 +509,9 @@ CONTENT_INIT.push(initLarkspurArt2);
 /* ---------- Madame Rook's wheel of fortune (the Needle) ----------
    Painted on the grass by her tent: twelve fortunes round a hub, and a brass pointer on the rim that's pushed round to
    one. It has its place on NOTHING, and home it goes, the long way round whichever way it was pushed. THE TRUTH is
-   right across the hub from NOTHING, six fortunes either way: further than the Needle reaches in one stitch, and further
-   than a pointer can be pushed round the corners before it sets off home. Pushed partway, then stitched the rest of the way
-   (or stitched partway, pushed, and stitched again), its place is THE TRUTH, and there it stops. */
+   right across the hub from NOTHING, six fortunes either way: further than the Needle reaches in one stitch, and pushed
+   all the way there it only sets off home again. Pushed partway, then stitched the rest of the way (or stitched partway,
+   pushed, and stitched again), its place is THE TRUTH, and there it stops. */
 const ROOK_RIM = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]];
 const ROOK_FORTUNES = ['A JOURNEY', 'NOTHING', 'A BUTTON', 'RAIN', 'A WISH', 'A FRIEND', 'A SURPRISE', 'THE TRUTH', 'SECRETS', 'A LONG WALK', 'LOVE', 'TEA'];
 const RookWheel = {

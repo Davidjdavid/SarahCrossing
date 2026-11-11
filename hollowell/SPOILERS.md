@@ -274,16 +274,17 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 59. **The Gulls' Rock** (Millwater, the east reach; the Needle): a rock in a ring of low rocks with nothing on it a hook can
     catch; the ring's one cleft is too narrow for anybody (or a raft, or a barrel); the eel-catcher's little cork float
     (too small to stand on) slips through it, and so do a hook's line and anything thrown. His ledge runs along the foot
-    of the north cliffs to above the float. Pre-Needle: the float reeled in leaves an empty mark out in the water (hook
-    it and you go in, and home). With the Needle: give the float a place on the rock, through the cleft; hook it back
-    out (it comes through to you), lift it out of the line, hook its empty mark: over onto the rock (the Heron Rock trick,
-    with a mark the Needle made). The gulls' nest (held things wait: nothing in it ever went home): 40 buttons and a
-    brass ring, Dad's, dropped over the side of THE TESS when he proposed; given back to him, he tells it. Off by the
-    eel-catcher's post on the far bank.
+    of the north cliffs from the North Shore to a little pier over the float. Pre-Needle: the float reeled up onto the
+    pier leaves an empty mark out in the water (hook it and you go in, and home). With the Needle, from the pier: give
+    the float a place on the rock, through the cleft (two steps); hook it back out (it comes through to you), lift it out
+    of the line, hook its empty mark: over onto the rock (the Heron Rock trick, with a mark the Needle made). The gulls'
+    nest (held things wait: nothing in it ever went home): 40 buttons and a brass ring, Dad's, dropped over the side of
+    THE TESS when he proposed; given back to him, he tells it. Back by the eel-catcher's post on the pier (from the
+    rock's east column, clear of the float's place).
 60. **Madame Rook's wheel** (Larkspur, by her tent; the Needle): twelve fortunes painted round a hub, a brass pointer pushed
-    round the rim; its place is NOTHING, and home it goes. THE TRUTH is across the hub, six round either way: more than one
-    stitch (four) and more than the pointer can be pushed round the corners before it sets off. Push it two round (to
-    the corner), stitch it four (or stitch, push, stitch again): it stops on THE TRUTH, and Rook tells a true fortune (the
+    round the rim; its place is NOTHING, and home it goes. THE TRUTH is across the hub, six round either way: further than
+    one stitch (four) reaches from NOTHING, and pushed all the way there it only sets off home again. Push it two round
+    (to the corner), stitch it four (or stitch, push, stitch again): it stops on THE TRUTH, and Rook tells a true fortune (the
     woman with the green thread past the fog; after meeting Linnet, that she'll come home unpulled; after the Unwinding,
     that there's nothing left to tell) and gives 20 buttons. The Shears would do it too (cut, it stays where it is).
 

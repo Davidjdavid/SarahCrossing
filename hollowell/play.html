@@ -10396,10 +10396,10 @@ ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
 const TIDY_ROOM_LOOK = { '1,3': 'hall', '0,3': 'kitchen', '2,3': 'gallery', '1,2': 'hall', '0,2': 'pantry', '2,2': 'parlour', '3,2': 'garden',
     '2,1': 'linen', '3,1': 'laundry', '1,1': 'ball', '0,1': 'library', '0,0': 'attic', '2,0': 'hall', '1,0': 'grand' };
 /* (a chequer or a basket weave needs to know which tile it's on: the odd tiles of the floor are the look's second half,
-   '_b'; a wall is the same either way, so it's always the first, and painted once) */
+   '_b'; a wall or the kitchen counter is the same either way, so it's always the first, and painted once) */
 const tidyLookAt = (x, y) => {
     const n = TIDY_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'hall', row = AREAS.tidy.rows[y];
-    return 'tidy_' + n + (TIDY_LOOKS[n].alt && (x + y) & 1 && row && row[x] !== '#' ? '_b' : '');
+    return 'tidy_' + n + (TIDY_LOOKS[n].alt && (x + y) & 1 && row && row[x] !== '#' && row[x] !== 'l' ? '_b' : '');
 };
 const TidyFloor = {
     /* a slab of stone or marble, a tile to itself: lit along its top and left, in shade along its bottom and right, a
@@ -13544,16 +13544,16 @@ const MILLWATER_ROWS = [
     'YYYYYYYYYYYYYYYYYYYYYYYYYYYYYVVYYYYYYYYYYYY:YYYYYYYYYYYYYYYYY###',
     'YYY...,..............RR--RR--VV----R##.......###################',
     'YYY,T..........R------~~~~~~~~~~|~~~~~~~~~~-;;;;;;;;;;;;;;~~~###',
-    'YYY.........R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;~~~###',
-    'YYY.....RRR--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
+    'YYY.........R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;;;~~###',
+    'YYY.....RRR--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~;;;~~###',
     'YYY...,--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY..R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYY..-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###',
-    'YYYbR-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQ~QQ~###',
+    'YYY..R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQ~QQ~###',
+    'YYY..-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~###',
+    'YYYbR-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~###',
     'YYY.-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~###',
-    'YYY.--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~###',
-    'YYY..-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~Q...Q~###',
-    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..rQ~QQQQQ~###',
+    'YYY.--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~###',
+    'YYY..-R~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQQQQ~~~~~~~###',
+    'YYY...--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q..rQ~~~~~~~###',
     'YYY....R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Q...Q~~~~~~~###',
     'YYY.....R-R-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~QQ~QQ~~~~~~~###',
     'YYY........R--R-~~|~~~~~~~~~~~~~~~~~~~~VVV~~~~~~~~~~~~~~~~~~~###',
@@ -13631,28 +13631,28 @@ defBlock({
         { k: 'millduck', x: 6, y: 22, id: 'mwDuck1', group: 'mwducks', ribbon: '#e8463c' },
         { k: 'millduck', x: 8, y: 22, id: 'mwDuck2', group: 'mwducks', ribbon: '#4f9be0' },
         { k: 'millduck', x: 10, y: 22, id: 'mwDuck3', group: 'mwducks', ribbon: '#5ab85a' },
-        { k: 'rack', x: 8, y: 23, id: 'mwDuckRack', group: 'mwducks' },
-        { k: 'sign', x: 6, y: 24, text: "WICK'S DUCKS. Carved by Jory, named by Wick: Dot, Dash and Dimple. They swim home to their houses, if somebody knows how to ask them." },
+        { k: 'rack', x: 12, y: 20, id: 'mwDuckRack', group: 'mwducks' },
+        { k: 'sign', x: 13, y: 18, text: "WICK'S DUCKS. Carved by Jory, named by Wick: Dot, Dash and Dimple. They swim home to their houses, if somebody knows how to ask them." },
         /* the old mill pond, walled in by the mill: the lake runs in down the race, under a grating; inside, a little boat */
         { k: 'barrel', x: 34, y: 17, id: 'millBarrel', patience: 600, stitchName: "the mill's barrel" },
         { k: 'millgrate', x: 32, y: 19 },
         { k: 'tessboat', x: 34, y: 22 },
         { k: 'pondgate', x: 36, y: 23, id: 'mwPondGate' },
         /* the Gulls' Rock: a rock in a ring of low rocks, nothing on it to catch a hook, a cleft in the ring too narrow for
-           anybody; the eel-catcher's float bobbing off it (his ledge runs out to it along the foot of the north cliffs), and
-           his post on the far bank */
-        { k: 'cleft', x: 57, y: 9 },
-        { k: 'gullfloat', x: 57, y: 7, id: 'gullFloat' },
-        { k: 'gullnest', x: 56, y: 11 },
-        { k: 'gull', x: 55, y: 10 }, { k: 'gull', x: 59, y: 12, flip: true }, { k: 'gull', x: 58, y: 9 },
-        { k: 'eyelet', x: 57, y: 19 },
+           anybody; the eel-catcher's float bobbing off it, by the little pier at the end of his ledge (along the foot of the
+           north cliffs from the North Shore), and his post on the pier */
+        { k: 'cleft', x: 57, y: 7 },
+        { k: 'gullfloat', x: 57, y: 6, id: 'gullFloat' },
+        { k: 'gullnest', x: 56, y: 10 },
+        { k: 'gull', x: 55, y: 8 }, { k: 'gull', x: 59, y: 10, flip: true }, { k: 'gull', x: 58, y: 7 },
+        { k: 'eyelet', x: 58, y: 4 },
     ],
     regions: [
         { name: 'The Reaches', x: 0, y: 2, w: 42, h: 34 },
         { name: 'North Shore', x: 38, y: 0, w: 7, h: 3 },
         { name: 'Heron Rock', x: 48, y: 11, w: 7, h: 6 },
         { name: 'Millrace Falls', x: 42, y: 18, w: 19, h: 12 },
-        { name: "The Gulls' Rock", x: 55, y: 8, w: 6, h: 7 },
+        { name: "The Gulls' Rock", x: 55, y: 3, w: 6, h: 9 },
         { name: 'The Old Mill Pond', x: 31, y: 19, w: 7, h: 5 },
         { name: "Wick's Duck Pond", x: 4, y: 17, w: 9, h: 7 },
     ],
@@ -21617,9 +21617,9 @@ CONTENT_INIT.push(initLarkspurArt2);
 /* ---------- Madame Rook's wheel of fortune (the Needle) ----------
    Painted on the grass by her tent: twelve fortunes round a hub, and a brass pointer on the rim that's pushed round to
    one. It has its place on NOTHING, and home it goes, the long way round whichever way it was pushed. THE TRUTH is
-   right across the hub from NOTHING, six fortunes either way: further than the Needle reaches in one stitch, and further
-   than a pointer can be pushed round the corners before it sets off home. Pushed partway, then stitched the rest of the way
-   (or stitched partway, pushed, and stitched again), its place is THE TRUTH, and there it stops. */
+   right across the hub from NOTHING, six fortunes either way: further than the Needle reaches in one stitch, and pushed
+   all the way there it only sets off home again. Pushed partway, then stitched the rest of the way (or stitched partway,
+   pushed, and stitched again), its place is THE TRUTH, and there it stops. */
 const ROOK_RIM = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]];
 const ROOK_FORTUNES = ['A JOURNEY', 'NOTHING', 'A BUTTON', 'RAIN', 'A WISH', 'A FRIEND', 'A SURPRISE', 'THE TRUTH', 'SECRETS', 'A LONG WALK', 'LOVE', 'TEA'];
 const RookWheel = {
