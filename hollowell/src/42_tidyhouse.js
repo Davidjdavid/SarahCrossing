@@ -879,3 +879,199 @@ ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.'
 ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
 ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0 ? '' : `(${Inv.patches % 4} of 4.)`);
 ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
+
+/* ======================= the look of the place (all paint: nothing here is solid, moves anything or sets a flag) =======================
+   Every room papered and floored its own way in the House's colours (teal, crimson, cream and gilt): the halls a polished
+   marble chequer under teal damask and white panelling (the gallery's walls picture-gallery red); parquet in the parlour
+   and the library (walnut) and the ballroom (golden oak); scrubbed flags under white tile in the kitchen and limewash in
+   the pantry; slate in the laundry, painted boards in the linen room, garden flags under a trellis in the conservatory,
+   bare boards in the attic. (themeAt picks the room's look; the House's own 'tidy' theme still colours its gates.) */
+const TIDY_ROOM_LOOK = { '1,3': 'hall', '0,3': 'kitchen', '2,3': 'gallery', '1,2': 'hall', '0,2': 'pantry', '2,2': 'parlour', '3,2': 'garden',
+    '2,1': 'linen', '3,1': 'laundry', '1,1': 'ball', '0,1': 'library', '0,0': 'attic', '2,0': 'hall', '1,0': 'grand' };
+const tidyLookAt = (x, y) => 'tidy_' + (TIDY_ROOM_LOOK[Math.floor(x / 20) + ',' + Math.floor(y / 11)] || 'hall');
+/* flagstones laid in two courses (the widths of the slabs in each, per tile variant) */
+const TIDY_SLABS = [[[9, 7], [5, 11]], [[16], [7, 9]], [[6, 10], [11, 5]], [[11, 5], [16]]];
+const TidyFloor = {
+    /* marble in a chequer: each slab bevelled (lit along its top and left), a vein wandering through it, a gleam on a few */
+    marble: (L, D) => (x, th, v) => {
+        for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+            const c = (i + j) % 2 ? D : L, X = i * 8, Y = j * 8, s = v * 4 + j * 2 + i;
+            fill(x, c[0], X, Y, 8, 8);
+            let vx = X + 1 + Math.floor(hash2(s, 1, 41) * 6), vy = Y + 1;
+            const d = hash2(s, 2, 43) < 0.5 ? 1 : -1;
+            for (let k = 0; k < 6 && vx > X && vx < X + 7; k++) { px(x, vx, vy, c[3]); vy++; if (hash2(s, k, 47) < 0.5) vx += d; }
+            fill(x, c[1], X, Y, 8, 1); fill(x, c[1], X, Y + 1, 1, 7); fill(x, c[2], X + 1, Y + 7, 7, 1); fill(x, c[2], X + 7, Y + 1, 1, 6);
+        }
+        if (v === 2) { x.globalAlpha = 0.3; for (let k = 0; k < 4; k++) px(x, 10 + k, 2 + k, '#ffffff'); x.globalAlpha = 1; }
+    },
+    /* parquet: blocks of four slats in a basket weave, each slat its own shade with a grain mark, the joints dark */
+    parquet: P => (x, th, v) => {
+        for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+            const along = (i + j) % 2 === 0, X = i * 8, Y = j * 8;
+            for (let s = 0; s < 4; s++) {
+                const t = P.tone[Math.floor(hash2(v * 4 + j * 2 + i, s, 51) * P.tone.length)], g = Math.floor(hash2(s, v * 4 + j * 2 + i, 52) * 6) + 1;
+                if (along) { fill(x, t, X, Y + s * 2, 8, 2); fill(x, P.grain, X + g, Y + s * 2 + 1, 2, 1); }
+                else { fill(x, t, X + s * 2, Y, 2, 8); fill(x, P.grain, X + s * 2 + 1, Y + g, 1, 2); }
+            }
+            fill(x, P.joint, X, Y + 7, 8, 1); fill(x, P.joint, X + 7, Y, 1, 8);
+            if (along) fill(x, P.shine, X, Y, 7, 1); else fill(x, P.shine, X, Y, 1, 7);
+        }
+    },
+    /* flagstones: two courses, the joints dark, each slab's top edge catching the light, a fleck or two (and a wet gleam) */
+    flags: F => (x, th, v) => {
+        fill(x, F.joint);
+        TIDY_SLABS[v].forEach((ws, r) => {
+            let sx = 0;
+            ws.forEach((w, n) => {
+                const t = F.tone[Math.floor(hash2(v * 5 + r, n, 61) * F.tone.length)], y0 = r * 8;
+                fill(x, t, sx, y0, w - 1, 7); fill(x, F.hi, sx, y0, w - 1, 1); fill(x, F.lo, sx, y0 + 6, w - 1, 1);
+                speckle(x, F.fleck, 70 + v * 3 + r * 2 + n, 0.1, sx, y0 + 1, w - 1, 5);
+                if (F.moss && hash2(v, r * 3 + n, 63) < 0.6) { px(x, sx + w - 1, y0 + 2 + Math.floor(hash2(n, r, 64) * 4), F.moss[0]); px(x, sx + w - 1, y0 + 4 + Math.floor(hash2(r, n, 65) * 3), F.moss[1]); }
+                sx += w;
+            });
+        });
+        if (F.wet && (v === 1 || v === 2)) { fill(x, F.wet, 3 + v * 3, 3, 2, 1); px(x, 4 + v * 3, 4, F.wet); }
+        if (F.inset && v === 0) { fill(x, F.inset[1], 14, 13, 2, 2); fill(x, F.inset[0], 15, 14, 1, 1); }
+    },
+    /* boards: up and down (painted) or across (bare), each its own shade, a lit edge, butt joints with their nails */
+    boards: P => (x, th, v) => {
+        const up = P.dir === 'v';
+        for (let b = 0; b < 4; b++) {
+            const t = P.tone[Math.floor(hash2(v, b, 71) * P.tone.length)], o = b * 4;
+            if (up) { fill(x, t, o, 0, 3, 16); fill(x, P.hi, o, 0, 1, 16); fill(x, P.seam, o + 3, 0, 1, 16); }
+            else { fill(x, t, 0, o, 16, 3); fill(x, P.hi, 0, o, 16, 1); fill(x, P.seam, 0, o + 3, 16, 1); }
+            if (hash2(v, b, 73) < 0.45) {
+                const k = 3 + Math.floor(hash2(b, v, 74) * 10);
+                if (up) { fill(x, P.seam, o, k, 3, 1); px(x, o + 1, k - 2, P.nail); px(x, o + 1, k + 2, P.nail); }
+                else { fill(x, P.seam, k, o, 1, 3); px(x, k - 2, o + 1, P.nail); px(x, k + 2, o + 1, P.nail); }
+            }
+        }
+        if (P.fleck) speckle(x, P.fleck, 80 + v, 0.04);
+    },
+    /* a carpet: wool with a small repeat, a little gilt pip in each (its borders are laid over it, TidyLook) */
+    carpet: C => (x, th, v) => {
+        fill(x, C[0]); speckle(x, [C[1], C[2]], 30 + v, 0.16);
+        for (const [i, j] of [[3, 3], [11, 11]]) { px(x, i - 1, j, C[3]); px(x, i + 1, j, C[3]); px(x, i, j - 1, C[3]); px(x, i, j + 1, C[3]); px(x, i, j, C[4]); }
+        for (const [i, j] of [[11, 3], [3, 11]]) px(x, i, j, C[3]);
+    },
+};
+const TF_MARBLE = TidyFloor.marble(['#ebe2cc', '#f8f2e4', '#cdbfa0', '#d9ccb0'], ['#3c4f52', '#557070', '#283638', '#4c6464']);
+const TF_WALNUT = TidyFloor.parquet({ tone: ['#8a5634', '#94603a', '#83512f'], grain: '#734628', joint: '#4e2e1c', shine: '#a8744a' });
+const TF_OAK = TidyFloor.parquet({ tone: ['#c99552', '#d2a05c', '#c08a4a'], grain: '#b07c40', joint: '#7e5428', shine: '#e8c07a' });
+const TF_FLAGS = TidyFloor.flags({ tone: ['#d6ccb8', '#cfc4ae', '#dcd3c0'], joint: '#9c8f78', hi: '#ebe4d6', lo: '#bdb19a', fleck: ['#c4b8a2', '#e2dacb'] });
+const TF_CARPET = TidyFloor.carpet(['#9a3a4a', '#a8465a', '#8c3242', '#6e2232', '#e0b050']);
+const TIDY_LOOKS = {
+    hall: { floor: TF_MARBLE, paper: 'damask', pc: ['#5fb7a8', '#7ccabe', '#46998d', '#e8c060'], dado: 'cream' },
+    grand: { floor: TF_MARBLE, paper: 'damask', pc: ['#4c9f93', '#66b7aa', '#367d73', '#f0c868'], dado: 'cream' },
+    gallery: { floor: TF_MARBLE, paper: 'damask', pc: ['#943848', '#a84a5a', '#742634', '#e0b050'], dado: 'cream' },
+    parlour: { floor: TF_WALNUT, paper: 'stripe', pc: ['#efdcc4', '#c97a84', '#a85a66', '#e0b860'], dado: 'walnut' },
+    library: { floor: TF_WALNUT, paper: 'damask', pc: ['#3f6b58', '#4e7d68', '#2f5646', '#c8a048'], dado: 'walnut' },
+    ball: { floor: TF_OAK, paper: 'gilt', pc: ['#f2e8d0', '#e6d8b8', '#d9a33a', '#f6d880'], dado: 'cream' },
+    kitchen: { floor: TF_FLAGS, paper: 'tile', pc: ['#f3efe4', '#cfc7b6', '#ffffff', '#5fb7a8', '#3c8a80'] },
+    laundry: { floor: TidyFloor.flags({ tone: ['#9aa6aa', '#929ea3', '#a3aeb1'], joint: '#5f6a70', hi: '#b8c4c8', lo: '#86929a', fleck: ['#8a979c', '#aab6ba'], wet: '#d6e6ec' }),
+        paper: 'tile', pc: ['#e9eff0', '#c2cbcc', '#ffffff', '#5fb7a8', '#3c8a80'] },
+    pantry: { floor: TidyFloor.flags({ tone: ['#cdc3b0', '#c6bba6', '#d3cab8'], joint: '#968a74', hi: '#e0d8c8', lo: '#b4a892', fleck: ['#bcb09a', '#d8d0c0'] }),
+        paper: 'lime', pc: ['#ece3cf', '#e0d5bd', '#f6eedf'], dado: 'paint' },
+    linen: { floor: TidyFloor.boards({ dir: 'v', tone: ['#9fb0bc', '#97a9b6', '#a6b6c1'], hi: '#bccad4', seam: '#76879a', nail: '#5e6e80' }), paper: 'sprig', pc: ['#efe6d4', '#e4d9c4', '#b49ad0', '#8aa070'], dado: 'paint' },
+    garden: { floor: TidyFloor.flags({ tone: ['#c6cab2', '#bec3a9', '#ccd0ba'], joint: '#8a9874', hi: '#dde0cc', lo: '#aab094', fleck: ['#b6bba0', '#d4d8c4'], moss: ['#7ea05a', '#98b86e'], inset: ['#e8a070', '#c0704a'] }),
+        paper: 'trellis', pc: ['#9cba92', '#eef2e6', '#5e9a50', '#7cb468'], dado: 'brick' },
+    attic: { floor: TidyFloor.boards({ dir: 'h', tone: ['#b8946a', '#ae8a5e', '#c09c70'], hi: '#cdae84', seam: '#7e5e3c', nail: '#5e4430', fleck: ['#d4c4a4'] }), paper: 'plaster', pc: ['#d8ccb4', '#cbbea4', '#e4dac6'], dado: 'plain' },
+};
+const TidyWall = {
+    /* the paper, the top half of a wall's face (rows 0-7) */
+    paper(x, L, v) {
+        const C = L.pc;
+        switch (L.paper) {
+            case 'damask': {
+                /* a damask lattice: thin lines crossing on the slant, a dot in each diamond, a gilt glint where they cross */
+                fill(x, C[0], 0, 0, 16, 8);
+                for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) {
+                    const a = (i + j) % 8, b = (i - j + 16) % 8;
+                    if (a === 0 && b === 0) px(x, i, j, C[3]); else if (a === 0 || b === 0) px(x, i, j, C[1]); else if (a === 4 && b === 4) px(x, i, j, C[2]);
+                }
+                fill(x, C[2], 0, 0, 16, 1);
+                break;
+            }
+            case 'stripe': for (let i = 0; i < 16; i++) fill(x, [C[2], C[1], C[0], C[0], C[0], C[0], C[0], C[1]][i % 8], i, 0, 1, 8); px(x, 4, 2, C[3]); px(x, 12, 5, C[3]); fill(x, C[2], 0, 0, 16, 1); break;
+            case 'gilt': fill(x, C[0], 0, 0, 16, 8); for (const g of [0, 8]) { fill(x, C[2], g, 0, 1, 8); fill(x, C[3], g + 1, 0, 1, 8); } fill(x, C[1], 3, 2, 4, 4); fill(x, C[0], 4, 3, 2, 2); fill(x, C[1], 11, 2, 4, 4); fill(x, C[0], 12, 3, 2, 2); fill(x, C[2], 0, 0, 16, 1); break;
+            case 'lime': fill(x, C[0], 0, 0, 16, 8); speckle(x, [C[1], C[2]], 20 + v, 0.18, 0, 0, 16, 8); break;
+            case 'sprig': fill(x, C[0], 0, 0, 16, 8); speckle(x, [C[1]], 25 + v, 0.1, 0, 0, 16, 8);
+                for (const [i, j] of [[3, 1], [11, 5]]) { px(x, i, j, C[2]); px(x, i + 1, j + 1, C[2]); px(x, i - 1, j + 1, C[2]); px(x, i, j + 2, C[3]); px(x, i, j + 1, shade(C[2], -0.2)); }
+                break;
+            case 'trellis': fill(x, C[0], 0, 0, 16, 8);
+                for (let j = 0; j < 8; j++) for (let i = 0; i < 16; i++) { const a = (i + j) % 6, b = (i - j + 18) % 6; if (a === 0 || b === 0) px(x, i, j, C[1]); }
+                for (const [i, j] of [[2, 4], [9, 1], [13, 5], [6, 6]]) { px(x, i, j, C[2]); px(x, i + 1, j, C[3]); }
+                break;
+            case 'plaster': fill(x, C[0], 0, 0, 16, 16); speckle(x, [C[1], C[2]], 40 + v, 0.15); break;
+            case 'tile': break;
+        }
+    },
+    face(x, L, v) {
+        const C = L.pc;
+        if (L.paper === 'tile') {
+            /* glazed white tiles to the floor, a teal band at the dado, a dark teal skirting */
+            fill(x, C[1]);
+            for (let j = 0; j < 14; j += 4) for (let i = 0; i < 16; i += 4) { if (j === 8) continue; fill(x, C[0], i, j, 3, 3); px(x, i, j, C[2]); }
+            fill(x, C[3], 0, 8, 16, 2); fill(x, shade(C[3], 0.3), 0, 8, 16, 1); fill(x, C[4], 0, 10, 16, 1);
+            for (let i = 0; i < 16; i += 4) fill(x, C[0], i, 12, 3, 1);
+            fill(x, C[4], 0, 13, 16, 2); fill(x, shade(C[4], 0.25), 0, 13, 16, 1); fill(x, '#2a1f2d', 0, 15, 16, 1);
+            return;
+        }
+        this.paper(x, L, v);
+        switch (L.dado) {
+            case 'cream': case 'walnut': {
+                const W = L.dado === 'cream' ? ['#e6d9bd', '#f7efdc', '#dacbad', '#c2b190'] : ['#7a4c30', '#9a6644', '#6c4229', '#55331f'];
+                const rail = L.dado === 'cream' ? ['#f0c868', '#a87a2a'] : ['#b07a4c', '#4e2e1c'];
+                fill(x, rail[0], 0, 8, 16, 1); fill(x, rail[1], 0, 9, 16, 1);
+                fill(x, W[0], 0, 10, 16, 4); fill(x, W[1], 0, 10, 16, 1);
+                for (const p0 of [1, 9]) { fill(x, W[2], p0, 11, 6, 2); fill(x, W[3], p0, 11, 6, 1); fill(x, W[3], p0, 11, 1, 2); fill(x, W[1], p0 + 1, 13, 5, 1); fill(x, W[1], p0 + 6, 11, 1, 2); }
+                fill(x, L.dado === 'cream' ? '#6e4430' : '#3e2416', 0, 14, 16, 1);
+                break;
+            }
+            case 'paint': {
+                const P = L === TIDY_LOOKS.linen ? ['#8fa2ae', '#a8bac4', '#768894'] : ['#4f9c90', '#6fb8ab', '#3f8478'];
+                fill(x, '#8a6a4a', 0, 8, 16, 1); fill(x, '#5e4430', 0, 9, 16, 1);
+                fill(x, P[0], 0, 10, 16, 4); fill(x, P[1], 0, 10, 16, 1); for (let i = 3; i < 16; i += 4) fill(x, P[2], i, 11, 1, 3);
+                fill(x, shade(P[2], -0.25), 0, 14, 16, 1);
+                break;
+            }
+            case 'brick': {
+                fill(x, '#e8e4d4', 0, 8, 16, 1); fill(x, '#9a8e74', 0, 9, 16, 1);
+                fill(x, '#8a4a34', 0, 10, 16, 5);
+                for (let r = 0; r < 2; r++) for (let i = -(r * 4); i < 16; i += 8) { fill(x, hash2(i, r + v, 3) < 0.5 ? '#b86a4a' : '#c47a58', Math.max(0, i), 10 + r * 2 + r, Math.min(7, 16 - Math.max(0, i), i + 7), 2); }
+                break;
+            }
+            default: {
+                /* (the attic: plaster to the floor, a post here and there, a plain board along the foot) */
+                if (v === 1) { fill(x, '#7a5a3c', 6, 0, 3, 14); fill(x, '#9a7450', 6, 0, 1, 14); fill(x, '#5a3e28', 8, 0, 1, 14); }
+                fill(x, '#8a6a48', 0, 13, 16, 2); fill(x, '#a8845e', 0, 13, 16, 1);
+            }
+        }
+        fill(x, '#2a1f2d', 0, 15, 16, 1);
+    },
+};
+for (const [n, L] of Object.entries(TIDY_LOOKS)) {
+    const tn = 'tidy_' + n;
+    THEMES[tn] = THEMES.tidy;
+    FLOORS[tn] = { floor: L.floor, floor2: TF_CARPET, floor3: L.floor3 || (L.paper === 'tile' || L.paper === 'lime' ? L.floor : TF_FLAGS) };
+    WALLS[tn] = { edge: '#142424', top: (x) => { fill(x, '#245a54'); speckle(x, ['#2c6a63'], 4, 0.12); }, face: (x, th, v) => TidyWall.face(x, L, v) };
+}
+/* the kitchen counter, over the kitchen's own flags (as the House's counter is drawn over its boards) */
+FLOORS.tidy_kitchen.counter = (x, th, v) => {
+    FLOORS.tidy_kitchen.floor3(x, th, v);
+    fill(x, '#3a2a30', 0, 0, 16, 1); fill(x, '#f4ecdc', 0, 1, 16, 5); fill(x, '#fffaf0', 0, 1, 16, 1);
+    for (const i of [3, 7, 11, 15]) fill(x, '#ddd0b6', i, 2, 1, 4);
+    fill(x, '#ddd0b6', 0, 3, 16, 1);
+    fill(x, '#fbf6ea', 0, 6, 16, 1); fill(x, '#a89878', 0, 7, 16, 1);
+    fill(x, '#245a54', 0, 8, 16, 6);
+    if (v === 3) {
+        for (const j of [8, 10, 12]) { fill(x, '#4fa89c', 1, j, 14, 1); fill(x, '#3c8a80', 1, j + 1, 14, 1); px(x, 7, j + 1, '#e8b04a'); px(x, 8, j + 1, '#e8b04a'); }
+    } else {
+        fill(x, '#3c8a80', 1, 8, 6, 5); fill(x, '#3c8a80', 9, 8, 6, 5);
+        fill(x, '#5fb7a8', 1, 8, 6, 1); fill(x, '#5fb7a8', 9, 8, 6, 1); fill(x, '#5fb7a8', 1, 8, 1, 5); fill(x, '#5fb7a8', 9, 8, 1, 5);
+        fill(x, '#2e7068', 3, 10, 3, 2); fill(x, '#2e7068', 11, 10, 3, 2);
+        px(x, 6, 10, '#e8b04a'); px(x, 9, 10, '#e8b04a');
+    }
+    fill(x, '#2a1f2d', 0, 13, 16, 2);
+    x.globalAlpha = 0.4; fill(x, '#2a1f2d', 0, 15, 16, 1); x.globalAlpha = 1;
+};

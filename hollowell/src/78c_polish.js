@@ -70,11 +70,19 @@ const QUILT = [
         () => Progress.flag('s18'), () => Progress.areaFlag('hollow', 'chest:mwCave'), () => Progress.areaFlag('hollow', 'got:hawkPatch'), () => Progress.flag('s22'),
         () => Progress.flag('s23'), () => Progress.flag('s24'), () => Progress.flag('s25'), () => Progress.flag('s28'), () => Progress.flag('s29'),
         () => Progress.flag('s30'), () => Progress.flag('s31'), () => Progress.flag('s32'), () => Progress.flag('s33'), () => Progress.flag('s35'),
+        /* the later regions' finds (what's off the way, not the gates on it): the wooden one in Mallow's nursery, Lantern
+           Pond's isle and the old weight found there and set in its socket, the balloon cut loose and found again past
+           the fog, the Drift's mill pond run out and its toll box */
+        () => Progress.areaFlag('hollow', 'chest:nuPatch'), () => Progress.areaFlag('hollow', 'chest:lpIsle'), () => Progress.flag('oldweight_got'),
+        () => Progress.flag('oldweight_at'), () => Progress.flag('balloon_away'), () => Progress.flag('drift_balloon'),
+        () => Progress.flag('drift_millpond'), () => Progress.areaFlag('drift', 'chest:drToll'),
     ]],
     ["Linnet's notes", [1, 2, 3, 4, 5, 6, 7, 8].map(n => () => Progress.flag('linnet' + n))],
     ["The Makers' marks", ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette'].map(h => () => Progress.flag('sig:' + h))],
     ['Old foes, asleep and patted', ['tidy', 'kiln', 'millrace', 'belfry', 'slumber', 'marionette', 'spoolworks'].map(h => () => Progress.flag('pet:' + h))],
     ['Hollows in the fog-silk', ['silkMeadow', 'silkKiln', 'silkMill'].map(id => () => Progress.flag('silk:' + id))],
+    /* the town's favours, each counted once it's done (src/51c_town_favours.js) */
+    ['Good turns done in town', ['crates', 'kite', 'marble', 'tin', 'stick', 'saucer'].map(f => () => Progress.flag('fav_' + f))],
     ['The two houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
 ];
 const Quilt = {

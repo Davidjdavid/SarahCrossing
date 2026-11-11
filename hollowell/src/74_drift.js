@@ -130,30 +130,31 @@ const Drift = {
         /* what she's noticed, out here: the mill going, a balloon come over the fog */
         if (Progress.flag('met_linnet') && Progress.flag('drift_millpond') && !Progress.flag('linnet_mill')) {
             Progress.set('linnet_mill');
-            yield* say('linnet', "You've had the old mill going. The pond's run out! I tried, my first year. I'd push a barrel down the race and watch it turn the wheel once, and then it was gone, and that was that.");
-            yield* say('linnet', "Out here nothing comes round twice. Unless somebody gives it a reason to. ...You're Tess's girl, all right.");
+            yield* say('linnet', "{surprised}You've had the old mill going. The pond's run out! I tried, my first year. I'd push a barrel down the race and watch it turn the wheel once, and then it was gone, and that was that.");
+            yield* say('linnet', "{happy}Out here nothing comes round twice. Unless somebody gives it a reason to. ...You're Tess's girl, all right.");
             return;
         }
         if (Progress.flag('met_linnet') && Progress.flag('balloon_away') && !Progress.flag('linnet_balloon')) {
             Progress.set('linnet_balloon');
-            yield* say('linnet', "Something came over the fog the other day: a balloon, striped, from the fair by the look of it. It's caught in the tree by the old wall. I haven't had the heart to get it down.");
+            yield* say('linnet', "{happy}Something came over the fog the other day: a balloon, striped, from the fair by the look of it. It's caught in the tree by the old wall. I haven't had the heart to get it down.");
             return;
         }
-        if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["Go on, Wren. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "Tell Biscuit I said hello. Ha! He knows."])); return; }
+        if (Progress.flag('met_linnet')) { yield* say('linnet', cycle('linnet_after', ["{worried}Go on, {name}. I'll come. I promise I'll come.", "She can't pull you. Remember that. Nothing can, now, unless you let it.", "{happy}Tell Biscuit I said hello. Ha! He knows."])); return; }
         Progress.set('met_linnet'); Stats.count('met:linnet');
-        yield* say('linnet', "Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're Wren.");
-        yield* say('linnet', "You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all.");
+        /* (her niece: Tess's girl, by whatever name she was given) */
+        yield* say('linnet', "{surprised}Hello? ...Oh. Oh, look at you. You've got Tess's chin. You're Tess's girl. You're {name}.");
+        yield* say('linnet', "{happy}You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all.");
         const i = yield* ask('linnet', "How does it feel?", ['Light.', 'Frightening.', 'Come home.']);
-        yield* say('linnet', ["Light. Yes. It's the lightest thing in the world. You'll get used to it. Or you won't, and that's all right too.", "It is. It's frightening. Nobody's going to bring you back if you get lost. That's the whole of it. That's the price, and it's worth it.", "Home. ...I've thought about it every day for twenty-five years."][i]);
+        yield* say('linnet', ["{happy}Light. Yes. It's the lightest thing in the world. You'll get used to it. Or you won't, and that's all right too.", "{worried}It is. It's frightening. Nobody's going to bring you back if you get lost. That's the whole of it. That's the price, and it's worth it.", "{sad}Home. ...I've thought about it every day for twenty-five years."][i]);
         yield* say('linnet', "I found the Hall of Names on my Wander, the same as you. I read her ledger. I took the old Shears out of the Loom and cut myself loose and walked out into the fog, and the fog let me go.");
-        yield* say('linnet', "And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. I wanted her to see that the valley didn't come apart. That things could be lost and it would be all right. I wanted her to let go.");
-        yield* say('linnet', "I never went back. I was frightened she'd tie me again. She would have.");
+        yield* say('linnet', "{sad}And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. I wanted her to see that the valley didn't come apart. That things could be lost and it would be all right. I wanted her to let go.");
+        yield* say('linnet', "{sad}I never went back. I was frightened she'd tie me again. She would have.");
         G.shake = 14; Sfx.play('rumble'); Music.play('silence');
         yield 40;
         yield* say(null, "Far off in the east, beyond the fog, something enormous takes up slack. You feel it in your teeth. The fog leans the wrong way: towards the Hollow, not away.");
-        yield* say('linnet', "That's her. She's felt you go. She's pulling everything. Every thread in the valley. Everyone.");
-        yield* say('linnet', "Go, Wren. Walk. She can't pull you, not now; but she'll pull everyone else down the Well with her if she can. The Spool's under the Well. Go.");
-        yield* say('linnet', "...I'll come. I'll come after you. I just need a moment to find my nerve. I've had twenty-five years and I still need a moment.");
+        yield* say('linnet', "{surprised}That's her. She's felt you go. She's pulling everything. Every thread in the valley. Everyone.");
+        yield* say('linnet', "{worried}Go, {name}. Walk. She can't pull you, not now; but she'll pull everyone else down the Well with her if she can. The Spool's under the Well. Go.");
+        yield* say('linnet', "{sad}...I'll come. I'll come after you. I just need a moment to find my nerve. I've had twenty-five years and I still need a moment.");
         Progress.set('great_pull');
         Progress.setGoal("Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.");
         Music.play('pull');
