@@ -10,7 +10,7 @@ const Audio = {
        limiter's knee (half of full scale) even with both volumes at the top; the limiter is a straight line up to the
        knee, so it changes nothing there, and past it bends smoothly toward a ceiling it never crosses. It has no memory,
        so it can't pump: it only rounds off a rare pile-up of sounds that would otherwise clip */
-    MUSIC: 0.275, SFX: 0.35, KNEE: 0.5, CEIL: 0.944,
+    MUSIC: 1, SFX: 1, KNEE: 0.5, CEIL: 0.944,
     k: 1,       /* the level of the effect being played (Sfx.play sets it for the moment; tone and hit scale by it) */
     /* all sound off or on (a page hosting the game has a button for it) */
     setMuted(m) { this.muted = !!m; if (this.master) this.glide(this.master.gain, this.muted ? 0 : 1); },
@@ -151,7 +151,7 @@ const SFX = {
     /* (asked for when the mill pond has run out; it had no sound) */
     chime: (o, t) => { Audio.tone(o, t, 1318, 0.6, 'triangle', 0.12, { r: 0.5 }); Audio.tone(o, t + 0.12, 1760, 0.7, 'triangle', 0.1, { r: 0.6 }); Audio.tone(o, t + 0.12, 2637, 0.4, 'sine', 0.03, { r: 0.35 }); },
 };
-/* each effect's level (dB, on top of its recipe), from measuring every effect against the music (the loudest 100 ms
+/* each effect's level (dB, on top of its recipe), filled in by 40e_mix.js from measuring every effect against the music
    of it, K-weighted, next to the tunes' -28 LUFS): what matters a lot (a find, a Knot) stands a few dB over the music,
    what happens all the time (a step, a letter of talk) a few under, and nothing is lost under it or shouts over it */
 const SFX_LEVEL = {};
