@@ -30256,13 +30256,15 @@ const LoomHouse = {
     drawOver(a, cx, cy) { const w = a.ents.find(e => e.kind === 'weaver'); if (w && w.drawSnow) w.drawSnow(cx, cy); this.drawWakePaths(a, cx, cy); },
     /* with the Bell in hand, a sleeper a ring would reach shows the way a ring would send it: beads of light running along
        its thread from it to its place, over and over (where it'll go, and who's standing in the way) */
-    drawWakePaths(a, cx, cy) {
+    wakePaths(a) {
         const p = G.player;
-        if (!p || p.area !== a || Inv.equipped !== 'bell' || p.state !== 'normal' || Script.blocking()) return;
+        if (!p || p.area !== a || Inv.equipped !== 'bell' || p.state !== 'normal' || Script.blocking()) return [];
         const room = a.roomAt(p.tx, p.ty);
-        for (const e of a.ents) {
-            if (!Return.asleep(e) || e.removed || !e.ret || e.ret.state === 'home' || e.hidden || a.roomAt(e.tx, e.ty) !== room) continue;
-            if (Math.hypot(e.tx * T + 8 - p.x, e.ty * T + 8 - (p.y - 4)) > Bells.REACH * T + 4) continue;
+        return a.ents.filter(e => Return.asleep(e) && !e.removed && e.ret && e.ret.state !== 'home' && !e.hidden && a.roomAt(e.tx, e.ty) === room
+            && Math.hypot(e.tx * T + 8 - p.x, e.ty * T + 8 - (p.y - 4)) <= Bells.REACH * T + 4);
+    },
+    drawWakePaths(a, cx, cy) {
+        for (const e of this.wakePaths(a)) {
             const pts = e.ret.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]).reverse(), segs = [];
             let L = 0;
             for (let i = 0; i + 1 < pts.length; i++) { const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); segs.push(d); L += d; }
