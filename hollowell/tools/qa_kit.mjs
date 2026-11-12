@@ -34,20 +34,23 @@ const tested = id => {
     return (r.basic.ok ? 'loads cleanly' : 'LOAD FAILED: ' + r.basic.problems.join('; ')) + '; ' + on;
 };
 let list = BUFFER('Hollowell: the test saves') + `${states.length} saves, each a moment of a real game of Hollowell. Load one from the **Test saves** box on the
-game's page, or paste its code (\`saves/codes/SNN.txt\`) into the **Save code** box (\`02_HOW_TO_RUN.md\`).
+game's page, or paste its code (\`saves/codes/TNN.txt\`) into the **Save code** box (\`02_HOW_TO_RUN.md\`).
 
 ## How they were made
-- The main saves (S01-S58) are moments of one game played from a new game to the end and after, by a script that
+- The main saves (T01-T58) are moments of one game played from a new game to the end and after, by a script that
   plays through the game's own rules: it walks, pushes, lifts, talks, uses the tools and fights as a player does,
   and every flag and item came from the game itself. A save was taken only where a player could save (the menu
   could open) and only once things had held still for half a second.
 - To save time the script sometimes hops from one place to another instead of walking there. So the map may show
   stretches as unexplored that a player would have walked through: not a defect of the game.
-- The script takes no damage in fights (they test the fight's rules, not dodging), so hearts are full in most saves.
+- Nothing could hurt Wren during the run (a switch that does nothing but stop damage; the fights' rules are what it
+  tests, not dodging), so her hearts are always full. How many she has is exactly what the game gives by then: 3 at
+  the start and one more for each beaten boss's Heartstitch, which the run always picks up (it takes no Heart
+  Patches on the main path).
 - The script goes straight from each House to the next. After a House the goal line suggests a visit home first;
-  that visit is optional, and the script skips it, so in S08-S12, S14-S17 and S29-S32 the goal line still suggests it.
+  that visit is optional, and the script skips it, so in T08-T12, T14-T17 and T29-T32 the goal line still suggests it.
   Going home from one of those saves plays the visit late: a valid path, and worth testing.
-- The optional saves (S59 on, where present) start from main saves and play optional content and other paths the
+- The optional saves (T59 on, where present) start from main saves and play optional content and other paths the
   same way.
 
 ## How each was tested
@@ -86,8 +89,9 @@ const parts = fs.existsSync(gdir) ? fs.readdirSync(gdir).filter(f => f.endsWith(
 const bodies = parts.map(f => fs.readFileSync(path.join(gdir, f), 'utf8').trim());
 const toc = bodies.flatMap(b => b.split('\n').filter(l => /^## /.test(l)).map(l => `- ${l.slice(3)}`)).join('\n');
 fs.writeFileSync(path.join(kit, 'CONFIDENTIAL_GUIDE.md'), BUFFER('Hollowell: the confidential QA guide') +
-    'A reference for testing the game, organised by system and by place: not a walkthrough. The save IDs (S01...) are\n' +
-    'listed in `03_SAVE_STATES_CONFIDENTIAL.md`.\n\n## Contents\n\n' + toc + '\n\n' + bodies.join('\n\n---\n\n') + '\n');
+    'A reference for testing the game, organised by system and by place: not a walkthrough. T01, T02... are the test\n' +
+    'saves (`03_SAVE_STATES_CONFIDENTIAL.md` lists them); S01, S02... are the design\'s own numbers for the game\'s secrets.\n\n' +
+    '## Contents\n\n' + toc + '\n\n' + bodies.join('\n\n---\n\n') + '\n');
 
 /* the playable page with the test saves: the published page, its title changed, a box of test saves under the save codes */
 let page = fs.readFileSync(path.join(ROOT, 'dist', 'hollowell_page.html'), 'utf8');

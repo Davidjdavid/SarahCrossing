@@ -165,10 +165,11 @@ home along its trail and is a creature again the next time the place is built.
 - **Pickups**: heart (+1 heart), buttons (1, 5, 20), small keys, Heart Patches. Placed ones are remembered once taken
   (`got:<id>`); ones dropped by creatures or pots vanish after 8 or 10 s (blinking for the last second). Gathered by
   walking over them; the Hookline fetches them.
-- **Hearts**: Wren starts with 3. +1 for each boss's Heartstitch, +1 for every 4 Heart Patches (38 in the game). Shown
-  in half hearts, up to 10 a row. Expected count at any point = 3 + bosses beaten + patches / 4. (The catalogue's saves
-  from S08 on hold more hearts than that: the scripted run that made them raised them. They are fine for reaching a
-  place, not for judging how hard a fight is.)
+- **Hearts**: Wren starts with 3. +1 for each boss's Heartstitch, +1 for every 4 Heart Patches (the optional-content
+  chapter lists every patch). Shown in half hearts, up to 10 a row. Expected count at any point = 3 + Heartstitches
+  taken + patches / 4. (The catalogue's main saves hold exactly that: the run that made them took each beaten boss's
+  Heartstitch and no Heart Patches, so S01-S58 have 3 + bosses beaten, 11 at the end; it took no damage, so their
+  hearts are full.)
 - **Buttons**: money (shops, favours).
 - **Sleepers**: things "tied off where they lie": they can't be pushed, gripped, lifted, hooked or stitched (each says it
   is asleep). A ring of a bell in reach wakes them and they go home. Woken once, they stay awake for good (`woke:<id>`),

@@ -1,14 +1,14 @@
 // Save states for the optional content and the other paths (the QA kit; tools/qa_record.mjs records the main path).
 // Each segment starts from a save of the main path's catalogue (its code loaded into a fresh headless game) and plays on
-// through the game's own rules, as tests/legs.mjs does: walking, pushing, lifting, talking, the tools; fights with
-// HW.hitEnemy (the stand-in for aiming) and god mode only while a fight lasts; hops between places to save the walk.
-// Nothing is set up by hand: every flag and thing comes from the game's own logic. mark(id, what) takes a save once
+// through the game's own rules, as tests/legs.mjs does: walking, pushing, lifting, talking, the tools; hops between
+// places to save the walk. The game is tools/qa_legs.mjs's (loadQA: nothing can hurt Wren, so her hearts are the game's
+// own count; a beaten boss's Heartstitch picked up before the next walk). Nothing is set up by hand: every flag and
+// thing comes from the game's own logic. mark(id, what) takes a save once
 // Wren is free to move and has held still for half a second (as tools/qa_record.mjs does).
-//   node tools/qa_tour.mjs SAVES_JSON OUTDIR [--only T1,T2]   writes OUTDIR/caps_tour.jsonl (one line per mark)
+//   node tools/qa_tour.mjs SAVES_JSON OUTDIR [--only E1,E2]   writes OUTDIR/caps_tour.jsonl (one line per mark)
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadGame } from '../tests/harness.mjs';
-import { climbWatching, spoolTop } from '../tests/legs.mjs';
+import { loadQA, climbWatching, LEG9 } from './qa_legs.mjs';
 
 /* ---------------- small helpers (as the legs have them) ---------------- */
 const here = HW => `${HW.G.map && HW.G.map.id} ${HW.player() && HW.player().tx},${HW.player() && HW.player().ty}`;
@@ -107,8 +107,12 @@ export function linnetTrail(HW) {
     walk(HW, 158, 8); through(HW, 'up', 'belfry');
     walk(HW, 55, 30, 6000); act(HW, 'right'); note(4);
     leave(HW, 29, 53, 'down');
-    /* 5: below the falls: the ferry ridden down over the falls into the pool below, stepped off onto the beach */
+    /* 5: below the falls: the ferry ridden down over the falls into the pool below, stepped off onto the beach. The beach
+       is shut in (stepping ashore makes it Wren's mark, so a fall into the river only brings her back to it), so first the
+       Bedroll laid at the landing, and Homeward to it after */
     HW.warp('hollow', 165, 106); HW.step(10); HW.skipTalk(); walk(HW, 166, 106);
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    ok(HW, HW.Inv.bedroll && HW.Inv.bedroll.tx === 166 && HW.Inv.bedroll.ty === 106, 'the Bedroll laid at the ferry landing');
     const f = HW.G.map.find('mwFerry');
     ok(HW, until(HW, () => f.tx === 167 && f.ty === 106 && !f.mv, 1500), 'the ferry in');
     step(HW, 'right');
@@ -119,6 +123,10 @@ export function linnetTrail(HW) {
     ok(HW, p.tx === 170 && p.state === 'normal', 'off onto the beach below the falls');
     walk(HW, 172, 115, 2000); act(HW, 'left'); note(5);
     walk(HW, 172, 113, 2000); act(HW, 'down');
+    HW.Inv.equipped = 'bedroll'; HW.hold('tool'); HW.step(24); HW.release(); HW.step(80); HW.skipTalk();
+    ok(HW, p.tx === 166 && p.ty === 106, 'Homeward, back to the landing');
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    ok(HW, !HW.Inv.bedroll, 'the Bedroll rolled up again');
 }
 
 /* ---------------- the Stray House (src/77_strayhouse.js; the steps of tests/strayhouse.test.mjs) ---------------- */
@@ -188,55 +196,120 @@ export function strayHouseRooms(HW) {
    in. It bursts where it stands, flinging the strays near it about, and stays in the nook: standing anywhere west of its
    middle (x 1) it can go neither way it wants and strains again (150 frames; being boxed is checked even then), so each
    later round is a strain spot first, then the nearest stray pushed straight into the open side (x 3, rows 1-2). God mode
-   for the fight only */
+   (nothing can hurt Wren in this game: loadQA) */
+/* the four corner nooks (the Pile's 2x2 in the nook at `into`; Wren waits at `wait`, the Pile comes up to `come`, she slips
+   out of the slit to `out`, and pushes the nook's own stray from `from` across its open side) */
+const NOOKS = [
+    { wait: [1, 1], come: [2, 1], out: [1, 4], into: [1, 1], stray: [3, 4], from: [3, 5], d: 'up' },
+    { wait: [1, 9], come: [2, 8], out: [1, 6], into: [1, 8], stray: [3, 6], from: [3, 5], d: 'down' },
+    { wait: [18, 9], come: [16, 8], out: [18, 6], into: [17, 8], stray: [16, 6], from: [16, 5], d: 'down' },
+    { wait: [18, 1], come: [16, 1], out: [18, 4], into: [17, 1], stray: [16, 4], from: [16, 5], d: 'up' },
+];
 export function thePile(HW) {
     const a = () => HW.G.map, ox = SR.pl[0], oy = SR.pl[1];
     const free = (x, y) => { const k = a().kind(ox + x, oy + y), o = a().at(ox + x, oy + y); return !k.solid && !k.pit && !o; };
     const blk = (x, y) => { const o = a().at(ox + x, oy + y); return o && o.kind === 'block' && !o.removed; };
     const at = (x, y, max = 3000) => walk(HW, ox + x, oy + y, max);
-    HW.G.cheats.god = true;
+    const dbg = m => { if (process.env.TOUR_DEBUG) console.log(m, 'pile', pile.tx - ox, pile.ty - oy, pile.state, 'hp', pile.hp, 'wren', HW.player().tx - ox, HW.player().ty - oy, 'strays', a().ents.filter(e => e.kind === 'block' && !e.removed && e.tx >= ox && e.tx < ox + 20 && e.ty < 11).map(e => (e.tx - ox) + ',' + (e.ty - oy)).join(' ')); };
     at(9, 9); HW.skipTalk(); HW.step(5); HW.skipTalk();
     const pile = a().ents.find(e => e.kind === 'pile');
     ok(HW, pile && pile.state === 'go', 'the Pile awake');
-    /* round 1 */
-    at(1, 1);
-    ok(HW, until(HW, () => pile.tx === ox + 2 && pile.ty === oy + 1 && !pile.mv, 1500), 'it comes after you, up to the nook');
-    at(1, 4, 600);
-    ok(HW, until(HW, () => pile.tx === ox + 1 && pile.ty === oy + 1 && pile.state === 'strain', 300), 'into the nook after you, and stuck');
-    at(3, 5, 600); HW.push('up', 2); HW.step(5);
-    ok(HW, until(HW, () => pile.hp === 2, 300), 'boxed in: it bursts');
-    /* rounds 2 and 3, in the nook where it stands */
-    const strainNow = m => { at(1, 4, 600); ok(HW, until(HW, () => pile.state === 'strain' && pile.st < 10, 600), 'straining after you, ' + m); };
-    for (let round = 2; round <= 3 && pile.alive; round++) {
-        strainNow('round ' + round);
-        /* the stray nearest a straight push into (3,1) or (3,2): up column 3, or left along row 1 or 2 */
+    const settled = () => until(HW, () => !pile.mv && pile.state !== 'heave' && pile.state !== 'rest', 400);
+    const usable = q => blk(...q.stray) && free(...q.wait) && free(...q.out) && free(...q.from)
+        && free(q.stray[0], q.stray[1] + (q.d === 'up' ? -1 : 1)) && free(q.stray[0], q.stray[1] + (q.d === 'up' ? -2 : 2))
+        && [q.into, q.come].every(([x, y]) => [[0, 0], [1, 0], [0, 1], [1, 1]].every(([dx, dy]) => (x + dx === q.wait[0] && y + dy === q.wait[1]) || free(x + dx, y + dy) || (pile.tx === ox + x + dx || pile.tx + 1 === ox + x + dx) && (pile.ty === oy + y + dy || pile.ty + 1 === oy + y + dy)));
+    /* a nook, as round 1 goes (from the middle of the room, if the Pile's somewhere it can't come straight from) */
+    const nook = (q, viaMiddle) => {
+        if (viaMiddle) { at(9, 6); until(HW, () => Math.abs(pile.tx + 0.5 - (ox + 9)) + Math.abs(pile.ty + 0.5 - (oy + 6)) <= 4, 900); }
+        at(...q.wait);
+        if (!until(HW, () => pile.tx === ox + q.come[0] && pile.ty === oy + q.come[1] && !pile.mv, 1500)) return false;
+        at(...q.out, 600);
+        if (!until(HW, () => pile.tx === ox + q.into[0] && pile.ty === oy + q.into[1] && pile.state === 'strain', 300)) return false;
+        at(...q.from, 600); HW.push(q.d, 2); HW.step(5);
+        return true;
+    };
+    /* in the north-west nook already (where it bursts), straining while Wren stands west of its middle: a stray close by
+       pushed into its open side (3,1)/(3,2) within the strain */
+    const inNW = () => pile.tx === ox + 1 && pile.ty === oy + 1;
+    const quick = () => {
         const plans = [];
-        for (let y = 3; y <= 9; y++) if (blk(3, y)) { let clear = true; for (let k = y - 1; k >= 2; k--) if (!free(3, k)) clear = false; if (clear && free(3, y + 1)) plans.push({ from: [3, y + 1], d: 'up', n: y - 2 }); }
-        for (const row of [1, 2]) for (let x = 4; x <= 17; x++) if (blk(x, row)) { let clear = true; for (let k = x - 1; k >= 3; k--) if (!free(k, row)) clear = false; if (clear && free(x + 1, row)) plans.push({ from: [x + 1, row], d: 'left', n: x - 3 }); break; }
-        const cost = q => Math.abs(q.from[0] - 1) + Math.abs(q.from[1] - 4) + 2 * q.n;
-        plans.sort((u, v) => cost(u) - cost(v));
-        ok(HW, plans.length, 'a stray to box it in with, round ' + round);
-        const q = plans[0], hp = pile.hp;
-        if (process.env.TOUR_DEBUG) console.log('round', round, JSON.stringify(q), 'strays', a().ents.filter(e => e.kind === 'block' && !e.removed && e.tx >= ox && e.tx < ox + 20 && e.ty < 11).map(e => (e.tx - ox) + ',' + (e.ty - oy)).join(' '));
-        /* two pushes a strain at most, back to the strain spot between (or it comes out after you) */
-        for (let done = 0; done < q.n;) {
-            if (done) strainNow('round ' + round + ', again');
-            const k = Math.min(2, q.n - done), [dx, dy] = q.d === 'up' ? [0, -1] : [-1, 0];
-            at(q.from[0] + dx * done, q.from[1] + dy * done, 600); HW.push(q.d, k); HW.step(5); done += k;
+        for (let y = 3; y <= 5; y++) if (blk(3, y)) { let clear = true; for (let k = y - 1; k >= 2; k--) if (!free(3, k)) clear = false; if (clear && free(3, y + 1)) plans.push({ from: [3, y + 1], d: 'up', n: y - 2 }); }
+        for (const row of [1, 2]) for (let x = 4; x <= 6; x++) if (blk(x, row)) { let clear = true; for (let k = x - 1; k >= 3; k--) if (!free(k, row)) clear = false; if (clear && free(x + 1, row)) plans.push({ from: [x + 1, row], d: 'left', n: x - 3 }); break; }
+        return plans.sort((u, v) => u.n - v.n)[0];
+    };
+    for (let round = 1; round <= 3 && pile.alive; round++) {
+        const hp = pile.hp;
+        for (let tries = 0; pile.alive && pile.hp === hp; tries++) {
+            ok(HW, tries < 8, 'boxed in at last, round ' + round);
+            settled(); dbg('round ' + round + ' try ' + tries);
+            const qp = round > 1 && inNW() && quick();
+            if (qp) {
+                at(1, 4, 600);
+                if (!until(HW, () => pile.state === 'strain' && pile.st < 10, 600)) continue;
+                at(qp.from[0], qp.from[1], 600); HW.push(qp.d, qp.n); HW.step(5);
+            } else {
+                /* a nook it will really come to: its own rule played forward (toward Wren, the longer way first, else the
+                   other; stuck when neither is open), from where it stands to Wren waiting in the nook, or by way of a
+                   spot in the open first */
+                const sim = (sx, sy, w) => {
+                    let x = sx, y = sy;
+                    const open = (nx, ny) => [[nx, ny], [nx + 1, ny], [nx, ny + 1], [nx + 1, ny + 1]].every(([u, v]) => (u >= x && u <= x + 1 && v >= y && v <= y + 1) || free(u, v));
+                    for (let k = 0; k < 80; k++) {
+                        const dx = w[0] - (x + 0.5), dy = w[1] - (y + 0.5), H = dx < 0 ? [-1, 0] : [1, 0], V = dy < 0 ? [0, -1] : [0, 1];
+                        let moved = false;
+                        for (const [ux, uy] of Math.abs(dx) >= Math.abs(dy) ? [H, V] : [V, H]) {
+                            const nx = x + ux, ny = y + uy;
+                            const onW = [[nx, ny], [nx + 1, ny], [nx, ny + 1], [nx + 1, ny + 1]].some(([u, v]) => u === w[0] && v === w[1]);
+                            if (onW) { if (open(nx, ny)) return [x, y]; continue; }
+                            if (open(nx, ny)) { x = nx; y = ny; moved = true; break; }
+                        }
+                        if (!moved) return [x, y];
+                    }
+                    return [x, y];
+                };
+                const px = pile.tx - ox, py = pile.ty - oy;
+                const reaches = (q, from) => { const [x, y] = sim(from[0], from[1], q.wait); return x === q.come[0] && y === q.come[1]; };
+                let plan = null;
+                for (const i of [0, 1, 2, 3]) { const q = NOOKS[i]; if (usable(q) && reaches(q, [px, py])) { plan = { q }; break; } }
+                if (!plan) for (const w of [[9, 6], [9, 4], [5, 5], [14, 5], [9, 8], [9, 2], [5, 8], [14, 8], [5, 2], [14, 2]]) {
+                    if (!free(...w)) continue;
+                    const [x, y] = sim(px, py, w);
+                    if (Math.abs(x + 0.5 - w[0]) + Math.abs(y + 0.5 - w[1]) > 3) continue;
+                    const i = [0, 1, 2, 3].find(j => usable(NOOKS[j]) && reaches(NOOKS[j], [x, y]));
+                    if (i !== undefined) { plan = { q: NOOKS[i], via: w, at: [x, y] }; break; }
+                }
+                ok(HW, plan, 'a nook it can be led into, round ' + round);
+                dbg('  plan ' + JSON.stringify(plan));
+                try {
+                    if (plan.via) { at(...plan.via); until(HW, () => pile.tx === ox + plan.at[0] && pile.ty === oy + plan.at[1] && !pile.mv, 1500); }
+                    nook(plan.q, false);
+                } catch (e) { if (process.env.TOUR_DEBUG) console.log('  (' + e.message + ')'); }
+            }
+            until(HW, () => pile.hp < hp || !pile.alive, 200);
         }
-        ok(HW, until(HW, () => pile.hp < hp || !pile.alive, 300), 'boxed in: it bursts, round ' + round);
     }
     ok(HW, !pile.alive && HW.Progress.flag('sh_pile'), 'the Pile comes apart');
     for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(20); }
-    HW.G.cheats.god = false;
-    /* the Heartstitch where it came apart */
+    /* the Heartstitch where it came apart: beaten in a corner nook, the two strays it drops can wall it in (then it waits
+       in the middle of the room the next time the House is built: out through the Porch and in again) */
     const h = a().ents.find(e => e.id === 'pileHeart');
     ok(HW, h, 'the Heartstitch');
-    walk(HW, Math.floor((h.x + 8) / 16), Math.floor((h.y + 8) / 16), 3000); HW.step(10); HW.skipTalk();
-    ok(HW, HW.Progress.areaFlag('strayhouse', 'got:pileHeart'), 'the Heartstitch picked up');
+    const hx = Math.floor((h.x + 8) / 16), hy = Math.floor((h.y + 8) / 16), p = HW.player();
+    const reach = !!HW.global('playerPath')(a(), p.tx, p.ty, hx, hy);
+    if (reach) { walk(HW, hx, hy, 3000); HW.step(10); HW.skipTalk(); }
     /* Linnet's Room, west: her bracelet */
     walk(HW, ...sr('pl', 1, 5), 3000); walk(HW, ...sr('lr', 9, 6), 3000); act(HW, 'down');
     ok(HW, HW.Inv.items.bracelet, "Linnet's bracelet");
+    if (!reach) {
+        leave(HW, ...sr('po', 9, 9), 'down');
+        walk(HW, 72, 7); HW.face('up'); HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(60); HW.skipTalk();
+        ok(HW, HW.G.map.id === 'strayhouse', 'in again');
+        const h2 = a().ents.find(e => e.id === 'pileHeart');
+        ok(HW, h2, 'the Heartstitch, waiting');
+        walk(HW, Math.floor((h2.x + 8) / 16), Math.floor((h2.y + 8) / 16), 6000); HW.step(10); HW.skipTalk();
+    }
+    ok(HW, HW.Progress.areaFlag('strayhouse', 'got:pileHeart'), 'the Heartstitch picked up');
+    return reach;
 }
 
 /* ---------------- the Unfinished House (src/78_unfinished.js; the steps of tests/unfinished.test.mjs) ---------------- */
@@ -302,65 +375,125 @@ export function ivesWalk(HW) {
 /* ---------------- the segments ---------------- */
 export const SEGMENTS = [
     {
-        id: 'T1', from: 'S08', what: 'After House 1: home to tell Gran (as the goal line says), then the two town activities the first Knot opens',
+        id: 'E1', from: 'T08', what: 'After House 1: home to tell Gran (as the goal line says), then the two town activities the first Knot opens',
         run(HW, mark) {
             /* up the road from Meadowfold into the square, to Gran by the Well */
             walk(HW, 93, 61); act(HW, 'up');
             ok(HW, (HW.Progress.get('granTalk') || 0) >= 1, 'Gran told');
-            mark('S59', 'After House 1, home: Gran told, in the town square (her after-the-first-Knot lines).');
+            mark('T59', 'After House 1, home: Gran told, in the town square (her after-the-first-Knot lines).');
             /* the kids' game: Otto on his chalk X, the two crates; Wren beside the first crate, nothing touched */
             walk(HW, 97, 57); HW.face('right'); HW.step(5);
             ok(HW, HW.G.map.ents.some(e => e.kind === 'npc' && e.who === 'otto' && e.constructor.name === 'KidKeeper'), 'Otto playing Housekeeper');
-            mark('S60', "The kids' game in the square (Housekeeper, S12): Otto on his X, both crates home; Wren beside the north-west crate.");
+            mark('T60', "The kids' game in the square (Housekeeper, secret S12): Otto on his X, both crates home; Wren beside the north-west crate.");
             /* the Inn, and up its attic stairs: the Tidiness Trials' first room */
             walk(HW, 108, 53); through(HW, 'up', 'inn');
             walk(HW, 1, 3); through(HW, 'up', 'inn_attic');
-            mark('S61', "The Tidiness Trials (S28), the Inn's attic: at the top of the stairs, none tried.");
+            mark('T61', "The Tidiness Trials (secret S28), the Inn's attic: at the top of the stairs, none tried.");
         },
     },
     {
-        id: 'T2', from: 'S28', what: 'After House 5: the clinic visit the goal line suggests',
+        id: 'E2', from: 'T28', what: 'After House 5: the clinic visit the goal line suggests',
         run(HW, mark) {
             /* back over the stream (the way LEG6 goes), along the road into town, to the clinic */
             walk(HW, 139, 51); HW.hold('left'); until(HW, () => HW.player().ty >= 54 && HW.player().state === 'normal', 150); HW.release();
             walk(HW, 121, 53); through(HW, 'up', 'clinic');
             walk(HW, 6, 4); act(HW, 'up');
             ok(HW, HW.Progress.flag('mallow_d5'), 'Doctor Mallow heard about the Slumberhouse');
-            mark('S62', "After House 5: the clinic visited, Doctor Mallow's after-the-Slumberhouse lines heard (mallow_d5).");
+            mark('T62', "After House 5: the clinic visited, Doctor Mallow's after-the-Slumberhouse lines heard (mallow_d5).");
         },
     },
     {
-        id: 'T3', from: 'S23', what: "After House 4: the Knotting Festival, then the festival's ball game (Returnball)",
+        id: 'E3', from: 'T23', what: "After House 4: the Knotting Festival, then the festival's ball game (Returnball)",
         run(HW, mark) {
-            /* into the square: the festival plays (it ends pointing at Returnball, by the bakery) */
+            /* home from the Belfry (the way down from the Heights is the way up: LEG5 hops it too), into the square: the
+               festival plays (it ends pointing at Returnball, by the bakery) */
+            HW.warp('hollow', 94, 74); HW.step(10); HW.skipTalk();
             walk(HW, 95, 64); HW.step(5);
             until(HW, () => { HW.skipTalk(); return HW.Progress.flag('festival') && !HW.Script.blocking() && !HW.G.hideHud; }, 4000);
             ok(HW, HW.Progress.flag('festival'), 'the festival');
             settle(HW);
             /* to the court east of the south road: beside the ball, nothing thrown */
             walk(HW, 99, 74); HW.face('right'); HW.step(5);
-            mark('S63', "Returnball (S29), after the festival: Wren beside the ball on the court east of the south road, nothing thrown yet.");
+            mark('T63', "Returnball (secret S29), after the festival: Wren beside the ball on the court east of the south road, nothing thrown yet.");
         },
     },
     {
-        id: 'T4', from: 'S49', what: "After House 8: Linnet's Trail, the Stray House, the Unfinished House, then on to the end along LEG9's route",
+        id: 'E4', from: 'T49', what: "After House 8: Linnet's Trail, the Stray House, the Unfinished House, then on to the end along LEG9's route",
         run(HW, mark) {
             linnetTrail(HW);
             /* the Stray House's door, at the Frayed Edge: seven notes, nothing posted yet */
             HW.warp('hollow', 72, 9); HW.step(10); HW.skipTalk();
             walk(HW, 72, 7); HW.face('up');
             ok(HW, [1, 2, 3, 4, 5, 6, 7].every(n => HW.Progress.flag('linnet' + n)) && !HW.Progress.flag('strayhouse_open'), 'seven notes, the door still shut');
-            mark('S64', "Linnet's Trail done (notes 1-7) after House 8: at the Stray House's door at the Frayed Edge, nothing posted yet.");
+            mark('T64', "Linnet's Trail done (notes 1-7) after House 8: at the Stray House's door at the Frayed Edge, nothing posted yet.");
             HW.press('act', 1); HW.step(3); HW.skipTalk(0); HW.step(60); HW.skipTalk();
             ok(HW, HW.G.map.id === 'strayhouse' && HW.Progress.flag('strayhouse_open'), 'posted through: in');
-            mark('S65', 'The Stray House: just inside, on the Porch (the notes posted, the door open for good).');
+            mark('T65', 'The Stray House: just inside, on the Porch (the notes posted, the door open for good).');
             strayHouseRooms(HW);
-            mark('S66', 'The Stray House: both lamps lit, in the Stair Hall with the stairs up to the Pile open (its Heart Patch taken).');
-            thePile(HW);
-            mark('S67', "The Stray House done: the Pile beaten, its Heartstitch taken; in Linnet's Room with her bracelet.");
+            mark('T66', 'The Stray House: both lamps lit, in the Stair Hall with the stairs up to the Pile open (its Heart Patch taken).');
+            const nearIt = thePile(HW);
+            mark('T67', `The Stray House done: the Pile beaten, Linnet's bracelet and the Pile's Heartstitch taken (${nearIt ? 'in the Pile\'s room' : 'walled in where it came apart, so fetched after going out and in again: in the Pile\'s room'}).`);
+            /* out through the Porch; to Mr Ives's door in town (the Needle and the Loom done: he lets you in) */
+            leave(HW, 29, 42, 'down');
+            HW.warp('hollow', 120, 48); HW.step(10); HW.skipTalk();
+            walk(HW, 120, 46); HW.face('up');
+            ok(HW, !HW.Progress.flag('ives_in'), 'not in yet');
+            mark('T68', "The Unfinished House: at Mr Ives's door in town (up the bank east of the river), the Stray House done, not yet in.");
+            HW.press('act', 1); HW.step(3); HW.skipTalk(); HW.step(60); HW.skipTalk();
+            ok(HW, HW.G.map.id === 'unfinished', 'in');
+            mark('T69', 'The Unfinished House: just inside, in the Front Room (Mr Ives there; nothing sewn).');
+            unfinishedRooms(HW);
+            ivesWalk(HW);
+            mark('T70', "The Unfinished House done: Mr Ives at his chair in the Gallery, the Long Hook given (its Far Shelf's Heart Patch taken).");
+            /* out: down through the Drafting Hall; the Front Room's plank sewn again from the far side, and over */
+            walk(HW, ...ur('fr', 9, 3), 6000); sew(HW, 'down');
+            leave(HW, ...ur('fr', 9, 9), 'down');
+            /* on to the end along LEG9's route, from where it starts (the Loom's door): the Frayed Edge, the Drift, Linnet, the
+               Great Pull, the seed, the Well, the Great Spool, the Top. (LEG9 clears the Needle's stitches as it starts, and
+               keeps god mode on at the Top, as the main path's recording did) */
+            const said = [], D = HW.global('Dialog'), open0 = D.open;
+            D.open = function (who, text, opts) { said.push(String(text)); return open0.call(this, who, text, opts); };
+            HW.warp('hollow', 95, 10); HW.step(10); HW.skipTalk();
+            LEG9(HW, () => { });
+            D.open = open0;
+            ok(HW, said.some(l => /bracelet/.test(l)), 'the ending with the bracelet');
+            HW.step(120);
+            mark('T71', "After the ending with everything optional done on the way (all of Linnet's notes, both optional Houses, the bracelet ending): the free valley.");
+        },
+    },
+    /* the three saves before a boss that load beside a Bedroll a room or more away: the Bedroll rolled up and laid again by
+       the boss's door, as a careful player would before going in */
+    {
+        id: 'E5', from: 'T27', what: "House 5: the Bedroll fetched from the Long Ward and laid by Mother Sloth's door",
+        run(HW, mark) { bedrollToDoor(HW, 'slumber', [29, 12]); mark('T72', 'House 5 (the Slumberhouse): the Bedroll laid by the boss\'s door, in the Landing (the big door still shut; the Pattern in hand).'); },
+    },
+    {
+        id: 'E6', from: 'T32', what: 'House 6: the Bedroll fetched from the Rehearsal Room and laid by the Great Stage\'s door',
+        run(HW, mark) { bedrollToDoor(HW, 'marionette', [29, 12]); mark('T73', "House 6 (the Marionette Hall): the Bedroll laid by the boss's door, in the Wings (the big door still shut; the Pattern in hand)."); },
+    },
+    {
+        id: 'E7', from: 'T57', what: 'The Great Spool: the Bedroll fetched from the Night Ferry, up the Climb, laid by the door to the Top',
+        run(HW, mark) {
+            bedrollToDoor(HW, 'greatspool', null);
+            /* up the Climb as a person who watches the lanes (tests/legs.mjs) */
+            walk(HW, 29, 16, 6000); climbWatching(HW, [20, 11]);
+            ok(HW, HW.player().ty === 12 && !(HW.Stats.c['climb:hit'] > 0), 'up the Climb, never caught');
+            walk(HW, 29, 12, 600); HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+            ok(HW, HW.Inv.bedroll && HW.Inv.bedroll.tx === 29 && HW.Inv.bedroll.ty === 12, 'laid at the top of the Climb');
+            mark('T74', 'The Great Spool: the Bedroll laid by the boss\'s door, at the top of the Climb (the way to the Top open).');
         },
     },
 ];
+/* roll the Bedroll up where Wren loads beside it, then (with a tile given) walk to that tile and lay it there */
+function bedrollToDoor(HW, area, tile) {
+    ok(HW, HW.G.map.id === area && HW.global('Bedroll').near(HW.player()), 'beside the Bedroll');
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    ok(HW, !HW.Inv.bedroll, 'the Bedroll rolled up');
+    if (!tile) return;
+    walk(HW, tile[0], tile[1], 8000); HW.face('up');
+    HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
+    ok(HW, HW.Inv.bedroll && HW.Inv.bedroll.area === area && HW.Inv.bedroll.tx === tile[0] && HW.Inv.bedroll.ty === tile[1], 'laid by the door');
+}
 
 /* ---------------- the command line ---------------- */
 const QUIET = HW => {
@@ -370,7 +503,7 @@ const QUIET = HW => {
 };
 const SETTLE = 30;
 export function runSegment(seg, code, onMark) {
-    const HW = loadGame(), G = HW.G, Cam = HW.global('Cam'), Progress = HW.Progress, Inv = HW.Inv;
+    const HW = loadQA(), G = HW.G, Cam = HW.global('Cam'), Progress = HW.Progress, Inv = HW.Inv;
     HW.global('Game').load(HW.Save.fromCode(code)); HW.step(5); HW.skipTalk();
     let lastFlags = [];
     const set0 = Progress.set.bind(Progress), sa0 = Progress.setAreaFlag.bind(Progress);
@@ -397,13 +530,12 @@ export function runSegment(seg, code, onMark) {
         onMark(cap, HW);
     };
     seg.run(HW, mark);
-    G.cheats.god = false;
     return HW;
 }
 
 if (import.meta.url === new URL('file://' + path.resolve(process.argv[1] || '')).href) {
     const [savesFile, outDir] = process.argv.slice(2);
-    if (!savesFile || !outDir) { console.error('usage: node tools/qa_tour.mjs SAVES_JSON OUTDIR [--only T1,T2]'); process.exit(1); }
+    if (!savesFile || !outDir) { console.error('usage: node tools/qa_tour.mjs SAVES_JSON OUTDIR [--only E1,E2]'); process.exit(1); }
     const k = process.argv.indexOf('--only'), only = k > 0 ? process.argv[k + 1].split(',') : null;
     const saves = JSON.parse(fs.readFileSync(savesFile, 'utf8'));
     fs.mkdirSync(outDir, { recursive: true });

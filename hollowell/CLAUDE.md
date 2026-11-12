@@ -26,9 +26,9 @@ A testing package for an outside AI tester (David's request): `qa_kit/00-02` are
 instructions, how to run); `qa_kit/guide/*.md` is the confidential guide in parts. To rebuild it all (the game itself
 is never changed for it):
 - `node tools/build.mjs && node tools/qa_record.mjs OUT/rec` records save states along the whole scripted game;
-- `node tools/qa_saves.mjs OUT/rec OUT/saves` picks the milestone saves (S01-S58, the list is in the file) and tests
-  each: loads cleanly, then played on (`--quick` loads only; `--only=S05,S06` a few);
-- `node tools/qa_tour.mjs OUT/saves/save_states.json OUT/tour` records the optional-content saves (S59 on);
+- `node tools/qa_saves.mjs OUT/rec OUT/saves` picks the milestone saves (T01-T58, the list is in the file) and tests
+  each: loads cleanly, then played on (`--quick` loads only; `--only=T05,T06` a few);
+- `node tools/qa_tour.mjs OUT/saves/save_states.json OUT/tour` records the optional-content saves (T59 on);
 - `node tools/qa_kit.mjs OUT/saves OUT` writes `OUT/qa_kit/` and `OUT/hollowell-qa-kit.zip` (the playable page with the
   test saves built in is `hollowell_qa.html`; it's also published as the tester copy's link in `02_HOW_TO_RUN.md`).
 Never put anything from `private/` in it.

@@ -1,17 +1,18 @@
 // The QA kit's save states: picks the milestones from a recording (tools/qa_record.mjs) and tests every one.
 //   node tools/qa_saves.mjs CAPSDIR OUTDIR [--quick]
 // Each save is a moment of one whole scripted game, played from a new game through the game's own rules (the legs of
-// tests/legs.mjs; the script hops between places instead of walking some stretches, and takes no damage in fights).
+// tests/legs.mjs, with hearts only as the game gives them: tools/qa_legs.mjs; the script hops between places instead
+// of walking some stretches, and nothing hurts Wren, so her hearts are always full).
 // Every save is tested: loaded from its code into a fresh game (no errors, the right place, Wren standing free, the
 // menu opens, everything saved comes back the same, she can move); and played on: a save at the start of a leg plays
 // that whole leg from the loaded save, and any other save is loaded in the middle of its own leg, in place of the game
 // at that moment, and the leg is played on to its end from it. (--quick skips playing on.)
-// Writes OUTDIR/save_states.json (the saves, their codes and what each is), OUTDIR/codes/SNN.txt and OUTDIR/results.json.
+// Writes OUTDIR/save_states.json (the saves, their codes and what each is), OUTDIR/codes/TNN.txt and OUTDIR/results.json.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { loadGame } from '../tests/harness.mjs';
-import * as L from '../tests/legs.mjs';
+import * as L from './qa_legs.mjs';
 
 const [capsDir, outDir] = process.argv.slice(2);
 const quick = process.argv.includes('--quick');
@@ -35,64 +36,64 @@ const region = (r, knots) => first(c => c.area === 'hollow' && c.region === r &&
 
 /* the milestones: id, part of the game, the moment, what it is (spoilers: this list is for the tester only) */
 const PICK = [
-    ['S01', 'early', () => legStart(1), 'New game: the first moment Wren can move, in her room at Gran\'s house.'],
-    ['S02', 'early', () => flag('ceremony'), 'After the opening ceremony: free in Hollowell\'s town square; the first House ahead.'],
-    ['S03', 'early', () => region('Meadowfold', 0), 'Meadowfold, on the way to the first House.'],
-    ['S04', 'early', () => inRoom('tidy', '1,3'), 'House 1 (the Tidyhouse): just inside, in the Foyer.'],
-    ['S05', 'early', () => inRoom('tidy', '1,2'), 'House 1: entering the Hall of Busts (the race between the busts and the door).'],
-    ['S06', 'early', () => tool('gloves'), 'House 1: just after getting its tool, the Gloves.'],
-    ['S07', 'early', () => preEntry('tidy', '1,0'), 'House 1: just before the boss room (the Grand Housekeeper).'],
-    ['S08', 'early', () => legStart(2), 'After House 1\'s Knot: Meadowfold, outside the Tidyhouse.'],
-    ['S09', 'early', () => flag('kilnPass'), 'Kilnridge, through the pass on the canyon road.'],
-    ['S10', 'early', () => inRoom('kiln', '1,3'), 'House 2 (the Kiln): just inside, at the Kiln Door.'],
-    ['S11', 'early', () => tool('hook'), 'House 2: just after getting its tool, the Hookline.'],
-    ['S12', 'early', () => preEntry('kiln', '1,0'), 'House 2: just before the boss room (the Kilnwyrm).'],
-    ['S13', 'early', () => legStart(3), 'After House 2\'s Knot: Kilnridge, outside the Kiln.'],
-    ['S14', 'early', () => region('Millrace Falls', 2), 'Millwater: at Millrace Falls, outside House 3.'],
-    ['S15', 'early', () => inRoom('millrace', '1,3'), 'House 3 (the Millrace): just inside, in the Wheel Hall.'],
-    ['S16', 'early', () => tool('paddle'), 'House 3: just after getting its tool, the Paddle.'],
-    ['S17', 'early', () => preEntry('millrace', '1,0'), 'House 3: just before the boss room (Old Grindle).'],
-    ['S18', 'middle', () => legStart(4), 'After House 3\'s Knot: Millrace Falls.'],
-    ['S19', 'middle', () => region('Belfry Heights', 3), 'Belfry Heights, at the top of the Cliff Stair.'],
-    ['S20', 'middle', () => inRoom('belfry', '1,4'), 'House 4 (the Belfry): just inside, on the Bell Porch.'],
-    ['S21', 'middle', () => tool('bell'), 'House 4: just after getting its tool, the Bell.'],
-    ['S22', 'middle', () => preEntry('belfry', '1,0'), 'House 4: just before the boss room (Tollgrim).'],
-    ['S23', 'middle', () => legStart(5), 'After House 4\'s Knot: back in Hollowell, the festival about to start.'],
-    ['S24', 'middle', () => flag('giant_home'), 'The east road open: the giant has gone home; Hushwood ahead.'],
-    ['S25', 'middle', () => inRoom('slumber', '1,3'), 'House 5 (the Slumberhouse): just inside, on the Night Porch.'],
-    ['S26', 'middle', () => tool('bedroll'), 'House 5: just after getting its tool, the Bedroll.'],
-    ['S27', 'middle', () => preEntry('slumber', '1,0'), 'House 5: just before the boss room (Mother Sloth).'],
-    ['S28', 'middle', () => legStart(6), 'After House 5\'s Knot: outside the Slumberhouse.'],
-    ['S29', 'middle', () => flag('leapt'), 'Larkspur Fair: just after the leap down from the high mesa.'],
-    ['S30', 'middle', () => inRoom('marionette', '1,3'), 'House 6 (the Marionette Hall): just inside, in the Foyer.'],
-    ['S31', 'middle', () => tool('crossbar'), 'House 6: just after getting its tool, the Crossbar.'],
-    ['S32', 'middle', () => preEntry('marionette', '1,0'), 'House 6: just before the Great Stage (its boss, then the first big reveal).'],
-    ['S33', 'middle', () => legStart(7), 'After House 6 and the first reveal: outside the Marionette Hall.'],
-    ['S34', 'middle', () => flag('underside_first'), 'The Underside, the first time down (through the inn\'s Staff door).'],
-    ['S35', 'middle', () => inRoom('spoolworks', '1,2'), 'House 7 (the Spoolworks): just inside, in the Gatehouse.'],
-    ['S36', 'middle', () => tool('needle'), 'House 7: just after getting its tool, the Needle.'],
-    ['S37', 'middle', () => preEntry('spoolworks', '1,0'), 'House 7: just before the boss room (the Tangle).'],
-    ['S38', 'late', () => legStart(8), 'After House 7: the Underside, before Gundry\'s job.'],
-    ['S39', 'late', () => flag('gundry_job'), 'Gundry has asked for the Makings (Tuck\'s Little Houses); none done yet.'],
-    ['S40', 'late', () => flag('making4'), 'The Makings: four of the nine done.'],
-    ['S41', 'late', () => flag('making8'), 'The Makings: eight done, the ninth (the capstone) next.'],
-    ['S42', 'late', () => flag('makings_done'), 'The Makings all done; the way down next.'],
-    ['S43', 'late', () => first(c => c.area === 'deep'), 'The Deep Store, the first time (the second big reveal ahead).'],
-    ['S44', 'late', () => flag('gundry_r2'), 'After the second reveal: Gundry has given the Guild\'s key.'],
-    ['S45', 'late', () => flag('north_gate_seen'), 'The North Gate open: the Loomwood ahead.'],
-    ['S46', 'late', () => inRoom('loom', '1,3'), 'House 8 (the Loom): just inside, at the Threshold.'],
-    ['S47', 'late', () => tool('shears'), 'House 8: just after getting its tool, the Shears.'],
-    ['S48', 'late', () => preEntry('loom', '1,0'), 'House 8: just before the boss room (the Weaver).'],
-    ['S49', 'late', () => legStart(9), 'After House 8: outside the Loom.'],
-    ['S50', 'late', () => first(c => c.leg === 9 && c.region === 'The Frayed Edge'), 'The Frayed Edge, the fog ahead: just before Wren cuts her own thread.'],
-    ['S51', 'late', () => flag('drift_first'), 'The Drift: the first steps in.'],
-    ['S52', 'late', () => flag('great_pull'), 'Linnet found: the Great Pull has begun.'],
-    ['S53', 'late', () => flag('pull_seen'), 'Home in the Pull: Hollowell.'],
-    ['S54', 'late', () => flag('seed_planted'), 'The seed planted; the Well next.'],
-    ['S55', 'late', () => inRoom('greatspool', '1,3'), 'The Great Spool (the last House): the Foot of the Well.'],
-    ['S56', 'late', () => inRoom('greatspool', '1,1'), 'The Great Spool: the Climb.'],
-    ['S57', 'late', () => preEntry('greatspool', '1,0'), 'The Great Spool: just before the Top (the finale).'],
-    ['S58', 'after', () => caps[caps.length - 1], 'After the ending: the free valley.'],
+    ['T01', 'early', () => legStart(1), 'New game: the first moment Wren can move, in her room at Gran\'s house.'],
+    ['T02', 'early', () => flag('ceremony'), 'After the opening ceremony: free in Hollowell\'s town square; the first House ahead.'],
+    ['T03', 'early', () => region('Meadowfold', 0), 'Meadowfold, on the way to the first House.'],
+    ['T04', 'early', () => inRoom('tidy', '1,3'), 'House 1 (the Tidyhouse): just inside, in the Foyer.'],
+    ['T05', 'early', () => inRoom('tidy', '1,2'), 'House 1: entering the Hall of Busts (the race between the busts and the door).'],
+    ['T06', 'early', () => tool('gloves'), 'House 1: just after getting its tool, the Gloves.'],
+    ['T07', 'early', () => preEntry('tidy', '1,0'), 'House 1: just before the boss room (the Grand Housekeeper).'],
+    ['T08', 'early', () => legStart(2), 'After House 1\'s Knot: Meadowfold, outside the Tidyhouse.'],
+    ['T09', 'early', () => flag('kilnPass'), 'Kilnridge, through the pass on the canyon road.'],
+    ['T10', 'early', () => inRoom('kiln', '1,3'), 'House 2 (the Kiln): just inside, at the Kiln Door.'],
+    ['T11', 'early', () => tool('hook'), 'House 2: just after getting its tool, the Hookline.'],
+    ['T12', 'early', () => preEntry('kiln', '1,0'), 'House 2: just before the boss room (the Kilnwyrm).'],
+    ['T13', 'early', () => legStart(3), 'After House 2\'s Knot: Kilnridge, outside the Kiln.'],
+    ['T14', 'early', () => region('Millrace Falls', 2), 'Millwater: at Millrace Falls, outside House 3.'],
+    ['T15', 'early', () => inRoom('millrace', '1,3'), 'House 3 (the Millrace): just inside, in the Wheel Hall.'],
+    ['T16', 'early', () => tool('paddle'), 'House 3: just after getting its tool, the Paddle.'],
+    ['T17', 'early', () => preEntry('millrace', '1,0'), 'House 3: just before the boss room (Old Grindle).'],
+    ['T18', 'middle', () => legStart(4), 'After House 3\'s Knot: Millrace Falls.'],
+    ['T19', 'middle', () => region('Belfry Heights', 3), 'Belfry Heights, at the top of the Cliff Stair.'],
+    ['T20', 'middle', () => inRoom('belfry', '1,4'), 'House 4 (the Belfry): just inside, on the Bell Porch.'],
+    ['T21', 'middle', () => tool('bell'), 'House 4: just after getting its tool, the Bell.'],
+    ['T22', 'middle', () => preEntry('belfry', '1,0'), 'House 4: just before the boss room (Tollgrim).'],
+    ['T23', 'middle', () => legStart(5), 'After House 4\'s Knot: outside the Belfry; the goal line says home for the festival.'],
+    ['T24', 'middle', () => flag('giant_home'), 'The east road open: the giant has gone home; Hushwood ahead.'],
+    ['T25', 'middle', () => inRoom('slumber', '1,3'), 'House 5 (the Slumberhouse): just inside, on the Night Porch.'],
+    ['T26', 'middle', () => tool('bedroll'), 'House 5: just after getting its tool, the Bedroll.'],
+    ['T27', 'middle', () => preEntry('slumber', '1,0'), 'House 5: just before the boss room (Mother Sloth).'],
+    ['T28', 'middle', () => legStart(6), 'After House 5\'s Knot: outside the Slumberhouse.'],
+    ['T29', 'middle', () => flag('leapt'), 'Larkspur Fair: just after the leap down from the high mesa.'],
+    ['T30', 'middle', () => inRoom('marionette', '1,3'), 'House 6 (the Marionette Hall): just inside, in the Foyer.'],
+    ['T31', 'middle', () => tool('crossbar'), 'House 6: just after getting its tool, the Crossbar.'],
+    ['T32', 'middle', () => preEntry('marionette', '1,0'), 'House 6: just before the Great Stage (its boss, then the first big reveal).'],
+    ['T33', 'middle', () => legStart(7), 'After House 6 and the first reveal: outside the Marionette Hall.'],
+    ['T34', 'middle', () => flag('underside_first'), 'The Underside, the first time down (through the inn\'s Staff door).'],
+    ['T35', 'middle', () => inRoom('spoolworks', '1,2'), 'House 7 (the Spoolworks): just inside, in the Gatehouse.'],
+    ['T36', 'middle', () => tool('needle'), 'House 7: just after getting its tool, the Needle.'],
+    ['T37', 'middle', () => preEntry('spoolworks', '1,0'), 'House 7: just before the boss room (the Tangle).'],
+    ['T38', 'late', () => legStart(8), 'After House 7: the Underside, before Gundry\'s job.'],
+    ['T39', 'late', () => flag('gundry_job'), 'Gundry has asked for the Makings (Tuck\'s Little Houses); none done yet.'],
+    ['T40', 'late', () => flag('making4'), 'The Makings: four of the nine done.'],
+    ['T41', 'late', () => flag('making8'), 'The Makings: eight done, the ninth (the capstone) next.'],
+    ['T42', 'late', () => flag('makings_done'), 'The Makings all done; the way down next.'],
+    ['T43', 'late', () => first(c => c.area === 'deep'), 'The Deep Store, the first time (the second big reveal ahead).'],
+    ['T44', 'late', () => flag('gundry_r2'), 'After the second reveal: Gundry has given the Guild\'s key.'],
+    ['T45', 'late', () => flag('north_gate_seen'), 'The North Gate open: the Loomwood ahead.'],
+    ['T46', 'late', () => inRoom('loom', '1,3'), 'House 8 (the Loom): just inside, at the Threshold.'],
+    ['T47', 'late', () => tool('shears'), 'House 8: just after getting its tool, the Shears.'],
+    ['T48', 'late', () => preEntry('loom', '1,0'), 'House 8: just before the boss room (the Weaver).'],
+    ['T49', 'late', () => legStart(9), 'After House 8: outside the Loom.'],
+    ['T50', 'late', () => first(c => c.leg === 9 && c.region === 'The Frayed Edge'), 'The Frayed Edge, the fog ahead: just before Wren cuts her own thread.'],
+    ['T51', 'late', () => flag('drift_first'), 'The Drift: the first steps in.'],
+    ['T52', 'late', () => flag('great_pull'), 'Linnet found: the Great Pull has begun.'],
+    ['T53', 'late', () => flag('pull_seen'), 'Home in the Pull: Hollowell.'],
+    ['T54', 'late', () => flag('seed_planted'), 'The seed planted; the Well next.'],
+    ['T55', 'late', () => inRoom('greatspool', '1,3'), 'The Great Spool (the last House): the Foot of the Well.'],
+    ['T56', 'late', () => inRoom('greatspool', '1,1'), 'The Great Spool: the Climb.'],
+    ['T57', 'late', () => preEntry('greatspool', '1,0'), 'The Great Spool: just before the Top (the finale).'],
+    ['T58', 'after', () => caps[caps.length - 1], 'After the ending: the free valley.'],
 ];
 
 const toCode = s => 'HW1:' + Buffer.from(JSON.stringify(s)).toString('base64');
@@ -185,7 +186,7 @@ function basic(pick) {
 const TIDY = { hall: [20, 22], parlor: [40, 22], linen: [40, 11], ball: [20, 11] };
 const SPOOL = { top: [20, 0], climb: [20, 11] };
 const CONT = {
-    S06: HW => {
+    T06: HW => {
         const at = (r, x, y) => [TIDY[r][0] + x, TIDY[r][1] + y];
         const walk = (r, x, y) => { let ok = HW.walkTo(...at(r, x, y)); for (let i = 0; i < 3 && !ok; i++) { HW.skipTalk(); HW.step(10); ok = HW.walkTo(...at(r, x, y)); } assert.ok(ok, `walk ${r} ${x},${y}`); };
         walk('linen', 9, 9); walk('parlor', 16, 1); walk('parlor', 1, 5);
@@ -196,7 +197,7 @@ const CONT = {
         assert.equal(HW.global('Cam').room.key, '1,1', 'into the Ballroom');
         return "the Hall of Busts' north gate is shut after the load (the room is back as it was); done again, it opens and the way on to the Ballroom is open";
     },
-    S57: HW => {
+    T57: HW => {
         const at = (r, x, y) => [SPOOL[r][0] + x, SPOOL[r][1] + y];
         let ok = false; for (let i = 0; i < 6 && !ok; i++) { ok = HW.walkTo(...at('climb', 9, 5)); if (!ok) { HW.skipTalk(); HW.step(30); } }
         assert.ok(ok, 'from the Bedroll to the Climb');
@@ -211,11 +212,11 @@ const CONT = {
    at the moment the save was taken (the same story, the same room, free to move) load the save in place of the game */
 function playOn(pick, legFirst) {
     if (CONT[pick.id]) {
-        const HW = loadGame();
+        const HW = L.loadQA();
         try { loadCode(HW, pick.code); HW.step(60); HW.skipTalk(); const how = CONT[pick.id](HW); return HW.ERRORS.length ? { ok: false, problem: 'errors: ' + HW.ERRORS.join(' | ') } : { ok: true, how }; }
         catch (e) { return { ok: false, problem: String(e.message || e).split('\n')[0] }; }
     }
-    const HW = loadGame(), Game = HW.global('Game'), Cam = HW.global('Cam'), cap = pick.cap, leg = cap.leg;
+    const HW = L.loadQA(), Game = HW.global('Game'), Cam = HW.global('Cam'), cap = pick.cap, leg = cap.leg;
     const target = story(cap.save), nFlags = storyFlags(cap.save).length;
     let swapped = leg > 1 && pick.id === legFirst.id;
     const step0 = Game.step.bind(Game);

@@ -53,8 +53,8 @@ entrance (the guide's systems chapter says exactly what it does).
   load a code, paste it into the second box and press **Load this code**: the game jumps straight to that state (it
   goes into the current slot the next time the game saves). Put a code in every bug report: it lets the developer
   reproduce the exact state.
-- **Test saves**: in the **Test saves** box, pick an ID (S01, S02, ...) and press **Load test save**. What each one is,
-  and where it loads, is in `03_SAVE_STATES_CONFIDENTIAL.md`; the same codes are in `saves/codes/SNN.txt` and
+- **Test saves**: in the **Test saves** box, pick an ID (T01, T02, ...) and press **Load test save**. What each one is,
+  and where it loads, is in `03_SAVE_STATES_CONFIDENTIAL.md`; the same codes are in `saves/codes/TNN.txt` and
   `saves/save_states.json`, and any of them can also be pasted into the Save code box.
 
 ## Debug options (for investigating only)

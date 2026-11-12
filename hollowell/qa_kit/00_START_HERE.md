@@ -16,7 +16,7 @@ them.
 | `03_SAVE_STATES_CONFIDENTIAL.md` | The test saves: what each one is, where it loads, and how each was checked. | **all** |
 | `CONFIDENTIAL_GUIDE.md` | The reference guide: every system, area, puzzle and fight; solutions and why they work; what is meant to be blocked; the state each step sets; known accepted behaviour. | **all** |
 | `hollowell_qa.html` | The whole game in one file, with a list of the test saves built in. Works offline. | none on screen |
-| `saves/` | The test saves as data: `save_states.json` (all of them, with details) and `codes/SNN.txt` (one save code per file). | in `save_states.json` |
+| `saves/` | The test saves as data: `save_states.json` (all of them, with details) and `codes/TNN.txt` (one save code per file). | in `save_states.json` |
 
 The same game is also online at the link in `02_HOW_TO_RUN.md`.
 

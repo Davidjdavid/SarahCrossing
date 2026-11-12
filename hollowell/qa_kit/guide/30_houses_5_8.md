@@ -524,8 +524,8 @@ Conventions in this part:
 
 ### Save states
 - S35 (the Gatehouse).
-- S36 (the Needle just got): loads on the Kennel's trapdoor (9,7): the last way she came into the Kennel was up from
-  below (the catalogue's "doorway" is that hatch); keys 0; the Plan held.
+- S36 (the Needle just got): loads at (9,7), beside the Kennel's trapdoor: the last way she came into the Kennel was up
+  through it (the catalogue's "doorway" is that hatch); keys 0; the Plan held.
 - S37 (before the boss): the Winding Hall, west doorway (1,5); Pattern held, the big door already open.
 - S38 (after): the Guild Hall, Gundry has a job.
 
@@ -539,10 +539,10 @@ Works floor (up top)                                    Under-works (33 rows bel
  0,2 Ropewalk == gate == 1,2 Gatehouse == gate == 2,2 Practice Floor   0,5 U.Ropewalk  1,5 U.Gatehouse  2,5 U.Practice (rack)
                            | exit to the Underside
 ```
-- Trapdoors (up top) / ladders (below): Gatehouse (16,7); Winding Hall (17,7); Spool Store (15,5) facing right;
-  Kennel (9,7) and Under the Kennel (17,8) (Under the Kennel joins Under Gundry's Bench to the north, whose ladder
-  (9,5) is the only way up to the Bench); Practice Floor (3,7); Ropewalk (15,7); Bobbin Loft (9,7) / Under the Loft
-  (9,8); the Heart (2,7).
+- Trapdoors (up top) and their ladders (below) stand on the same room-local tile in both layers; Action facing one
+  goes through: Gatehouse (16,8); Winding Hall (17,8); Spool Store (16,5); Kennel (9,8) and (17,8); Practice Floor
+  (3,8); Ropewalk (15,8); Bobbin Loft (9,8); the Heart (2,8); Gundry's Bench (9,5), whose only way up is from Under
+  Gundry's Bench, which opens north off Under the Kennel. Coming through, Wren lands on the same tile she stood on.
 - Keys: the Spool Store's key and the Ropewalk's key. Locks: the Kennel (`swLockE`, any key) and Under the Spool
   Store, north (`usLock`), which takes only its own spare key, the Ropewalk's (`spare: 'rwKey'`; the Spool Store's
   key won't turn it and says so). Pattern: the Heart's big door.
@@ -561,7 +561,7 @@ Works floor (up top)                                    Under-works (33 rows bel
   Something is holding it fast from underneath."); side doors: east (19,5) to the Practice Floor (open while both its
   plates are down, then for good once passed), west (0,5) to the Ropewalk (opens once the Practice Floor's door has been
   passed: `paDone`).
-- Solution (test): down the trapdoor (16,7); below, stand at (13,4) facing up (under the crate's mark) and press Action
+- Solution (test): down the trapdoor (16,8); below, stand at (13,4) facing up (under the crate's mark) and press Action
   on the knot: untied, the crate goes home east out of the passage; back up; north to the Winding Hall.
 - Below: the sign that teaches tug / hold to tie / Action on a knot to undo; a spoolmite.
 - State: `untied:gaBlock`: an untied knot stays untied when the place is rebuilt (`review_d7` 9).
@@ -584,7 +584,7 @@ Works floor (up top)                                    Under-works (33 rows bel
 - Up top: a block (15,3) and the plate (15,6) that holds the gate (4,2) to the key chest (2,2); the south door (4,10)
   to the Ropewalk, shut from this side until the Ropewalk's key is taken (`rwOut`); the north door to the Bobbin Loft
   (opens from the Loft's side).
-- Solution (test): push the block down three to the plate; down the trapdoor (15,5, facing right); below at (15,4)
+- Solution (test): push the block down three to the plate; down the trapdoor (16,5); below at (15,4)
   facing up, hold Action on its cord (under its mark (15,3)): tied off, it stays on the plate; the Plan chest is below at
   (5,8); back up; through the gate; key 1.
 - Blocked: running for the gate is too slow, and the gate never shuts on Wren once she's through (`review_d7` 2).
@@ -594,7 +594,7 @@ Works floor (up top)                                    Under-works (33 rows bel
 
 #### The Kennel (2,1) / Under (2,4): mini-boss Cog, the Needle
 - Elements: Cog's kennel (9,2) with his cord under it (his mark (9,4)); shutters west and south; the Needle chest (5,2)
-  appears when he's beaten; the trapdoor (9,7).
+  appears when he's beaten; the trapdoor (9,8).
 - Fight (test "the Kennel"): he wakes only once Wren is well in (the west door slams behind her, shut when the line says
   it slams). Brass hide: the stick clangs off him. Go down the trapdoor: up top he sniffs, then trots home; below at
   (9,5) facing up, hold Action: tied off, he's held; back up and knock him from (9,5) facing up: he bolts. Twice.
@@ -615,12 +615,12 @@ Works floor (up top)                                    Under-works (33 rows bel
 - Below: the practice rack (12,3); the boards have gone round under the boy's stand, so his cord hangs down a hole, out
   of reach.
 - Solution (test "the Practice Floor"): up top, face the boy from (13,2) and stitch his plate as his place (`DDD`); he
-  goes there; down the trapdoor (3,7); take the rack from (12,4) facing up and walk `DDDDD`: the little Wren onto her
+  goes there; down the trapdoor (3,8); take the rack from (12,4) facing up and walk `DDDDD`: the little Wren onto her
   plate, the boy on past his; tie the little Wren's cord at (11,4); let go: the boy walks home, onto his plate. Both
   down: the Gatehouse door opens. That door is out of sight from both floors, so the camera goes and looks at it with a
   chime (the first time at all, and the first time they stay with nobody at the rack). Through it, the Ropewalk's door
   across the Gatehouse opens with a chime.
-- Alternative: stitch them both onto their plates (tracker; not separately tested).
+- Alternative: stitch them both onto their plates (from the tracker; unverified).
 - Blocked: let go without either fix, they walk home and the door shuts before anyone could get round (test). The rack
   can't be worked by hand up top (said: `review_blind_a`).
 
@@ -628,7 +628,7 @@ Works floor (up top)                                    Under-works (33 rows bel
 - Idea: the Needle through a cord + the Hookline.
 - Up top: the floor's fallen in down the middle; an old crate (2,2) across the gap, out of the Hookline's reach and in
   line with nowhere Wren can stand; the key chest (2,8) on the far side; the far door north (4,0) to the Spool Store.
-- Solution (test): down the trapdoor (15,7); below at (2,3) facing up, Needle through its cord, `RRRR`: the crate moves
+- Solution (test): down the trapdoor (15,8); below at (2,3) facing up, Needle through its cord, `RRRR`: the crate moves
   into line at (6,2) up top (its cord goes with it); tie it off at (6,3); back up; from (11,2) hook west: the hook bites
   into the tied crate and reels Wren over to (7,2); key 2; the Spool Store's south door opens (`rwOut`).
 - Alternative (test "another way"): with the crate moved into line, hook it over to this side (11,2), push it aside, and
@@ -644,7 +644,7 @@ Works floor (up top)                                    Under-works (33 rows bel
   full bobbins on iron cores (6,4), (12,4), (6,7), (12,7) that won't shift by hand; the Pattern chest (9,2) and the
   exit gate south (9,10) open once all four plates are held 5 s (`blHeld`, latched; a winch starts at the first moment
   and a notice says so).
-- Solution (test): stitch the NW bobbin onto (3,3) (from (6,5) facing up, `LLLU`); down the trapdoor (9,7), tie its
+- Solution (test): stitch the NW bobbin onto (3,3) (from (6,5) facing up, `LLLU`); down the trapdoor (9,8), tie its
   cord off at (3,4); back up; stitch the other three (`RRRU`, `LLLD`, `RRRD`): the fourth stitch lets go of the first,
   but the knot holds it where it is; five seconds: the Pattern.
 - Blocked (`review_d7` 3): four stitches never hold four (the fourth lets the first go home), and all four must be down
@@ -656,7 +656,7 @@ Works floor (up top)                                    Under-works (33 rows bel
   Heart Patch (15,2). (Test "Gundry's Bench".)
 
 ### Boss: the Tangle (1,0, the Heart of the Works)
-- Room: the Tangle at (9,5), its four bobbins on their first places N (9,2), W (6,5), E (12,5), S (9,8); trapdoor (2,7)
+- Room: the Tangle at (9,5), its four bobbins on their first places N (9,2), W (6,5), E (12,5), S (9,8); trapdoor (2,8)
   to Under the Heart, where the hoist's counterweight sits on its plate (1,6). `hp 3`, three knocks a beat.
 - Beat 1: all four bobbins off their first places and held there at once. Test: stitch N from (8,2) facing right `UL`,
   W from (6,4) facing down `LL`, E from (12,4) facing down `RR` (three stitches); push S right twice to (11,8); down the
@@ -724,8 +724,8 @@ Works floor (up top)                                    Under-works (33 rows bel
 - S46 (the Threshold).
 - S47 (the Shears just got): the Shuttle Run, south doorway (9,9).
 - S48 (before the boss): the Shuttle Run, south doorway; Pattern held, the big door north already open.
-- S49 (outside). Note: the Weaver's Heartstitch was not picked up on the scripted route; it lies in the Web at (10,9)
-  and still gives +1 heart (18 → 19) when walked over (checked headless). Not a bug.
+- S49 (outside, the Weaver's Heartstitch taken: 11 hearts). A Heartstitch left on the Web's floor stays there, at
+  (10,9), until it's walked over, even after leaving the House (checked headless).
 
 ### Map
 ```
@@ -768,7 +768,7 @@ Works floor (up top)                                    Under-works (33 rows bel
   hole: home at once, on its plate; the gate opens; key 1.
 - No effect: a ring makes it rush only till the silk stops it; its empty mark hooked sets Wren on the plate, which
   doesn't feel a girl; pushed off, it only comes back to the silk. After the Shears, cutting the silk lets it walk home
-  (tracker).
+  (from the tracker; unverified).
 - Old saves (`settle`): one that took the old Offcut Yard's key finds the Snag done (weight on its plate, gate open).
 
 #### The Shuttle Run (1,1), mini-boss: the Shuttle; the Shears
@@ -796,8 +796,8 @@ Works floor (up top)                                    Under-works (33 rows bel
   (hanging where it hung). Cut where it hangs, one drops and fills the hole under it. So: pull the weight at (8,6) out
   onto the edge at (7,6) with the Gloves (hold Action facing it, step back), push it down to (7,7), cut it there, push it
   right into (8,7): filled; stand on it, cut (9,7) where it hangs: filled; from there cut (10,7): across.
-- Alternatives: spares from the chute, cut, do too; the Needle can bring one out onto the edge instead of the Gloves
-  (tracker).
+- Alternatives (from the tracker; unverified): spares from the chute, cut, do too; the Needle can bring one out onto the
+  edge instead of the Gloves.
 - Old saves: the floor's old weights (wrW1-3) are gone; what they filled stays filled.
 
 #### The Hanging Gallery (2,3), key 2
@@ -822,7 +822,7 @@ Works floor (up top)                                    Under-works (33 rows bel
   good) and `lrW1` home over the gap and back, filling nothing; leave and it lies down again. Stand at the turn of its
   thread, (10,7), with the post at your back, and ring: it can't shove Wren, so it waits over the gap at (11,7), thread
   tight: cut it: it drops in and fills the gap. (Or block it at the top turn with the wall at your back, cut it there and
-  push it in: tracker.) North through the gate.
+  push it in: from the tracker, unverified.) North through the gate.
 - Help that's there (`review_blind_f`): the Hookline at a sleeper says it's asleep; with the Bell in hand, every sleeper
   a ring would reach shows the way it would go (beads of light along its thread); the sign says so.
 

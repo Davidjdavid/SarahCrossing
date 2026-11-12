@@ -102,7 +102,7 @@ tool, mechanic, puzzle, event or anything about the story or how the game works,
 Allowed:
 - how much of the game you covered (as fractions or "the early, middle and late parts", "after the ending"), roughly
   how long you spent;
-- how many findings at each severity; the test save IDs (S01, S02, ...) where they happen, which are only numbers;
+- how many findings at each severity; the test save IDs (T01, T02, ...) where they happen, which are only numbers;
 - whether you think the game can be finished, and how solid it seemed overall;
 - general, content-free remarks ("text sometimes overlaps", "a crash in the late part").
 

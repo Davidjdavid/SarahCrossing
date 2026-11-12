@@ -74,8 +74,8 @@
 - **What the room asks:** the north door is a long walk from the plate (east to (18,4), up through (18,3), west along the walkway to (3,1): roughly 28 tiles). So the plate must be held **for good**, not for a few seconds. Nothing simply pushed onto the plate stays there: everything marked goes home.
 - **How the player is meant to read it:** the sign gives the rule (busts go home, and move lighter things along). Pushing the middle bust off its place draws its teal thread on the floor, showing its way home runs straight down the column past the block's side. The plate sits exactly one step past the bust's own place on that way. The Gallery next door (if done first) shows that a thing at home blocks another's way home. The nudge (after 4 minutes, if Hints are on): "The bust in the middle looks restless. Anything it moves along on its way home ends up one step past its spot."
 - **Intended solution (tests/tidy.test.mjs, review_blind_e "at a person's pace"):**
-  1. Stand on the plate (9,7) facing up and push the bust up twice: it ends at (9,4) against the walkway's wall. Wren is now at (9,5).
-  2. Walk round the block (via (9,6), (8,6), (7,6)) to (7,5) and push the block east one tile, into (9,5): the bust's lane. Do this within the bust's patience (about 1.5 s to spare at a person's pace).
+  1. Stand on the plate (9,7) facing up and push the bust up twice: it ends at (9,4) against the walkway's wall. Wren is now at (9,6).
+  2. Walk round the block (via (8,6), (7,6)) to (7,5) and push the block east one tile, into (9,5): the bust's lane. Do this within the bust's patience: checked headless, a direct walk leaves 74 frames (about 1.2 s) of the bust's patience when the block arrives; review_blind_e still passes with a further second of pauses (DUNGEON_TRACKER says "about 1.5 s to spare").
   3. Step out of the lane and off the plate (the test goes to (6,7)).
   4. The bust comes home down the column and shoves the block down to (9,6), then onto the plate (9,7); the bust stops at home (9,6). The block's way home now runs back through the bust (equal or heavier: it waits behind it), so it stays on the plate for good. The north door stays open.
   5. Walk east along the hall, up through (18,3), west along the walkway, north through (3,0) into the Ballroom. The door is then latched.
@@ -312,7 +312,7 @@
 
 #### Snapjaw's Race (2,2): mini-boss, the Snapjaw; the Paddle
 - **Rule:** only what the race brings hurts it. While it swims it ducks anything floating its way (test: a crate sent down while it swims: it ducks, untouched). Reared up at Wren on the bank, it hunts along the bank a good while with its back to the race.
-- **Solution (test):** stand at the bank's edge (11, row) to bait it up; step back one tile (10, row) out of its reach (the snap misses); push the crate beside you (at the edge on another row) east into the race: it comes down onto it. Two knocks (crates `sjCrate1` row 2, `sjCrate2` row 4).
+- **Solution (test):** stand at the bank's edge (11, row) to bait it up; step back one tile (10, row) out of its reach (the snap misses); then, while it hunts along the bank, push one of the two crates on the bank (`sjCrate1`, then `sjCrate2`) east into the race from (10, the crate's row): the current brings it down onto the Snapjaw. Two knocks (the test baits at (11,2), then (11,4)).
 - **Move:** its bite: the bank's edge it can reach is lit while its jaws are open; staying there costs a full heart.
 - **Defeat:** its ball of yarn bobs down the race under the floating crates (told while seen). `millrace_snapjaw`; the Paddle chest (4,5), opened from (4,6).
 - **Nudge:** "It ducks anything floating its way, so long as it's watching the water. Reared up at you on the bank, it isn't."
