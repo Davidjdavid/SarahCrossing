@@ -313,7 +313,7 @@ WALLS.hushcave = {
     top: (x) => { fill(x, '#2e2e3e'); speckle(x, ['#3a3a4c', '#4a6a4a'], 9, 0.2); },
     face: (x, th, v) => { fill(x, '#4a4a5e'); speckle(x, ['#5e5e74', '#3a3a4c', '#5a7a5a'], 20 + v, 0.35); fill(x, '#26263a', 0, 15, 16, 1); },
 };
-LINNET_NOTES[6] = { title: "A note under the giant's hollow", text: "Underneath where the giant sleeps there's a hollow, and at the bottom of the hollow there's a little round door, and behind the door somebody was sawing wood and singing a work song. I didn't knock. I'm not brave yet. Nearly. - L." };
+LINNET_NOTES[6] = { title: "A note under the giant's hollow", text: "Underneath where the giant sleeps there's a hollow, and at the bottom of the hollow there's a little round door, and behind the door somebody was sawing wood and singing a work song. I didn't knock. I'm not brave yet. Nearly. -L." };
 NOTES.linnet6 = { title: LINNET_NOTES[6].title, text: LINNET_NOTES[6].text };
 defArea({
     id: 'hummock_hollow', name: "The Giant's Hollow", family: 'dungeon', theme: 'hushcave', house: null, thread: THREAD.wren,

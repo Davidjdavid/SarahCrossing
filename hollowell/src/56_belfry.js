@@ -288,7 +288,7 @@ defHouse({
             ents: [
                 { k: 'stone', x: 5, y: 4, pitch: 'low', id: 'esLow' }, { k: 'stone', x: 9, y: 4, pitch: 'mid', id: 'esMid' }, { k: 'stone', x: 13, y: 4, pitch: 'high', id: 'esHigh' },
                 { k: 'chest', x: 9, y: 2, item: 'heartpatch', id: 'esPatch', hidden: true, when: 'flag:belfry_echo' },
-                { k: 'deco', x: 16, y: 8, look: 'note_paper', solid: [[0, 0]], text: 'Scratched into the plaster, very small, with a pin: "Sang her to sleep with the stones. Low, high, middle, high, low. She never knew I could. - L."', if: 'belfry_echo' },
+                { k: 'deco', x: 16, y: 8, look: 'note_paper', solid: [[0, 0]], text: 'Scratched into the plaster, very small, with a pin: "Sang her to sleep with the stones. Low, high, middle, high, low. She never knew I could. -L."', if: 'belfry_echo' },
                 { k: 'sign', x: 2, y: 8, text: "Three stones: a big one, a middling one, a small one. Somebody has chalked on the wall: SING HER TO SLEEP." },
             ],
         },

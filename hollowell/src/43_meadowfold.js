@@ -93,7 +93,7 @@ defBlock({
         { k: 'sheep', x: 12, y: 16, id: 'oldTup', ram: true, sleeper: true, tiedOff: true, startAt: [11, 15], trace: [[12, 16], [11, 16], [11, 15]], pushLine: "Old Tup, asleep in the bothy's doorway. Pip says he's been asleep there since before she was born. He snores like a gate.",
             talk: "Old Tup, the ram, asleep across the bothy's doorway. He is enormous, and he smells of rain." },
         { k: 'chest', x: 12, y: 14, item: 'heartpatch', id: 'bothyPatch' },
-        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THE STONES DO THE COUNTING AND HE JUST WRITES IT DOWN. I SAID THAT'S CHEATING. HE SAID THAT'S SHEPHERDING. - P." },
+        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THE STONES DO THE COUNTING AND HE JUST WRITES IT DOWN. I SAID THAT'S CHEATING. HE SAID THAT'S SHEPHERDING. -P." },
         /* Lucky: born over the river, and that's her place, so that's where she goes */
         { k: 'sheep', x: 55, y: 32, id: 'lucky', lamb: true, grazes: true, talk: "A lamb with a red cross dyed on her and LUCKY painted on her bell. She bleats at the river, and at you, and at the river again." },
         { k: 'enemy', x: 22, y: 13, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
@@ -152,8 +152,8 @@ SPAWN.windmill = (x, y) => new Windmill(x, y);
 
 /* Linnet's notes: found under strays, behind things, in places the Return can't reach */
 const LINNET_NOTES = {
-    1: { title: "A note behind Gran's portrait", text: "This is my Wander, my first day. Gran's turned my picture to the wall because she says I'll be back before it gets dusty. I'll turn it round myself when I get home. - L." },
-    2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. - L." },
+    1: { title: "A note behind Gran's portrait", text: "This is my Wander, my first day. Gran's turned my picture to the wall because she says I'll be back before it gets dusty. I'll turn it round myself when I get home. -L." },
+    2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. -L." },
 };
 SPAWN.linnetnote = (tx, ty, p) => {
     const pr = new Prop(tx, ty, { im: ART.note, solid: [], oy: 2 });

@@ -65,7 +65,6 @@ test('the Tangle whole, struck with the stick: a thud and a shrug of its cords e
     strike(HW, 'right');
     assert.ok(heard.includes('thud') && t.shrug > 0, 'again: the thud and the shrug');
     assert.ok(!toasts(HW).some(s => s === line), 'the line not again');
-    /* up in the rafters it's out of reach: the stick meets nothing there */
     noErrors(HW);
 });
 
@@ -311,7 +310,7 @@ test('the Airing Cupboard, the two ways it was made for, at a person\'s pace: th
 test('the Winding Room: the way up is in plain sight from every door in (the drum stands beside it, not in front of it), and straight up from the Foot', () => {
     const HW = spool(); inSpool(HW, 'hub', 9, 9);
     const a = HW.G.map, r = a.roomAt(...gs('hub', 9, 5)), T = 16;
-    const drum = a.ents.find(e => e.kind === 'prop' && e.look === 'spoolpost' || (e.im && e.im === HW.global('ART').spoolpost));
+    const drum = a.ents.find(e => e.im && e.im === HW.global('ART').spoolpost);
     assert.ok(drum, 'the drum');
     const im = drum.im, d = [drum.x, drum.y, drum.x + im.width, drum.y + im.height];
     for (const [x, y] of [[9, 0], [9, 1]]) {
@@ -338,7 +337,7 @@ function toClimax() {
     HW.face(s > 0 ? 'left' : 'right'); HW.step(2);
     return [HW, a, g];
 }
-/* how far the hold has got, as it's drawn (the ring of stitches at the clasped hands) */
+/* how far the hold has got, as it's drawn (the ring of stitches on the floor under the clasped hands) */
 function ringDrawn(HW) {
     const S = HW.global('SpoolArt'), r0 = S.holdRing, out = [];
     S.holdRing = function (x, y, k) { out.push(k); return r0.call(this, x, y, k); };
@@ -346,7 +345,7 @@ function ringDrawn(HW) {
     return out;
 }
 
-test("the last hand-hold shows how far it's got (a ring of stitches round the clasped hands, sewn as it's held); let go early, it unpicks slowly, and taken again goes on from there; she still tries twice in all", () => {
+test("the last hand-hold shows how far it's got (a ring of stitches on the floor under the clasped hands, sewn as it's held); let go early, it unpicks slowly, and taken again goes on from there; she still tries twice in all", () => {
     const [HW, a, g] = toClimax();
     const c = a.climax, p = HW.player();
     let tugs = 0; const sfx = HW.global('Sfx'), play0 = sfx.play; sfx.play = function (n, ...r) { if (n === 'tug') tugs++; return play0.call(this, n, ...r); };

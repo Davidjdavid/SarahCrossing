@@ -180,7 +180,7 @@ SPAWN.nest = (tx, ty) => {
 };
 /* an old cracked urn, wedged at the end of the crevice */
 SPAWN.urnseal = (x, y, p) => { const s = new Seal(x, y, p); s.sprite = () => spr('urn_cracked'); s.onStruck = () => UI.toast('An old urn, cracked all over. A good knock from a distance would do it.'); return s; };
-LINNET_NOTES[3] = { title: 'A note in a cracked urn', text: "I broke a pot in the Kiln and watched the bits go home and I could SEE THE THREAD. Just for a moment. It went down through the floor. Down. Not back to the shelf: down. Who's down there? - L." };
+LINNET_NOTES[3] = { title: 'A note in a cracked urn', text: "I broke a pot in the Kiln and watched the bits go home and I could SEE THE THREAD. Just for a moment. It went down through the floor. Down. Not back to the shelf: down. Who's down there? -L." };
 NOTES.linnet3 = { title: LINNET_NOTES[3].title, text: LINNET_NOTES[3].text };
 
 function initKilnridgeArt() {

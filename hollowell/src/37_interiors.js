@@ -119,7 +119,7 @@ interior({
     legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
     ents: [
         { k: 'deco', x: 1, y: 7, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
-        { k: 'deco', x: 2, y: 7, look: 'sign_closed', solid: [[0, 0]], oy: -14, baseY: 40, text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
+        { k: 'deco', x: 2, y: 7, look: 'sign_closed', solid: [[0, 0]], oy: -14, baseY: 40, text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. -J.' },
         { k: 'deco', x: 9, y: 5, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
     ],

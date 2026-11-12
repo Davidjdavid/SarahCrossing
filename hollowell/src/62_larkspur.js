@@ -170,7 +170,7 @@ TALK.pell = function* () {
 BUDGE.rook = 'Madame Rook: "I foresaw that."';
 BUDGE.pell = 'Pell: "Steady on! Steady on!"';
 
-LINNET_NOTES[7] = { title: "A note under the carousel's horse", text: "The horse on the carousel walked off its pole for me. Someone was working it, from somewhere. They make the Houses, you know. They make all of it, for us, out of love, and they're very good at it, and they cry when we get things right. I followed the strings down. - L." };
+LINNET_NOTES[7] = { title: "A note under the carousel's horse", text: "The horse on the carousel walked off its pole for me. Someone was working it, from somewhere. They make the Houses, you know. They make all of it, for us, out of love, and they're very good at it, and they cry when we get things right. I followed the strings down. -L." };
 NOTES.linnet7 = { title: LINNET_NOTES[7].title, text: LINNET_NOTES[7].text };
 
 /* off the edge of the mesa (only with a Bedroll laid up top: there's no climbing back) */

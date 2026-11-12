@@ -185,3 +185,8 @@
   step into a move; a stale journal goal; creatures following through doorways; a tool heard in the next room.
 - Options: a grip can be held or toggled, so nothing needs two buttons under one thumb on a controller.
 - A room that can be played again says so after the first time.
+- Two late fights answer every try with something you can see or hear; a tool shows what it could act on right now;
+  breaking free works whatever's in hand.
+- The last stretch: a shortcut that skipped a room's idea closed (both real ways still work at a relaxed pace); a way
+  on that hid behind scenery is in plain sight; holding on shows how far along you are; a promise on a sign is kept.
+- Speed checked on a machine four times slower: play holds 60 frames a second.

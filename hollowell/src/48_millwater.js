@@ -82,7 +82,7 @@ defBlock({
         { k: 'falls', x: 39, y: 30, w: 6, h: 2, river: 3 },
         { k: 'chest', x: 44, y: 30, item: 'heartpatch', id: 'mwCave' },
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
-        { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
+        { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. -L."' },
         /* Heron Rock: an islet off the south shore of the east reach, low rocks all round it but on the south; an old
            barrel lives on it (its place is out there; reeled ashore it leaves an empty mark, and a mark is something to
            hook onto, if the barrel's out of the line) */

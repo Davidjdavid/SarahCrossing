@@ -4,20 +4,34 @@
 
 const Audio = {
     ctx: null, master: null, music: null, sfx: null, ok: false, muted: false,
+    /* the gain staging: the tunes and the effects each have a bus (its gain the Options volume times MUSIC or SFX),
+       meeting at the master, which runs through a soft limiter to the speakers. Measured (tests/browser.mjs `audio`):
+       a tune at the default volume plays at about -28 LUFS, an effect a little over it, and everything stays under the
+       limiter's knee (half of full scale) even with both volumes at the top; the limiter is a straight line up to the
+       knee, so it changes nothing there, and past it bends smoothly toward a ceiling it never crosses. It has no memory,
+       so it can't pump: it only rounds off a rare pile-up of sounds that would otherwise clip */
+    MUSIC: 0.275, SFX: 0.35, KNEE: 0.5, CEIL: 0.944,
+    k: 1,       /* the level of the effect being played (Sfx.play sets it for the moment; tone and hit scale by it) */
     /* all sound off or on (a page hosting the game has a button for it) */
-    setMuted(m) { this.muted = !!m; if (this.master) this.master.gain.value = this.muted ? 0 : 0.5; },
+    setMuted(m) { this.muted = !!m; if (this.master) this.glide(this.master.gain, this.muted ? 0 : 1); },
     vol: { music: 0.6, sfx: 0.8 },
     waves: {},
+    /* a gain moved over a few milliseconds, never in one jump: a jump clicks */
+    glide(p, v) { try { p.setTargetAtTime(v, this.ctx.currentTime, 0.015); } catch (e) { p.value = v; } },
     unlock() {
         if (HEADLESS) return;
         if (!this.ctx) {
             try {
                 const AC = window.AudioContext || window.webkitAudioContext;
                 this.ctx = new AC();
-                this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.5; this.master.connect(this.ctx.destination);
+                this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 1;
+                /* (the limiter's curve spans four times full scale, so the signal goes in at a quarter) */
+                const trim = this.ctx.createGain(); trim.gain.value = 0.25;
+                this.limiter = this.ctx.createWaveShaper(); this.limiter.curve = softLimit(this.KNEE, this.CEIL, 4);
+                this.master.connect(trim); trim.connect(this.limiter); this.limiter.connect(this.ctx.destination);
                 this.music = this.ctx.createGain(); this.music.connect(this.master);
                 this.sfx = this.ctx.createGain(); this.sfx.connect(this.master);
-                this.setVolumes();
+                this.setVolumes(true);
                 /* pulse waves with narrow duty */
                 for (const [name, duty] of [['p12', 0.125], ['p25', 0.25], ['p50', 0.5]]) {
                     const n = 64, re = new Float32Array(n), im = new Float32Array(n);
@@ -32,14 +46,16 @@ const Audio = {
         }
         if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
     },
-    setVolumes() {
+    setVolumes(now) {
         if (!this.ctx) return;
-        this.music.gain.value = this.vol.music * 0.55;
-        this.sfx.gain.value = this.vol.sfx * 0.7;
+        const m = this.vol.music * this.MUSIC, s = this.vol.sfx * this.SFX;
+        if (now) { this.music.gain.value = m; this.sfx.gain.value = s; }
+        else { this.glide(this.music.gain, m); this.glide(this.sfx.gain, s); }
     },
     /* one tone */
     tone(out, t, f, dur, wave = 'p50', v = 0.2, opts = {}) {
         const c = this.ctx;
+        v *= this.k;
         const o = c.createOscillator(), g = c.createGain();
         g.gain.value = 0;       /* (silent until its envelope starts: a gain begins at 1, and a start a sample early clicked) */
         if (this.waves[wave]) o.setPeriodicWave(this.waves[wave]); else o.type = wave;
@@ -49,19 +65,33 @@ const Audio = {
         const a = opts.a || 0.005, rel = opts.r !== undefined ? opts.r : Math.min(0.08, dur * 0.4);
         g.gain.setValueAtTime(0, t);
         g.gain.linearRampToValueAtTime(v, t + a);
-        g.gain.setValueAtTime(v * (opts.sus || 0.85), t + Math.max(a, dur - rel));
+        /* (settling to the sustain level along a line before the release: set in one jump, it clicked on every note) */
+        g.gain.linearRampToValueAtTime(v * (opts.sus || 0.85), t + Math.min(dur - 0.001, Math.max(a + 0.002, dur - rel)));
         g.gain.linearRampToValueAtTime(0, t + dur);
         o.connect(g); g.connect(out);
         o.start(t); o.stop(t + dur + 0.02);
     },
     hit(out, t, dur, v, hp = 1000, lp = 8000) {
-        const c = this.ctx, s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter(), f2 = c.createBiquadFilter();
-        g.gain.value = 0; s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp; f2.type = 'lowpass'; f2.frequency.value = lp;
-        g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        const c = this.ctx, s = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter(), f2 = c.createBiquadFilter(), k = this.k;
+        v *= k;
+        g.gain.value = 0; s.buffer = this.noise; s.loop = true; f.type = 'highpass'; f.frequency.value = hp; f2.type = 'lowpass'; f2.frequency.value = lp;
+        /* (in over a millisecond and a half, and down to nothing before the noise stops: a jump either way clicks) */
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.0015);
+        g.gain.exponentialRampToValueAtTime(0.001 * k, t + dur); g.gain.linearRampToValueAtTime(0, t + dur + 0.01);
         s.connect(f); f.connect(f2); f2.connect(g); g.connect(out);
         s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
     },
 };
+/* the master's soft limiter: a straight line (no change at all) up to the knee, then a smooth bend toward the ceiling,
+   never reaching it; the curve covers `span` times full scale, the input coming in at 1/span */
+function softLimit(knee, ceil, span) {
+    const n = 8193, c = new Float32Array(n), r = ceil - knee;
+    for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1) * 2 - 1) * span, a = Math.abs(x);
+        c[i] = Math.sign(x) * (a <= knee ? a : knee + r * Math.tanh((a - knee) / r));
+    }
+    return c;
+}
 
 const NOTE_I = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
 function noteFreq(tok) {
@@ -118,23 +148,35 @@ const SFX = {
     save: (o, t) => { [523, 784, 659, 1046].forEach((f, i) => Audio.tone(o, t + i * 0.09, f, 0.12, 'triangle', 0.15)); },
     boss: (o, t) => { Audio.tone(o, t, 82, 0.6, 'p50', 0.12, { slide: 60 }); Audio.hit(o, t, 0.5, 0.2, 100, 600); },
     rumble: (o, t) => Audio.hit(o, t, 0.6, 0.25, 40, 300),
+    /* (asked for when the mill pond has run out; it had no sound) */
+    chime: (o, t) => { Audio.tone(o, t, 1318, 0.6, 'triangle', 0.12, { r: 0.5 }); Audio.tone(o, t + 0.12, 1760, 0.7, 'triangle', 0.1, { r: 0.6 }); Audio.tone(o, t + 0.12, 2637, 0.4, 'sine', 0.03, { r: 0.35 }); },
 };
+/* each effect's level (dB, on top of its recipe), from measuring every effect against the music (the loudest 100 ms
+   of it, K-weighted, next to the tunes' -28 LUFS): what matters a lot (a find, a Knot) stands a few dB over the music,
+   what happens all the time (a step, a letter of talk) a few under, and nothing is lost under it or shouts over it */
+const SFX_LEVEL = {};
 const Sfx = {
     last: {},
     /* the sounds of a step solved: music resting through a long stay comes back for them */
     stirs: { door: 1, unlock: 1, appear: 1, chest: 1, item: 1, smallitem: 1, knot: 1, button: 1, save: 1 },
+    /* vol: a caller's own say (0.4 for a quieter repeat), on top of the effect's level */
     play(name, vol = 1) {
         if (this.stirs[name]) Music.stir();
         if (!Audio.ok || !SFX[name]) return;
         const now = Audio.ctx.currentTime;
         if (this.last[name] && now - this.last[name] < 0.03) return;
         this.last[name] = now;
-        try { SFX[name](Audio.sfx, now); } catch (e) { }
+        Audio.k = vol * Math.pow(10, (SFX_LEVEL[name] || 0) / 20);
+        try { SFX[name](Audio.sfx, now); } catch (e) { } finally { Audio.k = 1; }
     },
 };
 
 /* ---------- music ---------- */
 const SONGS = {};
+/* each tune's level (dB), from measuring them all (filled in by 40e_music_levels.js): every tune at about the same
+   loudness, the few meant to be quiet a little under */
+const SONG_LEVEL = {};
+function songLevel(id) { return Math.pow(10, (SONG_LEVEL[id] || 0) / 20); }
 const Music = {
     cur: null, next: 0, step: 0, timer: null, fade: 1, playing: null, bus: null,
     /* long stays: a song marked thin: true, once THIN_AFTER seconds have gone by in one room with nothing solved and
@@ -143,11 +185,18 @@ const Music = {
        (stir) brings it all back at the next beat. Only what's heard: it never touches play */
     THIN_AFTER: 150, calm: 0, thin: false, waking: false, where: null,
     stir() { this.calm = 0; if (this.thin) this.waking = true; },
-    /* each song plays through a volume of its own, so a change of music is a short crossfade, never a cut */
+    /* each song plays through a volume of its own (at the song's level, SONG_LEVEL), so a change of music is a short
+       crossfade, never a cut: the old one out and the new one in over the same FADE, so the two together are never
+       louder than the louder of them (the old held where it is, not set from a reading, which can lag) */
+    FADE: 0.5,
     newBus() {
-        const c = Audio.ctx, t = c.currentTime;
-        if (this.bus) { const old = this.bus; try { old.gain.cancelScheduledValues(t); old.gain.setValueAtTime(old.gain.value, t); old.gain.linearRampToValueAtTime(0, t + 0.6); } catch (e) { } setTimeout(() => { try { old.disconnect(); } catch (e) { } }, 900); }
-        const b = c.createGain(); b.gain.setValueAtTime(0.0001, t); b.gain.linearRampToValueAtTime(1, t + 0.35); b.connect(Audio.music);
+        const c = Audio.ctx, t = c.currentTime, F = this.FADE;
+        if (this.bus) {
+            const old = this.bus, p = old.gain;
+            try { if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t); else { p.cancelScheduledValues(t); p.setValueAtTime(p.value, t); } p.linearRampToValueAtTime(0, t + F); } catch (e) { }
+            setTimeout(() => { try { old.disconnect(); } catch (e) { } }, F * 1000 + 400);
+        }
+        const b = c.createGain(); b.gain.value = 0; b.gain.setValueAtTime(0, t); b.gain.linearRampToValueAtTime(songLevel(this.playing), t + F); b.connect(Audio.music);
         this.bus = b;
     },
     play(id) {

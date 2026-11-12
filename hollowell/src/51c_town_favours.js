@@ -281,7 +281,7 @@ AREAS.toys.ents.push(
     { k: 'door', x: 3, y: 4, type: 'gate', when: 'jLatch', dir: 'h', id: 'jDoor', passed: 'up' },
     { k: 'parcel', x: 6, y: 8, id: 'jParcel', startAt: [3, 3], trace: [[6, 8], [6, 7], [5, 7], [5, 6], [4, 6], [4, 5], [3, 5], [3, 4], [3, 3]], if: '!fav_stick' },
     { k: 'chest', x: 1, y: 2, item: 'b50', id: 'jChest' },
-    { k: 'deco', x: 4, y: 1, look: 'jory_note', solid: [[0, 0]], oy: 2, baseY: -100, text: "A note pinned up in Jory's hand: TUCK'S. FOR LATER. NOT BEFORE. And underneath, smaller: If you can read this, you're good with strings. Have a look in the chest. - J." },
+    { k: 'deco', x: 4, y: 1, look: 'jory_note', solid: [[0, 0]], oy: 2, baseY: -100, text: "A note pinned up in Jory's hand: TUCK'S. FOR LATER. NOT BEFORE. And underneath, smaller: If you can read this, you're good with strings. Have a look in the chest. -J." },
 );
 /* out in the street, the parcel's thread: from Jory's door, down through the square, to Tuck's (drawn on the ground) */
 const STICK_THREAD = [[24, 9], [24, 12], [23, 13], [23, 25], [25, 26], [25, 31], [19, 31], [18, 32], [18, 35]];
