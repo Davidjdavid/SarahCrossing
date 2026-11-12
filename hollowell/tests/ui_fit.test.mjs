@@ -108,3 +108,20 @@ test('floating words stay a few pixels inside the screen, clear of the HUD, the 
     Fx.list = [];
     void n;
 });
+
+test("floating words in a Little House keep clear of its Aha tally up top (the live run saw a 'Tsk!' run into it)", () => {
+    const HW = loadGame(); HW.preset('afterD7'); HW.step(5); HW.skipTalk();
+    for (let i = 1; i < 6; i++) HW.Progress.set('making' + i);
+    HW.warp('making6', 3, 16); HW.step(30); HW.skipTalk(); HW.step(5);
+    const a = HW.G.map, Making = HW.global('Making'), Fx = HW.global('Fx'), Cam = HW.global('Cam');
+    const box = Making.tallyBox(a);
+    assert.equal(box.length, 1, 'the tally is up while Tuck is in the House');
+    const [bx0, by0, bx1, by1] = box[0];
+    /* words said right where the tally sits, and either side of it */
+    Fx.list = [];
+    for (const [dx, s] of [[0, 'Tsk!'], [-24, 'It JUMPED!'], [26, 'Hmph.']]) Fx.text(Cam.x + W / 2 + dx, Cam.y + 6, s);
+    for (const s of Fx.textSpots(Fx.list.filter(p => p.text), Cam.x, Cam.y)) {
+        const clear = s.x + s.w + 3 <= bx0 || s.x - 3 >= bx1 || s.y + 10 <= by0 || s.y - 2 >= by1;
+        assert.ok(clear, `"${s.p.text}" at ${s.x},${s.y} (w ${s.w}) is on the tally ${box[0]}`);
+    }
+});

@@ -71,7 +71,10 @@ const Fx = {
     hudBoxes() {
         if (G.hideHud || G.scene !== 'play') return [];
         const n = Math.ceil(Inv.maxHp / 2), rows = n > 10 ? 2 : 1;
-        return [[0, 0, 20 + 9 * Math.min(n, 10), 6 + 8 * rows], [W - 98, 0, W, Inv.equipped ? 37 : 17]];
+        const out = [[0, 0, 20 + 9 * Math.min(n, 10), 6 + 8 * rows], [W - 98, 0, W, Inv.equipped ? 37 : 17]];
+        /* (and whatever a place keeps up top of its own: the Little Houses' Aha tally) */
+        if (G.map && G.map.def.hudBoxes) out.push(...G.map.def.hudBoxes(G.map));
+        return out;
     },
     /* the little pictures over people's heads (a heart, a "!", dots) */
     bubbles(at) {

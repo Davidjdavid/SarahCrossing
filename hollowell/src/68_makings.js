@@ -316,9 +316,12 @@ const Making = {
     },
     /* the Ahas so far in this go at a Little House, while he's in it: a little tag up top, a pip for each (the newest
        one popping as it lights) */
+    tallyShown(a) { const c = this.cur, t = c && a.find('tuck'); return !!t && !G.hideHud && !(Dialog.active && Dialog.top) && !(UI.fadeA > 0.5); },
+    /* (where it sits, so floating words keep clear of it as of the HUD's corners) */
+    tallyBox(a) { if (!this.tallyShown(a)) return []; const x = Math.round(W / 2 - 29); return [[x, 2, x + 58, 16]]; },
     drawTally(a) {
-        const c = this.cur, t = c && a.find('tuck');
-        if (!t || G.hideHud || (Dialog.active && Dialog.top) || UI.fadeA > 0.5) return;
+        const c = this.cur;
+        if (!this.tallyShown(a)) return;
         const n = c.ahas.size, x = Math.round(W / 2 - 29), y = 2, pop = c.lit !== undefined && G.t - c.lit < 20;
         Gfx.alpha(UI.hudA === undefined ? 1 : UI.hudA);
         stitchedBox(x, y, 58, 14, { fill: '#fbf3df' });
@@ -439,7 +442,7 @@ function defMaking(n, cells, opts = {}) {
         entry: MAKINGS[n - 1].entry || MAKING_ENTRY,
         themeAt: (x, y) => y >= 11 ? 'underside' : up,
         drawGround: (a, cx, cy) => Spool.drawAbove(a, cx, cy), drawFront: (a, cx, cy) => Spool.drawAboveFront(a, cx, cy),
-        drawOver: (a, cx, cy) => Making.drawTally(a),
+        drawOver: (a, cx, cy) => Making.drawTally(a), hudBoxes: a => Making.tallyBox(a),
         tick: a => Making.tick(a),
         onEnter: a => Making.start(a),
         cells,
