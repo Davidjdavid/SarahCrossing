@@ -222,3 +222,7 @@
   and two shadows and a face that were drawn badly.
 - The polish campaign is complete: one clean full playthrough in a real browser, every room played blind by a
   reviewer, and every check passing (851 headless tests, the browser checks, the placement audit).
+- A testing package for an outside tester: 74 test saves from the first moment to after the ending (every one checked by
+  loading it and playing on from it), a confidential reference guide, instructions on what to test and how to report it,
+  and a copy of the game with the test saves built in. The game itself is unchanged; a few issues found while preparing
+  it (one a place a player can get stuck) are listed for the tester and will be fixed after its report.

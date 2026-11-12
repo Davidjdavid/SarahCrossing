@@ -1,0 +1,1592 @@
+[
+ {
+  "id": "T01",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T02",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T03",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T04",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "Foyer"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T05",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,2",
+    "name": "Hall of Busts"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T06",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,1",
+    "name": "Linen Closets"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true,
+   "how": "the Hall of Busts' north gate is shut after the load (the room is back as it was); done again, it opens and the way on to the Ballroom is open"
+  }
+ },
+ {
+  "id": "T07",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "Antechamber"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T08",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T09",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T10",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "Kiln Door"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T11",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,1",
+    "name": "Glazing Room"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T12",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "Glaze Vats"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T13",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T14",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T15",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "Wheel Hall"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T16",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,2",
+    "name": "Snapjaw's Race"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T17",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "The Lock"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T18",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T19",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T20",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,4",
+    "name": "Bell Porch"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T21",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,2",
+    "name": "Clangor's Loft"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T22",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "The Cistern"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T23",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T24",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T25",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "The Night Porch"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T26",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,3",
+    "name": "The Drying Loft"
+   },
+   "atMark": "bed"
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T27",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,2",
+    "name": "The Long Ward"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T28",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T29",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T30",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "The Foyer"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T31",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,2",
+    "name": "The Rehearsal Room"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T32",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,2",
+    "name": "The Rehearsal Room"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T33",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T34",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Staff Stairs"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T35",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,2",
+    "name": "The Gatehouse"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T36",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,1",
+    "name": "The Kennel"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T37",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Winding Hall"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T38",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,0",
+    "name": "The Guild Hall"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T39",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,0",
+    "name": "The Guild Hall"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T40",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "The Making Floor"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T41",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "The Making Floor"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T42",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "2,0",
+    "name": "The Making Floor"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T43",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "0,0",
+    "name": "The Deep Store"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T44",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,0",
+    "name": "The Guild Hall"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T45",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T46",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "The Threshold"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T47",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Shuttle Run"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T48",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Shuttle Run"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T49",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T50",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T51",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T52",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T53",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T54",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T55",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "The Foot of the Well"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T56",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Climb"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T57",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "0,1",
+    "name": "The Night Ferry"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded beside the Bedroll in The Night Ferry; walked back to the Climb, up it, and into the Top of the Spool (its scene played)"
+  }
+ },
+ {
+  "id": "T58",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T59",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T60",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T61",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ },
+ {
+  "id": "T62",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ },
+ {
+  "id": "T63",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ },
+ {
+  "id": "T64",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T65",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "The Porch"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T66",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Stair Hall"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T67",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,0",
+    "name": "The Pile"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T68",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T69",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,3",
+    "name": "The Front Room"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T70",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Gallery"
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true
+  }
+ },
+ {
+  "id": "T71",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "name": null
+   },
+   "atMark": null
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ },
+ {
+  "id": "T72",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Landing"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ },
+ {
+  "id": "T73",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Wings"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ },
+ {
+  "id": "T74",
+  "basic": {
+   "ok": true,
+   "problems": [],
+   "moved": [
+    "up",
+    "down",
+    "left",
+    "right"
+   ],
+   "quietAfter": 0,
+   "loadRoom": {
+    "key": "1,1",
+    "name": "The Climb"
+   },
+   "atMark": "roll"
+  },
+  "playOn": {
+   "ok": true,
+   "how": "loaded at its mark and its stretch played to its end (it is the last save of that stretch)"
+  }
+ }
+]

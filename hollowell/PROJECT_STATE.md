@@ -10,7 +10,13 @@ lengthened (a fight tune per House), the story's big scenes staged, a full dialo
 played blind by reviewers, and fix rounds A-H from five full live playthroughs in Chromium and their picture reviews.
 The last of them (live run 5) came back clean; with David's rule (one clean run is enough) the campaign ended there.
 Final state: 851 headless tests, the browser checks, the placement audit (0 findings) and a live run of all nine legs
-(0 probe issues, 0 errors) all pass. Next: a testing package for an outside QA tester (David's request of 12 November).
+(0 probe issues, 0 errors) all pass.
+
+**Outside QA package ready (12 November, qa_kit/; CLAUDE.md says how it's built).** 74 test saves, every one tested; a
+confidential guide (about 61,000 words); spoiler-free instructions and how to run it; the QA copy of the page (the
+tester's link). Preparing it found POLISH.md findings 82-89 (one softlock below the falls), left unfixed while the
+outside tester works and listed for it. Next: the tester's report (David passes on `developer-report.md`), then one fix
+round for its findings and 82-89.
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
 headless tests including one continuous scripted game from the title to the credits, every browser scenario (the game
