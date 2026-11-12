@@ -58,13 +58,13 @@ test('the Threshold: every offcut lies across the trench; the Hookline brings on
     assert.ok(a.at(...at('th', 4, 2)) && !a.at(...at('th', 4, 2)).ret, 'an offcut across the way');
     go(HW, 'th', 4, 5); tool(HW, 'hook', 'up'); HW.step(60);
     assert.ok(!a.kind(...at('th', 4, 4)).pit, 'the next one in, from the first');
-    go(HW, 'th', 15, 2); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    go(HW, 'th', 16, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.ok(HW.Inv.plans.includes('loom'), 'the Plan');
     go(HW, 'th', 9, 1);
     noErrors(HW);
 });
 
-test('the Empty Peg: an old weight caught on its way home by a strand of silk; whatever falls goes home at once, so pushed round into the hole it pops up on its plate under the peg, and the plate opens the gate to the key (a ring, its empty mark and pulling it about change nothing)', () => {
+test('the Snag: an old weight caught on its way home by a strand of silk; whatever falls goes home at once, so pushed round into the hole it pops up on its plate under the peg, and the plate opens the gate to the key (a ring, its empty mark and pulling it about change nothing)', () => {
     const HW = game();
     enter(HW, 'oy', 18, 5);
     const w = thing(HW, 'oyW'), gate = thing(HW, 'oyGate');
@@ -92,7 +92,7 @@ test('the Empty Peg: an old weight caught on its way home by a strand of silk; w
     noErrors(HW);
 });
 
-test("the Loom rebuilt: an older save keeps the holes it filled that are holes still and forgets those that are walls now; one that took the Offcut Yard's key finds the Empty Peg done; the Threshold it crossed stays crossed", () => {
+test("the Loom rebuilt: an older save keeps the holes it filled that are holes still and forgets those that are walls now; one that took the Offcut Yard's key finds the Snag done; the Threshold it crossed stays crossed", () => {
     const HW = game();
     /* what such a save holds: the old Threshold crossed by two offcuts, the old Offcut Yard's pits filled and its key taken */
     for (const [k, v] of [['gone:thStray1', true], ['gone:thStray2', true], [`fill:${at('th', 5, 5).join(',')}`, true], [`fill:${at('th', 5, 4).join(',')}`, true],

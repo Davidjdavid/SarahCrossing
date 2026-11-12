@@ -70,7 +70,7 @@ defHouse({
                 { k: 'stray', x: 4, y: 3, id: 'thOff1', weight: WEIGHT.medium }, { k: 'stray', x: 12, y: 2, id: 'thOff2', weight: WEIGHT.medium },
                 { k: 'chute', x: 4, y: 1, drop: [4, 2], id: 'thChuteN' },
                 { k: 'lever', x: 2, y: 7, onPull: pullChute('thChuteN') },
-                { k: 'chest', x: 15, y: 1, item: 'plan', id: 'thPlan' },
+                { k: 'chest', x: 16, y: 2, item: 'plan', id: 'thPlan' },        /* (clear of the HUD's corner, so it never sits faded) */
                 { k: 'sign', x: 3, y: 9, text: 'Carved deep, very old: NOTHING HERE COMES BACK. (And under it, newer, small: SO MIND WHERE YOU PUSH IT. -L.)' },
             ],
         },
@@ -96,12 +96,12 @@ defHouse({
                 { k: 'deco', x: 6, y: 4, look: 'loomframe', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: 'A loom, bigger than a house, its warp threads running up into the dark. Half a cloth hangs from it, every colour of the valley, unfinished. The shuttle that should be in it is gone.' },
             ],
         },
-        /* ---------------- 3 The Empty Peg (the Offcut Yard once): an old weight dragged off its peg, across a hole and round
+        /* ---------------- 3 The Snag (the Offcut Yard once): an old weight dragged off its peg, across a hole and round
            a corner, and held there by a strand of silk across its way home: it strains at the silk and can't get by. Its
            place is the iron plate under the peg, and the plate opens the gate to the key. Whatever falls goes home at
            once (key) ---------------- */
         '0,2': {
-            name: 'The Empty Peg',
+            name: 'The Snag',
             rows: [
                 '####################',
                 '#...#...#.#........#',
@@ -123,7 +123,7 @@ defHouse({
                 { k: 'warpthread', x: 12, y: 5, len: 1, dir: 'v', id: 'oySilk' },
                 { k: 'door', x: 2, y: 4, type: 'gate', when: 'oyPlate', dir: 'h', keep: true, id: 'oyGate' },
                 { k: 'chest', x: 2, y: 2, item: 'key', id: 'oyKey' },
-                { k: 'sign', x: 17, y: 8, text: "Scratched small on a flagstone: THE WEAVER STRINGS ITS SILK ACROSS THE WAY HOME. WHAT IT CATCHES STAYS CAUGHT. -L." },
+                { k: 'sign', x: 17, y: 8, text: "Scratched small on a flagstone: THE WEAVER STRINGS ITS SILK ACROSS THE WAY HOME, AND WHAT IT CATCHES WAITS THERE, STRAINING. -L." },
             ],
         },
         /* ---------------- 4 The Shuttle Run: the Shuttle (the Shears) ---------------- */
@@ -484,7 +484,7 @@ SPAWN.loomwell = (x, y) => new LoomWell(x, y);
 }
 
 const LoomHouse = {
-    /* older saves, from before the Loom's first rooms were rebuilt (the Threshold's offcuts across its trench, the Empty Peg
+    /* older saves, from before the Loom's first rooms were rebuilt (the Threshold's offcuts across its trench, the Snag
        where the Offcut Yard was, the Weighing Room's weights hanging over the chasm): a hole one filled where there's no hole
        now is forgotten (it would only carve floor out of a wall); the holes that are still holes stay filled */
     migrate() {
@@ -494,7 +494,7 @@ const LoomHouse = {
             if (m && (rows[+m[2]] || '')[+m[1]] !== 'o') delete af[k];
         }
     },
-    /* (and one that took the Empty Peg's key finds its weight back on its plate, the gate open: done, as it left it) */
+    /* (and one that took the Snag's key finds its weight back on its plate, the gate open: done, as it left it) */
     settle(a) {
         const w = a.find('oyW');
         if (!w || !w.ret || w.ret.state === 'home' || !Progress.areaFlag(a.id, 'chest:oyKey') || (a.at(w.ret.mx, w.ret.my) && a.at(w.ret.mx, w.ret.my) !== w)) return;

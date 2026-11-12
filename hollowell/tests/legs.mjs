@@ -1272,8 +1272,8 @@ export const LEG8 = (HW, chain) => {
     lgo('th', 4, 6); ltool('hook', 'up'); HW.step(60);
     lgo('th', 2, 8); act('up'); HW.step(10);
     lgo('th', 4, 5); ltool('hook', 'up'); HW.step(60);
-    lgo('th', 15, 2); act('up'); ok(HW.Inv.plans.includes('loom'), 'the Plan');
-    /* the Empty Peg: the old weight caught at the silk across its way home, pushed round and into the hole: whatever falls
+    lgo('th', 16, 3); act('up'); ok(HW.Inv.plans.includes('loom'), 'the Plan');
+    /* the Snag: the old weight caught at the silk across its way home, pushed round and into the hole: whatever falls
        goes home at once, on to its plate under the peg, and the gate to the key opens */
     lgo('oy', 18, 5);
     lpush('oy', 13, 6, 'up', 1); lpush('oy', 14, 4, 'left', 2);

@@ -1,5 +1,6 @@
 // Fix round E, part 1 (AI blind solver F, a heuristic evaluation, not a playtest): the eighth House's rooms and the
-// Little Houses. The Loom's goal kept up with the way there; the HUD steps back from the Needle's reach; a hook on a
+// Little Houses. The Loom's goal kept up with the way there; the HUD steps back, corner by corner and faded right down,
+// from anything that matters under it (the Needle's reach too; blind solver E's spots in Houses 1-4); a hook on a
 // sleeper, and the Bell rung under a Little House, say so; the Needle's let-go notice from another place; the Larder's
 // sleepers show where a ring would send them; in the Makings the nibbler gives up on a cornered boy, Tuck peers at
 // what a button's under (and it glints), and the signs and the last nudge say what really happens.

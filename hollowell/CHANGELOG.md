@@ -197,3 +197,7 @@
   no clicks at note starts and ends, smoother changes of tune, and every tune at least 45 seconds before it repeats.
 - Writing: typos and spellings made consistent, every character in their own voice, long speeches trimmed, and lines
   you'd see again and again shortened, varied or quietened after the first time.
+- The eighth House opens with three different ideas instead of three of the same; a room that hid what was about to
+  happen shows it; a broken-looking rule made visible; the middle act's small Houses say what's true, stop handing over
+  steps, and let you find everything there is to find; the screen's corners get out of the way of anything that
+  matters.
