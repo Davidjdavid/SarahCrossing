@@ -87,7 +87,7 @@ fs.writeFileSync(path.join(kit, '03_SAVE_STATES_CONFIDENTIAL.md'), list);
 const gdir = path.join(ROOT, 'qa_kit', 'guide');
 const parts = fs.existsSync(gdir) ? fs.readdirSync(gdir).filter(f => f.endsWith('.md')).sort() : [];
 const bodies = parts.map(f => fs.readFileSync(path.join(gdir, f), 'utf8').trim());
-const toc = bodies.flatMap(b => b.split('\n').filter(l => /^## /.test(l)).map(l => `- ${l.slice(3)}`)).join('\n');
+const toc = bodies.flatMap(b => b.split('\n').filter(l => /^###? /.test(l)).map(l => l.startsWith('### ') ? `  - ${l.slice(4)}` : `- ${l.slice(3)}`)).join('\n');
 fs.writeFileSync(path.join(kit, 'CONFIDENTIAL_GUIDE.md'), BUFFER('Hollowell: the confidential QA guide') +
     'A reference for testing the game, organised by system and by place: not a walkthrough. T01, T02... are the test\n' +
     'saves (`03_SAVE_STATES_CONFIDENTIAL.md` lists them); S01, S02... are the design\'s own numbers for the game\'s secrets.\n\n' +

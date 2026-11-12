@@ -449,8 +449,8 @@ export const SEGMENTS = [
             walk(HW, ...ur('fr', 9, 3), 6000); sew(HW, 'down');
             leave(HW, ...ur('fr', 9, 9), 'down');
             /* on to the end along LEG9's route, from where it starts (the Loom's door): the Frayed Edge, the Drift, Linnet, the
-               Great Pull, the seed, the Well, the Great Spool, the Top. (LEG9 clears the Needle's stitches as it starts, and
-               keeps god mode on at the Top, as the main path's recording did) */
+               Great Pull, the seed, the Well, the Great Spool, the Top. (LEG9 clears the Needle's stitches as it starts, as the
+               main path's recording did) */
             const said = [], D = HW.global('Dialog'), open0 = D.open;
             D.open = function (who, text, opts) { said.push(String(text)); return open0.call(this, who, text, opts); };
             HW.warp('hollow', 95, 10); HW.step(10); HW.skipTalk();
