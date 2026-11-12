@@ -151,9 +151,9 @@ const SFX = {
     /* (asked for when the mill pond has run out; it had no sound) */
     chime: (o, t) => { Audio.tone(o, t, 1318, 0.6, 'triangle', 0.12, { r: 0.5 }); Audio.tone(o, t + 0.12, 1760, 0.7, 'triangle', 0.1, { r: 0.6 }); Audio.tone(o, t + 0.12, 2637, 0.4, 'sine', 0.03, { r: 0.35 }); },
 };
-/* each effect's level (dB, on top of its recipe), filled in by 40e_mix.js from measuring every effect against the music
-   of it, K-weighted, next to the tunes' -28 LUFS): what matters a lot (a find, a Knot) stands a few dB over the music,
-   what happens all the time (a step, a letter of talk) a few under, and nothing is lost under it or shouts over it */
+/* each effect's level (dB, on top of its recipe), filled in by 40e_mix.js from measuring every effect against the
+   music: what matters a lot (a find, a Knot) stands a few dB over the tune under it, what happens all the time (a
+   letter of talk, a menu) a few under, and nothing is lost under it or shouts over it */
 const SFX_LEVEL = {};
 const Sfx = {
     last: {},

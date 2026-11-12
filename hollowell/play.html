@@ -2139,7 +2139,7 @@ const Audio = {
        limiter's knee (half of full scale) even with both volumes at the top; the limiter is a straight line up to the
        knee, so it changes nothing there, and past it bends smoothly toward a ceiling it never crosses. It has no memory,
        so it can't pump: it only rounds off a rare pile-up of sounds that would otherwise clip */
-    MUSIC: 0.275, SFX: 0.35, KNEE: 0.5, CEIL: 0.944,
+    MUSIC: 1, SFX: 1, KNEE: 0.5, CEIL: 0.944,
     k: 1,       /* the level of the effect being played (Sfx.play sets it for the moment; tone and hit scale by it) */
     /* all sound off or on (a page hosting the game has a button for it) */
     setMuted(m) { this.muted = !!m; if (this.master) this.glide(this.master.gain, this.muted ? 0 : 1); },
@@ -2280,9 +2280,9 @@ const SFX = {
     /* (asked for when the mill pond has run out; it had no sound) */
     chime: (o, t) => { Audio.tone(o, t, 1318, 0.6, 'triangle', 0.12, { r: 0.5 }); Audio.tone(o, t + 0.12, 1760, 0.7, 'triangle', 0.1, { r: 0.6 }); Audio.tone(o, t + 0.12, 2637, 0.4, 'sine', 0.03, { r: 0.35 }); },
 };
-/* each effect's level (dB, on top of its recipe), from measuring every effect against the music (the loudest 100 ms
-   of it, K-weighted, next to the tunes' -28 LUFS): what matters a lot (a find, a Knot) stands a few dB over the music,
-   what happens all the time (a step, a letter of talk) a few under, and nothing is lost under it or shouts over it */
+/* each effect's level (dB, on top of its recipe), filled in by 40e_mix.js from measuring every effect against the
+   music: what matters a lot (a find, a Knot) stands a few dB over the tune under it, what happens all the time (a
+   letter of talk, a menu) a few under, and nothing is lost under it or shouts over it */
 const SFX_LEVEL = {};
 const Sfx = {
     last: {},
@@ -8718,7 +8718,7 @@ interior({
     legend: { 'O': { k: 'crawl', p: 'wall', ent: 'crawlhole' } },
     ents: [
         { k: 'deco', x: 1, y: 7, look: 'counter', ox: 0, oy: -6, solid: [[0, 0], [1, 0], [2, 0]] },
-        { k: 'deco', x: 2, y: 7, look: 'sign_closed', solid: [[0, 0]], oy: -14, baseY: 40, text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. - J.' },
+        { k: 'deco', x: 2, y: 7, look: 'sign_closed', solid: [[0, 0]], oy: -14, baseY: 40, text: 'A card on the counter: GONE FOR THE SEASON. BACK WHEN I\'M BACK. -J.' },
         { k: 'deco', x: 9, y: 5, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'deco', x: 6, y: 2, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
     ],
@@ -10061,6 +10061,37 @@ SONGS.unfinished = {
 /* the other long stays: the Houses' rooms, the Underside, the Drift (not the fights, which play tunes of their own, nor
    the town, the regions or the scenes) */
 for (const id of ['tidy', 'kilnhouse', 'millrace', 'belfry', 'slumber', 'marionette', 'underside', 'spoolworks', 'loom', 'greatspool', 'drift']) if (SONGS[id]) SONGS[id].thin = true;
+
+// ---- 40e_mix.js ----
+/* The mix: each tune's and each effect's level in dB, from rendering every one of them through the synth (offline,
+   in Chromium) and measuring it: a tune's loudness integrated over two passes (BS.1770, LUFS), an effect's over its
+   loudest 100 ms. At the default volumes every tune plays at about -28 LUFS. Under that, on purpose: Gran's lullaby,
+   the Unfinished House, the Loom and the Slumberhouse 3 dB (tender, still, a music box winding down), Hushwood 2 (half
+   asleep); the Tidyhouse 2 (its minuet is all short notes, so it peaks high for its loudness, and it is kept under the
+   limiter's knee with the volume at the top). Effects stand by what they mean against the tune under them: a find or a
+   Knot 2-4 dB over it, a hit or a door about level, plates, threads and landings a little under, the menus 5-8 under,
+   a letter of talk 14 under. Measured by tests/browser.mjs `audio`, which fails if one drifts out of its place. */
+
+Object.assign(SONG_LEVEL, {
+    title: -3.2, town: 0.6, home: -3.0, inn: 2.5, shop: 4.3, meadow: 0.9,
+    tidy: 4.1, boss: -2.0, knot: -3.1, kiln: -0.1, kilnhouse: 2.2, water: 0.5,
+    millrace: 0.5, heights: 1.4, belfry: 3.3, lullaby: -4.1, festival: 0.3, hush: -6.1,
+    slumber: -2.8, fair: -1.1, marionette: 2.5, underside: 4.0, spoolworks: -0.2, loomwood: -1.7,
+    loom: -2.3, drift: -2.2, pull: 0.6, boss_tidy: -2.2, boss_kiln: -1.8, boss_mill: -1.2,
+    boss_belfry: -2.1, greatspool: 1.7, boss_slumber: -1.7, boss_marionette: -1.9, boss_spoolworks: -2.3, boss_loom: -1.7,
+    makings: 4.7, unfinished: -0.7,
+});
+
+Object.assign(SFX_LEVEL, {
+    push: 12.8, home: 6.9, pop: -6.3, twang: 9.1, click: 6.4, unclick: 10.1, door: -4.5, doorshut: -5.2,
+    unlock: -2.6, chest: 8.2, item: -1.2, smallitem: 7.2, heart: 9.5, button: 8.5, swing: 4.8, hitthing: 6.0,
+    hurt: 4.5, enemyhit: 4.6, unravel: 7.8, fall: -4.6, splash: -1.4, flight: 10.5, land: 17.7, lift: 6.2,
+    throw: 5.9, shatter: -2.7, crystal: -1.0, appear: -3.8, blip: 5.5, blipLow: 5.8, menu: 7.4, select: 3.8,
+    cancel: 6.1, bell: -5.9, knot: -4.5, hook: 7.2, hookhit: 4.4, step: 20.0, tug: -0.8, save: -1.8,
+    boss: 5.4, rumble: 11.1, chime: -3.2, warn: 11.0, winch: 3.6, baa: 6.5, vent: -5.2, lay: -4.0,
+    yawn: -6.5, boing: -7.0, crumble: -0.6, snort: 5.0, puff: 2.6, tie: 0.2, thud: -1.7, snip: 7.5,
+    charm: -3.5,
+});
 
 // ---- 41_house_kit.js ----
 /* Things every House uses: levers, Knot hoops, House doors to the outside, nudges (the Hints option:
@@ -11859,7 +11890,7 @@ defBlock({
         { k: 'sheep', x: 12, y: 16, id: 'oldTup', ram: true, sleeper: true, tiedOff: true, startAt: [11, 15], trace: [[12, 16], [11, 16], [11, 15]], pushLine: "Old Tup, asleep in the bothy's doorway. Pip says he's been asleep there since before she was born. He snores like a gate.",
             talk: "Old Tup, the ram, asleep across the bothy's doorway. He is enormous, and he smells of rain." },
         { k: 'chest', x: 12, y: 14, item: 'heartpatch', id: 'bothyPatch' },
-        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THE STONES DO THE COUNTING AND HE JUST WRITES IT DOWN. I SAID THAT'S CHEATING. HE SAID THAT'S SHEPHERDING. - P." },
+        { k: 'deco', x: 10, y: 14, look: 'tally_book', solid: [[0, 0]], oy: 2, text: "A tally book, on a shelf of stone. Every page, a column of little strokes: yan, tan, tethera, a sheep each, counted home. The last page is in a child's writing: GRANDAD SAYS THE STONES DO THE COUNTING AND HE JUST WRITES IT DOWN. I SAID THAT'S CHEATING. HE SAID THAT'S SHEPHERDING. -P." },
         /* Lucky: born over the river, and that's her place, so that's where she goes */
         { k: 'sheep', x: 55, y: 32, id: 'lucky', lamb: true, grazes: true, talk: "A lamb with a red cross dyed on her and LUCKY painted on her bell. She bleats at the river, and at you, and at the river again." },
         { k: 'enemy', x: 22, y: 13, type: 'nibbler' }, { k: 'enemy', x: 25, y: 18, type: 'nibbler' }, { k: 'enemy', x: 56, y: 9, type: 'nibbler' },
@@ -11918,8 +11949,8 @@ SPAWN.windmill = (x, y) => new Windmill(x, y);
 
 /* Linnet's notes: found under strays, behind things, in places the Return can't reach */
 const LINNET_NOTES = {
-    1: { title: "A note behind Gran's portrait", text: "This is my Wander, my first day. Gran's turned my picture to the wall because she says I'll be back before it gets dusty. I'll turn it round myself when I get home. - L." },
-    2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. - L." },
+    1: { title: "A note behind Gran's portrait", text: "This is my Wander, my first day. Gran's turned my picture to the wall because she says I'll be back before it gets dusty. I'll turn it round myself when I get home. -L." },
+    2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. -L." },
 };
 SPAWN.linnetnote = (tx, ty, p) => {
     const pr = new Prop(tx, ty, { im: ART.note, solid: [], oy: 2 });
@@ -13892,7 +13923,7 @@ SPAWN.nest = (tx, ty) => {
 };
 /* an old cracked urn, wedged at the end of the crevice */
 SPAWN.urnseal = (x, y, p) => { const s = new Seal(x, y, p); s.sprite = () => spr('urn_cracked'); s.onStruck = () => UI.toast('An old urn, cracked all over. A good knock from a distance would do it.'); return s; };
-LINNET_NOTES[3] = { title: 'A note in a cracked urn', text: "I broke a pot in the Kiln and watched the bits go home and I could SEE THE THREAD. Just for a moment. It went down through the floor. Down. Not back to the shelf: down. Who's down there? - L." };
+LINNET_NOTES[3] = { title: 'A note in a cracked urn', text: "I broke a pot in the Kiln and watched the bits go home and I could SEE THE THREAD. Just for a moment. It went down through the floor. Down. Not back to the shelf: down. Who's down there? -L." };
 NOTES.linnet3 = { title: LINNET_NOTES[3].title, text: LINNET_NOTES[3].text };
 
 function initKilnridgeArt() {
@@ -14523,7 +14554,7 @@ defBlock({
         { k: 'falls', x: 39, y: 30, w: 6, h: 2, river: 3 },
         { k: 'chest', x: 44, y: 30, item: 'heartpatch', id: 'mwCave' },
         { k: 'chest', x: 44, y: 34, item: 'b50', id: 'mwBasin' },
-        { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. - L."' },
+        { k: 'deco', x: 43, y: 35, look: 'note_bottle', solid: [[0, 0]], text: 'A bottle with a note in it: "If you are reading this, you rode over the falls. So did I. Then I fell in on purpose and went home the quick way. -L."' },
         /* Heron Rock: an islet off the south shore of the east reach, low rocks all round it but on the south; an old
            barrel lives on it (its place is out there; reeled ashore it leaves an empty mark, and a mark is something to
            hook onto, if the barrel's out of the line) */
@@ -16825,7 +16856,7 @@ AREAS.toys.ents.push(
     { k: 'door', x: 3, y: 4, type: 'gate', when: 'jLatch', dir: 'h', id: 'jDoor', passed: 'up' },
     { k: 'parcel', x: 6, y: 8, id: 'jParcel', startAt: [3, 3], trace: [[6, 8], [6, 7], [5, 7], [5, 6], [4, 6], [4, 5], [3, 5], [3, 4], [3, 3]], if: '!fav_stick' },
     { k: 'chest', x: 1, y: 2, item: 'b50', id: 'jChest' },
-    { k: 'deco', x: 4, y: 1, look: 'jory_note', solid: [[0, 0]], oy: 2, baseY: -100, text: "A note pinned up in Jory's hand: TUCK'S. FOR LATER. NOT BEFORE. And underneath, smaller: If you can read this, you're good with strings. Have a look in the chest. - J." },
+    { k: 'deco', x: 4, y: 1, look: 'jory_note', solid: [[0, 0]], oy: 2, baseY: -100, text: "A note pinned up in Jory's hand: TUCK'S. FOR LATER. NOT BEFORE. And underneath, smaller: If you can read this, you're good with strings. Have a look in the chest. -J." },
 );
 /* out in the street, the parcel's thread: from Jory's door, down through the square, to Tuck's (drawn on the ground) */
 const STICK_THREAD = [[24, 9], [24, 12], [23, 13], [23, 25], [25, 26], [25, 31], [19, 31], [18, 32], [18, 35]];
@@ -17177,21 +17208,21 @@ defArea({
         { k: 'deco', x: 1, y: 9, look: 'stairs_down', solid: false, baseY: -100 },
         /* 1: two at once */
         { k: 'plate', x: 3, y: 8, sig: 'start1', id: 'start1' },
-        { k: 'sign', x: 1, y: 7, text: "TRIAL ONE: TWO AT ONCE. Step on the start plate, then both plates down together before the bell. (Hint: one tidy thing can hold another in.) - I." },
+        { k: 'sign', x: 1, y: 7, text: "TRIAL ONE: TWO AT ONCE. Step on the start plate, then both plates down together before the bell. (Hint: one tidy thing can hold another in.) -I." },
         { k: 'plate', x: 8, y: 2, sig: 't1a' }, { k: 'plate', x: 8, y: 3, sig: 't1b' },
         { k: 'wood', x: 8, y: 5, id: 't1w1' }, { k: 'wood', x: 9, y: 3, id: 't1w2' },
         { k: 'chest', x: 15, y: 2, item: 'b20', id: 't1chest', hidden: true, when: 'flag:trial1' },
         { k: 'door', x: 19, y: 5, type: 'gate', when: 'flag:trial1', dir: 'v', id: 'tg1' },
         /* 2: the long way home */
         { k: 'plate', x: 21, y: 9, sig: 'start2', id: 'start2' },
-        { k: 'sign', x: 21, y: 7, text: "TRIAL TWO: THE LONG WAY HOME. Step on the start plate. The pot must be home on its shelf before the bell. It does dawdle so. - I." },
+        { k: 'sign', x: 21, y: 7, text: "TRIAL TWO: THE LONG WAY HOME. Step on the start plate. The pot must be home on its shelf before the bell. It does dawdle so. -I." },
         { k: 'deco', x: 22, y: 1, look: 'shelf', ox: 0, oy: -14, solid: [[0, 0], [1, 0]] },
         { k: 'pot', x: 22, y: 2, id: 'longPot', style: 'pot_teal', group: 'trial2', tiedOff: true, startAt: TRIAL2_PATH[TRIAL2_PATH.length - 1], trace: TRIAL2_PATH },
         { k: 'chest', x: 36, y: 1, item: 'b30', id: 't2chest', hidden: true, when: 'flag:trial2' },
         { k: 'door', x: 39, y: 5, type: 'gate', when: 'flag:trial2', dir: 'v', id: 'tg2' },
         /* 3: home time */
         { k: 'plate', x: 41, y: 5, sig: 'mat3', id: 'mat3' },
-        { k: 'sign', x: 44, y: 9, text: "TRIAL THREE: HOME TIME. Ring the bell at the far end, then be home on the plate by the door before it stops. The quickest way home is the way you came. - I." },
+        { k: 'sign', x: 44, y: 9, text: "TRIAL THREE: HOME TIME. Ring the bell at the far end, then be home on the plate by the door before it stops. The quickest way home is the way you came. -I." },
         { k: 'crystal', x: 42, y: 8, sig: 'bell3', id: 'bell3' },
         { k: 'chest', x: 41, y: 9, item: 'heartpatch', id: 't3chest', hidden: true, when: 'flag:trial3' },
     ],
@@ -18202,7 +18233,7 @@ defHouse({
             ents: [
                 { k: 'stone', x: 5, y: 4, pitch: 'low', id: 'esLow' }, { k: 'stone', x: 9, y: 4, pitch: 'mid', id: 'esMid' }, { k: 'stone', x: 13, y: 4, pitch: 'high', id: 'esHigh' },
                 { k: 'chest', x: 9, y: 2, item: 'heartpatch', id: 'esPatch', hidden: true, when: 'flag:belfry_echo' },
-                { k: 'deco', x: 16, y: 8, look: 'note_paper', solid: [[0, 0]], text: 'Scratched into the plaster, very small, with a pin: "Sang her to sleep with the stones. Low, high, middle, high, low. She never knew I could. - L."', if: 'belfry_echo' },
+                { k: 'deco', x: 16, y: 8, look: 'note_paper', solid: [[0, 0]], text: 'Scratched into the plaster, very small, with a pin: "Sang her to sleep with the stones. Low, high, middle, high, low. She never knew I could. -L."', if: 'belfry_echo' },
                 { k: 'sign', x: 2, y: 8, text: "Three stones: a big one, a middling one, a small one. Somebody has chalked on the wall: SING HER TO SLEEP." },
             ],
         },
@@ -20172,7 +20203,7 @@ WALLS.hushcave = {
     top: (x) => { fill(x, '#2e2e3e'); speckle(x, ['#3a3a4c', '#4a6a4a'], 9, 0.2); },
     face: (x, th, v) => { fill(x, '#4a4a5e'); speckle(x, ['#5e5e74', '#3a3a4c', '#5a7a5a'], 20 + v, 0.35); fill(x, '#26263a', 0, 15, 16, 1); },
 };
-LINNET_NOTES[6] = { title: "A note under the giant's hollow", text: "Underneath where the giant sleeps there's a hollow, and at the bottom of the hollow there's a little round door, and behind the door somebody was sawing wood and singing a work song. I didn't knock. I'm not brave yet. Nearly. - L." };
+LINNET_NOTES[6] = { title: "A note under the giant's hollow", text: "Underneath where the giant sleeps there's a hollow, and at the bottom of the hollow there's a little round door, and behind the door somebody was sawing wood and singing a work song. I didn't knock. I'm not brave yet. Nearly. -L." };
 NOTES.linnet6 = { title: LINNET_NOTES[6].title, text: LINNET_NOTES[6].text };
 defArea({
     id: 'hummock_hollow', name: "The Giant's Hollow", family: 'dungeon', theme: 'hushcave', house: null, thread: THREAD.wren,
@@ -22624,7 +22655,7 @@ TALK.pell = function* () {
 BUDGE.rook = 'Madame Rook: "I foresaw that."';
 BUDGE.pell = 'Pell: "Steady on! Steady on!"';
 
-LINNET_NOTES[7] = { title: "A note under the carousel's horse", text: "The horse on the carousel walked off its pole for me. Someone was working it, from somewhere. They make the Houses, you know. They make all of it, for us, out of love, and they're very good at it, and they cry when we get things right. I followed the strings down. - L." };
+LINNET_NOTES[7] = { title: "A note under the carousel's horse", text: "The horse on the carousel walked off its pole for me. Someone was working it, from somewhere. They make the Houses, you know. They make all of it, for us, out of love, and they're very good at it, and they cry when we get things right. I followed the strings down. -L." };
 NOTES.linnet7 = { title: LINNET_NOTES[7].title, text: LINNET_NOTES[7].text };
 
 /* off the edge of the mesa (only with a Bedroll laid up top: there's no climbing back) */
@@ -34053,10 +34084,10 @@ const StrayHouse = {
 }
 
 /* Linnet's Trail: notes 4 (the Belfry's Echo Room) and 5 (below the falls) were scenery; now they're notes like the rest */
-LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to sleep with the stones, the way she sings it: low, high, middle, high, low. She sings it to the cellar too, late at night, very quietly. Something down there turns one click for every Knot I tie. I counted. - L." };
+LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to sleep with the stones, the way she sings it: low, high, middle, high, low. She sings it to the cellar too, late at night, very quietly. Something down there turns one click for every Knot I tie. I counted. -L." };
 /* (note 5 says where and what to try, not what you'll find: the river's mouth in Meadowfold shows it, src/80c_fog_hand.js) */
-LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. Then tell me it's mist. - L." };
-LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. - L." };
+LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. Then tell me it's mist. -L." };
+LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. -L." };
 for (const k of [4, 5, 8]) NOTES['linnet' + k] = { title: LINNET_NOTES[k].title, text: LINNET_NOTES[k].text };
 {
     const belfry = AREAS.belfry.ents.find(e => e.look === 'note_paper' && e.if === 'belfry_echo');
