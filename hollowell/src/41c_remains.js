@@ -102,15 +102,22 @@ const RemainsKit = {
         };
     },
     /* where a thing tossed toward x, y (world pixels, its foot) comes down: there, or on the nearest open floor round it
-       (not on a bust, a crate or a wall) */
-    open(area, tx, ty) { const k = area.kind(tx, ty); return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty)); },
+       (not on a bust, a crate or a wall; nor on the spot of one that's out of its place: a bust coming home stood on
+       Clangor's breastplate for the rest of the game) */
+    open(area, tx, ty) {
+        const k = area.kind(tx, ty);
+        return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty))
+            && !area.ents.some(e => !e.removed && Return.away(e) && e.ret.mx === tx && e.ret.my === ty);
+    },
+    /* (a piece stands up from its foot: where the tile above it isn't free, it lies at the foot of its own tile, not up
+       over that one: the breastplate, landed just under a bust's place, stood up into it, and the bust came home onto it) */
     landing(area, x, y) {
         const open = (tx, ty) => this.open(area, tx, ty);
         const tx = tileOf(x), ty = tileOf(y - 1);
-        if (open(tx, ty)) return [x, y];
+        if (open(tx, ty)) return [x, open(tx, ty - 1) ? y : Math.max(y, ty * T + 15)];
         for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !open(tx + dx, ty + dy)) continue;
-            return [(tx + dx) * T + 8 + clamp(x - tx * T - 8, -4, 4), (ty + dy) * T + 12];
+            return [(tx + dx) * T + 8 + clamp(x - tx * T - 8, -4, 4), (ty + dy) * T + (open(tx + dx, ty + dy - 1) ? 12 : 15)];
         }
         return [x, y];
     },

@@ -410,7 +410,7 @@ CONTENT_INIT.push(initReveal2);
             Progress.set('gundry_r2');
             yield* say('gundry', "{sad}You've seen the Hall. I saw it too, forty years back, and went back up and oiled the winch and never said a word. Not proud of that.");
             yield* say('gundry', "The Shears are in the old Loom, in the Loomwood, past the north gate: the only blades in the valley that cut a thread for good. Linnet went that way.");
-            yield* say('gundry', "Hesper keeps that gate shut with a counterweight in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
+            yield* say('gundry', "Your gran keeps that gate shut with a counterweight in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
             /* (the key handed over first, and then what it is: no fourth page of talk) */
             Inv.items.guildkey = 1; Sfx.play('item');
             yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");

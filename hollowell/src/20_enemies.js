@@ -443,7 +443,9 @@ function calmBlows(owner) { const a = owner.area; if (a) for (const e of a.ents.
 /* a heart shaken loose in a long fight (a boss knocked into its next beat drops one), on floor Wren can reach */
 function bossHeart(area, x, y) {
     let tx = tileOf(x), ty = tileOf(y);
-    const ok = (a, b) => { const k = area.kind(a, b); return area.inside(a, b) && !k.solid && !k.pit && !k.deep && !k.ledge && !area.at(a, b); };
+    /* (nor on a tall thing's head: a bust on the tile below stands up into this one, and a heart there sat on it) */
+    const tall = (a, b) => { const o = area.at(a, b + 1), im = o && !o.hidden && o.sprite ? o.sprite() : null; return !!im && im.height > T; };
+    const ok = (a, b) => { const k = area.kind(a, b); return area.inside(a, b) && !k.solid && !k.pit && !k.deep && !k.ledge && !area.at(a, b) && !tall(a, b); };
     for (let r = 0; r <= 4 && !ok(tx, ty); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && ok(tileOf(x) + dx, tileOf(y) + dy)) { tx = tileOf(x) + dx; ty = tileOf(y) + dy; dx = dy = r + 1; }
     return area.add(new Pickup(tx * T, ty * T, { what: 'heart', vz: 2.5, life: 900 }));
 }

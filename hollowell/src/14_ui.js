@@ -181,14 +181,19 @@ const Dialog = {
        a little less, a boss or mini-boss double, and whatever the scene points at (opts.focus: a tile [x, y, tall], a
        thing, a box, or a list of them) treble. For a notice or the place's name (more), the creatures and people about
        count a little too, and a little less a puzzle's pieces on screen (a plate, a chest still shut, anything with a
-       place to go home to). Only what's in the room on screen: what's in another can't be shown or hidden */
+       place to go home to). Only what's in the room on screen: what's in another can't be shown or hidden; but seen from
+       underneath (the Makings), the room up above shows through the boards, shifted, and whoever's up there counts where
+       they're drawn (notices up top hid the boy upstairs) */
     items(opts = {}, more = false) {
         const p = G.player, a = G.map, out = [];
         if (!p || !a) return out;
         const room = Cam.room, multi = a.rooms.length > 1, seen = new Set();
+        const up = multi && room && room.above && typeof Layers !== 'undefined' ? Layers.upRoom(a, room) : null, ux = up ? room.above.dx * T : 0, uy = up ? room.above.dy * T : 0;
         const add = (e, w, piece, focus) => {
-            const b = viewBox(e);
-            if (!b || (multi && room && a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) !== room)) return;
+            let b = viewBox(e);
+            if (!b) return;
+            const r = multi && room ? a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) : room;
+            if (r !== room) { if (!up || r !== up) return; b = [b[0] - ux, b[1] - uy, b[2] - ux, b[3] - uy]; }
             const it = [b[0], b[1], b[2], b[3], w]; if (piece) it.piece = true; if (focus) it.focus = true; out.push(it);
         };
         const talk = this.active, prev = talk && this.prevWho !== this.who && G.t - (this.closedAt || -999) <= 120 ? this.prevWho : null;
@@ -196,13 +201,16 @@ const Dialog = {
         const find = who => a.ents.find(e => e.who === who && !e.hidden && !e.removed && e !== p);
         if (talk && this.who && this.who !== 'wren') { const sp = find(this.who); if (sp) { add(sp, 2); seen.add(sp); } }
         if (prev && prev !== 'wren') { const pv = find(prev); if (pv && !seen.has(pv)) { add(pv, 1.5); seen.add(pv); } }
-        const near = e => e.x > Cam.x - 64 && e.x < Cam.x + W + 64 && e.y > Cam.y - 64 && e.y < Cam.y + H + 80;
+        const near = (e, dx, dy) => e.x - dx > Cam.x - 64 && e.x - dx < Cam.x + W + 64 && e.y - dy > Cam.y - 64 && e.y - dy < Cam.y + H + 80;
         for (const e of (a.walkers || []).concat(a.ents)) {
             if (seen.has(e) || e === p || e.hidden || e.removed || e.alive === false) continue;
             seen.add(e);
+            /* (up above, only who's about: the boy the Making's about a little more) */
+            const above = !!up && a.roomAt(e.isGrid ? e.tx : tileOf(e.x), e.isGrid ? e.ty : tileOf(e.y - 1)) === up;
             if (isBoss(e)) add(e, 2);
-            else if (!more || !near(e)) continue;
-            else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
+            else if (!more || !near(e, above ? ux : 0, above ? uy : 0)) continue;
+            else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, above && e.who === 'tuck' ? 0.8 : 0.5);
+            else if (above) continue;
             else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.1, true);
             /* (a chest still shut is somewhere to go next: a little more) */
             else if (e.isGrid && e.kind === 'chest' && !e.opened) add(e, 0.2, true);

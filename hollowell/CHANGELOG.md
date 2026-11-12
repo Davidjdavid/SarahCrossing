@@ -213,3 +213,12 @@
   place names don't repeat themselves, and the screen's corners keep out of the way of what matters.
 - Last touches from the full playthroughs: doors and chests shown as they're announced, foes' ends seen through their
   last lines, the climax's hands drawn, a line that contradicted an earlier one, a figure that floated.
+
+## 2026-11-12 (the polish campaign ends)
+- Last touches from the final playthrough: a wall's dressing no longer looks like part of the hearts row, a speaker
+  shown where he speaks from, a notice that repeated itself shortened, nothing left sitting on a statue's head, a line
+  about something in a character's hands now drawn, a softer glow behind finds, notices that keep clear of the people
+  seen through a floor, a name the story hadn't given yet taken out of a line, a page break moved to a sentence's end,
+  and two shadows and a face that were drawn badly.
+- The polish campaign is complete: one clean full playthrough in a real browser, every room played blind by a
+  reviewer, and every check passing (851 headless tests, the browser checks, the placement audit).

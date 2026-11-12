@@ -11,6 +11,9 @@ function holdUpSpot(p, cx, cy) {
     if (y >= 9) return [x, y];
     return [x + (x > W - 40 ? -15 : 15), Math.max(9, p.y - cy - 10)];
 }
+/* the glow behind a find held up: [radius, alpha, colour] from its edge in, each laid over the last, so over the dark it
+   builds up from a faint gold at its edge to a pale middle a ring at a time (no rim), and on a floor barely tints it */
+const HOLD_GLOW = [[13, 0.08, '#ffb840'], [12, 0.1, '#ffc456'], [11, 0.13, '#ffd070'], [10, 0.17, '#ffdc8a'], [9, 0.22, '#ffe6a6'], [8, 0.3, '#ffefc4'], [7, 0.52, '#fffaf0'], [5, 0.56, '#fffdf8']];
 /* a sprite's outline, in one colour (its edge pixels): Wren drawn through whoever stands in front of her */
 function outlineOf(im, col = '#fff4c0') {
     if (HEADLESS || !im || !im.getContext) return null;
@@ -635,11 +638,12 @@ class Player extends Ent {
         const { im, flip } = this.sprite();
         const z = this.z || 0;
         /* holding up a find: a soft glow behind it, in front of whatever's behind her (the chest she opened), so the find
-           reads as the find; warm, pale in the middle and gold at its rim (faint white over the dark of a chasm was a flat
-           grey disc) */
+           reads as the find; warm, pale in the middle and gold toward its edge (faint white over the dark of a chasm was a
+           flat grey disc), fading out at its edge a ring at a time (three rings, over the dark, was a disc with a rim) */
         if (this.state === 'hold' && G.holdUp) {
             const [gx, gy] = holdUpSpot(this, cx, cy);
-            Gfx.alpha(0.4); Gfx.circle(gx, gy, 12, '#ffcf6a'); Gfx.alpha(0.6); Gfx.circle(gx, gy, 10, '#ffe8a8'); Gfx.alpha(0.8); Gfx.circle(gx, gy, 7, '#fffaf0'); Gfx.alpha(1);
+            for (const [r, a, c] of HOLD_GLOW) { Gfx.alpha(a); Gfx.circle(gx, gy, r, c); }
+            Gfx.alpha(1);
         }
         /* shadow (laid out flat, she's longer and lower) */
         const flat = im === SPR.wren_lie;

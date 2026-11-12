@@ -850,7 +850,9 @@ const Tidy = {
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 9, br.y + 5));
-        a.add(new Pickup((br.x + 9) * T, (br.y + 7) * T, { what: 'heartstitch', id: 'tidyHeart' }));
+        /* (where it is whenever the House is built again: not on the tile over a bust, whose head stands up into it) */
+        const h = HOUSE_AFTER.tidy.heart;
+        a.add(new Pickup((br.x + h[0]) * T, (br.y + h[1]) * T, { what: 'heartstitch', id: 'tidyHeart' }));
         Sfx.play('appear');
         Music.play('tidy');
     },

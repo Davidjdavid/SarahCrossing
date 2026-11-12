@@ -444,8 +444,11 @@ const BelfryFoes = {
             t.hop = false; t.z = 0; t.duck();
         } else yield 30;
         if (n === 2) {
+            /* (his eyes showing in the dark of the bell's mouth while he's in there talking) */
+            t.peer = true;
             yield* say(null, 'Tollgrim scrambles back up into the great bell and heaves on it. The bell swings round on its beam, the shutters in the east wall bang open, and the wind comes in sideways now, without a let-up.', { focus: bell });
             yield* say(null, '"I HEARD YOUR LITTLE BELL," he grates, from the dark inside. "I\'LL HEAR IT NEXT TIME, TOO."', { focus: bell });
+            t.peer = false;
         } else yield* say(null, "Tollgrim drags himself back into the bell, and this time his eyes don't watch the clapper. They watch you. While you're near enough to ring it home, he won't show so much as a horn.", { focus: bell });
     },
     *tollDown(t) {

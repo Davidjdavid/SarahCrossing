@@ -45,18 +45,23 @@ edge, a grainy night sky, people facing the wrong way at counters, things hoveri
 ## Exit criteria (all must hold)
 - [x] One full live playthrough (David, 12 November: one clean run is enough, no need for two in a row): no errors, no
       unexplained probe anomalies, and snapshot review finds nothing new above cosmetic. Live run 5 (findings 79-81).
-- [ ] Text-fit audit passes for every string (longest player name included).
-- [ ] Placement audit passes: nobody and nothing starts in or walks through a solid; no two things share a tile.
-- [ ] Frame pacing: at 60 Hz (with jitter) every refresh gets exactly one step; at 120/144 Hz the pattern is as even
+- [x] Text-fit audit passes for every string (longest player name included).
+- [x] Placement audit passes: nobody and nothing starts in or walks through a solid; no two things share a tile.
+- [x] Frame pacing: at 60 Hz (with jitter) every refresh gets exactly one step; at 120/144 Hz the pattern is as even
       as it can be; the busiest scenes render well under budget with the CPU slowed 4x.
-- [ ] Crisp pixels at devicePixelRatio 1, 1.25, 1.5, 2 and odd window sizes (checked on screenshots).
-- [ ] Every main-path puzzle room judged fair by a blind reviewer (or rewritten); the goal line always says where next.
-- [ ] Critic's ranked list: every item done or decided against (with the reason) below.
-- [ ] Dialogue pass done (typos, voice, overlong lines).
-- [ ] Audio: no clipping; levels balanced between tunes and effects; no tune loops so short it wears.
-- [ ] `npm test` and `node tests/browser.mjs` pass; docs updated.
+- [x] Crisp pixels at devicePixelRatio 1, 1.25, 1.5, 2 and odd window sizes (checked on screenshots).
+- [x] Every main-path puzzle room judged fair by a blind reviewer (or rewritten); the goal line always says where next.
+- [x] Critic's ranked list: every item done or decided against (with the reason) below.
+- [x] Dialogue pass done (typos, voice, overlong lines).
+- [x] Audio: no clipping; levels balanced between tunes and effects; no tune loops so short it wears.
+- [x] `npm test` and `node tests/browser.mjs` pass; docs updated.
 
-Where each stands (11 November, late):
+**The campaign is complete (12 November).** Every criterion above is met; the evidence for each is below. The last
+cosmetic touches (fix round H, findings 80-81) were checked on the final code: `npm test` 851/851, the browser checks
+pass, the placement audit 0, and a live run of all nine legs (877 pictures) with 0 probe issues, 0 game errors and 0
+page errors.
+
+Where each stands (12 November: all met):
 - Text fit: met (tests/ui_fit with the longest name a player can type, tests/ui_sweep for every menu at the start and
   late, and the probe's text checks over every line shown in all nine legs).
 - Placement: met (tests/audit_place.mjs: 0 findings over every area at 13 story stages, nine documented exceptions;
@@ -72,7 +77,9 @@ Where each stands (11 November, late):
   blind; their findings (62-64, 70-71) in fix round E. The goal line: checked
   at every story stage by the journal tests; the Slumberhouse's stale goal fixed (finding 56).
 - The critic's list: met (every item done; see below).
-- Audio: met (finding 67; levels in scratchpad audio/levels.md). Dialogue pass: met (finding 68). Two clean live runs: after fix round E.
+- Audio: met (finding 67; levels in scratchpad audio/levels.md). Dialogue pass: met (finding 68). The full live playthrough: met (live run 5, one clean run by David's rule; its
+  last cosmetic touches in fix round H). Tests and docs: met (851/851, browser checks pass; this file, CHANGELOG.md,
+  QA_REPORT.md and PROJECT_STATE.md up to date).
 
 ## Past playtest catalogue
 The kinds of problems his playtests of earlier games turned up, most frequent or most annoying first, and how each is
@@ -196,8 +203,8 @@ but fair (cues exact, refusals say why); wants to be told where to go and shown 
 | 77 | live run 4, picture review A (cosmetic only) | Two exit doors under the box while their line is read (the Grand Hall, the Kiln's Heart); the Ballroom's notice over the chest it announces; the Glazer standing 4-8 px over its shadow; Tollgrim's climb back into his bell told, not shown; the Grand Hall's intro (a stamp never seen, a bust that reads as perched on the Housekeeper); hams and hook rings in the HUD's row; the Snapjaw's yarn drawn on the crates; the Millpond's wheel cut off during its line; a grey glow over the chasm | fixed (fix round G): both doorways in their line's focus; the Ballroom's notice two lines with a focus, and a notice that would hide Wren or its focus either side leans the camera as the box does (focuses added to nine more "something appears" notices); the Glazer on its shadow; Tollgrim seen dazed, then hopping up into his bell, in the same 30 frames; the Housekeeper steps off its cross and stamps back on, the busts in focus; the ham clear of the hearts, no portholes in the HUD's row; the yarn in the water under the crates; the Millpond's wheel seen turning before its line; a warm glow over the chasm. Decided against: moving the Grand Hall's bust (a puzzle piece of the fight) | |
 | 78 | live run 4, picture review B (no blocker, no typos or overflow) | Above cosmetic: the reveal's morning line calls the cellar door "never locked" though the door has said "Locked" since the first morning; Captain Tin's and Matron Hush's ends told but gone before the line can be read (missed by finding 75). Nits: Gran's hands on the Spool told but not drawn in the climax; "Tess" in narration where her tag says "Mum"; a sleepwalker who "gets up" while standing; a line said by Tuck off screen; the Larkspur jump drawn as going up a cliff; people over people in the first reveal; a banner over the Inn's keeper; a notice left up from upstairs. The live run's tool missed a second notice placed in the same frame | fixed (fix round G): the cellar door "locked from the inside"; Captain Tin and Matron Hush leave what their lines name until they're read (in tests/told_seen's foes, with a slow reader); Gran's hands on the drum's rim until they're taken; "Your mum, from somewhere above"; "She sets off"; the reveal's line-up clear of strings and crossbar, tags off Wren's legs, the place name below a face; the live run pictures every notice. Decided against: the Larkspur jump (every cliff shows its south face), Tuck's line from the next room up (the underside shows only the room overhead), a hint notice left up downstairs (its other side covers Wren), four choices that can't fit the box. Suite 843/843; a full live run 876 pictures, 0 probe issues, 0 errors | |
 | 79 | live run 5 (all nine legs in Chromium on a frozen copy of b53af38: 876 pictures; the same copy: 843/843, browser checks pass, placement audit 0) | The probe: 0 kinds of issue; 0 game errors, 0 page errors; every leg complete | **clean**: picture review A (finding 80) and B (finding 81) found no blocker and nothing above cosmetic; with David's rule of one clean run, the playthrough exit criterion is met |
-| 80 | live run 5, picture review A (0000-0225): no blocker, nothing above cosmetic; every fix of run 4 seen holding | Nits: glazed plates on the Chasm Gallery's top wall in the HUD's row; Tollgrim speaking from an empty bell on one page; Grindle's gulp notice word for word twice; a drop on a bust's head in the Grand Hall and a bust standing on Clangor's breastplate; the Glazer's ball of clay not drawn; the key's glow over the chasm drawn as a hard-edged disc | open (cosmetic; for the wrap-up) |
-| 81 | live run 5, picture review B (0226-0875): no blocker, nothing new above cosmetic; every fix of run 4 seen holding | Nits: notices in the Makings ignoring the people seen through the floor (0.5-0.8 s over Tuck or Otto); "Hesper" in a line that points the way (the main path never says Gran's first name); two notices in the ninth Little House with no focus; a mid-phrase page break; the giant's shadow a disc under him once he's up; the Slumberhouse Garden ford drawn deep; Jory's face behind the crossbar on "It's Jory up there"; a few gifts not held up | open (cosmetic; the cheap ones in fix round H, fixH_brief.md) |
+| 80 | live run 5, picture review A (0000-0225): no blocker, nothing above cosmetic; every fix of run 4 seen holding | Nits: glazed plates on the Chasm Gallery's top wall in the HUD's row; Tollgrim speaking from an empty bell on one page; Grindle's gulp notice word for word twice; a drop on a bust's head in the Grand Hall and a bust standing on Clangor's breastplate; the Glazer's ball of clay not drawn; the key's glow over the chasm drawn as a hard-edged disc | **fixed** (fix round H: the plates in a rack on their shelf, his eyes in the bell's mouth through both lines, a shorter second gulp, the Heartstitch and mid-fight hearts off the busts' heads and nothing landing on a bust's home, the clay drawn in its hands, the glow fading out ring by ring; tests/live5.test.mjs) |
+| 81 | live run 5, picture review B (0226-0875): no blocker, nothing new above cosmetic; every fix of run 4 seen holding | Nits: notices in the Makings ignoring the people seen through the floor (0.5-0.8 s over Tuck or Otto); "Hesper" in a line that points the way (the main path never says Gran's first name); two notices in the ninth Little House with no focus; a mid-phrase page break; the giant's shadow a disc under him once he's up; the Slumberhouse Garden ford drawn deep; Jory's face behind the crossbar on "It's Jory up there"; a few gifts not held up | **fixed** (fix round H: notices count the people seen through the floor where they're drawn, both notices with a focus, "Your gran", two sentences, a flat shadow, the upright below his face; tests/live5.test.mjs). Left as they are (cosmetic, nothing a player needs): the ford drawn as the river's blue (the path runs up to it and on from the far bank; drawing it shallow would mean a new kind of water there), two finds told with nothing held up, the First Spinner's carved line near the screen's top |
 
 ## Work queue (helpers; at most three or four at once: twelve at once hit the usage limit)
 Briefs are in the session scratchpad (house_brief.md, staging_brief.md, greatspool_brief.md, makings_brief.md,

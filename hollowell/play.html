@@ -2666,6 +2666,9 @@ function holdUpSpot(p, cx, cy) {
     if (y >= 9) return [x, y];
     return [x + (x > W - 40 ? -15 : 15), Math.max(9, p.y - cy - 10)];
 }
+/* the glow behind a find held up: [radius, alpha, colour] from its edge in, each laid over the last, so over the dark it
+   builds up from a faint gold at its edge to a pale middle a ring at a time (no rim), and on a floor barely tints it */
+const HOLD_GLOW = [[13, 0.08, '#ffb840'], [12, 0.1, '#ffc456'], [11, 0.13, '#ffd070'], [10, 0.17, '#ffdc8a'], [9, 0.22, '#ffe6a6'], [8, 0.3, '#ffefc4'], [7, 0.52, '#fffaf0'], [5, 0.56, '#fffdf8']];
 /* a sprite's outline, in one colour (its edge pixels): Wren drawn through whoever stands in front of her */
 function outlineOf(im, col = '#fff4c0') {
     if (HEADLESS || !im || !im.getContext) return null;
@@ -3290,11 +3293,12 @@ class Player extends Ent {
         const { im, flip } = this.sprite();
         const z = this.z || 0;
         /* holding up a find: a soft glow behind it, in front of whatever's behind her (the chest she opened), so the find
-           reads as the find; warm, pale in the middle and gold at its rim (faint white over the dark of a chasm was a flat
-           grey disc) */
+           reads as the find; warm, pale in the middle and gold toward its edge (faint white over the dark of a chasm was a
+           flat grey disc), fading out at its edge a ring at a time (three rings, over the dark, was a disc with a rim) */
         if (this.state === 'hold' && G.holdUp) {
             const [gx, gy] = holdUpSpot(this, cx, cy);
-            Gfx.alpha(0.4); Gfx.circle(gx, gy, 12, '#ffcf6a'); Gfx.alpha(0.6); Gfx.circle(gx, gy, 10, '#ffe8a8'); Gfx.alpha(0.8); Gfx.circle(gx, gy, 7, '#fffaf0'); Gfx.alpha(1);
+            for (const [r, a, c] of HOLD_GLOW) { Gfx.alpha(a); Gfx.circle(gx, gy, r, c); }
+            Gfx.alpha(1);
         }
         /* shadow (laid out flat, she's longer and lower) */
         const flat = im === SPR.wren_lie;
@@ -3882,14 +3886,19 @@ const Dialog = {
        a little less, a boss or mini-boss double, and whatever the scene points at (opts.focus: a tile [x, y, tall], a
        thing, a box, or a list of them) treble. For a notice or the place's name (more), the creatures and people about
        count a little too, and a little less a puzzle's pieces on screen (a plate, a chest still shut, anything with a
-       place to go home to). Only what's in the room on screen: what's in another can't be shown or hidden */
+       place to go home to). Only what's in the room on screen: what's in another can't be shown or hidden; but seen from
+       underneath (the Makings), the room up above shows through the boards, shifted, and whoever's up there counts where
+       they're drawn (notices up top hid the boy upstairs) */
     items(opts = {}, more = false) {
         const p = G.player, a = G.map, out = [];
         if (!p || !a) return out;
         const room = Cam.room, multi = a.rooms.length > 1, seen = new Set();
+        const up = multi && room && room.above && typeof Layers !== 'undefined' ? Layers.upRoom(a, room) : null, ux = up ? room.above.dx * T : 0, uy = up ? room.above.dy * T : 0;
         const add = (e, w, piece, focus) => {
-            const b = viewBox(e);
-            if (!b || (multi && room && a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) !== room)) return;
+            let b = viewBox(e);
+            if (!b) return;
+            const r = multi && room ? a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) : room;
+            if (r !== room) { if (!up || r !== up) return; b = [b[0] - ux, b[1] - uy, b[2] - ux, b[3] - uy]; }
             const it = [b[0], b[1], b[2], b[3], w]; if (piece) it.piece = true; if (focus) it.focus = true; out.push(it);
         };
         const talk = this.active, prev = talk && this.prevWho !== this.who && G.t - (this.closedAt || -999) <= 120 ? this.prevWho : null;
@@ -3897,13 +3906,16 @@ const Dialog = {
         const find = who => a.ents.find(e => e.who === who && !e.hidden && !e.removed && e !== p);
         if (talk && this.who && this.who !== 'wren') { const sp = find(this.who); if (sp) { add(sp, 2); seen.add(sp); } }
         if (prev && prev !== 'wren') { const pv = find(prev); if (pv && !seen.has(pv)) { add(pv, 1.5); seen.add(pv); } }
-        const near = e => e.x > Cam.x - 64 && e.x < Cam.x + W + 64 && e.y > Cam.y - 64 && e.y < Cam.y + H + 80;
+        const near = (e, dx, dy) => e.x - dx > Cam.x - 64 && e.x - dx < Cam.x + W + 64 && e.y - dy > Cam.y - 64 && e.y - dy < Cam.y + H + 80;
         for (const e of (a.walkers || []).concat(a.ents)) {
             if (seen.has(e) || e === p || e.hidden || e.removed || e.alive === false) continue;
             seen.add(e);
+            /* (up above, only who's about: the boy the Making's about a little more) */
+            const above = !!up && a.roomAt(e.isGrid ? e.tx : tileOf(e.x), e.isGrid ? e.ty : tileOf(e.y - 1)) === up;
             if (isBoss(e)) add(e, 2);
-            else if (!more || !near(e)) continue;
-            else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
+            else if (!more || !near(e, above ? ux : 0, above ? uy : 0)) continue;
+            else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, above && e.who === 'tuck' ? 0.8 : 0.5);
+            else if (above) continue;
             else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.1, true);
             /* (a chest still shut is somewhere to go next: a little more) */
             else if (e.isGrid && e.kind === 'chest' && !e.opened) add(e, 0.2, true);
@@ -5723,7 +5735,9 @@ function calmBlows(owner) { const a = owner.area; if (a) for (const e of a.ents.
 /* a heart shaken loose in a long fight (a boss knocked into its next beat drops one), on floor Wren can reach */
 function bossHeart(area, x, y) {
     let tx = tileOf(x), ty = tileOf(y);
-    const ok = (a, b) => { const k = area.kind(a, b); return area.inside(a, b) && !k.solid && !k.pit && !k.deep && !k.ledge && !area.at(a, b); };
+    /* (nor on a tall thing's head: a bust on the tile below stands up into this one, and a heart there sat on it) */
+    const tall = (a, b) => { const o = area.at(a, b + 1), im = o && !o.hidden && o.sprite ? o.sprite() : null; return !!im && im.height > T; };
+    const ok = (a, b) => { const k = area.kind(a, b); return area.inside(a, b) && !k.solid && !k.pit && !k.deep && !k.ledge && !area.at(a, b) && !tall(a, b); };
     for (let r = 0; r <= 4 && !ok(tx, ty); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && ok(tileOf(x) + dx, tileOf(y) + dy)) { tx = tileOf(x) + dx; ty = tileOf(y) + dy; dx = dy = r + 1; }
     return area.add(new Pickup(tx * T, ty * T, { what: 'heart', vz: 2.5, life: 900 }));
 }
@@ -10878,7 +10892,7 @@ const Nudges = {
 /* a House's boss beaten but its Knot not yet tied: the Hoop and the boss's Heartstitch are there whenever the House is
    built again (after leaving it, or a load), not only right after the fight */
 const HOUSE_AFTER = {
-    tidy: { flag: 'tidy_boss', room: '1,0', hoop: [9, 5], heart: [9, 7], heartId: 'tidyHeart' },
+    tidy: { flag: 'tidy_boss', room: '1,0', hoop: [9, 5], heart: [11, 6], heartId: 'tidyHeart' },
     kiln: { flag: 'kiln_boss', room: '1,0', hoop: [9, 4], heart: [9, 7], heartId: 'kilnHeart' },
     millrace: { flag: 'millrace_boss', room: '1,0', hoop: [17, 9], heart: [4, 9], heartId: 'millHeart' },
     belfry: { flag: 'belfry_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'belfryHeart' },
@@ -11063,15 +11077,22 @@ const RemainsKit = {
         };
     },
     /* where a thing tossed toward x, y (world pixels, its foot) comes down: there, or on the nearest open floor round it
-       (not on a bust, a crate or a wall) */
-    open(area, tx, ty) { const k = area.kind(tx, ty); return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty)); },
+       (not on a bust, a crate or a wall; nor on the spot of one that's out of its place: a bust coming home stood on
+       Clangor's breastplate for the rest of the game) */
+    open(area, tx, ty) {
+        const k = area.kind(tx, ty);
+        return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty))
+            && !area.ents.some(e => !e.removed && Return.away(e) && e.ret.mx === tx && e.ret.my === ty);
+    },
+    /* (a piece stands up from its foot: where the tile above it isn't free, it lies at the foot of its own tile, not up
+       over that one: the breastplate, landed just under a bust's place, stood up into it, and the bust came home onto it) */
     landing(area, x, y) {
         const open = (tx, ty) => this.open(area, tx, ty);
         const tx = tileOf(x), ty = tileOf(y - 1);
-        if (open(tx, ty)) return [x, y];
+        if (open(tx, ty)) return [x, open(tx, ty - 1) ? y : Math.max(y, ty * T + 15)];
         for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !open(tx + dx, ty + dy)) continue;
-            return [(tx + dx) * T + 8 + clamp(x - tx * T - 8, -4, 4), (ty + dy) * T + 12];
+            return [(tx + dx) * T + 8 + clamp(x - tx * T - 8, -4, 4), (ty + dy) * T + (open(tx + dx, ty + dy - 1) ? 12 : 15)];
         }
         return [x, y];
     },
@@ -11990,7 +12011,9 @@ const Tidy = {
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 9, br.y + 5));
-        a.add(new Pickup((br.x + 9) * T, (br.y + 7) * T, { what: 'heartstitch', id: 'tidyHeart' }));
+        /* (where it is whenever the House is built again: not on the tile over a bust, whose head stands up into it) */
+        const h = HOUSE_AFTER.tidy.heart;
+        a.add(new Pickup((br.x + h[0]) * T, (br.y + h[1]) * T, { what: 'heartstitch', id: 'tidyHeart' }));
         Sfx.play('appear');
         Music.play('tidy');
     },
@@ -13748,11 +13771,14 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
+                /* (the ball of clay it's said to be rolling, in its hands beside the shield while that's said: drawClay) */
+                this.rolling = true;
                 Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands. Its shield turns to follow you.'); });
             }
             return;
         }
         if (Script.blocking()) return;
+        this.rolling = false;
         this.st++;
         switch (this.state) {
             case 'walk': {
@@ -13869,7 +13895,14 @@ class Glazer extends Enemy {
         if (this.dir === UP) this.drawShield(cx, cy, sh, low);
         Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - GLAZER_TOP + low, this.dir === LEFT);
         if (this.dir !== UP) this.drawShield(cx, cy, sh, low);
+        if (this.rolling) this.drawClay(cx, cy);
         if (this.state === 'brace') Tells.bang(this.x - cx, this.y - cy - GLAZER_TOP - 14);
+    }
+    /* a ball of clay in its hands, out beside the shield, rolled to and fro */
+    drawClay(cx, cy) {
+        const k = (this.t >> 3) % 4, x = Math.round(this.x - cx) + (this.dir === RIGHT ? -9 : 6) + (k === 1 ? 1 : k === 3 ? -1 : 0), y = Math.round(this.y - cy) - GLAZER_TOP + 10;
+        Gfx.rect(x, y, 4, 4, PAL.ink); Gfx.rect(x + 1, y - 1, 2, 6, PAL.ink); Gfx.rect(x - 1, y + 1, 6, 2, PAL.ink);
+        Gfx.rect(x, y + 1, 4, 2, '#c4623a'); Gfx.rect(x + 1, y, 2, 4, '#c4623a'); Gfx.rect(x + (k >> 1) + 1, y + 1, 1, 1, '#e8a070');
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -14548,10 +14581,14 @@ function initKilnLook() {
         for (let i = 26; i < 256; i += 48) { for (let k = 0; k < 4; k++) R('#4a2418', i - k, 17 + k, 8 + k * 2 - 2, 1); arch(R, i, 21, 8, 9, '#3a1810'); embers(R, i + 1, 22, 6, 8); }
         R('#3a1810', 0, 31, 256, 1);
     }, false);
-    /* plates hung on the gallery wall */
+    /* plates in a rack on the gallery wall: stood on its shelf behind its rail (three round plates hung on their own, with
+       a dot in the middle of each, up in the HUD's row, were taken for its gems) */
     ART.kw_plates = pic(48, 14, R => {
-        const plate = (cx, rim, mid, dot) => { for (let j = -6; j <= 6; j++) for (let i = -6; i <= 6; i++) { const d = Math.hypot(i, j); if (d > 6.3) continue; R(d > 4.8 ? rim : d < 1.8 ? dot : mid, cx + i, 7 + j, 1, 1); } R('#ffffff', cx - 3, 3, 2, 1); };
-        plate(8, '#2e9a96', '#efe6d2', '#e0913a'); plate(24, '#e0913a', '#efe6d2', '#5ad1c5'); plate(40, '#8a4a2a', '#e8b884', '#2e9a96');
+        const plate = (cx, rim, mid, ring) => { for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) { const d = Math.hypot(i, j); if (d > 4.9) continue; R(d > 3.6 ? rim : d > 1.4 && d < 2.5 ? ring : mid, cx + i, 5 + j, 1, 1); } };
+        R('#6b4128', 2, 1, 2, 11); R('#c9925a', 2, 1, 1, 11); R('#6b4128', 44, 1, 2, 11); R('#c9925a', 44, 1, 1, 11);
+        plate(11, '#2e9a96', '#efe6d2', '#e0913a'); plate(24, '#e0913a', '#efe6d2', '#5ad1c5'); plate(37, '#8a4a2a', '#e8b884', '#2e9a96');
+        R('#c9925a', 2, 7, 44, 1); R('#9a6438', 2, 8, 44, 1);
+        R('#c9925a', 1, 10, 46, 1); R('#9a6438', 1, 11, 46, 1); R('#6b4128', 1, 12, 46, 1);
     });
     /* rope coiled on its peg, a pulley block, a hank of cord */
     ART.kw_ropes = pic(24, 16, R => {
@@ -16647,7 +16684,9 @@ class Grindle extends GridThing {
         Fx.splash(o.tx * T + 8, o.ty * T + 8);
         Stats.count('boss:grindle:gulp');
         this.state = 'full'; this.st = 0;
-        UI.toast('Old Grindle gulps it down, shudders, and settles low in the water. Its gear-heart glints on its back.', 160);
+        /* (in full the first time in a fight; after that, shorter: word for word again twelve seconds on read as a slip) */
+        this.gulps = (this.gulps || 0) + 1;
+        UI.toast(this.gulps > 1 ? 'Gulp! Down it goes, and Old Grindle settles low again, its gear-heart showing.' : 'Old Grindle gulps it down, shudders, and settles low in the water. Its gear-heart glints on its back.', 160);
     }
     /* everything it swallowed goes home */
     spitOut() {
@@ -19871,8 +19910,11 @@ const BelfryFoes = {
             t.hop = false; t.z = 0; t.duck();
         } else yield 30;
         if (n === 2) {
+            /* (his eyes showing in the dark of the bell's mouth while he's in there talking) */
+            t.peer = true;
             yield* say(null, 'Tollgrim scrambles back up into the great bell and heaves on it. The bell swings round on its beam, the shutters in the east wall bang open, and the wind comes in sideways now, without a let-up.', { focus: bell });
             yield* say(null, '"I HEARD YOUR LITTLE BELL," he grates, from the dark inside. "I\'LL HEAR IT NEXT TIME, TOO."', { focus: bell });
+            t.peer = false;
         } else yield* say(null, "Tollgrim drags himself back into the bell, and this time his eyes don't watch the clapper. They watch you. While you're near enough to ring it home, he won't show so much as a horn.", { focus: bell });
     },
     *tollDown(t) {
@@ -21035,7 +21077,12 @@ class Giant extends Ent {
         const im = ART[this.state === 'walking' || this.state === 'waking' && this.up ? 'giant_up' : 'giant_sleep'];
         if (!im) return;
         const bob = this.state === 'walking' ? Math.abs(Math.sin(this.t / 8)) * 2 : Math.sin(this.t / 50) * 1;
-        Gfx.alpha(0.25); Gfx.circle(this.x - cx + 40, this.y - cy + 58, 30, PAL.ink); Gfx.alpha(1);
+        /* (lying down, a pool of shade under all of him; sat up, a flat one under his seat: the round one showed below his
+           feet as a dark disc on the grass) */
+        Gfx.alpha(0.25);
+        if (im === ART.giant_up) for (let j = -4; j <= 4; j++) { const w = Math.round(34 * Math.sqrt(1 - (j * j) / 25)); Gfx.rect(this.x - cx + 40 - w, this.y - cy + 61 + j, w * 2, 1, PAL.ink); }
+        else Gfx.circle(this.x - cx + 40, this.y - cy + 58, 30, PAL.ink);
+        Gfx.alpha(1);
         Gfx.img(im, this.x - cx, Math.round(this.y - cy + 64 - im.height - bob));
         if (this.state === 'asleep' || this.state === 'home') {
             const ph = (this.t % 120) / 120;
@@ -25669,8 +25716,9 @@ class StageRig extends Ent {
                 if (y < hy - 30) { const mx = (sx + hx - 40 + i * 7) / 2, my = (y + hy) / 2 + sag; Gfx.line(sx, y + 1, mx, my, '#cfc6b8'); Gfx.line(mx, my, hx - 40 + i * 7, hy, '#cfc6b8'); }
                 else Gfx.line(sx, y + 1, sx + (i % 2 ? 1 : -1), y + 7 + (i % 4), '#cfc6b8');
             }
+            /* (its upright from the bar down, under his chin: up over his face, he was a tuft of hair behind it) */
             Gfx.rect(x - 24, y - 2, 48, 5, PAL.ink); Gfx.rect(x - 23, y - 1, 46, 3, '#9a6438'); Gfx.rect(x - 23, y - 1, 46, 1, '#c9925a');
-            Gfx.rect(x - 2, y - 7, 5, 14, PAL.ink); Gfx.rect(x - 1, y - 6, 3, 12, '#9a6438'); Gfx.rect(x - 1, y - 6, 1, 12, '#c9925a');
+            Gfx.rect(x - 2, y - 3, 5, 13, PAL.ink); Gfx.rect(x - 1, y - 2, 3, 11, '#9a6438'); Gfx.rect(x - 1, y - 2, 1, 11, '#c9925a');
         }
         Gfx.rect(x - 12, y + 1, 24, 5, PAL.ink); Gfx.rect(x - 11, y + 2, 22, 3, '#9a6438'); Gfx.rect(x - 11, y + 2, 22, 1, '#e6c08a');
     }
@@ -29497,7 +29545,8 @@ const Capstone = {
             Capstone.setFlag('cap:button', id || false);
             Capstone.placeButton(a);
             Sfx.play(id ? 'tug' : 'click');
-            UI.toast(id ? `You tie the button to its cord, and up it goes: it's under ${Capstone.noun(id)} now.` : 'You let the button back down its cord and into the tin.', 160);
+            /* (kept clear of the thing it's under, up through the boards) */
+            UI.toast(id ? `You tie the button to its cord, and up it goes: it's under ${Capstone.noun(id)} now.` : 'You let the button back down its cord and into the tin.', 160, { focus: id ? a.find(id) : null });
         });
     },
     lever(a, lever) {
@@ -29521,7 +29570,7 @@ const Capstone = {
         t.say('Ooh! A NEW one!', 'heart');
         lever.on = true; Sfx.play('click'); Sfx.play('door');
         Stats.count('cap:runs');
-        if (!Progress.flag('cap_letin')) { Progress.set('cap_letin'); UI.toast('Up above, his little door swings open, and in comes Tuck.', 150); }
+        if (!Progress.flag('cap_letin')) { Progress.set('cap_letin'); UI.toast('Up above, his little door swings open, and in comes Tuck.', 150, { focus: t }); }
     },
     /* Gundry's lever: every thing up there back on its first mark, untied and unstitched, the button back in its tin */
     reset(a, lever) {
@@ -30115,7 +30164,7 @@ CONTENT_INIT.push(initReveal2);
             Progress.set('gundry_r2');
             yield* say('gundry', "{sad}You've seen the Hall. I saw it too, forty years back, and went back up and oiled the winch and never said a word. Not proud of that.");
             yield* say('gundry', "The Shears are in the old Loom, in the Loomwood, past the north gate: the only blades in the valley that cut a thread for good. Linnet went that way.");
-            yield* say('gundry', "Hesper keeps that gate shut with a counterweight in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
+            yield* say('gundry', "Your gran keeps that gate shut with a counterweight in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
             /* (the key handed over first, and then what it is: no fourth page of talk) */
             Inv.items.guildkey = 1; Sfx.play('item');
             yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");
@@ -32104,7 +32153,7 @@ const LoomFoes = {
     },
     *shuttleIntro(s) {
         yield 20;
-        yield* say(null, "Something long and smooth and wooden lifts itself off the floor and hangs at the end of a silver thread stretched wall to wall: the loom's lost shuttle, big as a boat.");
+        yield* say(null, "Something long and smooth and wooden lifts itself off the floor. It hangs at the end of a silver thread stretched wall to wall: the loom's lost shuttle, big as a boat.");
         yield* say(null, "It flies. Back and forth, back and forth, the way it was made to, through anything soft enough to let it.");
     },
     *shuttleDown(s) {

@@ -277,7 +277,9 @@ class Grindle extends GridThing {
         Fx.splash(o.tx * T + 8, o.ty * T + 8);
         Stats.count('boss:grindle:gulp');
         this.state = 'full'; this.st = 0;
-        UI.toast('Old Grindle gulps it down, shudders, and settles low in the water. Its gear-heart glints on its back.', 160);
+        /* (in full the first time in a fight; after that, shorter: word for word again twelve seconds on read as a slip) */
+        this.gulps = (this.gulps || 0) + 1;
+        UI.toast(this.gulps > 1 ? 'Gulp! Down it goes, and Old Grindle settles low again, its gear-heart showing.' : 'Old Grindle gulps it down, shudders, and settles low in the water. Its gear-heart glints on its back.', 160);
     }
     /* everything it swallowed goes home */
     spitOut() {

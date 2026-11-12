@@ -196,8 +196,9 @@ class StageRig extends Ent {
                 if (y < hy - 30) { const mx = (sx + hx - 40 + i * 7) / 2, my = (y + hy) / 2 + sag; Gfx.line(sx, y + 1, mx, my, '#cfc6b8'); Gfx.line(mx, my, hx - 40 + i * 7, hy, '#cfc6b8'); }
                 else Gfx.line(sx, y + 1, sx + (i % 2 ? 1 : -1), y + 7 + (i % 4), '#cfc6b8');
             }
+            /* (its upright from the bar down, under his chin: up over his face, he was a tuft of hair behind it) */
             Gfx.rect(x - 24, y - 2, 48, 5, PAL.ink); Gfx.rect(x - 23, y - 1, 46, 3, '#9a6438'); Gfx.rect(x - 23, y - 1, 46, 1, '#c9925a');
-            Gfx.rect(x - 2, y - 7, 5, 14, PAL.ink); Gfx.rect(x - 1, y - 6, 3, 12, '#9a6438'); Gfx.rect(x - 1, y - 6, 1, 12, '#c9925a');
+            Gfx.rect(x - 2, y - 3, 5, 13, PAL.ink); Gfx.rect(x - 1, y - 2, 3, 11, '#9a6438'); Gfx.rect(x - 1, y - 2, 1, 11, '#c9925a');
         }
         Gfx.rect(x - 12, y + 1, 24, 5, PAL.ink); Gfx.rect(x - 11, y + 2, 22, 3, '#9a6438'); Gfx.rect(x - 11, y + 2, 22, 1, '#e6c08a');
     }

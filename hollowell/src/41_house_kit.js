@@ -312,7 +312,7 @@ const Nudges = {
 /* a House's boss beaten but its Knot not yet tied: the Hoop and the boss's Heartstitch are there whenever the House is
    built again (after leaving it, or a load), not only right after the fight */
 const HOUSE_AFTER = {
-    tidy: { flag: 'tidy_boss', room: '1,0', hoop: [9, 5], heart: [9, 7], heartId: 'tidyHeart' },
+    tidy: { flag: 'tidy_boss', room: '1,0', hoop: [9, 5], heart: [11, 6], heartId: 'tidyHeart' },
     kiln: { flag: 'kiln_boss', room: '1,0', hoop: [9, 4], heart: [9, 7], heartId: 'kilnHeart' },
     millrace: { flag: 'millrace_boss', room: '1,0', hoop: [17, 9], heart: [4, 9], heartId: 'millHeart' },
     belfry: { flag: 'belfry_boss', room: '1,0', hoop: [15, 6], heart: [4, 6], heartId: 'belfryHeart' },

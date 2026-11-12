@@ -189,7 +189,8 @@ const Capstone = {
             Capstone.setFlag('cap:button', id || false);
             Capstone.placeButton(a);
             Sfx.play(id ? 'tug' : 'click');
-            UI.toast(id ? `You tie the button to its cord, and up it goes: it's under ${Capstone.noun(id)} now.` : 'You let the button back down its cord and into the tin.', 160);
+            /* (kept clear of the thing it's under, up through the boards) */
+            UI.toast(id ? `You tie the button to its cord, and up it goes: it's under ${Capstone.noun(id)} now.` : 'You let the button back down its cord and into the tin.', 160, { focus: id ? a.find(id) : null });
         });
     },
     lever(a, lever) {
@@ -213,7 +214,7 @@ const Capstone = {
         t.say('Ooh! A NEW one!', 'heart');
         lever.on = true; Sfx.play('click'); Sfx.play('door');
         Stats.count('cap:runs');
-        if (!Progress.flag('cap_letin')) { Progress.set('cap_letin'); UI.toast('Up above, his little door swings open, and in comes Tuck.', 150); }
+        if (!Progress.flag('cap_letin')) { Progress.set('cap_letin'); UI.toast('Up above, his little door swings open, and in comes Tuck.', 150, { focus: t }); }
     },
     /* Gundry's lever: every thing up there back on its first mark, untied and unstitched, the button back in its tin */
     reset(a, lever) {

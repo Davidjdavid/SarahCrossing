@@ -755,7 +755,7 @@ const LoomFoes = {
     },
     *shuttleIntro(s) {
         yield 20;
-        yield* say(null, "Something long and smooth and wooden lifts itself off the floor and hangs at the end of a silver thread stretched wall to wall: the loom's lost shuttle, big as a boat.");
+        yield* say(null, "Something long and smooth and wooden lifts itself off the floor. It hangs at the end of a silver thread stretched wall to wall: the loom's lost shuttle, big as a boat.");
         yield* say(null, "It flies. Back and forth, back and forth, the way it was made to, through anything soft enough to let it.");
     },
     *shuttleDown(s) {

@@ -209,7 +209,12 @@ class Giant extends Ent {
         const im = ART[this.state === 'walking' || this.state === 'waking' && this.up ? 'giant_up' : 'giant_sleep'];
         if (!im) return;
         const bob = this.state === 'walking' ? Math.abs(Math.sin(this.t / 8)) * 2 : Math.sin(this.t / 50) * 1;
-        Gfx.alpha(0.25); Gfx.circle(this.x - cx + 40, this.y - cy + 58, 30, PAL.ink); Gfx.alpha(1);
+        /* (lying down, a pool of shade under all of him; sat up, a flat one under his seat: the round one showed below his
+           feet as a dark disc on the grass) */
+        Gfx.alpha(0.25);
+        if (im === ART.giant_up) for (let j = -4; j <= 4; j++) { const w = Math.round(34 * Math.sqrt(1 - (j * j) / 25)); Gfx.rect(this.x - cx + 40 - w, this.y - cy + 61 + j, w * 2, 1, PAL.ink); }
+        else Gfx.circle(this.x - cx + 40, this.y - cy + 58, 30, PAL.ink);
+        Gfx.alpha(1);
         Gfx.img(im, this.x - cx, Math.round(this.y - cy + 64 - im.height - bob));
         if (this.state === 'asleep' || this.state === 'home') {
             const ph = (this.t % 120) / 120;

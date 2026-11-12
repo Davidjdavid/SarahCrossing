@@ -482,11 +482,14 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
+                /* (the ball of clay it's said to be rolling, in its hands beside the shield while that's said: drawClay) */
+                this.rolling = true;
                 Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands. Its shield turns to follow you.'); });
             }
             return;
         }
         if (Script.blocking()) return;
+        this.rolling = false;
         this.st++;
         switch (this.state) {
             case 'walk': {
@@ -603,7 +606,14 @@ class Glazer extends Enemy {
         if (this.dir === UP) this.drawShield(cx, cy, sh, low);
         Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - GLAZER_TOP + low, this.dir === LEFT);
         if (this.dir !== UP) this.drawShield(cx, cy, sh, low);
+        if (this.rolling) this.drawClay(cx, cy);
         if (this.state === 'brace') Tells.bang(this.x - cx, this.y - cy - GLAZER_TOP - 14);
+    }
+    /* a ball of clay in its hands, out beside the shield, rolled to and fro */
+    drawClay(cx, cy) {
+        const k = (this.t >> 3) % 4, x = Math.round(this.x - cx) + (this.dir === RIGHT ? -9 : 6) + (k === 1 ? 1 : k === 3 ? -1 : 0), y = Math.round(this.y - cy) - GLAZER_TOP + 10;
+        Gfx.rect(x, y, 4, 4, PAL.ink); Gfx.rect(x + 1, y - 1, 2, 6, PAL.ink); Gfx.rect(x - 1, y + 1, 6, 2, PAL.ink);
+        Gfx.rect(x, y + 1, 4, 2, '#c4623a'); Gfx.rect(x + 1, y, 2, 4, '#c4623a'); Gfx.rect(x + (k >> 1) + 1, y + 1, 1, 1, '#e8a070');
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -1282,10 +1292,14 @@ function initKilnLook() {
         for (let i = 26; i < 256; i += 48) { for (let k = 0; k < 4; k++) R('#4a2418', i - k, 17 + k, 8 + k * 2 - 2, 1); arch(R, i, 21, 8, 9, '#3a1810'); embers(R, i + 1, 22, 6, 8); }
         R('#3a1810', 0, 31, 256, 1);
     }, false);
-    /* plates hung on the gallery wall */
+    /* plates in a rack on the gallery wall: stood on its shelf behind its rail (three round plates hung on their own, with
+       a dot in the middle of each, up in the HUD's row, were taken for its gems) */
     ART.kw_plates = pic(48, 14, R => {
-        const plate = (cx, rim, mid, dot) => { for (let j = -6; j <= 6; j++) for (let i = -6; i <= 6; i++) { const d = Math.hypot(i, j); if (d > 6.3) continue; R(d > 4.8 ? rim : d < 1.8 ? dot : mid, cx + i, 7 + j, 1, 1); } R('#ffffff', cx - 3, 3, 2, 1); };
-        plate(8, '#2e9a96', '#efe6d2', '#e0913a'); plate(24, '#e0913a', '#efe6d2', '#5ad1c5'); plate(40, '#8a4a2a', '#e8b884', '#2e9a96');
+        const plate = (cx, rim, mid, ring) => { for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) { const d = Math.hypot(i, j); if (d > 4.9) continue; R(d > 3.6 ? rim : d > 1.4 && d < 2.5 ? ring : mid, cx + i, 5 + j, 1, 1); } };
+        R('#6b4128', 2, 1, 2, 11); R('#c9925a', 2, 1, 1, 11); R('#6b4128', 44, 1, 2, 11); R('#c9925a', 44, 1, 1, 11);
+        plate(11, '#2e9a96', '#efe6d2', '#e0913a'); plate(24, '#e0913a', '#efe6d2', '#5ad1c5'); plate(37, '#8a4a2a', '#e8b884', '#2e9a96');
+        R('#c9925a', 2, 7, 44, 1); R('#9a6438', 2, 8, 44, 1);
+        R('#c9925a', 1, 10, 46, 1); R('#9a6438', 1, 11, 46, 1); R('#6b4128', 1, 12, 46, 1);
     });
     /* rope coiled on its peg, a pulley block, a hank of cord */
     ART.kw_ropes = pic(24, 16, R => {
