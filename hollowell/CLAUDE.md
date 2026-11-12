@@ -21,6 +21,18 @@ task fires every four hours into the working session with the checkpoint instruc
   title. `window.HW` drives the game (newGame, warp, preset, give, step, press, hold, walkTo, push,
   skipTalk, state...). The headless harness exposes the same `HW`.
 
+## The outside QA package (qa_kit/, 12 November)
+A testing package for an outside AI tester (David's request): `qa_kit/00-02` are spoiler-free papers (start here, the
+instructions, how to run); `qa_kit/guide/*.md` is the confidential guide in parts. To rebuild it all (the game itself
+is never changed for it):
+- `node tools/build.mjs && node tools/qa_record.mjs OUT/rec` records save states along the whole scripted game;
+- `node tools/qa_saves.mjs OUT/rec OUT/saves` picks the milestone saves (S01-S58, the list is in the file) and tests
+  each: loads cleanly, then played on (`--quick` loads only; `--only=S05,S06` a few);
+- `node tools/qa_tour.mjs OUT/saves/save_states.json OUT/tour` records the optional-content saves (S59 on);
+- `node tools/qa_kit.mjs OUT/saves OUT` writes `OUT/qa_kit/` and `OUT/hollowell-qa-kit.zip` (the playable page with the
+  test saves built in is `hollowell_qa.html`; it's also published as the tester copy's link in `02_HOW_TO_RUN.md`).
+Never put anything from `private/` in it.
+
 ## The code (src/)
 - One script, joined in file-name order by `tools/build.mjs`; `00_core.js` has `'use strict'`. Everything
   is global. A new file's name decides its place (data files 30–79, story 80–89, `90_main.js` last: it boots).

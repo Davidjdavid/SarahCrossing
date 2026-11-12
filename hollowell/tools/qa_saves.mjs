@@ -16,6 +16,9 @@ import * as L from '../tests/legs.mjs';
 const [capsDir, outDir] = process.argv.slice(2);
 const quick = process.argv.includes('--quick');
 const only = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
+/* --tour=DIR: the optional content's saves too (tools/qa_tour.mjs wrote DIR/caps_tour.jsonl) */
+const tourDir = (process.argv.find(a => a.startsWith('--tour=')) || '').slice(7);
+const tourCaps = tourDir ? fs.readFileSync(path.join(tourDir, 'caps_tour.jsonl'), 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
 if (!capsDir || !outDir) { console.error('usage: node tools/qa_saves.mjs CAPSDIR OUTDIR [--quick]'); process.exit(1); }
 const caps = fs.readFileSync(path.join(capsDir, 'caps.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
 const LEGS = [null, L.LEG1, L.LEG2, L.LEG3, L.LEG4, L.LEG5, L.LEG6, L.LEG7, L.LEG8, L.LEG9];
@@ -237,22 +240,42 @@ function playOn(pick, legFirst) {
     }
 }
 
+/* a save of the tour (the optional content): its segment played again from the main save it starts from, and at its
+   own mark the save loaded in place of the game; the segment then plays on to its end from it */
+async function playOnTour(pick) {
+    const { SEGMENTS, runSegment } = await import('./qa_tour.mjs');
+    const seg = SEGMENTS.find(q => q.id === pick.cap.segment), from = picks.find(q => q.id === (seg && seg.from));
+    if (!seg || !from) return { ok: false, problem: 'no segment or starting save' };
+    let swapped = false, later = 0, HW = null;
+    try {
+        HW = runSegment(seg, from.code, (cap, H) => { if (cap.label === pick.id) { loadCode(H, pick.code); H.step(5); H.skipTalk(); swapped = true; } else if (swapped) later++; });
+        if (!swapped) return { ok: false, problem: 'the mark never came round again in the replay' };
+        if (HW.ERRORS.length) return { ok: false, problem: 'errors: ' + HW.ERRORS.join(' | ') };
+        return later ? { ok: true } : { ok: true, how: 'loaded at its mark and its stretch played to its end (it is the last save of that stretch)' };
+    } catch (e) { return { ok: false, problem: (swapped ? 'after loading: ' : 'before the moment: ') + String(e.message || e).split('\n')[0] }; }
+}
+
 fs.mkdirSync(path.join(outDir, 'codes'), { recursive: true });
 const picks = PICK.map(([id, part, f, what]) => {
     const cap = f();
     assert.ok(cap, 'no moment for ' + id);
     return { id, part, what, cap, code: toCode(cap.save) };
 });
+for (const cap of tourCaps) picks.push({ id: cap.label, part: 'optional', what: cap.what, cap, code: toCode(cap.save) });
 /* the same moment twice would be a slip in the list */
-const dup = picks.find((p, k) => picks.findIndex(q => q.cap.i === p.cap.i) !== k);
+const dup = picks.find((p, k) => p.cap.i !== undefined && picks.findIndex(q => q.cap.i === p.cap.i) !== k);
 assert.ok(!dup, 'two saves at one moment: ' + (dup && dup.id));
 
 const results = [];
 for (const pick of picks) {
     if (only.length && !only.includes(pick.id)) continue;
-    const legFirst = picks.find(q => q.cap.leg === pick.cap.leg && q.cap.i === legStart(pick.cap.leg).i) || { id: null, code: toCode(legStart(pick.cap.leg).save) };
     const b = basic(pick);
-    const on = quick ? null : playOn(pick, legFirst);
+    let on = null;
+    if (!quick && pick.cap.segment) on = await playOnTour(pick);
+    else if (!quick) {
+        const legFirst = picks.find(q => q.cap.leg === pick.cap.leg && q.cap.i === legStart(pick.cap.leg).i) || { id: null, code: toCode(legStart(pick.cap.leg).save) };
+        on = playOn(pick, legFirst);
+    }
     results.push({ id: pick.id, basic: b, playOn: on });
     console.log(`${pick.id} ${pick.cap.area}${pick.cap.key ? '/' + pick.cap.key : ''} ${pick.cap.region || ''}: load ${b.ok ? 'ok' : 'FAIL ' + b.problems.join('; ')}${on ? ', played on ' + (on.ok ? 'ok' : 'FAIL ' + on.problem) : ''}`);
 }
