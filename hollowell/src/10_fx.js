@@ -33,8 +33,8 @@ const Fx = {
     /* (by: who says it, when it's somebody: the words keep near their head) */
     text(x, y, s, col = PAL.white, by = null) {
         const same = this.list.find(p => p.text === s && Math.abs(p.x - x) < 16 && Math.abs(p.y - y) < 24);
-        if (same) { same.x = x; same.y = y; same.life = 50; if (by) same.by = by; return same; }
-        return this.add({ x, y, vy: -0.5, life: 50, text: s, col, by });
+        if (same) { same.x = x; same.y = same.y0 = y; same.life = 50; if (by) same.by = by; return same; }
+        return this.add({ x, y, y0: y, vy: -0.5, life: 50, text: s, col, by });
     },
     /* floating words (from UI.draw, after the notices): each as near where it was said as it can be, a few pixels inside
        the screen's edges, clear of the HUD, the panels up (notices, the place's name, the box), the little pictures over
@@ -64,9 +64,10 @@ const Fx = {
             const x0 = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
             const hit = (x, y) => r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1];
             const free = (x, y, faces) => y >= 5 && y <= H - 13 && !keep.some(hit(x, y)) && !(faces && heads.some(hit(x, y)));
-            /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said) */
-            const mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
-            const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy).reduce((b, r) => !b || far(mid(r), [sx, sy]) < far(mid(b), [sx, sy]) ? r : b, null);
+            /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said; and
+               how far it's risen since) */
+            const rise = p.y0 !== undefined ? Math.max(0, p.y0 - p.y) : 0, sy0 = sy + rise, mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
+            const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy0).reduce((b, r) => !b || far(mid(r), [sx, sy0]) < far(mid(b), [sx, sy0]) ? r : b, null);
             let best = null;
             for (const faces of [true, false]) {
                 for (let k = 0; k <= H && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
@@ -82,10 +83,11 @@ const Fx = {
                         if (!best || c < best.c) best = { x, y, c };
                     }
                 }
-                /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
-                if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
-                    const y = Math.round(mid(own)[1] - 4);
-                    if (x >= 6 && x <= W - 6 - w && free(x, y, faces) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+                /* (or just beside the speaker's own face, where anything not right over it reads best as theirs; rising as
+                   any does, as far as there's room) */
+                if (own && own[1] < sy0 + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
+                    if (x < 6 || x > W - 6 - w || (best && BESIDE >= best.c)) continue;
+                    for (let up = Math.round(rise); up >= 0; up -= 2) { const y = Math.round(mid(own)[1] - 4 - up); if (free(x, y, faces)) { best = { x, y, c: BESIDE }; break; } }
                 }
                 if (best) break;
             }
@@ -97,17 +99,18 @@ const Fx = {
     },
     /* somebody's face, on the screen (the top of their sprite) */
     headOf(e, at) { const im = e.sprite && e.sprite(), [x, y] = at(e.px, e.py + 14 - (im ? im.height : 24)); return [x + 2, y, x + 14, y + 12]; },
-    /* the faces on screen, people's and Wren's (the top of each sprite) */
-    heads(at) {
+    /* the faces on screen, people's and Wren's (the top of each sprite; whole, the whole of each) */
+    heads(at, whole = false) {
         const a = G.map, out = [];
         if (!a || G.scene !== 'play') return out;
         for (const e of a.ents) {
             if (!e.isGrid || !(e.kind === 'npc' || e.person) || e.hidden || e.removed) continue;
             const r = this.headOf(e, at);
+            if (whole) { const im = e.sprite && e.sprite(); r[3] = r[1] + (im ? im.height : 24); }
             if (r[2] > 0 && r[0] < W && r[3] > 0 && r[1] < H) out.push(r);
         }
         const p = G.player;
-        if (p && !p.hidden && !G.hideWren && p.state !== 'fall') { const [x, y] = at(p.x, p.y - 13 - Math.round(p.z || 0)); out.push([x - 6, y, x + 6, y + 10]); }
+        if (p && !p.hidden && !G.hideWren && p.state !== 'fall') { const [x, y] = at(p.x, p.y - 13 - Math.round(p.z || 0)); out.push([x - 6, y, x + 6, y + (whole ? 16 : 10)]); }
         return out;
     },
     /* the HUD's corners (hearts at the left; buttons, the tool in hand, its key and the Needle's stitches at the right) */

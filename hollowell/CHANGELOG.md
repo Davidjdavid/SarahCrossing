@@ -209,3 +209,5 @@
 - Scenes show what their words say: doors open before they're mentioned, every beaten foe leaves something on screen
   while its last line is read, and the big moments are staged towards the people in them; a puzzle's strings read
   clearly; a few small pieces of art finished.
+- The words on screen never sit on the hero in the big scenes now, notices wait their turn and go when they're done,
+  place names don't repeat themselves, and the screen's corners keep out of the way of what matters.

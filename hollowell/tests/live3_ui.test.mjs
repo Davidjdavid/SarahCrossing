@@ -160,12 +160,17 @@ test('the Laundry: "Bolted, from the other side." with Wren at the top of the sc
 });
 
 /* ---------- 3. banners ---------- */
-test('a new game: the first room\'s name waits for the room to come up out of the dark', () => {
-    const HW = loadGame(); HW.newGame('Wren', { noAutosave: true });
-    const UI = HW.global('UI');
-    for (let i = 0; i < 400; i++) {
-        HW.step(1);
-        assert.ok(!(UI.banner && !UI.banner.wait && !UI.held() && UI.fadeA > 0.5), `the name over a dark screen at ${i}`);
+test('a new game: the first room\'s name waits for the room to come up out of the dark (none left up from a game before)', () => {
+    for (const before of [false, true]) {
+        const HW = loadGame();
+        /* (a game going already, its room's name up, as the debug start or a game played before has it) */
+        if (before) { HW.newGame('Wren', { skipIntro: true, noAutosave: true }); HW.warp('gran_room', 6, 3); HW.step(10); }
+        HW.newGame('Wren', { noAutosave: true });
+        const UI = HW.global('UI');
+        for (let i = 0; i < 400; i++) {
+            HW.step(1);
+            assert.ok(!(UI.banner && !UI.banner.wait && !UI.held() && UI.fadeA > 0.5), `the name over a dark screen at ${i}${before ? ' (a game before)' : ''}`);
+        }
     }
 });
 

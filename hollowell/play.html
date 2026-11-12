@@ -2494,8 +2494,8 @@ const Fx = {
     /* (by: who says it, when it's somebody: the words keep near their head) */
     text(x, y, s, col = PAL.white, by = null) {
         const same = this.list.find(p => p.text === s && Math.abs(p.x - x) < 16 && Math.abs(p.y - y) < 24);
-        if (same) { same.x = x; same.y = y; same.life = 50; if (by) same.by = by; return same; }
-        return this.add({ x, y, vy: -0.5, life: 50, text: s, col, by });
+        if (same) { same.x = x; same.y = same.y0 = y; same.life = 50; if (by) same.by = by; return same; }
+        return this.add({ x, y, y0: y, vy: -0.5, life: 50, text: s, col, by });
     },
     /* floating words (from UI.draw, after the notices): each as near where it was said as it can be, a few pixels inside
        the screen's edges, clear of the HUD, the panels up (notices, the place's name, the box), the little pictures over
@@ -2525,9 +2525,10 @@ const Fx = {
             const x0 = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
             const hit = (x, y) => r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1];
             const free = (x, y, faces) => y >= 5 && y <= H - 13 && !keep.some(hit(x, y)) && !(faces && heads.some(hit(x, y)));
-            /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said) */
-            const mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
-            const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy).reduce((b, r) => !b || far(mid(r), [sx, sy]) < far(mid(b), [sx, sy]) ? r : b, null);
+            /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said; and
+               how far it's risen since) */
+            const rise = p.y0 !== undefined ? Math.max(0, p.y0 - p.y) : 0, sy0 = sy + rise, mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
+            const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy0).reduce((b, r) => !b || far(mid(r), [sx, sy0]) < far(mid(b), [sx, sy0]) ? r : b, null);
             let best = null;
             for (const faces of [true, false]) {
                 for (let k = 0; k <= H && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
@@ -2543,10 +2544,11 @@ const Fx = {
                         if (!best || c < best.c) best = { x, y, c };
                     }
                 }
-                /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
-                if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
-                    const y = Math.round(mid(own)[1] - 4);
-                    if (x >= 6 && x <= W - 6 - w && free(x, y, faces) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+                /* (or just beside the speaker's own face, where anything not right over it reads best as theirs; rising as
+                   any does, as far as there's room) */
+                if (own && own[1] < sy0 + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
+                    if (x < 6 || x > W - 6 - w || (best && BESIDE >= best.c)) continue;
+                    for (let up = Math.round(rise); up >= 0; up -= 2) { const y = Math.round(mid(own)[1] - 4 - up); if (free(x, y, faces)) { best = { x, y, c: BESIDE }; break; } }
                 }
                 if (best) break;
             }
@@ -2558,17 +2560,18 @@ const Fx = {
     },
     /* somebody's face, on the screen (the top of their sprite) */
     headOf(e, at) { const im = e.sprite && e.sprite(), [x, y] = at(e.px, e.py + 14 - (im ? im.height : 24)); return [x + 2, y, x + 14, y + 12]; },
-    /* the faces on screen, people's and Wren's (the top of each sprite) */
-    heads(at) {
+    /* the faces on screen, people's and Wren's (the top of each sprite; whole, the whole of each) */
+    heads(at, whole = false) {
         const a = G.map, out = [];
         if (!a || G.scene !== 'play') return out;
         for (const e of a.ents) {
             if (!e.isGrid || !(e.kind === 'npc' || e.person) || e.hidden || e.removed) continue;
             const r = this.headOf(e, at);
+            if (whole) { const im = e.sprite && e.sprite(); r[3] = r[1] + (im ? im.height : 24); }
             if (r[2] > 0 && r[0] < W && r[3] > 0 && r[1] < H) out.push(r);
         }
         const p = G.player;
-        if (p && !p.hidden && !G.hideWren && p.state !== 'fall') { const [x, y] = at(p.x, p.y - 13 - Math.round(p.z || 0)); out.push([x - 6, y, x + 6, y + 10]); }
+        if (p && !p.hidden && !G.hideWren && p.state !== 'fall') { const [x, y] = at(p.x, p.y - 13 - Math.round(p.z || 0)); out.push([x - 6, y, x + 6, y + (whole ? 16 : 10)]); }
         return out;
     },
     /* the HUD's corners (hearts at the left; buttons, the tool in hand, its key and the Needle's stitches at the right) */
@@ -3895,7 +3898,9 @@ const Dialog = {
             else if (!more || !near(e)) continue;
             else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
             else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.1, true);
-            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.1, true);
+            /* (a chest still shut is somewhere to go next: a little more) */
+            else if (e.isGrid && e.kind === 'chest' && !e.opened) add(e, 0.2, true);
+            else if (e.isGrid && e.ret) add(e, 0.1, true);
         }
         const f = opts.focus;
         for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
@@ -3913,8 +3918,12 @@ const Dialog = {
     tagShift(at) {
         this.tagDx = 0;
         if (!this.who || G.scene !== 'play' || !G.map) return;
-        const heads = Fx.heads(Fx.view(Cam.x, UI.camBaseY() + at.lean)), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
-        for (let dx = 0; dx <= 96; dx += 8) if (!heads.some(q => q[0] < r[2] + s * dx && r[0] + s * dx < q[2] && q[1] < r[3] && r[1] < q[3])) { this.tagDx = dx; return; }
+        /* (where it covers least: a face ten times a body, and sliding off its end costs too: along a whole row of people it
+           would only move onto as many more of them) */
+        const v = Fx.view(Cam.x, UI.camBaseY() + at.lean), faces = Fx.heads(v), bodies = Fx.heads(v, true), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
+        const over = (q, dx) => Math.max(0, Math.min(q[2], r[2] + s * dx) - Math.max(q[0], r[0] + s * dx)) * Math.max(0, Math.min(q[3], r[3]) - Math.max(q[1], r[1]));
+        let best = Infinity;
+        for (let dx = 0; dx <= 96; dx += 8) { const c = faces.reduce((n, q) => n + 10 * over(q, dx), 0) + bodies.reduce((n, q) => n + over(q, dx), 0) + dx * 4; if (c < best) { best = c; this.tagDx = dx; } }
     },
     /* the box goes top or bottom, and in a scene the camera may lean up or down for it (UI.lean): whatever hides least of
        what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. Wren
@@ -4203,8 +4212,9 @@ const UI = {
         const up = this.toasts.filter(q => q !== t && !q.wait).map(q => this.noticeRect(q, !!q.low)).concat(b ? [this.bannerRect(b, !!b.low)] : []);
         let c = hiddenBy(items, up.concat([r]), Cam.x, cy) - hiddenBy(items, up, Cam.x, cy) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
             + (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
-        /* (over Wren, all but a must, as for the box: a third of her under a notice cost less than a pot under the other) */
-        if (p && this.overWren(r, cy)) c += 1;
+        /* (over Wren, all but a must, as for the box: more than anything else it could hide, a thing it's about under the
+           other side included; a third of her under a notice once cost less than a pot under the other) */
+        if (p && this.overWren(r, cy)) c += 5;
         return c;
     },
     /* (false: it waits a moment, for the place's name on its side to have been read; or, one with another up already and
@@ -4212,11 +4222,12 @@ const UI = {
     placeNotice(t) {
         let low = false;
         if (G.scene === 'play' && G.map && G.player) {
-            const items = Dialog.items({ focus: t.focus }, true);
-            low = this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
-            /* (what matters for that: Wren, what it's about, whoever's about; not a puzzle's every piece) */
-            const main = items.filter(i => !i.piece);
-            if (t.wait && Math.min(this.noticeCost(t, true, main), this.noticeCost(t, false, main)) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
+            /* (what matters decides: Wren, what it's about, whoever's about; a puzzle's pieces only between two sides
+               otherwise as good as each other: three crates under one side once put it over Gran on the other) */
+            const items = Dialog.items({ focus: t.focus }, true), main = items.filter(i => !i.piece);
+            const lo = this.noticeCost(t, true, main), hi = this.noticeCost(t, false, main);
+            low = Math.abs(lo - hi) > 0.03 ? lo < hi : this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
+            if (t.wait && Math.min(lo, hi) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
         }
         const b = this.banner && !this.banner.wait ? this.banner : null;
         if (b && !!b.low === low && b.t < 90) { b.until = 90; return false; }
@@ -33508,7 +33519,7 @@ class SpoolDrum extends Ent {
             const [ex, ey] = hit[0].end;
             this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: ex * T + 8, ty: ey * T + 8, thing: e });
             a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
-            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = { s: 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.', focus: this }; }
+            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = { s: 'The Pull drags it into the drum, and the great thread sags behind it, just for a moment.', focus: this }; }
         }
         /* the second pair: she throws at you */
         if (SpoolTop.throwing()) this.throws(a, p, top);
@@ -36640,17 +36651,20 @@ const Game = {
         G.rng = mulberry(G.seed);
         Inv.reset(); Progress.reset(); Stats.reset();
         G.player = null;
-        Script.clear(); Dialog.active = false; UI.menu = null;
+        Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
         Story.begin(opts);
     },
     load(s) {
-        Script.clear(); Dialog.active = false; UI.menu = null;
+        Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
-        Save.apply(s);
+        /* (dark first: the place's name waits to come up with it, not over the black) */
         UI.fadeA = 1; UI.fade = { from: 1, to: 0, t: 0, dur: 30 };
+        Save.apply(s);
         if (Story.afterLoad) Story.afterLoad();
     },
+    /* (nothing on the screen from the game before: its notices, its place's name, the name it was last in) */
+    fresh() { UI.banner = null; UI.toasts = []; G.regionName = null; },
     step() {
         G.t++;
         TileDraw.frame = G.t;

@@ -202,7 +202,9 @@ const Dialog = {
             else if (!more || !near(e)) continue;
             else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
             else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.1, true);
-            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.1, true);
+            /* (a chest still shut is somewhere to go next: a little more) */
+            else if (e.isGrid && e.kind === 'chest' && !e.opened) add(e, 0.2, true);
+            else if (e.isGrid && e.ret) add(e, 0.1, true);
         }
         const f = opts.focus;
         for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
@@ -220,8 +222,12 @@ const Dialog = {
     tagShift(at) {
         this.tagDx = 0;
         if (!this.who || G.scene !== 'play' || !G.map) return;
-        const heads = Fx.heads(Fx.view(Cam.x, UI.camBaseY() + at.lean)), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
-        for (let dx = 0; dx <= 96; dx += 8) if (!heads.some(q => q[0] < r[2] + s * dx && r[0] + s * dx < q[2] && q[1] < r[3] && r[1] < q[3])) { this.tagDx = dx; return; }
+        /* (where it covers least: a face ten times a body, and sliding off its end costs too: along a whole row of people it
+           would only move onto as many more of them) */
+        const v = Fx.view(Cam.x, UI.camBaseY() + at.lean), faces = Fx.heads(v), bodies = Fx.heads(v, true), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
+        const over = (q, dx) => Math.max(0, Math.min(q[2], r[2] + s * dx) - Math.max(q[0], r[0] + s * dx)) * Math.max(0, Math.min(q[3], r[3]) - Math.max(q[1], r[1]));
+        let best = Infinity;
+        for (let dx = 0; dx <= 96; dx += 8) { const c = faces.reduce((n, q) => n + 10 * over(q, dx), 0) + bodies.reduce((n, q) => n + over(q, dx), 0) + dx * 4; if (c < best) { best = c; this.tagDx = dx; } }
     },
     /* the box goes top or bottom, and in a scene the camera may lean up or down for it (UI.lean): whatever hides least of
        what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. Wren
@@ -510,8 +516,9 @@ const UI = {
         const up = this.toasts.filter(q => q !== t && !q.wait).map(q => this.noticeRect(q, !!q.low)).concat(b ? [this.bannerRect(b, !!b.low)] : []);
         let c = hiddenBy(items, up.concat([r]), Cam.x, cy) - hiddenBy(items, up, Cam.x, cy) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
             + (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
-        /* (over Wren, all but a must, as for the box: a third of her under a notice cost less than a pot under the other) */
-        if (p && this.overWren(r, cy)) c += 1;
+        /* (over Wren, all but a must, as for the box: more than anything else it could hide, a thing it's about under the
+           other side included; a third of her under a notice once cost less than a pot under the other) */
+        if (p && this.overWren(r, cy)) c += 5;
         return c;
     },
     /* (false: it waits a moment, for the place's name on its side to have been read; or, one with another up already and
@@ -519,11 +526,12 @@ const UI = {
     placeNotice(t) {
         let low = false;
         if (G.scene === 'play' && G.map && G.player) {
-            const items = Dialog.items({ focus: t.focus }, true);
-            low = this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
-            /* (what matters for that: Wren, what it's about, whoever's about; not a puzzle's every piece) */
-            const main = items.filter(i => !i.piece);
-            if (t.wait && Math.min(this.noticeCost(t, true, main), this.noticeCost(t, false, main)) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
+            /* (what matters decides: Wren, what it's about, whoever's about; a puzzle's pieces only between two sides
+               otherwise as good as each other: three crates under one side once put it over Gran on the other) */
+            const items = Dialog.items({ focus: t.focus }, true), main = items.filter(i => !i.piece);
+            const lo = this.noticeCost(t, true, main), hi = this.noticeCost(t, false, main);
+            low = Math.abs(lo - hi) > 0.03 ? lo < hi : this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
+            if (t.wait && Math.min(lo, hi) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
         }
         const b = this.banner && !this.banner.wait ? this.banner : null;
         if (b && !!b.low === low && b.t < 90) { b.until = 90; return false; }

@@ -7,17 +7,20 @@ const Game = {
         G.rng = mulberry(G.seed);
         Inv.reset(); Progress.reset(); Stats.reset();
         G.player = null;
-        Script.clear(); Dialog.active = false; UI.menu = null;
+        Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
         Story.begin(opts);
     },
     load(s) {
-        Script.clear(); Dialog.active = false; UI.menu = null;
+        Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
-        Save.apply(s);
+        /* (dark first: the place's name waits to come up with it, not over the black) */
         UI.fadeA = 1; UI.fade = { from: 1, to: 0, t: 0, dur: 30 };
+        Save.apply(s);
         if (Story.afterLoad) Story.afterLoad();
     },
+    /* (nothing on the screen from the game before: its notices, its place's name, the name it was last in) */
+    fresh() { UI.banner = null; UI.toasts = []; G.regionName = null; },
     step() {
         G.t++;
         TileDraw.frame = G.t;
