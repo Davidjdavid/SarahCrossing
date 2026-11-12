@@ -1,5 +1,8 @@
 /* Little effects: dust, sparkles, poofs, splashes, rings, floating text. Cheap particles in world space. */
 
+/* what floating words beside the speaker's face cost against being moved from where they were said (in pixels moved) */
+const BESIDE = 16;
+
 const Fx = {
     list: [],
     clear() { this.list = []; },
@@ -27,15 +30,16 @@ const Fx = {
         for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; this.add({ x, y, vx: Math.cos(a) * 1.2, vy: Math.sin(a) * 1.2 - 0.5, g: 0.05, life: 26, col, r: 1, curl: true }); }
     },
     /* (the same words already floating up right there: they start again rather than a second copy on top) */
-    text(x, y, s, col = PAL.white) {
+    /* (by: who says it, when it's somebody: the words keep near their head) */
+    text(x, y, s, col = PAL.white, by = null) {
         const same = this.list.find(p => p.text === s && Math.abs(p.x - x) < 16 && Math.abs(p.y - y) < 24);
-        if (same) { same.x = x; same.y = y; same.life = 50; return same; }
-        return this.add({ x, y, vy: -0.5, life: 50, text: s, col });
+        if (same) { same.x = x; same.y = y; same.life = 50; if (by) same.by = by; return same; }
+        return this.add({ x, y, vy: -0.5, life: 50, text: s, col, by });
     },
     /* floating words (from UI.draw, after the notices): each as near where it was said as it can be, a few pixels inside
        the screen's edges, clear of the HUD, the panels up (notices, the place's name, the box), the little pictures over
-       people's heads and the words placed before it; on a soft dark backing, so the cords and heads behind them don't run
-       through the letters */
+       people's heads, people's faces and the words placed before it; on a soft dark backing, so the cords and heads behind
+       them don't run through the letters */
     drawText(cx, cy, panels = []) {
         const texts = this.list.filter(p => p.text);
         if (!texts.length) return;
@@ -47,24 +51,56 @@ const Fx = {
             Gfx.alpha(a); Font.draw(s.p.text, s.x, s.y, s.p.col, Infinity, PAL.ink); Gfx.alpha(1);
         }
     },
-    /* where each goes: { p, x, y (the letters' top left), w } */
+    /* where each goes: { p, x, y (the letters' top left), w }. Kept from where it was said, it goes up (or down, at twice
+       the cost) or to one side, whichever's least far; and never nearer someone else's face than the face of who said it
+       (pushed up past his bubble to the face of the one standing over him, "Hmph." read as hers) */
     textSpots(texts, cx, cy, panels = []) {
-        const at = this.view(cx, cy), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at)), out = [];
+        const at = this.view(cx, cy), heads = this.heads(at), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at), heads), out = [];
+        const mid = r => [(r[0] + r[2]) / 2, (r[1] + r[3]) / 2], far = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
         for (const p of texts) {
             const w = Font.width(p.text), [sx, sy] = at(p.x, p.y);
-            const x = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
-            const free = y => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
-            let y = y0;
-            /* (up out of the way, unless down is under half as far) */
-            if (!free(y)) {
-                let up = 1; while (up <= 70 && !free(y0 - up)) up++;
-                if (up > 70) up = Infinity;
-                let dn = 1; while (dn <= 70 && 2 * dn < up && !free(y0 + dn)) dn++;
-                y = dn <= 70 && 2 * dn < up ? y0 + dn : up < Infinity ? y0 - up : y0;
+            const x0 = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
+            const free = (x, y) => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
+            /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said) */
+            const mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
+            const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy).reduce((b, r) => !b || far(mid(r), [sx, sy]) < far(mid(b), [sx, sy]) ? r : b, null);
+            let best = null;
+            for (let k = 0; k <= 70 && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
+                const cy0 = dy < 0 ? -dy : 2 * dy;
+                for (let dx = 0; dx <= 64; dx += 2) for (const sd of dx ? [-1, 1] : [1]) {
+                    const x = Math.round(clamp(x0 + sd * dx, 6, W - 6 - w)), y = y0 + dy;
+                    let c = cy0 + Math.abs(x - x0);
+                    if ((best && c >= best.c) || !free(x, y)) continue;
+                    /* (the face it's nearest, if any's near, must be the speaker's) */
+                    const m = [x + w / 2, y + 4], near = heads.reduce((b, r) => { const d = far(mid(r), m); return d < 40 && (!b || d < b.d) ? { r, d } : b; }, null);
+                    if (own && near && near.r !== own) c += 100;
+                    if (!best || c < best.c) best = { x, y, c };
+                }
             }
-            out.push({ p, x, y, w });
-            keep.push([x - 3, y - 2, x + w + 3, y + 10]);
+            /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
+            if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
+                const y = Math.round(mid(own)[1] - 4);
+                if (x >= 6 && x <= W - 6 - w && free(x, y) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+            }
+            const sp = best || { x: x0, y: y0 };
+            out.push({ p, x: sp.x, y: sp.y, w });
+            keep.push([sp.x - 3, sp.y - 2, sp.x + w + 3, sp.y + 10]);
         }
+        return out;
+    },
+    /* somebody's face, on the screen (the top of their sprite) */
+    headOf(e, at) { const im = e.sprite && e.sprite(), [x, y] = at(e.px, e.py + 14 - (im ? im.height : 24)); return [x + 2, y, x + 14, y + 12]; },
+    /* the faces on screen, people's and Wren's (the top of each sprite) */
+    heads(at) {
+        const a = G.map, out = [];
+        if (!a || G.scene !== 'play') return out;
+        for (const e of a.ents) {
+            if (!e.isGrid || !(e.kind === 'npc' || e.person) || e.hidden || e.removed) continue;
+            const r = this.headOf(e, at);
+            if (r[2] > 0 && r[0] < W && r[3] > 0 && r[1] < H) out.push(r);
+        }
+        const p = G.player;
+        if (p && !p.hidden && !G.hideWren && p.state !== 'fall') { const [x, y] = at(p.x, p.y - 13 - Math.round(p.z || 0)); out.push([x - 6, y, x + 6, y + 10]); }
         return out;
     },
     /* the HUD's corners (hearts at the left; buttons, the tool in hand, its key and the Needle's stitches at the right) */

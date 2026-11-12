@@ -96,6 +96,7 @@ const Game = {
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
             if (a.def.drawFront) a.def.drawFront(a, cx, cy);
+            p.drawThrough(cx, cy, stand);
             if (p.state === 'flight' && p.flight) {
                 /* Wren's own thread, red, during the flight home */
                 const f = p.flight, pts = f.pts;
@@ -113,7 +114,7 @@ const Game = {
             if (G.holdUp) {
                 const im = spr(G.holdUp.id === 'pattern' && G.map ? patternIcon(G.map.def.house) : ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 /* (on its glow, drawn with Wren: a chest right behind her that she couldn't step back from, up high over it) */
-                if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - (G.holdUp.high ? 52 : 30));
+                if (im) { const [hx, hy] = holdUpSpot(p, cx, cy); Gfx.img(im, hx - im.width / 2, hy - Math.floor(im.height / 2)); }
             }
             if (a.def.dark) Lighting.draw(a, cx, cy);
             UI.drawHUD();

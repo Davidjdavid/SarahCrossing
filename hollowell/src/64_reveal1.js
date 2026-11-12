@@ -74,8 +74,10 @@ const Reveal1 = {
         yield* settle([ives]);
         ives.dir = RIGHT;
         yield* say('ives', "{surprised}Jory! You've dropped the whole— oh. Oh, she's looking right at us.");
-        const bram = out('bram', 1, 4, 3, 4);
+        /* (a step along from her, not in file behind her, and turned to you to say it) */
+        const bram = out('bram', 1, 4, 4, 4);
         yield* settle([bram]);
+        bram.dir = DOWN;
         yield* say('bram', "{happy}HA! Well! That's torn it!");
         const dad = out('ambrose', 1, 6, 4, 6);
         yield* settle([dad]);
@@ -89,7 +91,8 @@ const Reveal1 = {
         yield* settle(cast, 240);
         for (const n of cast) { n.dir = DOWN; n.fixedFace = true; }
         yield 40;
-        const away = { ives: LEFT, bram: UP, ambrose: RIGHT, tess: LEFT, mallow: UP, jory: RIGHT };
+        /* (each glancing off to one side: a back turned in a line-up read as a Maker saying his piece to the wall) */
+        const away = { ives: LEFT, bram: RIGHT, ambrose: RIGHT, tess: LEFT, mallow: LEFT, jory: RIGHT };
         for (const n of cast) n.dir = away[n.who];
         yield 30;
         mum.fixedFace = false;

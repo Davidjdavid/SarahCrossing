@@ -8,8 +8,10 @@ function stitchedBox(x, y, w, h, opts = {}) {
     /* shading at the bottom */
     Gfx.rect(x + 1, y + h - 3, w - 2, 2, opts.shadow || '#e9dcbc');
     /* the running stitch */
-    /* (not along the top and bottom of a box too short to keep it clear of its line of words) */
-    if (h >= 18) for (let i = x + 4; i < x + w - 4; i += 4) { Gfx.rect(i, y + 3, 2, 1, stitch); Gfx.rect(i, y + h - 4, 2, 1, stitch); }
+    /* (not on a box too short to keep it clear of its line of words: along its top and bottom it ran into them, and the
+       two stitches left at each end of a name tag read as colons, ":Mother Ives:") */
+    if (h < 18) return;
+    for (let i = x + 4; i < x + w - 4; i += 4) { Gfx.rect(i, y + 3, 2, 1, stitch); Gfx.rect(i, y + h - 4, 2, 1, stitch); }
     for (let j = y + 5; j < y + h - 5; j += 4) { Gfx.rect(x + 3, j, 1, 2, stitch); Gfx.rect(x + w - 4, j, 1, 2, stitch); }
 }
 
@@ -35,13 +37,20 @@ const VIEW_BOX = {
     /* (the great marionette stands on its two feet and rises 74 pixels over them) */
     greatmarionette: e => { const f = e.feet; if (!f || !f.length) return null; const xs = f.map(q => q[0] * T), y = Math.max(...f.map(q => q[1])) * T; return [Math.min(...xs) - 8, y - 76, Math.max(...xs) + 24, y + 16]; },
 };
+/* Wren as she's drawn: her head 13 px over her feet, her shadow just under them; and (all) over her head whatever she's
+   carrying or holding up. (A box 24 px tall from 9 px over her head made a box over her to the neck count as under half
+   of her) */
+function wrenBox(p, all = true) {
+    const z = Math.round(p.z || 0), up = !all ? 15 : p.carry ? 27 : p.state === 'hold' && G.holdUp ? (G.holdUp.high ? 54 : 32) : 15;
+    return [p.x - 7, p.y - up - z, p.x + 7, p.y + 4];
+}
 function viewBox(e) {
     if (!e) return null;
     if (Array.isArray(e)) return [e[0] * T, e[1] * T + 16 - (e[2] || 20), e[0] * T + 16, e[1] * T + 16];
     if (e.x0 !== undefined) return [e.x0, e.y0, e.x1, e.y1];
     const f = VIEW_BOX[e.kind] || VIEW_BOX[e.type], fb = f && f(e);
     if (fb) return fb;
-    if (e === G.player) return [e.x - 7, e.y - 22, e.x + 7, e.y + 2];
+    if (e === G.player) return wrenBox(e);
     if (e.isGrid) {
         const w = T * (e.footW || 1), h = e.tall || (e.kind === 'npc' || e.person ? 26 : e.im ? Math.max(16, e.im.height) : 16);
         return [e.px, e.py + 16 - h, e.px + w, e.py + 16];
@@ -111,6 +120,8 @@ function paginate(text, w, n = 3) {
 
 /* a speaker's portrait sits in the box, at one end, the words beside it (src/35b_portraits.js) */
 const FACE_BOX = 34, FACE_GAP = 36;
+/* how much of Wren a box may hide where it needn't: 15%, her feet (Dialog.place) */
+const WREN_SHOWN = 0.15;
 const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {}, lean: 0,
     open(who, text, opts = {}) {
@@ -126,8 +137,10 @@ const Dialog = {
         const words = Story.fill(rest);
         this.pages = paginate(words, this.face ? 282 - FACE_GAP : 282, 3);
         if (this.choices) this.fitChoices(words.includes('\n'));
+        this.tagDx = 0;
         const at = this.place(opts);
         this.top = at.top; this.lean = at.lean; this.leanAt = G.map && [G.map, Cam.room];
+        this.tagShift(at);
         if (this.choices && !this.inside) this.choiceLeft = this.choiceEnd(opts, at);
         this.page = 0; this.shown = 0; this.sel = 0; this.picked = -1;
         this.t = 0;
@@ -163,26 +176,31 @@ const Dialog = {
        the one speaking, a little more while she spoke just before), whoever's speaking double, whoever spoke just before
        a little less, a boss or mini-boss double, and whatever the scene points at (opts.focus: a tile [x, y, tall], a
        thing, a box, or a list of them) treble. For a notice or the place's name (more), the creatures and people about
-       count a little too. Only what's in the room on screen: what's in another can't be shown or hidden */
+       count a little too, and a little less a puzzle's pieces on screen (a plate, a chest still shut, anything with a
+       place to go home to). Only what's in the room on screen: what's in another can't be shown or hidden */
     items(opts = {}, more = false) {
         const p = G.player, a = G.map, out = [];
         if (!p || !a) return out;
         const room = Cam.room, multi = a.rooms.length > 1, seen = new Set();
-        const add = (e, w) => {
+        const add = (e, w, piece) => {
             const b = viewBox(e);
             if (!b || (multi && room && a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) !== room)) return;
-            out.push([b[0], b[1], b[2], b[3], w]);
+            const it = [b[0], b[1], b[2], b[3], w]; if (piece) it.piece = true; out.push(it);
         };
         const talk = this.active, prev = talk && this.prevWho !== this.who && G.t - (this.closedAt || -999) <= 120 ? this.prevWho : null;
-        if (!G.hideWren && !p.hidden) add(p, talk && this.who === 'wren' ? 2 : prev === 'wren' ? 1.5 : 1);
+        if (!G.hideWren && !p.hidden) { add(p, talk && this.who === 'wren' ? 2 : prev === 'wren' ? 1.5 : 1); if (out.length) out[0].wren = true; }
         const find = who => a.ents.find(e => e.who === who && !e.hidden && !e.removed && e !== p);
         if (talk && this.who && this.who !== 'wren') { const sp = find(this.who); if (sp) { add(sp, 2); seen.add(sp); } }
         if (prev && prev !== 'wren') { const pv = find(prev); if (pv && !seen.has(pv)) { add(pv, 1.5); seen.add(pv); } }
+        const near = e => e.x > Cam.x - 64 && e.x < Cam.x + W + 64 && e.y > Cam.y - 64 && e.y < Cam.y + H + 80;
         for (const e of (a.walkers || []).concat(a.ents)) {
             if (seen.has(e) || e === p || e.hidden || e.removed || e.alive === false) continue;
             seen.add(e);
             if (isBoss(e)) add(e, 2);
-            else if (more && (e.isWalker || (e.kind === 'npc' && e.who))) add(e, 0.5);
+            else if (!more || !near(e)) continue;
+            else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
+            else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.2, true);
+            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.2, true);
         }
         const f = opts.focus;
         for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
@@ -191,27 +209,40 @@ const Dialog = {
     /* the panels the box makes at the top or the bottom: the box, and the speaker's name tag over it */
     rects(top = this.top) {
         const x = 8, w = 304, h = 44, y = top ? 18 : H - h - 6, out = [[x, y, x + w, y + h]];
-        if (this.who) { const tw = Font.width(Story.name(this.who)) + 12, nx = this.face && this.side === 'right' ? x + w - 6 - tw : x + 6; out.push([nx, y - 10, nx + tw, y + 5]); }
+        if (this.who) { const tw = Font.width(Story.name(this.who)) + 12, nx = this.tagX(tw); out.push([nx, y - 10, nx + tw, y + 5]); }
         return out;
     },
+    /* the name tag sits at the speaker's end of the box, slid in along its edge off any face it would sit on (a row of
+       people standing over the box) */
+    tagX(tw) { const right = this.face && this.side === 'right', dx = this.tagDx || 0; return right ? 8 + 304 - 6 - tw - dx : 8 + 6 + dx; },
+    tagShift(at) {
+        this.tagDx = 0;
+        if (!this.who || G.scene !== 'play' || !G.map) return;
+        const heads = Fx.heads(Fx.view(Cam.x, UI.camBaseY() + at.lean)), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
+        for (let dx = 0; dx <= 96; dx += 8) if (!heads.some(q => q[0] < r[2] + s * dx && r[0] + s * dx < q[2] && q[1] < r[3] && r[1] < q[3])) { this.tagDx = dx; return; }
+    },
     /* the box goes top or bottom, and in a scene the camera may lean up or down for it (UI.lean): whatever hides least of
-       what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. A scene's
-       exchange keeps its side and its lean unless another is clearly better; all else equal, the bottom and no lean */
+       what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. Wren
+       is all but a must: where some side and lean shows all but a sliver of her (WREN_SHOWN), only those are weighed (the
+       shares are squared, so a boss's or a focus's corner used to outweigh her buried to the neck). A scene's exchange
+       keeps its side and its lean unless another is clearly better; all else equal, the bottom and no lean */
     place(opts = {}) {
         const p = G.player, a = G.map;
         if (G.scene !== 'play' || !p || !a) return { top: false, lean: 0 };
         const items = this.items(opts), recent = G.t - (this.closedAt || -999) <= 120, was = recent && this.leanHere() ? this.lean || 0 : 0;
-        const base = UI.camBaseY(), range = this.canLean(opts) ? UI.leanRange(base) : null;
-        let best = null;
+        const base = UI.camBaseY(), range = this.canLean(opts) ? UI.leanRange(base) : null, wren = items.some(i => i.wren) ? [wrenBox(p, false).concat(1)] : [];
+        let best = null, shown = null;
         for (const top of [false, true]) {
             const rs = this.rects(top), [lo, hi] = range ? range[top ? 1 : 0] : [0, 0];
             for (let dy = lo; dy <= hi; dy += 2) {
                 let c = hiddenBy(items, rs, Cam.x, base + dy) + 0.004 * Math.abs(dy) + 0.006 * Math.abs(dy - was);
                 c += recent ? (top !== !!this.lastTop ? (Script.blocking() ? 0.35 : 0.05) : 0) : (top ? 0.01 : 0);
-                if (!best || c < best.c - 1e-9) best = { c, top, lean: dy };
+                const at = { c, top, lean: dy };
+                if (!best || c < best.c - 1e-9) best = at;
+                if (wren.length && hiddenBy(wren, rs, Cam.x, base + dy, true) <= WREN_SHOWN && (!shown || c < shown.c - 1e-9)) shown = at;
             }
         }
-        return best;
+        return shown || best;
     },
     chooseTop(opts = {}) { return this.place(opts).top; },
     /* (the lean the last line asked for holds in the room it was asked for, not one Wren's been taken on to) */
@@ -305,7 +336,7 @@ const Dialog = {
         if (this.who) {
             const name = Story.name(this.who);
             const tw = Font.width(name) + 12;
-            const ty = y - 10, nx = right ? x + w - 6 - tw : x + 6;
+            const ty = y - 10, nx = this.tagX(tw);
             const fill = tagFill(SPEAKER_COL[this.who] || '#f0c070');
             stitchedBox(nx, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
             Font.draw(name, nx + 6, ty + 4, PAL.ink);
@@ -332,20 +363,57 @@ const Dialog = {
 };
 const SPEAKER_COL = {};
 /* a scene that opens as Wren comes in at a door, with what it's about at the far end of the room (a boss waiting): she
-   walks a tile or two on in first, where the way's clear, so the box can keep clear of her and of that at once */
+   walks on in first, where the way's clear, so the box can keep clear of her and of that at once. In at the foot of a
+   room, till her feet are clear of the top of the box at the bottom (in at the head, her head of the foot of the box at
+   the top), with the camera as it'll stand; in at a side, n tiles */
 function* stepIn(n = 2) {
     const p = G.player, a = G.map, r = Cam.room;
     if (!p || !a || !r || p.state !== 'normal') return;
-    /* (only just in at a door: by the room's edge, walking away from it) */
-    const d = p.ty >= r.y + r.h - 2 ? UP : p.ty <= r.y + 1 ? DOWN : p.tx <= r.x + 1 ? RIGHT : p.tx >= r.x + r.w - 2 ? LEFT : -1;
-    if (d < 0) return;
-    const free = (x, y) => { const k = a.kind(x, y); return a.roomAt(x, y) === r && !k.solid && !k.pit && !k.deep && !k.hurt && !a.at(x, y) && !a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(x, y)); };
-    /* (a spot with nothing just before or behind it, so she neither hides a thing nor stands hidden by one, a few steps off) */
-    for (const [ahead, side] of [[n, 0], [n, -1], [n, 1], [n - 1, 0], [n, -2], [n, 2], [n - 1, -1], [n - 1, 1]]) {
+    /* (which way is in: from the room's foot or head up or down it, from a side across it; else up from its lower half,
+       down from its upper) */
+    const d = p.ty >= r.y + r.h - 2 ? UP : p.ty <= r.y + 1 ? DOWN : p.tx <= r.x + 1 ? RIGHT : p.tx >= r.x + r.w - 2 ? LEFT : p.ty >= r.y + r.h / 2 ? UP : DOWN;
+    let k = n;
+    if (DY[d]) {
+        const vb = viewBox(p), head = p.y - vb[1], feet = vb[3] - p.y, low = Dialog.rects(false)[0][1], high = Dialog.rects(true)[0][3];
+        const clear = ty => { const y = ty * T + 10, sy = y - Cam.base({ x: p.x, y }).y; return d === UP ? sy + feet <= low : sy - head >= high; };
+        for (k = 0; k <= 6 && !clear(p.ty + DY[d] * k); k++);
+        if (!k || k > 6) return;
+    }
+    const free = (x, y) => { const q = a.kind(x, y); return a.roomAt(x, y) === r && !q.solid && !q.pit && !q.deep && !q.hurt && !a.at(x, y) && !a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(x, y)); };
+    /* (a spot with nothing just before or behind it, so she neither hides a thing nor stands hidden by one, a few steps off;
+       up or down the room, never short of clear of the box) */
+    const m = DY[d] ? k + 1 : k - 1;
+    for (const [ahead, side] of [[k, 0], [k, -1], [k, 1], [m, 0], [k, -2], [k, 2], [m, -1], [m, 1]]) {
         const x = p.tx + DX[d] * ahead + (DX[d] ? 0 : side), y = p.ty + DY[d] * ahead + (DX[d] ? side : 0);
         if (ahead <= 0 || !free(x, y) || a.at(x, y - 1) || a.at(x, y + 1)) continue;
         const path = critterPath(a, p.tx, p.ty, x, y), end = path[path.length - 1];
         if (!end || end[0] !== x || end[1] !== y || path.length > ahead + Math.abs(side) + 2) continue;
+        for (const [px, py] of path) yield* walkStraight(p, px, py);
+        p.dir = d;
+        return;
+    }
+}
+
+/* a scene that opens with Wren a step over or under somebody, or on the very spot of somebody seen through the boards
+   from up above (her feet on a face, a face on her head, the two of them one): she steps to one side first */
+function* stepAside() {
+    const p = G.player, a = G.map, r = Cam.room;
+    if (!p || !a || !r || p.state !== 'normal') return;
+    /* (where everybody stands, in this room's tiles: those up above as they show through the boards) */
+    const spots = [];
+    for (const e of a.ents) {
+        if (!e.isGrid || !(e.kind === 'npc' || e.person) || e.hidden || e.removed) continue;
+        const q = a.roomAt(e.tx, e.ty) === r ? [e.tx, e.ty] : r.above && Layers.upRoom(a, r) === a.roomAt(e.tx, e.ty) ? [e.tx - r.above.dx, e.ty - r.above.dy] : null;
+        if (q) spots.push(q);
+    }
+    const crowded = (x, y) => spots.some(([sx, sy]) => sx === x && Math.abs(sy - y) <= 1);
+    if (!crowded(p.tx, p.ty)) return;
+    const free = (x, y) => { const k = a.kind(x, y); return a.roomAt(x, y) === r && !k.solid && !k.pit && !k.deep && !k.hurt && !a.at(x, y) && !crowded(x, y) && !a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(x, y)); };
+    for (const [x, y] of [[1, 0], [-1, 0], [2, 0], [-2, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]].map(([dx, dy]) => [p.tx + dx, p.ty + dy])) {
+        if (!free(x, y)) continue;
+        const path = critterPath(a, p.tx, p.ty, x, y), end = path[path.length - 1];
+        if (!end || end[0] !== x || end[1] !== y || path.length > 3) continue;
+        const d = p.dir;
         for (const [px, py] of path) yield* walkStraight(p, px, py);
         p.dir = d;
         return;
@@ -374,6 +442,10 @@ function wrapKeep(s, w) {
 
 /* how far the HUD steps back when something that matters is under it (or Wren is): faint, so what's under it reads */
 const HUD_BACK = 0.15;
+/* what a second notice may hide before it waits for the first to go (Wren a quarter hidden; whoever's about half) */
+const NOTICE_CROWDED = 0.06;
+/* how long before a region's name comes up again for coming back into it across a border (90 s) */
+const BANNER_AGAIN = 90 * 60;
 const UI = {
     fadeA: 0, fade: null, toasts: [], banner: null, menu: null,
     sceneHold: false, places: [], lean: { now: 0, want: 0, map: null, room: null },
@@ -381,12 +453,25 @@ const UI = {
     /* ---- notices ---- */
     /* a notice (s may be { s, focus }: one about something keeps clear of it). Two show at a time at most, the rest
        waiting their turn; none while a scene's words are up (they wait till it's over); each on the side, top or bottom,
-       where it hides least (placeNotice); and one about a place Wren has left goes with it */
+       where it hides least (placeNotice); and one about a place Wren has left goes with it. opts.until: it's said only
+       while that holds (one said in a fight holds while the boss is up: it goes when the boss goes down, not back up
+       after its last words, over the Knot coming down); opts.minor: it's about somewhere else, and any notice about
+       here sees it off (a stitch let go two rooms away gives way to this room's plates all coming down) */
     toast(s, dur = 120, opts = {}) {
         if (s && typeof s === 'object') { opts = s; s = s.s; }
         s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return;
-        this.toasts.push({ s, t: 0, dur, focus: opts.focus || null, area: G.map ? G.map.id : null, born: G.t, wait: true });
+        const boss = this.fightOn(), until = opts.until || (boss ? () => boss.alive !== false && !boss.removed : null);
+        if (!opts.minor) for (const q of this.toasts) if (q.minor) { if (q.wait) q.gone = true; else q.dur = Math.min(q.dur, q.t + 10); }
+        this.toasts = this.toasts.filter(q => !q.gone);
+        this.toasts.push({ s, t: 0, dur, focus: opts.focus || null, area: G.map ? G.map.id : null, born: G.t, wait: true, until, minor: !!opts.minor });
         this.showNotices();
+    },
+    /* a boss up and about in the room on screen */
+    fightOn() {
+        const a = G.map, r = Cam.room;
+        if (!a || G.scene !== 'play') return null;
+        return (a.walkers || []).concat(a.ents).find(e => isBoss(e) && e.alive !== false && !e.removed && !e.hidden
+            && (!r || a.rooms.length < 2 || a.roomAt(e.isGrid ? e.tx : tileOf(e.x), e.isGrid ? e.ty : tileOf(e.y - 1)) === r)) || null;
     },
     /* a refusal that comes up again and again: in full the first few times it's shown, then shorter (counted this
        session, by its words; never a second copy while one is up) */
@@ -415,17 +500,29 @@ const UI = {
         const x = Math.round((W - t.w) / 2);
         return low ? [x, yl - t.h, x + t.w, yl] : [x, y, x + t.w, y + t.h];
     },
-    /* what a notice would hide on a side (a little more on the side the place's name is up, which would have to make way;
-       all else equal, the top, and the side with notices up already) */
+    /* what a notice would hide on a side, over what the panels up already hide (a little more on the side the place's
+       name is up, which would have to make way; all else equal, the top, and the side with no notice up yet: a second
+       stacked on the first reaches into the middle of the screen, where Wren mostly is, with the other edge bare) */
     noticeCost(t, low, items) {
-        const b = this.banner && !this.banner.wait ? this.banner : null;
-        return hiddenBy(items, [this.noticeRect(t, low)], Cam.x, this.camPlanY()) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
-            - (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
+        const b = this.banner && !this.banner.wait ? this.banner : null, cy = this.camPlanY(), r = this.noticeRect(t, low), p = G.player;
+        const up = this.toasts.filter(q => q !== t && !q.wait).map(q => this.noticeRect(q, !!q.low)).concat(b ? [this.bannerRect(b, !!b.low)] : []);
+        let c = hiddenBy(items, up.concat([r]), Cam.x, cy) - hiddenBy(items, up, Cam.x, cy) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
+            + (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
+        /* (over Wren, all but a must, as for the box: a third of her under a notice cost less than a pot under the other) */
+        if (p && !G.hideWren && !p.hidden && hiddenBy([wrenBox(p, false).concat(1)], [r], Cam.x, cy, true) > WREN_SHOWN) c += 1;
+        return c;
     },
-    /* (false: it waits a moment, for the place's name on its side to have been read) */
+    /* (false: it waits a moment, for the place's name on its side to have been read; or, one with another up already and
+       nowhere to go that doesn't hide what matters, Wren or what it's about or whoever's about, for that one to go) */
     placeNotice(t) {
         let low = false;
-        if (G.scene === 'play' && G.map && G.player) { const items = Dialog.items({ focus: t.focus }, true); low = this.noticeCost(t, true, items) < this.noticeCost(t, false, items); }
+        if (G.scene === 'play' && G.map && G.player) {
+            const items = Dialog.items({ focus: t.focus }, true);
+            low = this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
+            /* (what matters for that: Wren, what it's about, whoever's about; not a puzzle's every piece) */
+            const main = items.filter(i => !i.piece);
+            if (t.wait && Math.min(this.noticeCost(t, true, main), this.noticeCost(t, false, main)) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
+        }
         const b = this.banner && !this.banner.wait ? this.banner : null;
         if (b && !!b.low === low && b.t < 90) { b.until = 90; return false; }
         this.setSide(t, low);
@@ -465,13 +562,18 @@ const UI = {
     /* ---- the place's name ---- */
     /* shown coming into a place from outside it, not coming back out into it from somewhere inside it (out of a house into
        the town, out of a Little House onto the Making Floor). places: what Wren is inside of, the outermost first */
-    showBanner(s, sub) {
-        const a = G.map;
+    showBanner(s, sub, crossing) {
+        const a = G.map, seen = this.seenAt || (this.seenAt = {});
         if (a && a !== this.bannerMap) {
             const from = this.bannerName;
             this.bannerMap = a; this.bannerName = s;
             if (this.cameBack(s, from, a)) { this.banner = null; return; }
-        } else this.bannerName = s;
+        } else {
+            this.bannerName = s;
+            /* (and across a border, back into a region whose name was up only a little while ago: not again) */
+            if (crossing && seen[s] !== undefined && G.t - seen[s] < BANNER_AGAIN) { this.banner = null; return; }
+        }
+        seen[s] = G.t;
         this.banner = { s, sub, t: 0, wait: true, waited: 0 };
         if (!this.held()) this.placeBanner();
     },
@@ -542,8 +644,10 @@ const UI = {
             this.fadeA = lerp(f.from, f.to, Math.min(1, f.t / f.dur));
             if (f.t >= f.dur) this.fade = null;
         }
-        /* somewhere new: notices about the last place go (all but what was only just said, on the way out) */
+        /* somewhere new: notices about the last place go (all but what was only just said, on the way out); and any
+           that's no longer so (its boss down), shown or held back by a scene */
         if (G.map !== this.noticeMap) { this.noticeMap = G.map; const id = G.map ? G.map.id : null; this.toasts = this.toasts.filter(t => t.area === id || G.t - t.born < 12); }
+        if (this.toasts.some(t => t.until && !t.until())) this.toasts = this.toasts.filter(t => !t.until || t.until());
         /* a scene over: what it held back shows again, placed afresh (things have moved) */
         if (this.sceneHold && !Dialog.active && !Script.blocking()) {
             this.sceneHold = false;
@@ -611,7 +715,8 @@ const UI = {
                     continue;
                 }
                 if (e.isGrid) {
-                    const im = e.sprite && e.sprite(), h = im ? Math.max(T, im.height) : T, x = e.px - Cam.x, y = e.py - Cam.y;
+                    /* (as tall as it's drawn: a weathervane's arrow stands high over its foot) */
+                    const im = e.sprite && e.sprite(), h = e.tall || (im ? Math.max(T, im.height) : T), x = e.px - Cam.x, y = e.py - Cam.y;
                     if (over(x, y + T - h, x + T, y + T)) { hit = true; break; }
                 } else if (e instanceof Door || e instanceof FloorThing) {
                     /* (a door in a side wall stands up over the wall's face above it) */
@@ -636,9 +741,10 @@ const UI = {
         if (!Progress.flag('cut_self') || G.keepHearts) {
             const k = leaving ? leaving / 120 : 1, a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
             if (leaving) Gfx.alpha(a0 * k);
-            const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0;
+            const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0, n = Math.ceil(Inv.maxHp / 2);
+            /* (on a soft dark backing, as the counts are: an empty heart all but vanished over a ham hung on a wall) */
+            if (!leaving) { hudBack(2, 2, 9 * Math.min(10, n) + 15, 9); if (n > 10) hudBack(14, 11, 9 * (n - 10) + 3, 8); }
             Gfx.img(spr('hud_spool' + sp), 4, 3 - Math.round((1 - k) * 10));
-            const n = Math.ceil(Inv.maxHp / 2);
             for (let i = 0; i < n; i++) {
                 const hx = 16 + (i % 10) * 9 + (leaving ? Math.round(Math.sin(i * 1.7 + leaving / 9) * (1 - k) * 6) : 0);
                 const hy = 3 + Math.floor(i / 10) * 8 - (leaving ? Math.round((1 - k) * (14 + (i * 7) % 11)) : 0);
@@ -710,6 +816,11 @@ const UI = {
     },
 };
 
+/* a soft dark backing for the HUD, its corners rounded off (as faded as the corner it's in) */
+function hudBack(x, y, w, h, k = 0.4) {
+    const a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
+    Gfx.alpha(a0 * k); Gfx.rect(x + 1, y, w - 2, h, PAL.ink); Gfx.rect(x, y + 1, 1, h - 2, PAL.ink); Gfx.rect(x + w - 1, y + 1, 1, h - 2, PAL.ink); Gfx.alpha(a0);
+}
 /* a few words on the HUD over a soft dark backing, so they read on any floor (sand, snow, water, a bed) */
 function hudText(s, x, y) {
     const w = Font.width(s), a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;

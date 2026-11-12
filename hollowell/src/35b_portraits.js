@@ -88,7 +88,7 @@ function portraitLegend(L) {
         q: cap, Q: shade(cap, -0.3), Y: shade(cap, 0.25),
         g: L.glassC || '#8a7880', G: '#ffffff', d: '#7ec8f0', D: '#e4f6ff',
         r: L.ribbonC || '#5ab85a', R: shade(L.ribbonC || '#5ab85a', -0.3),
-        p: '#f6f1e6', P: '#cfc6b2',
+        p: '#f6f1e6', P: '#cfc6b2', v: L.greyC || '#cfc6b8', V: shade(L.greyC || '#cfc6b8', -0.25),
     };
 }
 
@@ -203,8 +203,9 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
     /* the ears */
     for (const ex of [6, 25]) for (let y = 13; y <= 16; y++) pSet(face, ex, y + dy, ex === 25 || y === 16 ? 'S' : 's');
     pLay(g, face);
-    /* the hair over it; its shadow on the forehead */
+    /* the hair over it; its shadow on the forehead (grey coming in at the temples, for some) */
     const hair = hairPart(L, dy);
+    if (extra.has('greying')) for (let y = 8 + dy; y <= 13 + dy; y++) for (let x = 0; x < PORTRAIT; x++) if ((x <= 8 || x >= 23) && 'hHlK'.includes(hair[y][x])) hair[y][x] = x >= 23 ? 'V' : 'v';
     pLay(g, hair, 'k');
     /* a bun: a ball of hair sat on top */
     if (L.hair === 'bun') {

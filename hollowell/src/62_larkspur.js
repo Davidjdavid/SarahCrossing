@@ -113,8 +113,8 @@ defBlock({
         /* the big wheel in the west meadow, stopped */
         { k: 'deco', x: 15, y: 22, look: 'bigwheel', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], ox: -16, text: 'The big wheel, stopped with one car at the top. Nobody has ridden it in a long time: there are birds nesting in the top car.' },
         /* the east gate to town, bolted on this side */
-        { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA' },
-        { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB' },
+        { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA', look: 'fairgate', hinge: 'n' },
+        { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB', look: 'fairgate', hinge: 's' },
         { k: 'bolt', x: 59, y: 18 },
         /* the edge of the valley */
         { k: 'sign', x: 4, y: 19, text: 'THE EDGE. No further. (The fog will see to that.)' },
@@ -223,7 +223,8 @@ SPAWN.bolt = (x, y) => {
                 const up = e.skey === 'westGateA', im = e.im, t0 = G.t;
                 e.draw = (cx, cy) => {
                     const k = Math.min(1, (G.t - t0) / 28), h = Math.round(im.height * (1 - k * k * 0.85));
-                    if (!im || HEADLESS || k >= 1) return;
+                    if (k >= 1) return Larkspur.drawLeaf(e.tx * T - cx, e.ty * T - cy, up, 'rail');
+                    if (!im || HEADLESS) return;
                     Gfx.ctx.drawImage(im, 0, 0, im.width, im.height, Math.round(e.x - cx), Math.round(e.y - cy) + (up ? 0 : im.height - h), im.width, h);
                 };
             }
@@ -232,6 +233,28 @@ SPAWN.bolt = (x, y) => {
         return true;
     };
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    /* its bar, out along the road's edge into a keeper on the gate's upper leaf; heaved back, it's in the post */
+    pr.draw = function (cx, cy) {
+        Gfx.img(this.im, this.x - cx, this.y - cy);
+        const open = Progress.flag('fair_gate'), x0 = (x + 1) * T - cx - 4, y0 = (y + 1) * T - cy - 2, len = open ? 5 : T + 8;
+        Gfx.rect(x0, y0 - 1, len + 2, 4, PAL.ink); Gfx.rect(x0, y0, len, 2, '#6a6070'); Gfx.rect(x0, y0, len, 1, '#a8a0b0');
+        if (!open) { Gfx.rect(x0 + len - 2, y0 - 3, 5, 8, PAL.ink); Gfx.rect(x0 + len - 1, y0 - 2, 3, 6, '#8a8296'); }
+    };
+    return pr;
+};
+/* the fair's gate, drawn back: each leaf swung round on its hinge (the upper one's at the road's north edge, the lower
+   one's at its south), standing open along the edge of the road */
+{
+    const draw0 = Door.prototype.draw;
+    Door.prototype.draw = function (cx, cy) {
+        if (this.look !== 'fairgate' || this.anim < 8) return draw0.call(this, cx, cy);
+        Larkspur.drawLeaf(this.x - cx, this.y - cy, this.hinge !== 's', 'gate', this.area.theme);
+    };
+}
+/* (the town's side of it, after: its two fence leaves, swung open the same way) */
+SPAWN.gateleaf = (x, y, p) => {
+    const pr = new Prop(x, y, { solid: [] });
+    pr.draw = (cx, cy) => Larkspur.drawLeaf(x * T - cx, y * T - cy, p.hinge !== 's', 'rail');
     return pr;
 };
 /* the carousel: turns slowly by itself, whether anyone rides or not */
@@ -244,6 +267,17 @@ SPAWN.carousel = (x, y) => {
 };
 
 const Larkspur = {
+    /* a gate's leaf standing open, lying east from its hinge (at the north or south edge of its tile, sx, sy on the screen):
+       the fair's barred leaf, or a fence's rail */
+    drawLeaf(sx, sy, north, kind, th) {
+        const x = sx + 7, y = sy + (north ? -2 : 13);
+        if (kind === 'gate') {
+            const bar = th && th.wall ? th.wall[3] : '#5a4a4a', hi = th && th.wall ? th.wall[2] : '#9a8a8a';
+            Gfx.rect(x, y, 18, 5, PAL.ink); Gfx.rect(x + 1, y + 1, 16, 3, bar);
+            for (let i = 4; i < 16; i += 4) Gfx.rect(x + i, y + 1, 2, 3, hi);
+        } else { Gfx.rect(x, y, 18, 5, PAL.ink); Gfx.rect(x + 1, y + 1, 16, 3, '#9a6438'); Gfx.rect(x + 1, y + 1, 16, 1, '#c9925a'); Gfx.rect(x + 8, y + 1, 2, 3, '#6b4128'); }
+        Gfx.rect(x - 1, y - 1, 4, 7, PAL.ink); Gfx.rect(x, y, 2, 5, '#c9925a');
+    },
     *leap() {
         if (!Inv.has('bedroll')) { yield* say(null, "The mesa drops away to a fairground, far below: tents, a carousel, a theatre, all very small. It's a long way down, and no way back up."); return; }
         const b = Inv.bedroll;

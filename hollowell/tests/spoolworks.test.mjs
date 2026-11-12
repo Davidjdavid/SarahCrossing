@@ -493,7 +493,8 @@ test("the Tangle's yarn balls: it swells and glows first; a step aside as they c
     for (const dodge of [true, false]) {
         const [HW, t] = tangleGame(); HW.G.cheats.god = false;
         const p = HW.player();
-        go(HW, 'heart', 3, 2); t.sweepT = 999; t.ballT = 1;
+        /* (from rest: no ball in the air nor cord lashing from while she walked over) */
+        go(HW, 'heart', 3, 2); HW.global('calmBlows')(t); t.balls = []; t.swell = 0; t.lashT = 0; t.sweepT = 999; t.ballT = 1;
         assert.ok(until(HW, () => t.swell > 0, 10), 'it swells');
         assert.ok(until(HW, () => t.balls.length > 0, 40), 'and throws');
         const hp = HW.Inv.hp;

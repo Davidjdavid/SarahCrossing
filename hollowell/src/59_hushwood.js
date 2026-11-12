@@ -264,14 +264,39 @@ SPAWN.campfire = (x, y) => {
 };
 
 const Hushwood = {
+    /* sat up: moss and leaves slide off his shoulders to the road (the moss is left lying there), and one surprised
+       squirrel, who sits a moment where it lands and then bolts for the trees */
+    shrug(g) {
+        const x = g.x, y = g.y, bits = [];
+        const moss = (sx, sy) => { Gfx.rect(sx - 3, sy - 3, 7, 4, PAL.ink); Gfx.rect(sx - 2, sy - 2, 5, 2, '#5a9a3a'); Gfx.rect(sx - 1, sy - 3, 2, 1, '#8fd46a'); };
+        const leaf = (sx, sy, b) => { Gfx.rect(sx - 1, sy - 2, 3, 2, PAL.ink); Gfx.rect(sx, sy - 2, 2, 1, b.col); };
+        const sq = (sx, sy, b) => {
+            const f = b.flip ? -1 : 1, R = (c, a, bb, w, h) => Gfx.rect(f > 0 ? sx + a : sx - a - w, sy + bb, w, h, c);
+            R(PAL.ink, -4, -5, 8, 5); R('#b0703a', -3, -4, 6, 3); R('#e8c098', -3, -2, 3, 1);
+            R(PAL.ink, 3, -11, 5, 8); R('#c8844a', 4, -10, 3, 6); R('#e0a060', 4, -10, 1, 2);
+            R(PAL.ink, -6, -8, 5, 5); R('#b0703a', -5, -7, 3, 3); R(PAL.ink, -5, -6, 1, 1); R(PAL.ink, -4, -9, 1, 2);
+            if (b.bang) Font.draw('!', sx - 2, sy - 21, '#f7d64a');
+        };
+        [[16, 12, 6, 58, 0], [22, 8, 12, 60, 6], [10, 16, 2, 61, 12], [64, 12, 72, 59, 3], [58, 8, 66, 61, 9], [70, 16, 78, 60, 15]].forEach(([fx, fy, tx2, ty2, d]) =>
+            bits.push({ from: [x + fx, y + fy], to: [x + tx2, y + ty2], delay: d, speed: 0.45, end: 'lie', look: moss }));
+        [[20, 6, -4, 48, 4, '#8fd46a'], [60, 6, 84, 46, 10, '#e8b04a'], [30, 4, 18, 62, 16, '#6ab84a'], [52, 4, 70, 63, 2, '#c8a040']].forEach(([fx, fy, tx2, ty2, d, col]) =>
+            bits.push({ from: [x + fx, y + fy], to: [x + tx2, y + ty2], delay: d, speed: 0.4, hop: 9, lift: 3, end: 'fade', fade: 80, col, look: leaf }));
+        /* the squirrel: off his right shoulder, a moment's sit (startled), and away east into the trees */
+        const s0 = [x + 66, y + 10], s1 = [x + 80, y + 60], s2 = [x + 132, y + 44], t1 = 8 + Math.ceil(Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) / 0.5);
+        bits.push({ from: s0, to: s1, delay: 8, speed: 0.5, end: 'gone', look: sq, shadow: false });
+        bits.push({ from: s1, to: s1, delay: t1, end: 'gone', linger: 50, bang: true, look: sq });
+        bits.push({ from: s1, to: s2, delay: t1 + 50, speed: 1, hop: 10, lift: 3, end: 'gone', look: sq });
+        return g.area.add(new Remains(bits, { x: x + 40, y: y + 66 }));     /* (over him, as it slides off) */
+    },
     *giantWakes(g) {
         Music.play('silence');
         G.shake = 20; Sfx.play('rumble');
         yield 50;
         yield* say(null, 'The ring rolls through the trees. The giant stops snoring. Somewhere, a bird stops singing to listen.');
         g.up = true; G.shake = 10; Sfx.play('rumble');
-        yield 30;
-        yield* say(null, '"HRRRMMMMMMHH." He sits up, very slowly, and moss and leaves and one surprised squirrel slide off his shoulders.');
+        const off = Hushwood.shrug(g);
+        yield 24;
+        yield* say(null, '"HRRRMMMMMMHH." He sits up, very slowly, and moss and leaves and one surprised squirrel slide off his shoulders.', { focus: [g, off] });
         yield* say(null, '"Is it... morning? It\'s always morning somewhere. Oh. Oh dear. Was I across the road again? I was, wasn\'t I. I\'m so sorry, little Wanderer."');
         yield* say(null, '"I meant to go home to bed. I only sat down for a moment. I\'ll go now. My bed\'s just over there. Mind your feet."');
         /* up and away to his own bed, over the stream in a stride */
@@ -820,6 +845,7 @@ OWA.ground.hush = {
         for (let n = 0; n < 2; n++) { const bx = 3 + Math.floor(hash2(v, n, 74) * 10), by = 3 + Math.floor(hash2(n, v, 75) * 10); px(x, bx, by, '#2a1638'); px(x, bx + 1, by, '#3a2050'); px(x, bx, by - 1, '#7a5aa0'); }
     },
 };
+UI.keepClear.push(() => Hushwood.lampBoxes());
 Object.assign(Hushwood, {
     /* the door's three lamps, on the board over it, and their cords: each runs down beside the door and away over the
        stream to one of the garden's cradles, slack while the cradle's empty, drawn taut (and its lamp lit) while
@@ -853,6 +879,8 @@ Object.assign(Hushwood, {
             Gfx.rect(lx - 2, ly - 2, 1, 1, on ? '#ffffff' : '#9a8ac8');
         });
     },
+    /* (the HUD steps back from them: drawn by the place, they're the cradles' tell) */
+    lampBoxes() { return G.map && G.map.id === 'hollow' ? this.CORDS.map((c, i) => { const [x, y] = this.lampAt(i); return [x - 6, y - 8, x + 6, y + 6]; }) : []; },
     /* how deep in the wood a point is, 0 at its edges (with the town, the Heights, the Reaches) to 1 four tiles in */
     depth(wx, wy) { return clamp(Math.min(wx - 128 * T, wy - 40 * T, 80 * T - wy) / (4 * T), 0, 1); },
     /* small things on the ground: across the edge with the town, moss creeping out over the town's grass and road and the

@@ -103,13 +103,19 @@ class Snapjaw extends Enemy {
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.ambrose);
         Progress.set('millrace_snapjaw');
         for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'sj') s.shut = false;
+        /* it rolls over, belly up, a moment; then a ball of its yarn bobs away down the race to the pool at its foot (staged
+           under the words: MillFoes.snapDown) */
+        const a = this.area; let ey = this.ty;
+        while (ey < this.ty + 12 && a.kind(this.hx, ey + 1).water) ey++;
+        const belly = RemainsKit.flipV(spr('snapjaw')), x = this.x, y = this.y;
+        this.remains = a.add(new Remains([
+            { from: [x, y], to: [x, y], end: 'gone', linger: 40, look: (sx, sy) => { if (belly) Gfx.img(belly, sx - 12, sy - 14); Gfx.alpha(0.5); Gfx.rect(sx - 10, sy - 2, 20, 2, '#ffffff'); Gfx.alpha(1); } },
+            { from: [x, y - 2], to: [x, ey * T + 6], delay: 40, speed: 0.3, hop: 5, lift: 1, end: 'fade', fade: 30, shadow: false, look: RemainsKit.yarn(THREAD.ambrose) },
+        ], { x, y, top: true }));
         Script.run(MillFoes.snapDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) {
-            if ((this.yarnT || 0) < 120) { this.yarnT = (this.yarnT || 0) + 1; const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ambrose); }
-            return;
-        }
+        if (!this.alive) return;
         const x = this.x - cx, y = this.y - cy;
         if (this.hidden) { if ((this.t >> 3) % 2) Gfx.img(spr('snap_ripple'), x - 8, y - 12); return; }
         /* rearing: jaws open till the snap; then hunting, it sways along the bank snapping at the air */
@@ -176,7 +182,7 @@ class Grindle extends GridThing {
     }
     tick() {
         const p = G.player, a = this.area;
-        if (!this.alive) return;
+        if (!this.alive) { this.deadT = (this.deadT || 0) + 1; return; }
         if (this.flash > 0) this.flash--;
         if (this.state === 'sleep') {
             const r = this.pond;
@@ -324,11 +330,22 @@ class Grindle extends GridThing {
         this.spitOut();
         this.area.unplace(this, this.tx, this.ty); this.area.unplace(this, this.tx + 1, this.ty);
         Progress.set('millrace_boss');
+        /* its gears spin loose, out over the pond (staged under the words, with its sinking: drawSink) */
+        const gx = this.tx * T + 16, gy = this.ty * T + 4, gear = (x, y) => { const k = (G.t >> 2) % 2; Gfx.circle(x, y - 3, 3, PAL.ink); Gfx.circle(x, y - 3, 2, '#e2b45a'); Gfx.rect(x - 1 + k, y - 4, 1, 1, '#7a5a20'); for (const [dx, dy] of k ? [[0, -4], [0, 2], [-4, -1], [4, -1]] : [[-3, -6], [3, 0], [-3, 0], [3, -6]]) Gfx.rect(x + dx - (dx > 0 ? 1 : 0), y + dy - (dy > 0 ? 1 : 0), 2, 2, '#a6772a'); };
+        this.gears = this.area.add(new Remains([[-30, 22, 0], [26, 26, 8], [-10, 34, 16], [40, 14, 24]].map(([dx, dy, d]) => ({ from: [gx, gy], to: [gx + dx, gy + dy], delay: d, speed: 0.55, hop: Math.hypot(dx, dy), lift: 16, end: 'fade', fade: 160, look: gear })), { x: gx, y: gy }));
         Script.run(MillFoes.grindleDown(this));
+    }
+    /* beaten: its plates folded up (shut), it sinks into the intake a little at a time, bubbles coming up over it */
+    drawSink(cx, cy) {
+        const t = this.deadT || 0, im = spr('grindle_shut') || spr('grindle'), x = this.tx * T - cx, y = this.ty * T - cy;
+        const sink = Math.round(clamp((t - 30) / 210, 0, 1) * (im ? im.height : 30));
+        if (im && sink < im.height) Gfx.sub(im, 0, 0, im.width, im.height - sink, x + (t < 30 ? (t >> 1) % 2 : 0), y - 18 + sink);
+        if (t > 30 && t < 300) for (let i = 0; i < 4; i++) { const f = (t + i * 13) % 40; Gfx.alpha(0.8 - f / 50); Gfx.rect(x + 6 + i * 7, y + 10 - f / 2, 2, 2, '#ffffff'); Gfx.alpha(1); }
+        Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
     }
     draw(cx, cy) {
         for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 3, '#a5dcf7'); Gfx.rect(s.x - cx - 1, s.y - cy - 2, 2, 2, '#ffffff'); }
-        if (!this.alive) return;
+        if (!this.alive) return this.drawSink(cx, cy);
         const x = this.tx * T - cx, y = this.ty * T - cy;
         let low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
         const bob = this.state === 'sulk' ? 0 : Math.round(Math.sin(G.t / 20) * 1);
@@ -392,8 +409,8 @@ const MillFoes = {
     },
     *snapDown(s) {
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: s });
+        yield 14;
+        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: s.remains });
         Music.play('millrace');
         Sfx.play('appear');
     },
@@ -404,15 +421,15 @@ const MillFoes = {
     /* the sluice turns: the races run another way, and Grindle with them */
     *turn(g) {
         yield 50;
-        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
+        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about. The side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
         else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again: there's only a chink left between its teeth, too fine for anything bigger than a chip, and deep in its throat the gear-heart spins. One race runs straight past its teeth now.", { focus: g });
         g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
     },
     *grindleDown(g) {
         const a = g.area;
         Music.play('silence');
-        yield 40;
-        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.", { focus: g });
+        yield 14;
+        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.", { focus: [g, g.gears] });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 17, br.y + 9));       /* at the east end of the bank, clear of the raft's landing and the way out */

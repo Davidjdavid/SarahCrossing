@@ -180,6 +180,23 @@ class MotherSloth extends Enemy {
         const b = Inv.bedroll;
         if (phase > 1 && b && b.area === a.id && !Bedroll.float && this.isFar(b.tx, b.ty)) { Bedroll.lost(); G.pendingToast = null; this.rollLost = true; }
     }
+    /* the old boards along the bottom (or where they were), as a box: what the words about them keep clear of */
+    boardsBox() {
+        const r = this.arena, y = r.y + r.h - 2, xs = this.far.filter(q => q[1] === y).map(q => q[0]);
+        return xs.length ? { x0: Math.min(...xs) * T, y0: y * T - 2, x1: (Math.max(...xs) + 1) * T, y1: (y + 1) * T } : [r.x + 9, y];
+    }
+    /* beaten: the floor out past the stars comes back up out of the dark a board at a time, row by row from the top, the
+       bedposts gone first (as setArena(1), slowly: run alongside the words that say so) */
+    *floorBack() {
+        const a = this.area, mid = this.hx + 0.5;
+        for (const e of a.ents.slice()) if (e.slothBit) { Fx.poof(e.x + 8, e.y + 6); a.remove(e); }
+        const order = this.far.slice().sort((p, q) => p[1] - q[1] || Math.abs(p[0] - mid) - Math.abs(q[0] - mid)), step = 150 / Math.max(1, order.length);
+        let wait = 0;
+        for (const [x, y, ch] of order) {
+            a.setCell(x, y, ch); Fx.sparkle(x * T + 8, y * T + 8, '#d8c8f8'); Sfx.play('step', 0.25);
+            for (wait += step; wait >= 1; wait--) yield 1;
+        }
+    }
     /* (the Bedroll gone with the floor: told once she's done talking) */
     tellRollLost() { if (this.rollLost) { this.rollLost = false; UI.toast('The floor went out from under your Bedroll. It turned up, rolled, in your pack.', 180); } }
     onTile() { return false; }
@@ -358,7 +375,7 @@ class MotherSloth extends Enemy {
         for (const s of this.pillows) { Gfx.rect(s.x - cx - 4, s.y - cy - 3, 8, 6, '#fbf6ea'); Gfx.rect(s.x - cx - 4, s.y - cy + 2, 8, 1, '#d8c8f8'); }
         const bx = this.hx * T - cx - 40, by = this.hy * T - cy - 30;
         if (ART.sloth_bed) Gfx.img(ART.sloth_bed, bx, by);
-        if (!this.alive) { if ((this.yarnT || 0) < 160) this.drawFeather(cx, cy, this.yarnT || 0); return; }
+        if (!this.alive) { if ((this.yarnT || 0) < 260) this.drawFeather(cx, cy, this.yarnT || 0); return; }
         /* where her arms can reach: a ring of little stars in the carpet */
         if (this.state !== 'sleep') {
             Gfx.alpha(0.6);
@@ -394,10 +411,10 @@ class MotherSloth extends Enemy {
     /* what's left of her: a soft lavender feather that rocks to and fro as it drifts down off the bed, and sinks into
        the floor (drawn pixel by pixel at its tilt: a quill, a vane wider on one side, a notch or two in it) */
     drawFeather(cx, cy, t) {
-        const k = Math.min(1, t / 130), fall = 1 - (1 - k) * (1 - k), sw = Math.sin(t / 16) * 9;
+        const k = Math.min(1, t / 220), fall = 1 - (1 - k) * (1 - k), sw = Math.sin(t / 16) * 9;
         const fx = Math.round(this.capX - cx + sw), fy = Math.round(this.capY - cy - 46 + fall * 50);
         const th = -0.35 + Math.cos(t / 16) * 0.5, ux = Math.cos(th), uy = Math.sin(th), L = 17;
-        const a = t < 130 ? 1 : Math.max(0, 1 - (t - 130) / 30);
+        const a = t < 220 ? 1 : Math.max(0, 1 - (t - 220) / 40);
         if (a <= 0) return;
         Gfx.alpha((0.06 + 0.2 * fall) * a); Gfx.rect(fx - 6, Math.round(this.capY - cy + 5), 12, 2, PAL.ink);
         Gfx.alpha(a);
@@ -460,6 +477,7 @@ const SlumberFoes = {
     *slothIntro(s) {
         s.dozing = true;
         yield 20;
+        yield* stepIn();
         yield* say(null, 'Something enormous hangs over the four-poster: a sloth as big as a haycart, in a nightcap, fast asleep. Its arms are very, very long.');
         yield* say(null, '"Mmmmh," it says, without opening its eyes. "Another one up past bedtime. Come here, dear. Come to bed. Nothing ever gets away from Mother."');
         yield* say(null, '"...Nothing except what\'s going home, anyway. Mmh."');
@@ -473,18 +491,34 @@ const SlumberFoes = {
         G.shake = 14; Sfx.play('rumble'); Sfx.play('crumble');
         s.setArena(s.phase, true);
         yield 40;
-        if (s.phase === 2) yield* say(null, 'Mother Sloth yawns, enormously, and thumps the mattress. Out past the stars the floor drops away into the dark, all of it but a row of old boards along the bottom. "There," she murmurs. "Nowhere left to wander off to. Nowhere but bed."', { focus: s });
-        else yield* say(null, 'She thumps the mattress again, harder, and the old boards drop into the dark after the rest. Only the bedposts they were laid across are left standing out there, ringed with brass. "Now then," she murmurs, and stretches. "No more of that."', { focus: s });
+        /* (each sentence focused on what it tells of: her, the boards along the bottom, the posts) */
+        if (s.phase === 2) {
+            yield* say(null, 'Mother Sloth yawns, enormously, and thumps the mattress.', { focus: s });
+            yield* say(null, 'Out past the stars the floor drops away into the dark, all of it but a row of old boards along the bottom.', { focus: s.boardsBox() });
+            yield* say(null, '"There," she murmurs. "Nowhere left to wander off to. Nowhere but bed."', { focus: s });
+        } else {
+            const r = s.arena;
+            yield* say(null, 'She thumps the mattress again, harder, and the old boards drop into the dark after the rest.', { focus: s.boardsBox() });
+            yield* say(null, 'Only the bedposts they were laid across are left standing out there, ringed with brass.', { focus: SLOTH.POSTS.map(([x, y]) => [r.x + x, r.y + y, 22]) });
+            yield* say(null, '"Now then," she murmurs, and stretches. "No more of that."', { focus: s });
+        }
         s.tellRollLost();
         s.rise();
     },
     *slothDown(s) {
         const a = s.area;
         Music.play('silence');
-        yield 50;
-        /* the floor comes back up out of the dark, board by board */
-        if (a.ents.some(e => e.slothBit) || s.far.some(([x, y]) => a.kind(x, y).pit)) { s.setArena(1, true); Sfx.play('appear'); yield 24; }
-        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor. Board by board, the floor comes back up out of the dark.');
+        yield 14;
+        /* (the feather drifting down off the bed while it's told: drawFeather; then the floor coming back up out of the dark,
+           board by board, while that is) */
+        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor.', { focus: { x0: s.capX - 16, y0: s.capY - 64, x1: s.capX + 16, y1: s.capY + 8 } });
+        if (a.ents.some(e => e.slothBit) || s.far.some(([x, y]) => a.kind(x, y).pit)) {
+            Sfx.play('appear');
+            Script.run(s.floorBack(), { blocking: false, name: 'slothFloor' });
+            yield 20;
+            yield* say(null, 'Board by board, the floor comes back up out of the dark.', { focus: s.boardsBox() });
+            yield () => !Script.running('slothFloor');
+        }
         s.shutters(false);
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 15, br.y + 6));

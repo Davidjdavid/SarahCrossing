@@ -128,8 +128,14 @@ const Capstone = {
         a.add(new CapTag());
         if (!Progress.flag('cap_seen')) {
             Progress.set('cap_seen');
-            Script.run(function* () { yield 20; yield* say(null, 'Up through the boards: an empty Little House. Three things by the wall, a hoop at the far end, and nobody in it yet.'); });
+            Script.run(function* () { yield 20; yield* say(null, 'Up through the boards: an empty Little House. Three things by the wall, a hoop at the far end, and nobody in it yet.', { focus: Capstone.seen(a, true) }); });
         }
+    },
+    /* the three things (and the hoop) as they're seen from underneath, up through the boards: what the words about them
+       keep clear of */
+    seen(a, hoop) {
+        const b = a.rooms.find(r => r.key === '0,1');
+        return CAP_KIT.map(k => [b.x + k.x, b.y + k.y, 20]).concat(hoop ? [[b.x + 17, b.y + 5, 30]] : []);
     },
     /* the button, up there under whatever it's under (or nowhere, while it's in the tin) */
     placeButton(a) {
@@ -176,7 +182,7 @@ const Capstone = {
             const cur = Capstone.button();
             if (Capstone.run) { yield* say(null, cur ? `The tin's empty: the button's up there under ${Capstone.noun(cur)}.` : "There's the button, in its tin. Too late to hide it now: he's in."); return; }
             const opts = CAP_KIT.map(k => 'Under ' + k.noun);
-            const i = yield* ask(null, cur ? `The button's up under ${Capstone.noun(cur)}. Move it?` : "Gundry's button, in a tin: a shiny one, for hiding. Under which?", [...opts, cur ? 'Back in the tin' : 'Leave it in the tin']);
+            const i = yield* ask(null, cur ? `The button's up under ${Capstone.noun(cur)}. Move it?` : "Gundry's button, in a tin: a shiny one, for hiding. Under which?", [...opts, cur ? 'Back in the tin' : 'Leave it in the tin'], { focus: Capstone.seen(a) });
             if (i < 0) return;
             const id = i < CAP_KIT.length ? CAP_KIT[i].id : null;
             if (id === cur) return;

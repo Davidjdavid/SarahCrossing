@@ -249,7 +249,9 @@ const TileDraw = {
                 const isW = k => k === 'wall' || k === 'void';
                 const below = isW(area.cell(tx, ty + 1).k);
                 const mask = (below ? 1 : 0) | (isW(area.cell(tx, ty - 1).k) ? 2 : 0) | (isW(area.cell(tx - 1, ty).k) ? 4 : 0) | (isW(area.cell(tx + 1, ty).k) ? 8 : 0);
-                c = tileCanvas(`${tn}:wall:${v}:${mask}`, x => Walls.draw(x, area, tn, th, v, mask));
+                /* (a room's top wall sits in the HUD's row: no portholes or arrow slits there, to be taken for its gems) */
+                const r = !below && area.rooms.length > 1 ? area.roomAt(tx, ty) : null, hud = !!r && ty === r.y;
+                c = tileCanvas(`${tn}:wall:${v}:${mask}${hud ? ':hud' : ''}`, x => Walls.draw(x, area, tn, th, v, mask, hud));
                 break;
             }
             default: {
@@ -341,10 +343,10 @@ const FLOORS = {
 
 /* walls seen from above at a slant: the face shows where the tile below is open floor */
 const Walls = {
-    draw(x, area, tn, th, v, mask) {
+    draw(x, area, tn, th, v, mask, hud) {
         const below = mask & 1, above = mask & 2, left = mask & 4, right = mask & 8;
         const W = WALLS[tn] || WALLS.default;
-        if (!below) W.face(x, th, v);
+        if (!below) W.face(x, th, v, hud);
         else W.top(x, th, v);
         const edge = W.edge || '#1a1418';
         /* outline the wall's top where it meets floor */

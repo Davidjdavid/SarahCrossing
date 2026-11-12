@@ -131,7 +131,8 @@ SPAWN.strayhouse = (tx, ty) => {
         if (tick0) tick0(a);
         if (Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && G.player && G.player.ty > 33 && G.player.ty < 41 && G.player.tx > 88 && G.player.tx < 102) {
             Progress.set('north_gate_seen');
-            G.pendingToast = 'The north gate stands open, for the first time in anybody\'s memory. Beyond it, silver trees.';
+            /* (clear of the gate and the trees beyond it) */
+            G.pendingToast = { s: 'The north gate stands open, for the first time in anybody\'s memory. Beyond it, silver trees.', focus: { x0: (64 + 29) * T, y0: 31 * T, x1: (64 + 35) * T, y1: 38 * T } };
         }
     };
 }

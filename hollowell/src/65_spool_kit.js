@@ -167,7 +167,7 @@ const Spool = {
                 const k = a.kindName(tx, ty), sx = tx * T - ux, sy = ty * T - uy;
                 if (k === 'floor') continue;
                 if (k === 'wall' || k === 'void') { if (!a.kind(tx - r.above.dx, ty - r.above.dy).solid) this.plan(a, tx, ty, sx, sy); }
-                else if (k === 'pit') Gfx.img(tileCanvas('spool:hole', x => { fill(x, '#fff3d0'); for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if ((i * 3 + j * 5) % 11 === 0) px(x, i, j, '#ffe6a0'); }), sx, sy);
+                else if (k === 'pit') Gfx.img(this.holeTile(a, tx, ty), sx, sy);
                 else TileDraw.draw(a, tx, ty, sx, sy);
             }
             const inR = e => { const tx = e.tx !== undefined ? e.tx : tileOf(e.x), ty = e.ty !== undefined ? e.ty : tileOf(e.y); return tx >= ar.x && ty >= ar.y && tx < ar.x + ar.w && ty < ar.y + ar.h; };
@@ -189,6 +189,21 @@ const Spool = {
         g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.35; g.fillStyle = '#cfe0ff'; g.fillRect(0, 0, W, H);
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
         Gfx.alpha(0.55); ctx0.drawImage(c, 0, 0); Gfx.alpha(1);
+    },
+    /* a hole up above, seen from below: the light coming down through it, in rays, soft at its edges where it meets the
+       boards (not a flat pale band with hard sides) */
+    holeTile(a, tx, ty) {
+        const pit = (x, y) => a.kindName(x, y) === 'pit', l = pit(tx - 1, ty), r = pit(tx + 1, ty), u = pit(tx, ty - 1), d = pit(tx, ty + 1);
+        return tileCanvas(`spool:hole:${+l}${+r}${+u}${+d}:${tx % 3}`, x => {
+            for (let i = 0; i < 16; i++) {
+                const ray = hash2(tx * 16 + i, 5, 77), edge = Math.min(l ? 99 : i, r ? 99 : 15 - i);
+                for (let j = 0; j < 16; j++) {
+                    const ve = Math.min(u ? 99 : j, d ? 99 : 15 - j), k = Math.min(1, (Math.min(edge, ve) + 1) / 6);
+                    if (hash2(tx * 16 + i, ty * 16 + j, 78) > k * 1.15) continue;
+                    px(x, i, j, ray > 0.72 ? '#fffbe8' : ray < 0.25 ? '#f6e2b0' : (i * 3 + j * 5) % 11 === 0 ? '#ffe6a0' : '#fff3d0');
+                }
+            }
+        });
     },
     /* a wall up above, seen from below: its plan, hatched, its edges dashed */
     plan(a, tx, ty, sx, sy) {
@@ -420,7 +435,9 @@ const Needle = {
             this.unpick(oldest);
             /* (something that's held where it is when its stitch lets go, tied off below or gripped, stays put) */
             const was = oldest.area === a.id && a.ents.find(o => this.key(o) === oldest.key && !o.removed);
-            UI.toast(this.letGo(oldest, !!(was && was.ret && Return.held(was))), 200, { focus: was || null });
+            const said = this.letGo(oldest, !!(was && was.ret && Return.held(was)));
+            /* (a short one about a stitch in another room gives way to anything said about this one) */
+            UI.toast(said, 200, { focus: was || null, minor: !this.saidFull && !(was && a.roomAt(was.tx, was.ty) === Cam.room) });
         }
     },
     /* what a stitched thing is called, for saying which one let go */
@@ -432,10 +449,13 @@ const Needle = {
         const here = room && G.map && G.map.id === rec.area && Cam.room && Cam.room.key === room.key, n = room && room.name;
         const where = here ? ' here' : !n ? '' : /^Under /.test(n) ? ' under ' + n.slice(6) : /Floor$/.test(n) ? ' on ' + n.replace(/^The /, 'the ') : ' in ' + n.replace(/^The /, 'the ');
         const what = (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where;
-        /* (the whole of it the first two times; after that, just which thing it was and where) */
-        const n2 = Stats.c['said:needleLetGo'] || 0;
+        /* (the whole of it the first time, and the second unless the first was only a minute ago; after that, just which
+           thing it was and where) */
+        const n2 = Stats.c['said:needleLetGo'] || 0, recent = this.fullAt !== undefined && G.t - this.fullAt < 60 * 60;
         Stats.count('said:needleLetGo');
-        if (n2 >= 2) return 'Your oldest stitch lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back, but something is holding it.' : ' goes back to its old place.');
+        this.saidFull = !(n2 >= 2 || (n2 === 1 && recent));
+        if (!this.saidFull) return 'Your oldest stitch lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back, but something is holding it.' : ' goes back to its old place.');
+        this.fullAt = G.t;
         return 'The Needle only holds three stitches, so your oldest lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back to its old place, but something is holding it where it is.' : ' goes back to its old place.');
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */

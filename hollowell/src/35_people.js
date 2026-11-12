@@ -17,7 +17,7 @@ const PEOPLE_DEF = {
     mallow: { name: 'Doctor Mallow', col: '#c9b3f0', look: { body: 'adult', hair: 'bald', hairC: '#c8c0b8', top: '#fbf6ea', accent: '#b48ce8', bottom: '#4b3a8a', skin: 'light', extra: ['glasses', 'mustache'] } },
     mabel: { name: 'Auntie Mabel', col: '#c8e66a', look: { body: 'elder', hair: 'long', hairC: '#c8c8d0', top: '#8a5aa0', accent: '#f7d64a', bottom: '#4a2a5a', skin: 'dark' } },
     burr: { name: 'Constable Burr', col: '#9a9188', look: { body: 'adult', hair: 'cap', hairC: '#3a3a5a', top: '#2b5aa8', accent: '#f7d64a', bottom: '#1f3270', skin: 'light', extra: ['mustache'] } },
-    gundry: { name: 'Gundry', col: '#c9925a', look: { body: 'adult', hair: 'short', hairC: '#c4623a', top: '#7a5233', accent: '#e6c08a', bottom: '#45281c', skin: 'tan' } },
+    gundry: { name: 'Gundry', col: '#c9925a', look: { body: 'adult', hair: 'short', hairC: '#c4623a', top: '#7a5233', accent: '#e6c08a', bottom: '#45281c', skin: 'tan', extra: ['greying'] } },
     ambrose: { name: 'Dad', col: '#7ec8f0', look: { body: 'adult', hair: 'short', hairC: '#a5532a', top: '#4f9be0', accent: '#fbf6ea', bottom: '#5a4a3a', skin: 'light', extra: ['beard'] } },
     tess: { name: 'Mum', col: '#f7d64a', look: { body: 'adult', hair: 'long', hairC: '#3a2a1a', top: '#e8c04a', accent: '#a6772a', bottom: '#6b4128', skin: 'tan' } },
     jory: { name: 'Jory', col: '#d6304e', look: { body: 'elder', hair: 'tuft', hairC: '#f0f0f0', top: '#c42b4a', accent: '#f7d64a', bottom: '#2a1f2d', skin: 'light', extra: ['glasses'] } },

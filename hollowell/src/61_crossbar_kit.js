@@ -92,10 +92,7 @@ const Crossbar = {
         if (!c || !p) return;
         const hx = p.x - cx, hy = p.y - cy - 24;
         Gfx.rect(hx - 6, hy, 12, 2, '#9a6438'); Gfx.rect(hx - 1, hy - 2, 2, 6, '#9a6438');
-        for (const e of c.puppets) {
-            const ex = e.px - cx + 8, ey = e.py - cy - 8;
-            Gfx.alpha(0.8); Gfx.line(hx, hy, ex, ey - 6, THREAD.jory); Gfx.alpha(1);
-        }
+        for (const e of c.puppets) Threads.stroke(hx, hy, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
     },
 };
 
@@ -183,9 +180,10 @@ class Rack extends GridThing {
     sprite() { return spr('rack'); }
     draw(cx, cy) {
         const im = spr('rack'); if (im) Gfx.img(im, this.px - cx, this.py - cy - 8);
-        /* its strings run off to its puppets, faintly */
-        Gfx.alpha(0.25);
-        for (const e of this.area.ents) if (e.kind === 'puppet' && e.group === this.group) Gfx.line(this.px - cx + 8, this.py - cy - 6, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
+        /* its strings run off to its puppets: thread like any other, over its dark under-stroke (which puppets a rack
+           works is the puzzle), and brighter while the Crossbar's in hand */
+        Gfx.alpha(Inv.equipped === 'crossbar' ? 1 : 0.7);
+        for (const e of this.area.ents) if (e.kind === 'puppet' && e.group === this.group) Threads.stroke(this.px - cx + 8, this.py - cy - 6, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
         Gfx.alpha(1);
     }
 }

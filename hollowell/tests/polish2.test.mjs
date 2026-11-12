@@ -27,7 +27,7 @@ test('pages break where sentences end: no page left holding the tail of a senten
     }
 });
 
-test('the dialogue box goes to the side that hides least: away from a boss at the top, away from Wren at the bottom', () => {
+test('the dialogue box goes to the side that hides least: away from a boss at the top, away from Wren at the bottom (Wren all but a must)', () => {
     const HW = loadGame();
     HW.preset('afterD1'); HW.step(5); HW.skipTalk();
     HW.warp('kiln', 20 + 9, 33 + 6); HW.step(30); HW.skipTalk();     /* (the Kiln Door: nobody else about) */
@@ -37,12 +37,16 @@ test('the dialogue box goes to the side that hides least: away from a boss at th
     const open = () => { D.open(null, 'A line.'); const t = D.top; D.close(); HW.step(10); return t; };
     p.y = HW.global('Cam').y + 160;
     assert.equal(open(), true, 'Wren at the bottom: the box at the top');
-    /* a boss up top as well: the box keeps to the bottom (the boss counts double) */
+    /* a boss up top, Wren in the middle: the box keeps to the bottom (the boss counts double) */
     const Enemy = HW.global('Enemy');
     const cam = HW.global('Cam');
     const b = new Enemy(Math.floor((cam.x + 160) / 16), Math.floor((cam.y + 40) / 16), { type: 'housekeeper', hp: 3 });
     HW.G.map.add(b);
+    p.y = cam.y + 100;
     assert.equal(open(), false, 'a boss at the top: the box at the bottom');
+    /* and Wren down at the bottom too, said in passing (no lean): she's all but a must, so the box keeps off her */
+    p.y = cam.y + 160;
+    assert.equal(open(), true, 'Wren at the bottom, a boss at the top: the box off Wren');
     assert.equal(Script.list ? Script.list.length >= 0 : true, true);
 });
 
@@ -280,11 +284,17 @@ test("the Needle: its first notice keeps clear of the thing and where it could g
     assert.ok(share(HW, pot, r) === 0 && share(HW, focus[1], r) < 0.2, 'clear of the thing and its reach');
     assert.ok(p.y - 24 - Cam.y >= 4, 'Wren on screen');
     HW.press('atk', 1); HW.step(30);
-    /* the let-go notice: in full twice, then short */
-    const said = [];
-    for (let i = 0; i < 3; i++) said.push(N.letGo({ area: 'spoolworks', key: 'x', noun: 'the iron weight', from: [45, 25] }, false));
+    /* the let-go notice: in full, and in full again the second time only if the first was a while ago (five in fifteen
+       seconds in the Bobbin Loft had it twice); then short */
+    const said = [], go = () => said.push(N.letGo({ area: 'spoolworks', key: 'x', noun: 'the iron weight', from: [45, 25] }, false));
+    go(); go(); HW.G.t += 60 * 61; go(); go();
     assert.match(said[0], /^The Needle only holds three stitches/);
-    assert.match(said[1], /^The Needle only holds three stitches/);
-    assert.match(said[2], /^Your oldest stitch lets go: the iron weight/);
-    assert.ok(said[2].length < said[0].length - 30, 'shorter');
+    assert.match(said[1], /^Your oldest stitch lets go: the iron weight/, 'the second, straight after: short');
+    assert.match(said[2], /^Your oldest stitch lets go: the iron weight/, 'and then short for good');
+    assert.ok(said[1].length < said[0].length - 30, 'shorter');
+    const H2 = loadGame(); H2.preset('afterD6'); H2.step(10); H2.skipTalk();
+    const N2 = H2.global('Needle'), said2 = [], go2 = () => said2.push(N2.letGo({ area: 'spoolworks', key: 'x', noun: 'the iron weight', from: [45, 25] }, false));
+    go2(); H2.G.t += 60 * 61; go2(); go2();
+    assert.match(said2[1], /^The Needle only holds three stitches/, 'a minute on, the second in full');
+    assert.match(said2[2], /^Your oldest stitch lets go/, 'the third short');
 });

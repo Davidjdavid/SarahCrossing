@@ -662,8 +662,12 @@ const MarionetteFoes = {
         if (t) { g.bags.push({ x: t.tx * T + 8, y: t.ty * T + 10, t: 0 }); yield 76; }
         g.lowerThird(false);
         yield 36;
-        yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: g });
+        /* (it's off on its march, a few steps along, before that's said: the scene steps it) */
         g.state = 'march'; g.st = 0; g.march = LEFT;
+        for (let i = 0; i < GM.MARCH * 3; i++) { g.st++; g.marchOn(null); yield 1; }
+        yield () => !g.mv;
+        yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: [g, g.third()].filter(Boolean) });
+        g.st = 0;
     },
     /* the second: out of the trap, its strings let out long and slack, its bar down low */
     *toAct3(g) {

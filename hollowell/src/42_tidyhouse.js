@@ -447,6 +447,16 @@ SPAWN.pie = (tx, ty) => {
     };
     pr.talkBox = (pl, f) => (f.tx === tx || f.tx === tx - 1) && f.ty === ty;
     if (Progress.flag('pie')) pr.im = ART.pie_empty;
+    /* still warm: steam curling up off it, a wisp at a time */
+    const draw0 = pr.draw;
+    pr.draw = function (cx, cy) {
+        draw0.call(this, cx, cy);
+        if (this.im !== ART.pie) return;
+        for (let i = 0; i < 3; i++) {
+            const k = ((G.t + i * 23) % 70) / 70, x = Math.round(this.x - cx + 5 + i * 3 + Math.sin(k * 6 + i * 2) * 1.5), y = Math.round(this.y - cy + 1 - k * 12);
+            Gfx.alpha(0.75 * (1 - k)); Gfx.rect(x, y, 1, 2, '#ffffff'); Gfx.rect(x + ((k * 6 + i) % 2 < 1 ? 1 : -1), y - 2, 1, 2, '#ffffff'); Gfx.alpha(1);
+        }
+    };
     return pr;
 };
 /* the Staff Only door behind the cupboard (S04) */
@@ -516,7 +526,9 @@ SPAWN.monger = (tx, ty) => {
         Progress.set('tidy_monger');
         for (const s of e.area.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = false;
         Music.play('tidy');
-        Script.run(function* () { yield 60; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.'); });
+        /* (the burst, and the bunnies hopping off under the four closets while it's told) */
+        const bits = Tidy.bunnies(e);
+        Script.run(function* () { yield 14; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.', { focus: bits }); });
     };
     e.wakeT = 0; e.flopT = 120;
     return e;
@@ -530,7 +542,7 @@ AI.monger = (e, p) => {
             e.awake = true;
             for (const s of a.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = true;
             Music.play('boss');
-            Script.run(function* () { yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off all that fluff. Something thrown might not...'); });
+            Script.run(function* () { yield* stepIn(); yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off all that fluff. Something thrown might not...'); });
         }
         return;
     }
@@ -773,6 +785,19 @@ class Housekeeper extends Enemy {
 SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
 
 const Tidy = {
+    /* the Dust Monger burst: dust bunnies hopping off from where it was under the closets in the room's four corners (the
+       upper two from in front, the lower two from behind), each gone as it gets there; its yarn with them */
+    bunnies(e) {
+        const a = e.area, r = a.roomAt(e.hx, e.hy), n = 16, bits = [];
+        e.draw = () => { };
+        const look = (x, y, b) => { const L = b.ink; Gfx.rect(x - 3, y - 4, 7, 4, L); Gfx.rect(x - 2, y - 6, 1, 2, L); Gfx.rect(x + 1, y - 6, 1, 2, L); Gfx.rect(x - 2, y - 3, 5, 2, '#e4dcd0'); Gfx.rect(x - 1, y - 4, 3, 1, '#f4ecdf'); Gfx.rect(x + (b.dx < 0 ? -1 : 1), y - 3, 1, 1, PAL.ink); };
+        for (let i = 0; i < n; i++) {
+            const c = i % 4, up = c < 2, tx = r.x + (c % 2 ? 16 : 2), u = hash2(i, 5, 71), v = hash2(i, 9, 72);
+            const to = [(tx + 0.2 + u * 1.6) * T, (r.y + (up ? 4 : 7)) * T + (up ? 1 : 3)], from = [e.x - 10 + v * 20, e.y - 2 + u * 6];
+            bits.push({ from, to, dx: to[0] - from[0], delay: Math.floor(hash2(i, 3, 73) * 36), speed: 0.5 + v * 0.25, hop: 7 + u * 3, lift: 3, look, ink: PAL.ink });
+        }
+        return a.add(new Remains(bits, { x: e.x, y: e.y }));
+    },
     /* the Housekeeper's coat-hanger: a wooden bar with sloping shoulders and a wire hook, spinning as it flies */
     drawHanger(x, y, f) {
         const R = (c, a, b, w, h) => Gfx.rect(a, b, w, h, c);

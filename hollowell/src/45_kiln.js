@@ -472,7 +472,7 @@ class Glazer extends Enemy {
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
     update() {
-        if (!this.alive) return;
+        if (!this.alive) { this.deadT = (this.deadT || 0) + 1; return; }
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area;
         if (this.state === 'sleep') {
@@ -559,8 +559,29 @@ class Glazer extends Enemy {
             Progress.set('kiln_glazer');
             for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = false;
             Music.play('kilnhouse');
-            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.'); });
+            /* (it stands there cracked, then crumbles, while it's told: drawDust) */
+            const g = this;
+            Script.run(function* () { yield 14; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.', { focus: [g.tx, g.ty, 28] }); });
         }
+    }
+    /* beaten: it stands a moment cracked from head to foot, then crumbles from the top down into a heap of clay dust with
+       the pieces of its shield in it, and the heap is left lying there */
+    drawDust(cx, cy) {
+        const t = this.deadT || 0, im = spr('glazer'), x = Math.round(this.x - cx), y = Math.round(this.y - cy);
+        const k = clamp((t - 50) / 150, 0, 1), w = Math.round(3 + k * 4);
+        if (t >= 50) {
+            Gfx.rect(x - w - 2, y - 1, w * 2 + 5, 3, PAL.ink); Gfx.rect(x - w - 1, y - 1, w * 2 + 3, 2, '#c4623a');
+            if (k > 0.3) { Gfx.rect(x - w, y - 3, w * 2 + 1, 3, PAL.ink); Gfx.rect(x - w + 1, y - 2, w * 2 - 1, 2, '#d98a5a'); Gfx.rect(x - w + 2, y - 2, 2, 1, '#e8b08a'); }
+            if (k > 0.6) { Gfx.rect(x - 4, y - 2, 2, 1, '#5ad1c5'); Gfx.rect(x + 3, y - 1, 2, 1, '#2e9a96'); Gfx.rect(x - 1, y - 4, 1, 1, '#bff3ee'); }
+        }
+        if (k >= 1 || !im) return;
+        const cut = Math.round(k * (im.height - 4)), sh = t < 50 ? ((t >> 1) % 2) : 0, top = y - 22;
+        if (t < 50) this.drawShield(cx, cy, sh, 0);
+        Gfx.sub(im, 0, cut, im.width, im.height - cut, x - 8 + sh, top + cut);
+        /* the crack, head to foot */
+        for (let j = Math.max(cut, 1); j < im.height - 2; j++) Gfx.rect(x - 1 + sh + ((j * 5) >> 2) % 3 - 1, top + j, 1, 1, PAL.ink);
+        /* dust sifting down off the crumbling top */
+        if (t >= 50) for (let i = 0; i < 5; i++) { const f = Math.floor(t * 0.6 + i * 7) % 16; Gfx.rect(x - 7 + i * 3 + sh, top + cut + f, 1, 1, i % 2 ? '#e8c8a8' : '#c4623a'); }
     }
     /* its glazed shield, held on whichever side it faces (big, braced, before a barge) */
     drawShield(cx, cy, sh, low) {
@@ -570,7 +591,7 @@ class Glazer extends Enemy {
         Gfx.rect(sx - 2, sy + h, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, h - 7, '#e8a070');
     }
     draw(cx, cy) {
-        if (!this.alive) return;
+        if (!this.alive) return this.drawDust(cx, cy);
         const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
@@ -779,14 +800,25 @@ class Kilnwyrm extends Enemy {
         /* (the pit closes over: the floor the Knot's hoop will stand on) */
         if (this.told === 3) { const r = this.room; for (let y = 3; y <= 7; y++) for (let x = 7; x <= 11; x++) this.area.setCell(r.x + x, r.y + y, '.'); }
         Sfx.play('unravel'); for (let i = 0; i < this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 10)]; Fx.burst(s[0], s[1] - 6, '#c4623a'); }
+        this.comeApart();
         Progress.set('kiln_boss');
         Script.run(Kiln.bossDown(this));
     }
+    /* it comes apart pot by pot (head, coils, tail), and every piece rattles across the floor in turn to a crack at the foot
+       of the west wall, and down it (staged under the words: Kiln.bossDown) */
+    comeApart() {
+        const a = this.area, r = this.room, kx = (r.x + 1) * T + 1, ky = (r.y + 5) * T + 10, bits = [];
+        const pots = [[this.x, this.y, spr('wyrm_head_' + DIR_NAME[this.dir === LEFT ? RIGHT : this.dir]), this.dir === LEFT]];
+        for (let i = 1; i <= this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 11)]; pots.push([s[0], s[1], spr(i === this.segs ? 'wyrm_tail' : 'wyrm_seg'), false]); }
+        pots.forEach(([x, y, im, flip], i) => {
+            const to = [kx + 6, ky - 6 + (i % 3) * 5], len = Math.hypot(to[0] - x, to[1] - y);
+            bits.push({ from: [x, y], to, delay: 10 + i * 10, speed: Math.max(0.6, len / 150), rattle: true, end: 'fade', fade: 12, look: (sx, sy) => Gfx.img(im, sx - 8, sy - 14, flip) });
+        });
+        this.crack = a.add(new Remains([{ from: [kx, ky], to: [kx, ky], end: 'lie', look: Kiln.drawCrack }], { x: kx, y: ky, floor: true }));
+        this.pieces = a.add(new Remains(bits, { x: this.x, y: this.y }));
+    }
     draw(cx, cy) {
-        if (!this.alive) {
-            if ((this.deadT || 0) < 100) { const k = 1 - (this.deadT || 0) / 100; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.bram); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
-            return;
-        }
+        if (!this.alive) return;
         const fl = this.flash > 0 && (this.flash >> 1) % 2;
         /* rattling its coils (about to shed): every piece of it shivers */
         const rat = this.rattleT > 0 ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
@@ -826,11 +858,16 @@ const Kiln = {
         yield* say(null, 'In the heat at the heart of the Kiln, something long and glazed uncoils. Its head turns, sniffs the floor where you just walked, and starts to follow your footprints.');
         yield* say(null, 'Its glaze is as hard as the Glazer\'s shield. Nothing you swing will crack it.');
     },
+    /* the crack at the foot of the wall the Kilnwyrm's pieces go down (x, y: its foot on the screen) */
+    drawCrack(x, y) {
+        for (let j = 0; j < 24; j++) { const o = ((j * 5) >> 3) % 2 + (j > 9 && j < 17 ? 1 : 0); Gfx.rect(x + o, y - 18 + j, 2, 1, '#1a1018'); }
+        Gfx.rect(x + 2, y - 10, 2, 1, '#1a1018'); Gfx.rect(x + 3, y - 4, 1, 2, '#3a1810'); Gfx.rect(x, y - 16, 1, 1, '#d98a5a');
+    },
     *bossDown(w) {
         const a = w.area;
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'The Kilnwyrm comes apart pot by pot, and every last piece goes rattling across the floor and down a crack by the wall, back to wherever it belongs.');
+        yield 14;
+        yield* say(null, 'The Kilnwyrm comes apart pot by pot, and every last piece goes rattling across the floor and down a crack by the wall, back to wherever it belongs.', { focus: [w.pieces, w.crack] });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 9, br.y + 4));
@@ -842,10 +879,11 @@ const Kiln = {
         Progress.set('d2');
         Progress.set('tagStopped');
         Progress.setGoal('Back to Hollowell. Then east: the broken bridge in Meadowfold, and Millwater beyond it. Your Hookline should get you over.');
-        yield* say(null, 'A door opens in the side of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.');
+        /* (the door first, then the words about it, on it: down in the chamber's south-east corner) */
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: KILN_OUT.x, ty2: KILN_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
+        yield* say(null, 'A door opens in the corner of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.', { focus: [r.x + 17, r.y + 9] });
     },
 };
 SIGNATURE_TEXT.kiln = "Pressed into the clay floor, as if with a big thumb: an ochre B, and a little jug. Someone signed this House like you'd sign the bottom of a pot.";

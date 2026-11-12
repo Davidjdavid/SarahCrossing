@@ -182,7 +182,7 @@ SPAWN.gust = (x, y, p) => new Gust(x, y, p);
 
 /* a weathervane: shows which way the next gust blows, and spins up as it comes */
 class Vane extends GridThing {
-    constructor(tx, ty, p = {}) { super('vane', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p)); this.ang = 0; }
+    constructor(tx, ty, p = {}) { super('vane', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p)); this.ang = 0; this.tall = 38; }
     tick() {
         const g = this.area.ents.find(e => e.kind === 'gust' && (!this.gust || e.id === this.gust));
         this.g = g; if (!g) return;

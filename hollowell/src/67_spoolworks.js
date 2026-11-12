@@ -544,7 +544,7 @@ const Spoolworks = {
         /* the Bobbin Loft opens when all four plates have been held down together a moment (not a single frame) */
         const all = ['bl1', 'bl2', 'bl3', 'bl4'].every(s => Signals.get(a, s));
         this.blT = all ? (this.blT || 0) + 1 : 0;
-        if (this.blT === 1 && !Progress.areaFlag('spoolworks', 'blHeld')) { Sfx.play('rumble'); G.pendingToast = "All four plates down: somewhere in the wall, a winch begins, very slowly, to turn."; }
+        if (this.blT === 1 && !Progress.areaFlag('spoolworks', 'blHeld')) { Sfx.play('rumble'); G.pendingToast = { s: "All four plates down: somewhere in the wall, a winch begins, very slowly, to turn.", focus: a.ents.filter(e => e.kind === 'plate' && /^bl\d$/.test(e.sig)).map(e => [e.tx, e.ty, 16]) }; }
         if (this.blT > 300 || Progress.areaFlag('spoolworks', 'blHeld')) { Signals.set(a, 'blHeld'); if (!Progress.areaFlag('spoolworks', 'blHeld')) Progress.setAreaFlag('spoolworks', 'blHeld'); }
         /* once through the Practice Floor's door, the Ropewalk's opens; once the Ropewalk's key is taken, its far door */
         if (Progress.areaFlag('spoolworks', 'door:gaGateE')) Signals.set(a, 'paDone');

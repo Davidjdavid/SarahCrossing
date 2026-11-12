@@ -160,3 +160,41 @@ test('every stitch is drawn over its dark under-stroke: threads every way they r
     check('a patience ring', draw(() => Threads.ring(48, 48, 1, col, false)));
     check('a creature\'s trail', draw(() => Threads.dotted([[10, 10], [70, 10], [70, 60], [20, 80]], col)));
 });
+
+/* The Crossbar racks' strings (the Marionette Hall's puzzle tell: which puppets a rack works; live run 3's picture
+   review measured them at about 1.1:1, crimson at a quarter strength with no under-stroke): drawn as Rack.draw draws
+   them, each stitch over its dark under-stroke, and measured at the strength they're drawn at on the Hall's own floors */
+test('the Crossbar racks\' strings read on the Marionette Hall\'s floors, with the Crossbar in hand or not', () => {
+    const HW = loadGame();
+    const Gfx = HW.global('Gfx'), Threads = HW.global('Threads'), Rack = HW.global('Rack'), Inv = HW.global('Inv'), THREAD = HW.global('THREAD');
+    const ink = Threads.UNDER, col = THREAD.jory;
+    const pup = (px, py) => ({ kind: 'puppet', group: 'g', px, py });
+    const rack = { px: 40, py: 40, group: 'g', area: { ents: [pup(4, 80), pup(40, 82), pup(76, 84), pup(80, 30), { kind: 'puppet', group: 'other', px: 10, py: 10 }] } };
+    for (const tool of ['bell', 'crossbar']) {
+        Inv.equipped = tool;
+        const s = new Soft(96, 96); s.fillStyle = '#808080'; s.fillRect(0, 0, 96, 96); s.log = [];
+        const c0 = Gfx.ctx; Gfx.ctx = s; try { Rack.prototype.draw.call(rack, 0, 0); } finally { Gfx.ctx = c0; }
+        const top = new Map(); for (const [i, j, f, a] of s.log) top.set(i + ',' + j, [f, a]);
+        let n = 0, alpha = 1, ua = 1;
+        for (const [k, [f, a]] of top) {
+            if (f === ink) ua = Math.min(ua, a);
+            if (f !== col) continue;
+            n++; alpha = Math.min(alpha, a);
+            const [i, j] = k.split(',').map(Number);
+            assert.ok([[0, 1], [1, 0], [1, 1]].some(([di, dj]) => (top.get((i + di) + ',' + (j + dj)) || [])[0] === ink), `a rack's string, the stitch at ${i},${j}: no dark under it or to its right`);
+        }
+        assert.ok(n > 100, 'a rack\'s four strings drawn (and not the other rack\'s puppet)');
+        /* measured at the strength it's drawn at, against every floor the Hall lays */
+        const strokes = [[hexRGBa(HW, col, alpha), parseCol(ink).slice(0, 3).concat(ua)]];
+        const kinds = floorsOf(HW, 'marionette'), all = [...kinds.values()], total = all.reduce((t, e) => t + e.n, 0);
+        const whole = score(all.flatMap(e => e.tiles), strokes);
+        assert.ok(whole.share >= SHARE, `with the ${tool} in hand, a rack's strings read on only ${(whole.share * 100).toFixed(0)}% of the Hall's floor (the worst tenth ${whole.p10.toFixed(1)})`);
+        for (const [k, e] of kinds) {
+            if (e.n < Math.max(12, total * 0.05)) continue;
+            const sc = score(e.tiles, strokes);
+            assert.ok(sc.share >= SHARE, `with the ${tool} in hand, a rack's strings on the Hall's ${k} (${e.n} tiles) read on only ${(sc.share * 100).toFixed(0)}% (worst tenth ${sc.p10.toFixed(1)})`);
+        }
+        if (process.env.CONTRAST_REPORT) console.log(`racks (${tool}) at ${alpha}: ${whole.p10.toFixed(1)}`);
+    }
+});
+function hexRGBa(HW, h, a) { return HW.global('hexRGB')(h).concat(a); }

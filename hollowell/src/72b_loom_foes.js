@@ -781,6 +781,7 @@ const LoomFoes = {
     *weaverIntro(w) {
         const r = w.room, at = [r.x + 9, r.y + 4, 60];
         yield 20;
+        yield* stepIn();
         yield* say(null, "In front of the old loom, the Weaver hangs in a web strung to three great posts and up into the loom itself: grey, many-legged, very old, spinning. It has been keeping this loom for the First Spinner since she stopped coming.", { focus: at });
         yield* say(null, 'It does not want anything to change at all.', { focus: at });
     },

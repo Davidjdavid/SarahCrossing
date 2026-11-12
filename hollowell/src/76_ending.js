@@ -275,7 +275,7 @@ SPAWN.gardenplot = (tx, ty) => {
             const i = yield* ask(null, "A bare patch by Gran's gate. Plant the Drift-bloom seed here?", ['Plant it', 'Not yet']);
             if (i !== 0) return;
             delete Inv.items.driftseed; Progress.set('seed_planted'); Stats.count('seed_planted'); Sfx.play('appear');
-            yield* say(null, 'You press it into the earth and water it from the butt. Something past the fog, growing in the Hollow.');
+            yield* say(null, 'You press it into the earth and water it. Something past the fog, growing in the Hollow.');
         });
         return true;
     };

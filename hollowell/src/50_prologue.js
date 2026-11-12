@@ -3,10 +3,11 @@
 const Prologue = {
     start() {
         G.hideHud = true;
+        /* (dark before the room's there, so its name waits to come up with it) */
+        UI.fadeA = 1;
         World.enter('gran_room', 6, 3, { dir: DOWN, noSave: true });
         const p = G.player;
         p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep'; p.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
-        UI.fadeA = 1;
         Progress.setGoal('Get up and go downstairs to see Gran.');
         Script.run(function* () {
             yield 30;

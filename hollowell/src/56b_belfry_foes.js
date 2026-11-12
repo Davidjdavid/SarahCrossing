@@ -94,16 +94,21 @@ class Clangor extends Enemy {
     }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
-        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 12, THREAD.tess);
+        Sfx.play('unravel'); Sfx.play('hitthing'); Fx.yarn(this.x, this.y - 12, THREAD.tess);
         Progress.set('belfry_clangor');
         for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'cl') s.shut = false;
+        /* it falls to pieces where it stands: bell-helm, breastplate, arms and legs clattering down round it, and left lying
+           there (its sprite cut into its parts: [sx, sy, w, h] and where each lands) */
+        const a = this.area, r = a.roomAt(this.hx, this.hy), im = spr('clangor'), x0 = this.x - 12, y0 = this.y - 30;
+        const fx = x => clamp(x, (r.x + 1) * T + 6, (r.x + r.w - 1) * T - 6), fy = y => clamp(y, (r.y + 1) * T + 10, (r.y + r.h - 1) * T - 2);
+        this.pieces = a.add(new Remains([[1, 0, 22, 15, 26, 10], [5, 14, 14, 12, -4, 8], [1, 14, 6, 11, -26, 2], [17, 14, 6, 11, 18, -12], [5, 25, 7, 7, -16, 20], [12, 25, 7, 7, 8, 24]].map(([sx, sy, w, h, dx, dy], i) => {
+            const from = [x0 + sx + w / 2, y0 + sy + h], to = [fx(this.x + dx), fy(this.y + dy)];
+            return { from, to, delay: [0, 2, 1, 3, 4, 5][i], speed: 1.1, hop: Math.max(8, Math.hypot(to[0] - from[0], to[1] - from[1])), lift: 10, end: 'lie', tall: h, look: RemainsKit.part(im, sx, sy, w, h) };
+        }), { x: this.x, y: this.y }));
         Script.run(BelfryFoes.clangorDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) {
-            if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.tess); }
-            return;
-        }
+        if (!this.alive) return;
         const x = this.x - cx, y = this.y - cy;
         Gfx.alpha(0.25); Gfx.rect(x - 8, y + 1, 16, 3, PAL.ink); Gfx.alpha(1);
         const im = spr(this.state === 'stunned' ? 'clangor_off' : 'clangor');
@@ -326,6 +331,10 @@ class Tollgrim extends Enemy {
         this.weather();
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.tess);
         Progress.set('belfry_boss');
+        /* a ball of brass-coloured yarn, rolling (ringing faintly) into the dark under the great bell (staged under the words:
+           BelfryFoes.tollDown) */
+        const to = [this.hx * T + 8, this.hy * T + 8];
+        this.ball = this.area.add(new Remains([{ from: [this.x, this.y], to, delay: 10, speed: Math.max(0.35, Math.hypot(to[0] - this.x, to[1] - this.y) / 170), end: 'fade', fade: 24, look: RemainsKit.yarn('#d9a33a', 4) }], { x: this.x, y: this.y }));
         Script.run(BelfryFoes.tollDown(this));
     }
     draw(cx, cy) {
@@ -338,10 +347,7 @@ class Tollgrim extends Enemy {
             Gfx.alpha(1);
             Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, '#d8d0de'); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff');
         }
-        if (!this.alive) {
-            if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.tess); }
-            return;
-        }
+        if (!this.alive) return;
         /* pounding on the bell from inside: dust sifting down round its rim, his eyes showing */
         if (this.pounding > 0) {
             this.pounding--;
@@ -403,12 +409,13 @@ const BelfryFoes = {
     drawRubble(x, y) { Gfx.rect(x - 4, y - 7, 8, 6, PAL.ink); Gfx.rect(x - 3, y - 6, 6, 4, '#a89fb0'); Gfx.rect(x - 3, y - 6, 3, 1, '#d8d0de'); },
     *clangorIntro(c) {
         yield 20;
+        yield* stepIn();
         yield* say(null, "A suit of armour clanks to life. Where its head should be there's a bell, upside down, and inside the bell a clapper swinging like a tongue. CLANG, it says. The doors grind shut.");
     },
     *clangorDown(c) {
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. Somewhere in the room, something goes clunk.');
+        yield 30;
+        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. Somewhere in the room, something goes clunk.', { focus: c.pieces });
         Music.play('belfry'); Sfx.play('appear');
     },
     *tollIntro(t) {
@@ -432,8 +439,8 @@ const BelfryFoes = {
     *tollDown(t) {
         const a = t.area;
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'Tollgrim unravels into a ball of brass-coloured yarn and rolls, ringing faintly, into the dark under the great bell.');
+        yield 14;
+        yield* say(null, 'Tollgrim unravels into a ball of brass-coloured yarn and rolls, ringing faintly, into the dark under the great bell.', { focus: [t.ball, [t.hx, t.hy, 40]] });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 15, br.y + 6));

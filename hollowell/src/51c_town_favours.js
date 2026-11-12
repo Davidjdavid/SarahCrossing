@@ -290,11 +290,10 @@ SPAWN.stickthread = () => {
     e.floor = true;
     Object.defineProperty(e, 'sortY', { get() { return -2000; } });
     e.draw = function (cx, cy) {
+        /* (a thread like any other, over its dark under-stroke; slack and gone from the street once the Spool stops) */
+        if (Progress.flag('spool_cut') || Progress.flag('unwound')) return;
         const pts = STICK_THREAD.map(([x, y]) => hubAt(x, y)).map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
-        for (let i = 0; i + 1 < pts.length; i++) {
-            Gfx.alpha(0.35); Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, '#1a1018'); Gfx.alpha(0.8);
-            Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.jory); Gfx.alpha(1);
-        }
+        Gfx.alpha(0.8); Threads.path(pts, THREAD.jory); Gfx.alpha(1);
     };
     /* (on the screen wherever the camera is: the culling looks at x and y) */
     e.update = function () { this.x = Cam.x + 100; this.y = Cam.y + 60; };

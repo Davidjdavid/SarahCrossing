@@ -44,10 +44,11 @@ FLOORS.belfryhouse = {
 WALLS.belfryhouse = {
     edge: '#2a2438',
     top: (x) => { fill(x, '#4a4258'); speckle(x, ['#5a5264'], 8, 0.15); },
-    face: (x, th, v) => {
+    face: (x, th, v, hud) => {
         Paint.bricks(x, ['#a39aa8', '#7f7688', '#c4bccb', '#3e3a52'], v);
         fill(x, '#e8b04a', 0, 12, 16, 1); fill(x, '#2a2438', 0, 15, 16, 1);
-        if (v === 1) { fill(x, '#2a2438', 6, 3, 4, 7); fill(x, '#78c4ea', 7, 4, 2, 5); }   /* an arrow slit */
+        /* an arrow slit (not in a room's top wall, among the hearts: it read as one of the HUD's gems) */
+        if (v === 1 && !hud) { fill(x, '#2a2438', 6, 3, 4, 7); fill(x, '#78c4ea', 7, 4, 2, 5); }
     },
 };
 

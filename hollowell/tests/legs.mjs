@@ -198,7 +198,9 @@ export const LEG1 = (HW, chain) => {
     HW.hold(['act']); HW.step(3); const lb = thing('laundryBlock'); HW.hold(['act', 'right']); until(() => lb.tx >= 60 + 15, 200); HW.release(); HW.step(20);
     walk(...t('laundry', 13, 4)); HW.face('left'); talk();
     ok(HW.Inv.keys('tidy') === 1, 'laundry key');
-    HW.step(200);                              /* the block came home behind you: push it out of the way (once the nibbler's out of the way too) */
+    /* the block came home behind you: push it out of the way (once the nibbler's out of the way too); standing about meanwhile
+       with a nibbler at her heels (three hearts, this early) is no part of the route, so nothing bites while she waits */
+    HW.G.cheats.god = true; HW.step(200); HW.G.cheats.god = false;
     for (let i = 0; i < 10 && lb.tx === 60 + 14; i++) {
         for (const e of HW.ents('enemy')) if (e.alive && e.onTile && e.onTile(60 + 15, 11 + 4)) HW.hitEnemy(e);   /* whack whatever's in the way */
         HW.face('right'); HW.push('right', 1); HW.step(20);

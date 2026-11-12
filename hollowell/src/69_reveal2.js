@@ -126,8 +126,11 @@ SPAWN.freshspool = (x, y, p) => {
     pr.interact = () => {
         if (Inv.items.tuckspool) return false;
         Script.run(function* () {
-            Inv.items.tuckspool = 1; Sfx.play('smallitem'); pr.im = ART.freshspool_gone;
-            yield* say(null, 'A fresh spool on a little stand, bright green, labelled TUCK in Gundry\'s big square letters. You tuck it in your satchel.');
+            /* (on its stand while it's looked at; then into the satchel) */
+            Inv.items.tuckspool = 1;
+            yield* say(null, 'A fresh spool on a little stand, bright green, labelled TUCK in Gundry\'s big square letters.', { focus: [x, y, 22] });
+            Sfx.play('smallitem'); pr.im = ART.freshspool_gone;
+            yield* say(null, 'You tuck it in your satchel.');
             yield* say(null, "From the old hall beyond, very faintly, comes a sound like a winch turning. Click. Click. Click.");
             Progress.setGoal("Tuck's spool is in your satchel. (And there's a door east, into the old hall...)");
         });

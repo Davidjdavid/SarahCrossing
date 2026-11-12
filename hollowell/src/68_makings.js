@@ -97,7 +97,7 @@ class Tuck extends NPC {
     /* (a new line replaces the one still floating, so two never sit on each other) */
     /* (what he says when it's the same thing again and again: the next of a few, in turn: never the game's dice) */
     line(kind) { const L = TUCK_SAYS[kind], n = TUCK_SAYS.n[kind] = (TUCK_SAYS.n[kind] || 0) + 1; return L[(n - 1) % L.length]; }
-    say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea'); } }
+    say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea', this); } }
     step(nx, ny) { this.dir = dirOf(nx - this.tx, ny - this.ty); this.startMove(nx, ny, 14); }
     /* a bump: a biter, or a heavy thing on its way home: "Ow!", and back to the start */
     bump(why) {
@@ -323,7 +323,10 @@ const Making = {
         const c = this.cur;
         if (!this.tallyShown(a)) return;
         const n = c.ahas.size, x = Math.round(W / 2 - 29), y = 2, pop = c.lit !== undefined && G.t - c.lit < 20;
-        Gfx.alpha(UI.hudA === undefined ? 1 : UI.hudA);
+        /* (it steps back as the HUD's corners do, over Wren too: at the top of the screen she was under it) */
+        const p = G.player, under = !!p && !p.hidden && !G.hideWren && p.y - 15 - Cam.y < y + 16 && Math.abs(p.x - Cam.x - W / 2) < 38;
+        this.tallyA = approach(this.tallyA === undefined ? 1 : this.tallyA, under ? HUD_BACK : 1, 0.08);
+        Gfx.alpha(Math.min(this.tallyA, UI.hudA === undefined ? 1 : UI.hudA));
         stitchedBox(x, y, 58, 14, { fill: '#fbf3df' });
         Font.draw('Aha', x + 7, y + 4, PAL.ink);
         /* (a round pip, seven across: gold when it's earned, an empty socket when not; the newest a size up a moment) */
@@ -356,6 +359,7 @@ const Making = {
         if (c && c.bumps === 0) this.aha('unhurt');
         Script.run(function* () {
             yield 30;
+            yield* stepAside();
             Sfx.play('knot');
             yield* say('tuck', MAKINGS[n - 1].tuck || TUCK_DONE);
             if (a.def.afterHoop) yield* a.def.afterHoop(a);

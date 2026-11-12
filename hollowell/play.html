@@ -1186,7 +1186,9 @@ const TileDraw = {
                 const isW = k => k === 'wall' || k === 'void';
                 const below = isW(area.cell(tx, ty + 1).k);
                 const mask = (below ? 1 : 0) | (isW(area.cell(tx, ty - 1).k) ? 2 : 0) | (isW(area.cell(tx - 1, ty).k) ? 4 : 0) | (isW(area.cell(tx + 1, ty).k) ? 8 : 0);
-                c = tileCanvas(`${tn}:wall:${v}:${mask}`, x => Walls.draw(x, area, tn, th, v, mask));
+                /* (a room's top wall sits in the HUD's row: no portholes or arrow slits there, to be taken for its gems) */
+                const r = !below && area.rooms.length > 1 ? area.roomAt(tx, ty) : null, hud = !!r && ty === r.y;
+                c = tileCanvas(`${tn}:wall:${v}:${mask}${hud ? ':hud' : ''}`, x => Walls.draw(x, area, tn, th, v, mask, hud));
                 break;
             }
             default: {
@@ -1278,10 +1280,10 @@ const FLOORS = {
 
 /* walls seen from above at a slant: the face shows where the tile below is open floor */
 const Walls = {
-    draw(x, area, tn, th, v, mask) {
+    draw(x, area, tn, th, v, mask, hud) {
         const below = mask & 1, above = mask & 2, left = mask & 4, right = mask & 8;
         const W = WALLS[tn] || WALLS.default;
-        if (!below) W.face(x, th, v);
+        if (!below) W.face(x, th, v, hud);
         else W.top(x, th, v);
         const edge = W.edge || '#1a1418';
         /* outline the wall's top where it meets floor */
@@ -2459,6 +2461,9 @@ function parseSong(s) {
 // ---- 10_fx.js ----
 /* Little effects: dust, sparkles, poofs, splashes, rings, floating text. Cheap particles in world space. */
 
+/* what floating words beside the speaker's face cost against being moved from where they were said (in pixels moved) */
+const BESIDE = 16;
+
 const Fx = {
     list: [],
     clear() { this.list = []; },
@@ -2486,15 +2491,16 @@ const Fx = {
         for (let i = 0; i < 12; i++) { const a = Math.random() * Math.PI * 2; this.add({ x, y, vx: Math.cos(a) * 1.2, vy: Math.sin(a) * 1.2 - 0.5, g: 0.05, life: 26, col, r: 1, curl: true }); }
     },
     /* (the same words already floating up right there: they start again rather than a second copy on top) */
-    text(x, y, s, col = PAL.white) {
+    /* (by: who says it, when it's somebody: the words keep near their head) */
+    text(x, y, s, col = PAL.white, by = null) {
         const same = this.list.find(p => p.text === s && Math.abs(p.x - x) < 16 && Math.abs(p.y - y) < 24);
-        if (same) { same.x = x; same.y = y; same.life = 50; return same; }
-        return this.add({ x, y, vy: -0.5, life: 50, text: s, col });
+        if (same) { same.x = x; same.y = y; same.life = 50; if (by) same.by = by; return same; }
+        return this.add({ x, y, vy: -0.5, life: 50, text: s, col, by });
     },
     /* floating words (from UI.draw, after the notices): each as near where it was said as it can be, a few pixels inside
        the screen's edges, clear of the HUD, the panels up (notices, the place's name, the box), the little pictures over
-       people's heads and the words placed before it; on a soft dark backing, so the cords and heads behind them don't run
-       through the letters */
+       people's heads, people's faces and the words placed before it; on a soft dark backing, so the cords and heads behind
+       them don't run through the letters */
     drawText(cx, cy, panels = []) {
         const texts = this.list.filter(p => p.text);
         if (!texts.length) return;
@@ -2506,24 +2512,56 @@ const Fx = {
             Gfx.alpha(a); Font.draw(s.p.text, s.x, s.y, s.p.col, Infinity, PAL.ink); Gfx.alpha(1);
         }
     },
-    /* where each goes: { p, x, y (the letters' top left), w } */
+    /* where each goes: { p, x, y (the letters' top left), w }. Kept from where it was said, it goes up (or down, at twice
+       the cost) or to one side, whichever's least far; and never nearer someone else's face than the face of who said it
+       (pushed up past his bubble to the face of the one standing over him, "Hmph." read as hers) */
     textSpots(texts, cx, cy, panels = []) {
-        const at = this.view(cx, cy), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at)), out = [];
+        const at = this.view(cx, cy), heads = this.heads(at), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at), heads), out = [];
+        const mid = r => [(r[0] + r[2]) / 2, (r[1] + r[3]) / 2], far = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
         for (const p of texts) {
             const w = Font.width(p.text), [sx, sy] = at(p.x, p.y);
-            const x = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
-            const free = y => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
-            let y = y0;
-            /* (up out of the way, unless down is under half as far) */
-            if (!free(y)) {
-                let up = 1; while (up <= 70 && !free(y0 - up)) up++;
-                if (up > 70) up = Infinity;
-                let dn = 1; while (dn <= 70 && 2 * dn < up && !free(y0 + dn)) dn++;
-                y = dn <= 70 && 2 * dn < up ? y0 + dn : up < Infinity ? y0 - up : y0;
+            const x0 = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
+            const free = (x, y) => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
+            /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said) */
+            const mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
+            const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy).reduce((b, r) => !b || far(mid(r), [sx, sy]) < far(mid(b), [sx, sy]) ? r : b, null);
+            let best = null;
+            for (let k = 0; k <= 70 && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
+                const cy0 = dy < 0 ? -dy : 2 * dy;
+                for (let dx = 0; dx <= 64; dx += 2) for (const sd of dx ? [-1, 1] : [1]) {
+                    const x = Math.round(clamp(x0 + sd * dx, 6, W - 6 - w)), y = y0 + dy;
+                    let c = cy0 + Math.abs(x - x0);
+                    if ((best && c >= best.c) || !free(x, y)) continue;
+                    /* (the face it's nearest, if any's near, must be the speaker's) */
+                    const m = [x + w / 2, y + 4], near = heads.reduce((b, r) => { const d = far(mid(r), m); return d < 40 && (!b || d < b.d) ? { r, d } : b; }, null);
+                    if (own && near && near.r !== own) c += 100;
+                    if (!best || c < best.c) best = { x, y, c };
+                }
             }
-            out.push({ p, x, y, w });
-            keep.push([x - 3, y - 2, x + w + 3, y + 10]);
+            /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
+            if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
+                const y = Math.round(mid(own)[1] - 4);
+                if (x >= 6 && x <= W - 6 - w && free(x, y) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+            }
+            const sp = best || { x: x0, y: y0 };
+            out.push({ p, x: sp.x, y: sp.y, w });
+            keep.push([sp.x - 3, sp.y - 2, sp.x + w + 3, sp.y + 10]);
         }
+        return out;
+    },
+    /* somebody's face, on the screen (the top of their sprite) */
+    headOf(e, at) { const im = e.sprite && e.sprite(), [x, y] = at(e.px, e.py + 14 - (im ? im.height : 24)); return [x + 2, y, x + 14, y + 12]; },
+    /* the faces on screen, people's and Wren's (the top of each sprite) */
+    heads(at) {
+        const a = G.map, out = [];
+        if (!a || G.scene !== 'play') return out;
+        for (const e of a.ents) {
+            if (!e.isGrid || !(e.kind === 'npc' || e.person) || e.hidden || e.removed) continue;
+            const r = this.headOf(e, at);
+            if (r[2] > 0 && r[0] < W && r[3] > 0 && r[1] < H) out.push(r);
+        }
+        const p = G.player;
+        if (p && !p.hidden && !G.hideWren && p.state !== 'fall') { const [x, y] = at(p.x, p.y - 13 - Math.round(p.z || 0)); out.push([x - 6, y, x + 6, y + 10]); }
         return out;
     },
     /* the HUD's corners (hearts at the left; buttons, the tool in hand, its key and the Needle's stitches at the right) */
@@ -2607,6 +2645,23 @@ const Fx = {
 const PSPEED = 1.3;
 const PBOX = { hw: 5, hh: 4 };          /* half the hitbox at Wren's feet */
 
+/* where a find is held up, on the screen (the middle of it): over her head, or high over a chest right behind her; and
+   where that would be off the top of the screen, beside her head instead (a key found in a room's top row was cut off) */
+function holdUpSpot(p, cx, cy) {
+    const x = p.x - cx, y = p.y - cy - (G.holdUp && G.holdUp.high ? 44 : 22);
+    if (y >= 9) return [x, y];
+    return [x + (x > W - 40 ? -15 : 15), Math.max(9, p.y - cy - 10)];
+}
+/* a sprite's outline, in one colour (its edge pixels): Wren drawn through whoever stands in front of her */
+function outlineOf(im, col = '#fff4c0') {
+    if (HEADLESS || !im || !im.getContext) return null;
+    const cache = outlineOf.cache || (outlineOf.cache = new Map());
+    let o = cache.get(im); if (o) return o;
+    const w = im.width, h = im.height, d = im.getContext('2d').getImageData(0, 0, w, h).data, on = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 0;
+    o = Gfx.makeCanvas(w, h); const g = o.getContext('2d'); g.fillStyle = col;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (on(x, y) && !(on(x - 1, y) && on(x + 1, y) && on(x, y - 1) && on(x, y + 1))) g.fillRect(x, y, 1, 1);
+    cache.set(im, o); return o;
+}
 class Player extends Ent {
     constructor(x, y) {
         super('player');
@@ -3223,8 +3278,8 @@ class Player extends Ent {
         /* holding up a find: a soft glow behind it, in front of whatever's behind her (the chest she opened), so the find
            reads as the find */
         if (this.state === 'hold' && G.holdUp) {
-            const gy = this.y - cy - (G.holdUp.high ? 44 : 22);
-            Gfx.alpha(0.3); Gfx.circle(this.x - cx, gy, 12, '#fff4c0'); Gfx.alpha(0.55); Gfx.circle(this.x - cx, gy, 9, '#fffaf0'); Gfx.alpha(1);
+            const [gx, gy] = holdUpSpot(this, cx, cy);
+            Gfx.alpha(0.3); Gfx.circle(gx, gy, 12, '#fff4c0'); Gfx.alpha(0.55); Gfx.circle(gx, gy, 9, '#fffaf0'); Gfx.alpha(1);
         }
         /* shadow (laid out flat, she's longer and lower) */
         const flat = im === SPR.wren_lie;
@@ -3239,6 +3294,25 @@ class Player extends Ent {
             if (ci) Gfx.img(ci, this.x - cx - 8, this.y - cy - 25 - z);
         }
         if (this.swingT > 0) this.drawStick(cx, cy);
+    }
+    /* behind somebody (a person a step in front of her, or one up above seen through the boards, drawn over everything):
+       her outline drawn through them, so she's never lost under someone (a Little House starts with the boy up above on
+       her very spot) */
+    drawThrough(cx, cy, stand) {
+        if (HEADLESS || this.behind(cx, cy, stand) < 0.25) return;
+        const { im, flip } = this.sprite(), o = outlineOf(im);
+        if (o) { Gfx.alpha(0.9); Gfx.img(o, this.x - cx - 8, this.y - cy - 13 - (this.z || 0), flip); Gfx.alpha(1); }
+    }
+    /* how much of her (as drawn, 0 to 1) is behind people drawn after her: those standing in front of her (stand: what's
+       drawn standing), and anyone up above seen through the boards */
+    behind(cx, cy, stand) {
+        if (this.hidden || G.hideWren || this.state === 'fall' || this.state === 'flight' || (this.state === 'sleep' && this.inBed)) return 0;
+        const z = this.z || 0, me = [this.x - cx - 6, this.y - cy - 13 - z, this.x - cx + 6, this.y - cy + 3 - z], at = Fx.view(cx, cy);
+        const person = e => e.isGrid && (e.kind === 'npc' || e.person) && !e.hidden && !e.removed;
+        const box = (e, [x, y]) => { const im = e.sprite && e.sprite(), h = im ? im.height : 24; return [x + 2, y + 14 - h, x + 14, y + 14]; };
+        const over = stand.filter(e => e !== this && e.sortY > this.sortY && person(e)).map(e => box(e, [e.px - cx, e.py - cy]));
+        for (const e of this.area.ents) if (e.showThrough && person(e)) { const q = at(e.px, e.py); if (q[0] !== e.px - cx || q[1] !== e.py - cy) over.push(box(e, q)); }
+        return Math.min(1, over.reduce((n, r) => n + Math.max(0, Math.min(me[2], r[2]) - Math.max(me[0], r[0])) * Math.max(0, Math.min(me[3], r[3]) - Math.max(me[1], r[1])), 0) / (12 * 16));
     }
     drawStick(cx, cy) {
         /* the stick sweeps through an arc in front */
@@ -3620,8 +3694,10 @@ function stitchedBox(x, y, w, h, opts = {}) {
     /* shading at the bottom */
     Gfx.rect(x + 1, y + h - 3, w - 2, 2, opts.shadow || '#e9dcbc');
     /* the running stitch */
-    /* (not along the top and bottom of a box too short to keep it clear of its line of words) */
-    if (h >= 18) for (let i = x + 4; i < x + w - 4; i += 4) { Gfx.rect(i, y + 3, 2, 1, stitch); Gfx.rect(i, y + h - 4, 2, 1, stitch); }
+    /* (not on a box too short to keep it clear of its line of words: along its top and bottom it ran into them, and the
+       two stitches left at each end of a name tag read as colons, ":Mother Ives:") */
+    if (h < 18) return;
+    for (let i = x + 4; i < x + w - 4; i += 4) { Gfx.rect(i, y + 3, 2, 1, stitch); Gfx.rect(i, y + h - 4, 2, 1, stitch); }
     for (let j = y + 5; j < y + h - 5; j += 4) { Gfx.rect(x + 3, j, 1, 2, stitch); Gfx.rect(x + w - 4, j, 1, 2, stitch); }
 }
 
@@ -3647,13 +3723,20 @@ const VIEW_BOX = {
     /* (the great marionette stands on its two feet and rises 74 pixels over them) */
     greatmarionette: e => { const f = e.feet; if (!f || !f.length) return null; const xs = f.map(q => q[0] * T), y = Math.max(...f.map(q => q[1])) * T; return [Math.min(...xs) - 8, y - 76, Math.max(...xs) + 24, y + 16]; },
 };
+/* Wren as she's drawn: her head 13 px over her feet, her shadow just under them; and (all) over her head whatever she's
+   carrying or holding up. (A box 24 px tall from 9 px over her head made a box over her to the neck count as under half
+   of her) */
+function wrenBox(p, all = true) {
+    const z = Math.round(p.z || 0), up = !all ? 15 : p.carry ? 27 : p.state === 'hold' && G.holdUp ? (G.holdUp.high ? 54 : 32) : 15;
+    return [p.x - 7, p.y - up - z, p.x + 7, p.y + 4];
+}
 function viewBox(e) {
     if (!e) return null;
     if (Array.isArray(e)) return [e[0] * T, e[1] * T + 16 - (e[2] || 20), e[0] * T + 16, e[1] * T + 16];
     if (e.x0 !== undefined) return [e.x0, e.y0, e.x1, e.y1];
     const f = VIEW_BOX[e.kind] || VIEW_BOX[e.type], fb = f && f(e);
     if (fb) return fb;
-    if (e === G.player) return [e.x - 7, e.y - 22, e.x + 7, e.y + 2];
+    if (e === G.player) return wrenBox(e);
     if (e.isGrid) {
         const w = T * (e.footW || 1), h = e.tall || (e.kind === 'npc' || e.person ? 26 : e.im ? Math.max(16, e.im.height) : 16);
         return [e.px, e.py + 16 - h, e.px + w, e.py + 16];
@@ -3723,6 +3806,8 @@ function paginate(text, w, n = 3) {
 
 /* a speaker's portrait sits in the box, at one end, the words beside it (src/35b_portraits.js) */
 const FACE_BOX = 34, FACE_GAP = 36;
+/* how much of Wren a box may hide where it needn't: 15%, her feet (Dialog.place) */
+const WREN_SHOWN = 0.15;
 const Dialog = {
     active: false, who: null, pages: [], page: 0, shown: 0, choices: null, sel: 0, picked: -1, opts: {}, lean: 0,
     open(who, text, opts = {}) {
@@ -3738,8 +3823,10 @@ const Dialog = {
         const words = Story.fill(rest);
         this.pages = paginate(words, this.face ? 282 - FACE_GAP : 282, 3);
         if (this.choices) this.fitChoices(words.includes('\n'));
+        this.tagDx = 0;
         const at = this.place(opts);
         this.top = at.top; this.lean = at.lean; this.leanAt = G.map && [G.map, Cam.room];
+        this.tagShift(at);
         if (this.choices && !this.inside) this.choiceLeft = this.choiceEnd(opts, at);
         this.page = 0; this.shown = 0; this.sel = 0; this.picked = -1;
         this.t = 0;
@@ -3775,26 +3862,31 @@ const Dialog = {
        the one speaking, a little more while she spoke just before), whoever's speaking double, whoever spoke just before
        a little less, a boss or mini-boss double, and whatever the scene points at (opts.focus: a tile [x, y, tall], a
        thing, a box, or a list of them) treble. For a notice or the place's name (more), the creatures and people about
-       count a little too. Only what's in the room on screen: what's in another can't be shown or hidden */
+       count a little too, and a little less a puzzle's pieces on screen (a plate, a chest still shut, anything with a
+       place to go home to). Only what's in the room on screen: what's in another can't be shown or hidden */
     items(opts = {}, more = false) {
         const p = G.player, a = G.map, out = [];
         if (!p || !a) return out;
         const room = Cam.room, multi = a.rooms.length > 1, seen = new Set();
-        const add = (e, w) => {
+        const add = (e, w, piece) => {
             const b = viewBox(e);
             if (!b || (multi && room && a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) !== room)) return;
-            out.push([b[0], b[1], b[2], b[3], w]);
+            const it = [b[0], b[1], b[2], b[3], w]; if (piece) it.piece = true; out.push(it);
         };
         const talk = this.active, prev = talk && this.prevWho !== this.who && G.t - (this.closedAt || -999) <= 120 ? this.prevWho : null;
-        if (!G.hideWren && !p.hidden) add(p, talk && this.who === 'wren' ? 2 : prev === 'wren' ? 1.5 : 1);
+        if (!G.hideWren && !p.hidden) { add(p, talk && this.who === 'wren' ? 2 : prev === 'wren' ? 1.5 : 1); if (out.length) out[0].wren = true; }
         const find = who => a.ents.find(e => e.who === who && !e.hidden && !e.removed && e !== p);
         if (talk && this.who && this.who !== 'wren') { const sp = find(this.who); if (sp) { add(sp, 2); seen.add(sp); } }
         if (prev && prev !== 'wren') { const pv = find(prev); if (pv && !seen.has(pv)) { add(pv, 1.5); seen.add(pv); } }
+        const near = e => e.x > Cam.x - 64 && e.x < Cam.x + W + 64 && e.y > Cam.y - 64 && e.y < Cam.y + H + 80;
         for (const e of (a.walkers || []).concat(a.ents)) {
             if (seen.has(e) || e === p || e.hidden || e.removed || e.alive === false) continue;
             seen.add(e);
             if (isBoss(e)) add(e, 2);
-            else if (more && (e.isWalker || (e.kind === 'npc' && e.who))) add(e, 0.5);
+            else if (!more || !near(e)) continue;
+            else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
+            else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.2, true);
+            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.2, true);
         }
         const f = opts.focus;
         for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
@@ -3803,27 +3895,40 @@ const Dialog = {
     /* the panels the box makes at the top or the bottom: the box, and the speaker's name tag over it */
     rects(top = this.top) {
         const x = 8, w = 304, h = 44, y = top ? 18 : H - h - 6, out = [[x, y, x + w, y + h]];
-        if (this.who) { const tw = Font.width(Story.name(this.who)) + 12, nx = this.face && this.side === 'right' ? x + w - 6 - tw : x + 6; out.push([nx, y - 10, nx + tw, y + 5]); }
+        if (this.who) { const tw = Font.width(Story.name(this.who)) + 12, nx = this.tagX(tw); out.push([nx, y - 10, nx + tw, y + 5]); }
         return out;
     },
+    /* the name tag sits at the speaker's end of the box, slid in along its edge off any face it would sit on (a row of
+       people standing over the box) */
+    tagX(tw) { const right = this.face && this.side === 'right', dx = this.tagDx || 0; return right ? 8 + 304 - 6 - tw - dx : 8 + 6 + dx; },
+    tagShift(at) {
+        this.tagDx = 0;
+        if (!this.who || G.scene !== 'play' || !G.map) return;
+        const heads = Fx.heads(Fx.view(Cam.x, UI.camBaseY() + at.lean)), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
+        for (let dx = 0; dx <= 96; dx += 8) if (!heads.some(q => q[0] < r[2] + s * dx && r[0] + s * dx < q[2] && q[1] < r[3] && r[1] < q[3])) { this.tagDx = dx; return; }
+    },
     /* the box goes top or bottom, and in a scene the camera may lean up or down for it (UI.lean): whatever hides least of
-       what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. A scene's
-       exchange keeps its side and its lean unless another is clearly better; all else equal, the bottom and no lean */
+       what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. Wren
+       is all but a must: where some side and lean shows all but a sliver of her (WREN_SHOWN), only those are weighed (the
+       shares are squared, so a boss's or a focus's corner used to outweigh her buried to the neck). A scene's exchange
+       keeps its side and its lean unless another is clearly better; all else equal, the bottom and no lean */
     place(opts = {}) {
         const p = G.player, a = G.map;
         if (G.scene !== 'play' || !p || !a) return { top: false, lean: 0 };
         const items = this.items(opts), recent = G.t - (this.closedAt || -999) <= 120, was = recent && this.leanHere() ? this.lean || 0 : 0;
-        const base = UI.camBaseY(), range = this.canLean(opts) ? UI.leanRange(base) : null;
-        let best = null;
+        const base = UI.camBaseY(), range = this.canLean(opts) ? UI.leanRange(base) : null, wren = items.some(i => i.wren) ? [wrenBox(p, false).concat(1)] : [];
+        let best = null, shown = null;
         for (const top of [false, true]) {
             const rs = this.rects(top), [lo, hi] = range ? range[top ? 1 : 0] : [0, 0];
             for (let dy = lo; dy <= hi; dy += 2) {
                 let c = hiddenBy(items, rs, Cam.x, base + dy) + 0.004 * Math.abs(dy) + 0.006 * Math.abs(dy - was);
                 c += recent ? (top !== !!this.lastTop ? (Script.blocking() ? 0.35 : 0.05) : 0) : (top ? 0.01 : 0);
-                if (!best || c < best.c - 1e-9) best = { c, top, lean: dy };
+                const at = { c, top, lean: dy };
+                if (!best || c < best.c - 1e-9) best = at;
+                if (wren.length && hiddenBy(wren, rs, Cam.x, base + dy, true) <= WREN_SHOWN && (!shown || c < shown.c - 1e-9)) shown = at;
             }
         }
-        return best;
+        return shown || best;
     },
     chooseTop(opts = {}) { return this.place(opts).top; },
     /* (the lean the last line asked for holds in the room it was asked for, not one Wren's been taken on to) */
@@ -3917,7 +4022,7 @@ const Dialog = {
         if (this.who) {
             const name = Story.name(this.who);
             const tw = Font.width(name) + 12;
-            const ty = y - 10, nx = right ? x + w - 6 - tw : x + 6;
+            const ty = y - 10, nx = this.tagX(tw);
             const fill = tagFill(SPEAKER_COL[this.who] || '#f0c070');
             stitchedBox(nx, ty, tw, 15, { fill, stitch: '#ffffff', shadow: shade(fill, -0.15) });
             Font.draw(name, nx + 6, ty + 4, PAL.ink);
@@ -3944,20 +4049,57 @@ const Dialog = {
 };
 const SPEAKER_COL = {};
 /* a scene that opens as Wren comes in at a door, with what it's about at the far end of the room (a boss waiting): she
-   walks a tile or two on in first, where the way's clear, so the box can keep clear of her and of that at once */
+   walks on in first, where the way's clear, so the box can keep clear of her and of that at once. In at the foot of a
+   room, till her feet are clear of the top of the box at the bottom (in at the head, her head of the foot of the box at
+   the top), with the camera as it'll stand; in at a side, n tiles */
 function* stepIn(n = 2) {
     const p = G.player, a = G.map, r = Cam.room;
     if (!p || !a || !r || p.state !== 'normal') return;
-    /* (only just in at a door: by the room's edge, walking away from it) */
-    const d = p.ty >= r.y + r.h - 2 ? UP : p.ty <= r.y + 1 ? DOWN : p.tx <= r.x + 1 ? RIGHT : p.tx >= r.x + r.w - 2 ? LEFT : -1;
-    if (d < 0) return;
-    const free = (x, y) => { const k = a.kind(x, y); return a.roomAt(x, y) === r && !k.solid && !k.pit && !k.deep && !k.hurt && !a.at(x, y) && !a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(x, y)); };
-    /* (a spot with nothing just before or behind it, so she neither hides a thing nor stands hidden by one, a few steps off) */
-    for (const [ahead, side] of [[n, 0], [n, -1], [n, 1], [n - 1, 0], [n, -2], [n, 2], [n - 1, -1], [n - 1, 1]]) {
+    /* (which way is in: from the room's foot or head up or down it, from a side across it; else up from its lower half,
+       down from its upper) */
+    const d = p.ty >= r.y + r.h - 2 ? UP : p.ty <= r.y + 1 ? DOWN : p.tx <= r.x + 1 ? RIGHT : p.tx >= r.x + r.w - 2 ? LEFT : p.ty >= r.y + r.h / 2 ? UP : DOWN;
+    let k = n;
+    if (DY[d]) {
+        const vb = viewBox(p), head = p.y - vb[1], feet = vb[3] - p.y, low = Dialog.rects(false)[0][1], high = Dialog.rects(true)[0][3];
+        const clear = ty => { const y = ty * T + 10, sy = y - Cam.base({ x: p.x, y }).y; return d === UP ? sy + feet <= low : sy - head >= high; };
+        for (k = 0; k <= 6 && !clear(p.ty + DY[d] * k); k++);
+        if (!k || k > 6) return;
+    }
+    const free = (x, y) => { const q = a.kind(x, y); return a.roomAt(x, y) === r && !q.solid && !q.pit && !q.deep && !q.hurt && !a.at(x, y) && !a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(x, y)); };
+    /* (a spot with nothing just before or behind it, so she neither hides a thing nor stands hidden by one, a few steps off;
+       up or down the room, never short of clear of the box) */
+    const m = DY[d] ? k + 1 : k - 1;
+    for (const [ahead, side] of [[k, 0], [k, -1], [k, 1], [m, 0], [k, -2], [k, 2], [m, -1], [m, 1]]) {
         const x = p.tx + DX[d] * ahead + (DX[d] ? 0 : side), y = p.ty + DY[d] * ahead + (DX[d] ? side : 0);
         if (ahead <= 0 || !free(x, y) || a.at(x, y - 1) || a.at(x, y + 1)) continue;
         const path = critterPath(a, p.tx, p.ty, x, y), end = path[path.length - 1];
         if (!end || end[0] !== x || end[1] !== y || path.length > ahead + Math.abs(side) + 2) continue;
+        for (const [px, py] of path) yield* walkStraight(p, px, py);
+        p.dir = d;
+        return;
+    }
+}
+
+/* a scene that opens with Wren a step over or under somebody, or on the very spot of somebody seen through the boards
+   from up above (her feet on a face, a face on her head, the two of them one): she steps to one side first */
+function* stepAside() {
+    const p = G.player, a = G.map, r = Cam.room;
+    if (!p || !a || !r || p.state !== 'normal') return;
+    /* (where everybody stands, in this room's tiles: those up above as they show through the boards) */
+    const spots = [];
+    for (const e of a.ents) {
+        if (!e.isGrid || !(e.kind === 'npc' || e.person) || e.hidden || e.removed) continue;
+        const q = a.roomAt(e.tx, e.ty) === r ? [e.tx, e.ty] : r.above && Layers.upRoom(a, r) === a.roomAt(e.tx, e.ty) ? [e.tx - r.above.dx, e.ty - r.above.dy] : null;
+        if (q) spots.push(q);
+    }
+    const crowded = (x, y) => spots.some(([sx, sy]) => sx === x && Math.abs(sy - y) <= 1);
+    if (!crowded(p.tx, p.ty)) return;
+    const free = (x, y) => { const k = a.kind(x, y); return a.roomAt(x, y) === r && !k.solid && !k.pit && !k.deep && !k.hurt && !a.at(x, y) && !crowded(x, y) && !a.walkers.some(m => m.alive !== false && m.onTile && m.onTile(x, y)); };
+    for (const [x, y] of [[1, 0], [-1, 0], [2, 0], [-2, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]].map(([dx, dy]) => [p.tx + dx, p.ty + dy])) {
+        if (!free(x, y)) continue;
+        const path = critterPath(a, p.tx, p.ty, x, y), end = path[path.length - 1];
+        if (!end || end[0] !== x || end[1] !== y || path.length > 3) continue;
+        const d = p.dir;
         for (const [px, py] of path) yield* walkStraight(p, px, py);
         p.dir = d;
         return;
@@ -3986,6 +4128,10 @@ function wrapKeep(s, w) {
 
 /* how far the HUD steps back when something that matters is under it (or Wren is): faint, so what's under it reads */
 const HUD_BACK = 0.15;
+/* what a second notice may hide before it waits for the first to go (Wren a quarter hidden; whoever's about half) */
+const NOTICE_CROWDED = 0.06;
+/* how long before a region's name comes up again for coming back into it across a border (90 s) */
+const BANNER_AGAIN = 90 * 60;
 const UI = {
     fadeA: 0, fade: null, toasts: [], banner: null, menu: null,
     sceneHold: false, places: [], lean: { now: 0, want: 0, map: null, room: null },
@@ -3993,12 +4139,25 @@ const UI = {
     /* ---- notices ---- */
     /* a notice (s may be { s, focus }: one about something keeps clear of it). Two show at a time at most, the rest
        waiting their turn; none while a scene's words are up (they wait till it's over); each on the side, top or bottom,
-       where it hides least (placeNotice); and one about a place Wren has left goes with it */
+       where it hides least (placeNotice); and one about a place Wren has left goes with it. opts.until: it's said only
+       while that holds (one said in a fight holds while the boss is up: it goes when the boss goes down, not back up
+       after its last words, over the Knot coming down); opts.minor: it's about somewhere else, and any notice about
+       here sees it off (a stitch let go two rooms away gives way to this room's plates all coming down) */
     toast(s, dur = 120, opts = {}) {
         if (s && typeof s === 'object') { opts = s; s = s.s; }
         s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return;
-        this.toasts.push({ s, t: 0, dur, focus: opts.focus || null, area: G.map ? G.map.id : null, born: G.t, wait: true });
+        const boss = this.fightOn(), until = opts.until || (boss ? () => boss.alive !== false && !boss.removed : null);
+        if (!opts.minor) for (const q of this.toasts) if (q.minor) { if (q.wait) q.gone = true; else q.dur = Math.min(q.dur, q.t + 10); }
+        this.toasts = this.toasts.filter(q => !q.gone);
+        this.toasts.push({ s, t: 0, dur, focus: opts.focus || null, area: G.map ? G.map.id : null, born: G.t, wait: true, until, minor: !!opts.minor });
         this.showNotices();
+    },
+    /* a boss up and about in the room on screen */
+    fightOn() {
+        const a = G.map, r = Cam.room;
+        if (!a || G.scene !== 'play') return null;
+        return (a.walkers || []).concat(a.ents).find(e => isBoss(e) && e.alive !== false && !e.removed && !e.hidden
+            && (!r || a.rooms.length < 2 || a.roomAt(e.isGrid ? e.tx : tileOf(e.x), e.isGrid ? e.ty : tileOf(e.y - 1)) === r)) || null;
     },
     /* a refusal that comes up again and again: in full the first few times it's shown, then shorter (counted this
        session, by its words; never a second copy while one is up) */
@@ -4027,17 +4186,29 @@ const UI = {
         const x = Math.round((W - t.w) / 2);
         return low ? [x, yl - t.h, x + t.w, yl] : [x, y, x + t.w, y + t.h];
     },
-    /* what a notice would hide on a side (a little more on the side the place's name is up, which would have to make way;
-       all else equal, the top, and the side with notices up already) */
+    /* what a notice would hide on a side, over what the panels up already hide (a little more on the side the place's
+       name is up, which would have to make way; all else equal, the top, and the side with no notice up yet: a second
+       stacked on the first reaches into the middle of the screen, where Wren mostly is, with the other edge bare) */
     noticeCost(t, low, items) {
-        const b = this.banner && !this.banner.wait ? this.banner : null;
-        return hiddenBy(items, [this.noticeRect(t, low)], Cam.x, this.camPlanY()) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
-            - (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
+        const b = this.banner && !this.banner.wait ? this.banner : null, cy = this.camPlanY(), r = this.noticeRect(t, low), p = G.player;
+        const up = this.toasts.filter(q => q !== t && !q.wait).map(q => this.noticeRect(q, !!q.low)).concat(b ? [this.bannerRect(b, !!b.low)] : []);
+        let c = hiddenBy(items, up.concat([r]), Cam.x, cy) - hiddenBy(items, up, Cam.x, cy) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
+            + (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
+        /* (over Wren, all but a must, as for the box: a third of her under a notice cost less than a pot under the other) */
+        if (p && !G.hideWren && !p.hidden && hiddenBy([wrenBox(p, false).concat(1)], [r], Cam.x, cy, true) > WREN_SHOWN) c += 1;
+        return c;
     },
-    /* (false: it waits a moment, for the place's name on its side to have been read) */
+    /* (false: it waits a moment, for the place's name on its side to have been read; or, one with another up already and
+       nowhere to go that doesn't hide what matters, Wren or what it's about or whoever's about, for that one to go) */
     placeNotice(t) {
         let low = false;
-        if (G.scene === 'play' && G.map && G.player) { const items = Dialog.items({ focus: t.focus }, true); low = this.noticeCost(t, true, items) < this.noticeCost(t, false, items); }
+        if (G.scene === 'play' && G.map && G.player) {
+            const items = Dialog.items({ focus: t.focus }, true);
+            low = this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
+            /* (what matters for that: Wren, what it's about, whoever's about; not a puzzle's every piece) */
+            const main = items.filter(i => !i.piece);
+            if (t.wait && Math.min(this.noticeCost(t, true, main), this.noticeCost(t, false, main)) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
+        }
         const b = this.banner && !this.banner.wait ? this.banner : null;
         if (b && !!b.low === low && b.t < 90) { b.until = 90; return false; }
         this.setSide(t, low);
@@ -4077,13 +4248,18 @@ const UI = {
     /* ---- the place's name ---- */
     /* shown coming into a place from outside it, not coming back out into it from somewhere inside it (out of a house into
        the town, out of a Little House onto the Making Floor). places: what Wren is inside of, the outermost first */
-    showBanner(s, sub) {
-        const a = G.map;
+    showBanner(s, sub, crossing) {
+        const a = G.map, seen = this.seenAt || (this.seenAt = {});
         if (a && a !== this.bannerMap) {
             const from = this.bannerName;
             this.bannerMap = a; this.bannerName = s;
             if (this.cameBack(s, from, a)) { this.banner = null; return; }
-        } else this.bannerName = s;
+        } else {
+            this.bannerName = s;
+            /* (and across a border, back into a region whose name was up only a little while ago: not again) */
+            if (crossing && seen[s] !== undefined && G.t - seen[s] < BANNER_AGAIN) { this.banner = null; return; }
+        }
+        seen[s] = G.t;
         this.banner = { s, sub, t: 0, wait: true, waited: 0 };
         if (!this.held()) this.placeBanner();
     },
@@ -4154,8 +4330,10 @@ const UI = {
             this.fadeA = lerp(f.from, f.to, Math.min(1, f.t / f.dur));
             if (f.t >= f.dur) this.fade = null;
         }
-        /* somewhere new: notices about the last place go (all but what was only just said, on the way out) */
+        /* somewhere new: notices about the last place go (all but what was only just said, on the way out); and any
+           that's no longer so (its boss down), shown or held back by a scene */
         if (G.map !== this.noticeMap) { this.noticeMap = G.map; const id = G.map ? G.map.id : null; this.toasts = this.toasts.filter(t => t.area === id || G.t - t.born < 12); }
+        if (this.toasts.some(t => t.until && !t.until())) this.toasts = this.toasts.filter(t => !t.until || t.until());
         /* a scene over: what it held back shows again, placed afresh (things have moved) */
         if (this.sceneHold && !Dialog.active && !Script.blocking()) {
             this.sceneHold = false;
@@ -4223,7 +4401,8 @@ const UI = {
                     continue;
                 }
                 if (e.isGrid) {
-                    const im = e.sprite && e.sprite(), h = im ? Math.max(T, im.height) : T, x = e.px - Cam.x, y = e.py - Cam.y;
+                    /* (as tall as it's drawn: a weathervane's arrow stands high over its foot) */
+                    const im = e.sprite && e.sprite(), h = e.tall || (im ? Math.max(T, im.height) : T), x = e.px - Cam.x, y = e.py - Cam.y;
                     if (over(x, y + T - h, x + T, y + T)) { hit = true; break; }
                 } else if (e instanceof Door || e instanceof FloorThing) {
                     /* (a door in a side wall stands up over the wall's face above it) */
@@ -4248,9 +4427,10 @@ const UI = {
         if (!Progress.flag('cut_self') || G.keepHearts) {
             const k = leaving ? leaving / 120 : 1, a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
             if (leaving) Gfx.alpha(a0 * k);
-            const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0;
+            const sp = (p && (p.state === 'flight')) ? Math.floor(G.t / 3) % 3 : 0, n = Math.ceil(Inv.maxHp / 2);
+            /* (on a soft dark backing, as the counts are: an empty heart all but vanished over a ham hung on a wall) */
+            if (!leaving) { hudBack(2, 2, 9 * Math.min(10, n) + 15, 9); if (n > 10) hudBack(14, 11, 9 * (n - 10) + 3, 8); }
             Gfx.img(spr('hud_spool' + sp), 4, 3 - Math.round((1 - k) * 10));
-            const n = Math.ceil(Inv.maxHp / 2);
             for (let i = 0; i < n; i++) {
                 const hx = 16 + (i % 10) * 9 + (leaving ? Math.round(Math.sin(i * 1.7 + leaving / 9) * (1 - k) * 6) : 0);
                 const hy = 3 + Math.floor(i / 10) * 8 - (leaving ? Math.round((1 - k) * (14 + (i * 7) % 11)) : 0);
@@ -4322,6 +4502,11 @@ const UI = {
     },
 };
 
+/* a soft dark backing for the HUD, its corners rounded off (as faded as the corner it's in) */
+function hudBack(x, y, w, h, k = 0.4) {
+    const a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
+    Gfx.alpha(a0 * k); Gfx.rect(x + 1, y, w - 2, h, PAL.ink); Gfx.rect(x, y + 1, 1, h - 2, PAL.ink); Gfx.rect(x + w - 1, y + 1, 1, h - 2, PAL.ink); Gfx.alpha(a0);
+}
 /* a few words on the HUD over a soft dark backing, so they read on any floor (sand, snow, water, a bed) */
 function hudText(s, x, y) {
     const w = Font.width(s), a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
@@ -4629,7 +4814,7 @@ const World = {
         const name = r ? r.name : a.name;
         if (name !== G.regionName) {
             G.regionName = name;
-            if (name && (!first || !a.def.quietName)) UI.showBanner(name, r && r.sub);
+            if (name && (!first || !a.def.quietName)) UI.showBanner(name, r && r.sub, !first);
             const m = r && r.music;
             if (m) Music.play(m);
             if (r && r.mark !== false && a.family === 'outdoor' && p.state === 'normal') p.setMark();
@@ -4858,6 +5043,8 @@ const EXTRA = {
     beard: { down: { 7: '...khhssssshk...', 8: '....khhhhhhk....', 9: '.....khhhhk.....' }, right: { 7: '...kHhhhhhhhk...', 8: '....kHhhhhhk....', 9: '.....khhhk......' } },
     glasses: { down: { 6: '...kskkskkssk...' }, right: { 6: '...kHhhhhskkk...' } },
     mustache: { down: { 8: '....kshhhhSk....' } },
+    /* grey coming in at the temples */
+    greying: { down: { 4: '....v......V....', 5: '....v......V....' }, right: { 5: '.........v......', 6: '........v.......' }, up: { 6: '....V......V....', 7: '.....V....V.....' } },
 };
 
 function overrideRows(rows, ov) {
@@ -4880,7 +5067,7 @@ function makePerson(id, look) {
         s: s1, S: s2, h: look.hairC || '#6b4128', H: shade(look.hairC || '#6b4128', -0.3),
         t: look.top || '#5a8ad0', T: shade(look.top || '#5a8ad0', -0.28), p: look.bottom || '#6b4128', P: shade(look.bottom || '#6b4128', -0.3),
         a: look.accent || look.top || '#f0d080', A: shade(look.accent || look.top || '#f0d080', -0.28), b: look.boots || '#5a3a26', l: shade(look.hairC || '#6b4128', 0.25),
-        c: look.cheek || '#f0a0a0', e: '#2a1f2d',
+        c: look.cheek || '#f0a0a0', e: '#2a1f2d', v: look.greyC || '#cfc6b8', V: shade(look.greyC || '#cfc6b8', -0.25),
     };
     for (const dir of ['down', 'right', 'up']) {
         let rows = B[dir];
@@ -7996,8 +8183,8 @@ CONTENT_INIT.push(() => {
     };
 }
 
-/* Inside a region too: where grass meets the forest floor, a dirt road or sand, the tiles' straight edges and square
-   corners fray along a wandering line instead (both tiles agree where it runs: each boundary's own line, so a stretch of
+/* Inside a region too (and past the fog, in the Drift): where grass meets the forest floor, a dirt road or sand, the
+   tiles' straight edges and square corners fray along a wandering line instead (both tiles agree where it runs: each boundary's own line, so a stretch of
    one ground pushes into the other here and is pushed back there). Paved roads keep their kerbs. Drawing only: every
    tile is what it was. Each frayed tile is made the first time it's drawn, a few a frame (never in one long frame:
    entering the valley paints every tile once), and drawn plain till then. */
@@ -8013,7 +8200,7 @@ const Fray = {
     const capture = (area, tx, ty) => { let got = null; const img = Gfx.img; Gfx.img = c => { got = c; }; try { draw1.call(TileDraw, area, tx, ty, 0, 0); } finally { Gfx.img = img; } return got; };
     const as = (a, tx, ty, L) => { const o = Object.create(a); o.cell = (x, y) => x === tx && y === ty ? L : a.cell(x, y); return o; };
     TileDraw.draw = function (area, tx, ty, sx, sy) {
-        const L = area.id === 'hollow' && !HEADLESS && !this.warming ? area.cell(tx, ty) : null, f = L && Fray.FAM[L.p];
+        const L = (area.id === 'hollow' || area.id === 'drift') && !HEADLESS && !this.warming ? area.cell(tx, ty) : null, f = L && Fray.FAM[L.p];
         if (!f) return draw1.call(this, area, tx, ty, sx, sy);
         /* (what this tile last came to, while it and its neighbours are what they were) */
         const memo = area._fray || (area._fray = new Map()), i = ty * area.w + tx, m = memo.get(i);
@@ -8197,7 +8384,7 @@ const PEOPLE_DEF = {
     mallow: { name: 'Doctor Mallow', col: '#c9b3f0', look: { body: 'adult', hair: 'bald', hairC: '#c8c0b8', top: '#fbf6ea', accent: '#b48ce8', bottom: '#4b3a8a', skin: 'light', extra: ['glasses', 'mustache'] } },
     mabel: { name: 'Auntie Mabel', col: '#c8e66a', look: { body: 'elder', hair: 'long', hairC: '#c8c8d0', top: '#8a5aa0', accent: '#f7d64a', bottom: '#4a2a5a', skin: 'dark' } },
     burr: { name: 'Constable Burr', col: '#9a9188', look: { body: 'adult', hair: 'cap', hairC: '#3a3a5a', top: '#2b5aa8', accent: '#f7d64a', bottom: '#1f3270', skin: 'light', extra: ['mustache'] } },
-    gundry: { name: 'Gundry', col: '#c9925a', look: { body: 'adult', hair: 'short', hairC: '#c4623a', top: '#7a5233', accent: '#e6c08a', bottom: '#45281c', skin: 'tan' } },
+    gundry: { name: 'Gundry', col: '#c9925a', look: { body: 'adult', hair: 'short', hairC: '#c4623a', top: '#7a5233', accent: '#e6c08a', bottom: '#45281c', skin: 'tan', extra: ['greying'] } },
     ambrose: { name: 'Dad', col: '#7ec8f0', look: { body: 'adult', hair: 'short', hairC: '#a5532a', top: '#4f9be0', accent: '#fbf6ea', bottom: '#5a4a3a', skin: 'light', extra: ['beard'] } },
     tess: { name: 'Mum', col: '#f7d64a', look: { body: 'adult', hair: 'long', hairC: '#3a2a1a', top: '#e8c04a', accent: '#a6772a', bottom: '#6b4128', skin: 'tan' } },
     jory: { name: 'Jory', col: '#d6304e', look: { body: 'elder', hair: 'tuft', hairC: '#f0f0f0', top: '#c42b4a', accent: '#f7d64a', bottom: '#2a1f2d', skin: 'light', extra: ['glasses'] } },
@@ -8385,7 +8572,7 @@ function portraitLegend(L) {
         q: cap, Q: shade(cap, -0.3), Y: shade(cap, 0.25),
         g: L.glassC || '#8a7880', G: '#ffffff', d: '#7ec8f0', D: '#e4f6ff',
         r: L.ribbonC || '#5ab85a', R: shade(L.ribbonC || '#5ab85a', -0.3),
-        p: '#f6f1e6', P: '#cfc6b2',
+        p: '#f6f1e6', P: '#cfc6b2', v: L.greyC || '#cfc6b8', V: shade(L.greyC || '#cfc6b8', -0.25),
     };
 }
 
@@ -8500,8 +8687,9 @@ function portraitRows(L, expr = 'neutral', mouthOpen = false, eyesShut = false) 
     /* the ears */
     for (const ex of [6, 25]) for (let y = 13; y <= 16; y++) pSet(face, ex, y + dy, ex === 25 || y === 16 ? 'S' : 's');
     pLay(g, face);
-    /* the hair over it; its shadow on the forehead */
+    /* the hair over it; its shadow on the forehead (grey coming in at the temples, for some) */
     const hair = hairPart(L, dy);
+    if (extra.has('greying')) for (let y = 8 + dy; y <= 13 + dy; y++) for (let x = 0; x < PORTRAIT; x++) if ((x <= 8 || x >= 23) && 'hHlK'.includes(hair[y][x])) hair[y][x] = x >= 23 ? 'V' : 'v';
     pLay(g, hair, 'k');
     /* a bun: a ball of hair sat on top */
     if (L.hair === 'bun') {
@@ -8682,6 +8870,7 @@ defBlock({
         { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. (Open. Somebody drew the bolt on the far side.)", if: 'fair_gate' },
         { k: 'sign', x: 13, y: 12, text: 'The Ravels. (Gran, and {name}.)' },
         { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]], id: 'westGateA', if: '!fair_gate' }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]], id: 'westGateB', if: '!fair_gate' },
+        { k: 'gateleaf', x: 3, y: 19, hinge: 'n', if: 'fair_gate' }, { k: 'gateleaf', x: 3, y: 20, hinge: 's', if: 'fair_gate' },
         { k: 'rest', x: 28, y: 34 },
         /* townsfolk */
         /* (after the fifth Knot Burr moves his post in a few steps: the fog's closer, he says) */
@@ -10681,6 +10870,149 @@ const Waiting = {
     },
 };
 
+// ---- 41c_remains.js ----
+/* What a beaten foe leaves while its end is told (the words follow what's seen, fix round F): its pieces, a ball of its
+   yarn, its thread running off down the cracks, each going its own way at its own pace, so whatever the line says is
+   happening is still on screen when it's said. One Remains in the room draws all its bits, and goes when the last has
+   (pieces left lying stay till the room is built again). */
+class Remains extends Ent {
+    /* bits: { from: [x, y], to: [x, y] (world pixels, at the bit's foot), delay (frames before it sets off), speed (pixels
+       a frame), hop (pixels between hops, 0 for none) and lift (their height), rattle (jitters along), end: 'gone' (drawn
+       till it gets there, and linger frames more), 'lie' (left lying there) or 'fade' (fades where it ends, over fade
+       frames), look(x, y, bit, k) (draws it at that spot on the screen; k: how far along, 0 to 1), shadow }.
+       opts: x, y (where it is, for what's on screen), floor (lying on the floor, under everyone) */
+    constructor(bits, opts = {}) {
+        super('remains', { x: opts.x || 0, y: opts.y || 0, floor: !!opts.floor });
+        this.bits = bits.map(b => Object.assign({ delay: 0, speed: 1, hop: 0, lift: 0, end: 'gone', linger: 0, fade: 20 }, b));
+        for (const b of this.bits) b.len = Math.hypot(b.to[0] - b.from[0], b.to[1] - b.from[1]);
+        this.t = 0;
+    }
+    get sortY() { return this.floor ? -1000 : this.y + 4; }
+    /* how long a bit takes from the start to be done with (Infinity: left lying) */
+    endOf(b) { return b.end === 'lie' ? Infinity : b.delay + b.len / b.speed + (b.end === 'fade' ? b.fade : b.linger); }
+    get done() { return this.bits.every(b => this.t >= this.endOf(b)); }
+    /* any bit still to be seen (for the scenes' tests: what the line tells of is still there) */
+    showing() { return this.bits.some(b => this.t < this.endOf(b)); }
+    /* the box round what's still to be seen of it (what words on the screen keep clear of, as a line's focus) */
+    box() {
+        let r = null;
+        for (const b of this.bits) {
+            if (this.t >= this.endOf(b)) continue;
+            const [x, y, z] = this.at(b), q = [x - 8, y - z - (b.tall || 14), x + 8, y + 2];
+            r = r ? [Math.min(r[0], q[0]), Math.min(r[1], q[1]), Math.max(r[2], q[2]), Math.max(r[3], q[3])] : q;
+        }
+        return r || [this.x - 8, this.y - 14, this.x + 8, this.y + 2];
+    }
+    get x0() { return this.box()[0]; }
+    get y0() { return this.box()[1]; }
+    get x1() { return this.box()[2]; }
+    get y1() { return this.box()[3]; }
+    update() {
+        this.t++;
+        if (this.done) { this.area.remove(this); return; }
+        /* (all that's left of it come to rest, lying on the floor: under anyone walking over it) */
+        if (!this.floor && this.bits.every(b => this.t >= this.endOf(b) || (b.end === 'lie' && this.t - b.delay >= b.len / b.speed))) this.floor = true;
+    }
+    /* where a bit is now: [x, y, its lift off the floor, how far along, its strength] */
+    at(b) {
+        const t = this.t - b.delay, s = Math.max(0, Math.min(b.len, t * b.speed)), k = b.len ? s / b.len : t >= 0 ? 1 : 0;
+        let x = lerp(b.from[0], b.to[0], k), y = lerp(b.from[1], b.to[1], k);
+        const z = b.hop && k < 1 ? Math.abs(Math.sin(s / b.hop * Math.PI)) * b.lift : 0;
+        if (b.rattle && t > 0 && k < 1) { x += ((t >> 1) % 2 ? 1 : -1); y += ((t >> 2) % 2 ? 1 : 0); }
+        const over = t - b.len / b.speed, a = b.end === 'fade' && over > 0 ? Math.max(0, 1 - over / b.fade) : 1;
+        return [x, y, z, k, a];
+    }
+    draw(cx, cy) {
+        for (const b of this.bits) {
+            if (this.t >= this.endOf(b)) continue;
+            const [x, y, z, k, a] = this.at(b);
+            if (a <= 0) continue;
+            if (b.shadow !== false && z > 0.5) { Gfx.alpha(0.25 * a); Gfx.rect(Math.round(x - cx) - 3, Math.round(y - cy), 7, 2, PAL.ink); }
+            Gfx.alpha(a);
+            b.look(Math.round(x - cx), Math.round(y - cy - z), b, k);
+            Gfx.alpha(1);
+        }
+    }
+}
+const RemainsKit = {
+    /* a picture upside down (a fish rolled belly up) */
+    flipV(im) {
+        if (!im || HEADLESS) return im;
+        if (im._flipV) return im._flipV;
+        const c = Gfx.makeCanvas(im.width, im.height), x = c.getContext('2d');
+        x.translate(0, im.height); x.scale(1, -1); x.drawImage(im, 0, 0);
+        return (im._flipV = c);
+    },
+    /* a ball of yarn, rolling (its stripe turning as it goes) */
+    yarn(col, r = 3) {
+        return (x, y, b, k) => {
+            Gfx.circle(x, y - r, r + 1, PAL.ink); Gfx.circle(x, y - r, r, col);
+            const s = Math.floor(k * b.len / 3) % 3;
+            Gfx.rect(x - r + 1, y - r - 1 + s - 1, r * 2 - 1, 1, shade(col, 0.4)); Gfx.rect(x - r + 1, y - r + 1 + s - 1, r * 2 - 1, 1, shade(col, -0.3));
+        };
+    },
+    /* a piece of a picture (sx, sy, w, h of it), stood on its foot, inked round where it broke off */
+    part(im, sx, sy, w, h) {
+        return (x, y) => {
+            if (!im) return;
+            const ink = tinted(im, PAL.ink), X = x - Math.round(w / 2), Y = y - h;
+            for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Gfx.sub(ink, sx, sy, w, h, X + dx, Y + dy);
+            Gfx.sub(im, sx, sy, w, h, X, Y);
+        };
+    },
+    /* thread running off along the cracks between the boards, like water, from x, y (the same runs every time for the same
+       seed: each turning along the grain now and then, stopping at a wall) */
+    runs(area, x, y, n, seed, cols) {
+        const out = [];
+        for (let i = 0; i < n; i++) {
+            const pts = [[0, -2]];
+            let d = [RIGHT, LEFT, UP, DOWN][(i + seed) % 4], px = 0, py = -2;
+            for (let k = 0, m = 3 + Math.floor(hash2(i, seed, 41) * 2); k < m; k++) {
+                let len = 8 + Math.floor(hash2(i, k + seed, 42) * 16);
+                for (; len > 0; len--) { if (area.kind(tileOf(x + px + DX[d] * 4), tileOf(y + py + DY[d] * 4)).solid) break; px += DX[d]; py += DY[d]; }
+                pts.push([px, py]);
+                d = d === UP || d === DOWN ? (hash2(i, k, seed + 43) < 0.5 ? LEFT : RIGHT) : (hash2(i, k, seed + 43) < 0.5 ? UP : DOWN);
+            }
+            out.push({ pts, len: pts.reduce((m, q, j) => j ? m + Math.abs(q[0] - pts[j - 1][0]) + Math.abs(q[1] - pts[j - 1][1]) : 0, 0), late: i * 5, col: cols[i % cols.length] });
+        }
+        return out;
+    },
+    /* the stretch of a run from a to b pixels along it, at ox, oy on the screen */
+    runPart(run, a, b, ox, oy) {
+        const out = []; let s = 0;
+        for (let j = 0; j + 1 < run.pts.length; j++) {
+            const [x0, y0] = run.pts[j], [x1, y1] = run.pts[j + 1], L = Math.abs(x1 - x0) + Math.abs(y1 - y0);
+            const u0 = clamp((a - s) / (L || 1), 0, 1), u1 = clamp((b - s) / (L || 1), 0, 1);
+            if (u1 > u0) { const p0 = [ox + lerp(x0, x1, u0), oy + lerp(y0, y1, u0)], p1 = [ox + lerp(x0, x1, u1), oy + lerp(y0, y1, u1)]; if (!out.length) out.push(p0); out.push(p1); }
+            s += L;
+        }
+        return out;
+    },
+};
+/* threads running off down the cracks from a spot: their heads run out, and their tails follow them down (a thing on the
+   floor; done once the last tail's gone) */
+class CrackRuns extends Ent {
+    constructor(area, x, y, n, seed, cols, pace = 0.45, tail = 80) {
+        super('crackruns', { x, y, floor: true });
+        this.runs = RemainsKit.runs(area, x, y, n, seed, cols); this.t = 0; this.pace = pace; this.tail = tail;
+    }
+    get sortY() { return -1000; }
+    tailAt(r) { return clamp((this.t - r.late - this.tail) * this.pace, 0, r.len); }
+    showing() { return this.runs.some(r => this.tailAt(r) < r.len); }
+    /* (as a line's focus: round where they all run) */
+    get x0() { return this.x + Math.min(...this.runs.flatMap(r => r.pts.map(q => q[0]))) - 2; }
+    get y0() { return this.y + Math.min(...this.runs.flatMap(r => r.pts.map(q => q[1]))) - 2; }
+    get x1() { return this.x + Math.max(...this.runs.flatMap(r => r.pts.map(q => q[0]))) + 2; }
+    get y1() { return this.y + Math.max(...this.runs.flatMap(r => r.pts.map(q => q[1]))) + 2; }
+    update() { this.t++; if (!this.showing()) this.area.remove(this); }
+    draw(cx, cy) {
+        for (const r of this.runs) {
+            const head = clamp((this.t - r.late) * this.pace, 0, r.len), tail = this.tailAt(r);
+            if (head > tail + 0.5) { const pts = RemainsKit.runPart(r, tail, head, this.x - cx, this.y - cy); if (pts.length > 1) Threads.path(pts, r.col); }
+        }
+    }
+}
+
 // ---- 42_tidyhouse.js ----
 /* House 1: the Tidyhouse, in Meadowfold. The Return itself: patience as a timer, plates pressed in
    passing, heavier shoves lighter, a thing at home blocks the way home, carrying and throwing traces,
@@ -11131,6 +11463,16 @@ SPAWN.pie = (tx, ty) => {
     };
     pr.talkBox = (pl, f) => (f.tx === tx || f.tx === tx - 1) && f.ty === ty;
     if (Progress.flag('pie')) pr.im = ART.pie_empty;
+    /* still warm: steam curling up off it, a wisp at a time */
+    const draw0 = pr.draw;
+    pr.draw = function (cx, cy) {
+        draw0.call(this, cx, cy);
+        if (this.im !== ART.pie) return;
+        for (let i = 0; i < 3; i++) {
+            const k = ((G.t + i * 23) % 70) / 70, x = Math.round(this.x - cx + 5 + i * 3 + Math.sin(k * 6 + i * 2) * 1.5), y = Math.round(this.y - cy + 1 - k * 12);
+            Gfx.alpha(0.75 * (1 - k)); Gfx.rect(x, y, 1, 2, '#ffffff'); Gfx.rect(x + ((k * 6 + i) % 2 < 1 ? 1 : -1), y - 2, 1, 2, '#ffffff'); Gfx.alpha(1);
+        }
+    };
     return pr;
 };
 /* the Staff Only door behind the cupboard (S04) */
@@ -11200,7 +11542,9 @@ SPAWN.monger = (tx, ty) => {
         Progress.set('tidy_monger');
         for (const s of e.area.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = false;
         Music.play('tidy');
-        Script.run(function* () { yield 60; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.'); });
+        /* (the burst, and the bunnies hopping off under the four closets while it's told) */
+        const bits = Tidy.bunnies(e);
+        Script.run(function* () { yield 14; yield* say(null, 'The Dust Monger bursts into a hundred dust bunnies, which all hop away under the furniture. Something glints in the middle of the floor.', { focus: bits }); });
     };
     e.wakeT = 0; e.flopT = 120;
     return e;
@@ -11214,7 +11558,7 @@ AI.monger = (e, p) => {
             e.awake = true;
             for (const s of a.ents) if (s.kind === 'door' && s.group === 'monger') s.shut = true;
             Music.play('boss');
-            Script.run(function* () { yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off all that fluff. Something thrown might not...'); });
+            Script.run(function* () { yield* stepIn(); yield* say(null, 'A heap of fluff in the middle of the room shudders, stands up, and looks at you. It is a dust bunny the size of a sofa.'); yield* say(null, 'Your stick would just bounce off all that fluff. Something thrown might not...'); });
         }
         return;
     }
@@ -11457,6 +11801,19 @@ class Housekeeper extends Enemy {
 SPAWN.housekeeper = (tx, ty) => Progress.flag('tidy_boss') ? new Ent('none') : new Housekeeper(tx, ty);
 
 const Tidy = {
+    /* the Dust Monger burst: dust bunnies hopping off from where it was under the closets in the room's four corners (the
+       upper two from in front, the lower two from behind), each gone as it gets there; its yarn with them */
+    bunnies(e) {
+        const a = e.area, r = a.roomAt(e.hx, e.hy), n = 16, bits = [];
+        e.draw = () => { };
+        const look = (x, y, b) => { const L = b.ink; Gfx.rect(x - 3, y - 4, 7, 4, L); Gfx.rect(x - 2, y - 6, 1, 2, L); Gfx.rect(x + 1, y - 6, 1, 2, L); Gfx.rect(x - 2, y - 3, 5, 2, '#e4dcd0'); Gfx.rect(x - 1, y - 4, 3, 1, '#f4ecdf'); Gfx.rect(x + (b.dx < 0 ? -1 : 1), y - 3, 1, 1, PAL.ink); };
+        for (let i = 0; i < n; i++) {
+            const c = i % 4, up = c < 2, tx = r.x + (c % 2 ? 16 : 2), u = hash2(i, 5, 71), v = hash2(i, 9, 72);
+            const to = [(tx + 0.2 + u * 1.6) * T, (r.y + (up ? 4 : 7)) * T + (up ? 1 : 3)], from = [e.x - 10 + v * 20, e.y - 2 + u * 6];
+            bits.push({ from, to, dx: to[0] - from[0], delay: Math.floor(hash2(i, 3, 73) * 36), speed: 0.5 + v * 0.25, hop: 7 + u * 3, lift: 3, look, ink: PAL.ink });
+        }
+        return a.add(new Remains(bits, { x: e.x, y: e.y }));
+    },
     /* the Housekeeper's coat-hanger: a wooden bar with sloping shoulders and a wire hook, spinning as it flies */
     drawHanger(x, y, f) {
         const R = (c, a, b, w, h) => Gfx.rect(a, b, w, h, c);
@@ -13225,7 +13582,7 @@ class Glazer extends Enemy {
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
     update() {
-        if (!this.alive) return;
+        if (!this.alive) { this.deadT = (this.deadT || 0) + 1; return; }
         this.t++; if (this.flash > 0) this.flash--;
         const p = G.player, a = this.area;
         if (this.state === 'sleep') {
@@ -13312,8 +13669,29 @@ class Glazer extends Enemy {
             Progress.set('kiln_glazer');
             for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = false;
             Music.play('kilnhouse');
-            Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.'); });
+            /* (it stands there cracked, then crumbles, while it's told: drawDust) */
+            const g = this;
+            Script.run(function* () { yield 14; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.', { focus: [g.tx, g.ty, 28] }); });
         }
+    }
+    /* beaten: it stands a moment cracked from head to foot, then crumbles from the top down into a heap of clay dust with
+       the pieces of its shield in it, and the heap is left lying there */
+    drawDust(cx, cy) {
+        const t = this.deadT || 0, im = spr('glazer'), x = Math.round(this.x - cx), y = Math.round(this.y - cy);
+        const k = clamp((t - 50) / 150, 0, 1), w = Math.round(3 + k * 4);
+        if (t >= 50) {
+            Gfx.rect(x - w - 2, y - 1, w * 2 + 5, 3, PAL.ink); Gfx.rect(x - w - 1, y - 1, w * 2 + 3, 2, '#c4623a');
+            if (k > 0.3) { Gfx.rect(x - w, y - 3, w * 2 + 1, 3, PAL.ink); Gfx.rect(x - w + 1, y - 2, w * 2 - 1, 2, '#d98a5a'); Gfx.rect(x - w + 2, y - 2, 2, 1, '#e8b08a'); }
+            if (k > 0.6) { Gfx.rect(x - 4, y - 2, 2, 1, '#5ad1c5'); Gfx.rect(x + 3, y - 1, 2, 1, '#2e9a96'); Gfx.rect(x - 1, y - 4, 1, 1, '#bff3ee'); }
+        }
+        if (k >= 1 || !im) return;
+        const cut = Math.round(k * (im.height - 4)), sh = t < 50 ? ((t >> 1) % 2) : 0, top = y - 22;
+        if (t < 50) this.drawShield(cx, cy, sh, 0);
+        Gfx.sub(im, 0, cut, im.width, im.height - cut, x - 8 + sh, top + cut);
+        /* the crack, head to foot */
+        for (let j = Math.max(cut, 1); j < im.height - 2; j++) Gfx.rect(x - 1 + sh + ((j * 5) >> 2) % 3 - 1, top + j, 1, 1, PAL.ink);
+        /* dust sifting down off the crumbling top */
+        if (t >= 50) for (let i = 0; i < 5; i++) { const f = Math.floor(t * 0.6 + i * 7) % 16; Gfx.rect(x - 7 + i * 3 + sh, top + cut + f, 1, 1, i % 2 ? '#e8c8a8' : '#c4623a'); }
     }
     /* its glazed shield, held on whichever side it faces (big, braced, before a barge) */
     drawShield(cx, cy, sh, low) {
@@ -13323,7 +13701,7 @@ class Glazer extends Enemy {
         Gfx.rect(sx - 2, sy + h, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, h - 7, '#e8a070');
     }
     draw(cx, cy) {
-        if (!this.alive) return;
+        if (!this.alive) return this.drawDust(cx, cy);
         const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
@@ -13532,14 +13910,25 @@ class Kilnwyrm extends Enemy {
         /* (the pit closes over: the floor the Knot's hoop will stand on) */
         if (this.told === 3) { const r = this.room; for (let y = 3; y <= 7; y++) for (let x = 7; x <= 11; x++) this.area.setCell(r.x + x, r.y + y, '.'); }
         Sfx.play('unravel'); for (let i = 0; i < this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 10)]; Fx.burst(s[0], s[1] - 6, '#c4623a'); }
+        this.comeApart();
         Progress.set('kiln_boss');
         Script.run(Kiln.bossDown(this));
     }
+    /* it comes apart pot by pot (head, coils, tail), and every piece rattles across the floor in turn to a crack at the foot
+       of the west wall, and down it (staged under the words: Kiln.bossDown) */
+    comeApart() {
+        const a = this.area, r = this.room, kx = (r.x + 1) * T + 1, ky = (r.y + 5) * T + 10, bits = [];
+        const pots = [[this.x, this.y, spr('wyrm_head_' + DIR_NAME[this.dir === LEFT ? RIGHT : this.dir]), this.dir === LEFT]];
+        for (let i = 1; i <= this.segs; i++) { const s = this.trail[Math.min(this.trail.length - 1, i * 11)]; pots.push([s[0], s[1], spr(i === this.segs ? 'wyrm_tail' : 'wyrm_seg'), false]); }
+        pots.forEach(([x, y, im, flip], i) => {
+            const to = [kx + 6, ky - 6 + (i % 3) * 5], len = Math.hypot(to[0] - x, to[1] - y);
+            bits.push({ from: [x, y], to, delay: 10 + i * 10, speed: Math.max(0.6, len / 150), rattle: true, end: 'fade', fade: 12, look: (sx, sy) => Gfx.img(im, sx - 8, sy - 14, flip) });
+        });
+        this.crack = a.add(new Remains([{ from: [kx, ky], to: [kx, ky], end: 'lie', look: Kiln.drawCrack }], { x: kx, y: ky, floor: true }));
+        this.pieces = a.add(new Remains(bits, { x: this.x, y: this.y }));
+    }
     draw(cx, cy) {
-        if (!this.alive) {
-            if ((this.deadT || 0) < 100) { const k = 1 - (this.deadT || 0) / 100; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.bram); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
-            return;
-        }
+        if (!this.alive) return;
         const fl = this.flash > 0 && (this.flash >> 1) % 2;
         /* rattling its coils (about to shed): every piece of it shivers */
         const rat = this.rattleT > 0 ? ((this.t >> 1) % 2 ? 1 : -1) : 0;
@@ -13579,11 +13968,16 @@ const Kiln = {
         yield* say(null, 'In the heat at the heart of the Kiln, something long and glazed uncoils. Its head turns, sniffs the floor where you just walked, and starts to follow your footprints.');
         yield* say(null, 'Its glaze is as hard as the Glazer\'s shield. Nothing you swing will crack it.');
     },
+    /* the crack at the foot of the wall the Kilnwyrm's pieces go down (x, y: its foot on the screen) */
+    drawCrack(x, y) {
+        for (let j = 0; j < 24; j++) { const o = ((j * 5) >> 3) % 2 + (j > 9 && j < 17 ? 1 : 0); Gfx.rect(x + o, y - 18 + j, 2, 1, '#1a1018'); }
+        Gfx.rect(x + 2, y - 10, 2, 1, '#1a1018'); Gfx.rect(x + 3, y - 4, 1, 2, '#3a1810'); Gfx.rect(x, y - 16, 1, 1, '#d98a5a');
+    },
     *bossDown(w) {
         const a = w.area;
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'The Kilnwyrm comes apart pot by pot, and every last piece goes rattling across the floor and down a crack by the wall, back to wherever it belongs.');
+        yield 14;
+        yield* say(null, 'The Kilnwyrm comes apart pot by pot, and every last piece goes rattling across the floor and down a crack by the wall, back to wherever it belongs.', { focus: [w.pieces, w.crack] });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 9, br.y + 4));
@@ -13595,10 +13989,11 @@ const Kiln = {
         Progress.set('d2');
         Progress.set('tagStopped');
         Progress.setGoal('Back to Hollowell. Then east: the broken bridge in Meadowfold, and Millwater beyond it. Your Hookline should get you over.');
-        yield* say(null, 'A door opens in the side of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.');
+        /* (the door first, then the words about it, on it: down in the chamber's south-east corner) */
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: KILN_OUT.x, ty2: KILN_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
+        yield* say(null, 'A door opens in the corner of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.', { focus: [r.x + 17, r.y + 9] });
     },
 };
 SIGNATURE_TEXT.kiln = "Pressed into the clay floor, as if with a big thumb: an ochre B, and a little jug. Someone signed this House like you'd sign the bottom of a pot.";
@@ -15380,11 +15775,11 @@ WALLS.millhouse = {
         if (v === 1) { fill(x, '#3a4450', 0, 7, 15, 1); fill(x, '#56626e', 0, 8, 15, 1); }
         if (v === 2) { px(x, 3, 3, '#6a7682'); px(x, 4, 4, '#2e3844'); px(x, 11, 11, '#6a7682'); px(x, 12, 12, '#2e3844'); }
     },
-    face: (x, th, v) => {
+    face: (x, th, v, hud) => {
         Paint.bricks(x, ['#8c98a4', '#66727e', '#aab6c0', '#3e4852'], v);
         fill(x, '#4f9be0', 0, 13, 16, 1); fill(x, '#1c2630', 0, 15, 16, 1);
-        /* a little round porthole, brass-rimmed (a square one in the top wall, beside the hearts, read as part of the HUD) */
-        if (v === 3) {
+        /* a little round porthole, brass-rimmed (not in a room's top wall, beside the hearts: it read as part of the HUD) */
+        if (v === 3 && !hud) {
             fill(x, '#1c2630', 6, 2, 4, 9); fill(x, '#1c2630', 5, 3, 6, 7); fill(x, '#1c2630', 4, 4, 8, 5);
             fill(x, '#c8903a', 6, 3, 4, 7); fill(x, '#c8903a', 5, 4, 6, 5); fill(x, '#e8b860', 6, 3, 3, 1); fill(x, '#e8b860', 5, 4, 1, 2);
             fill(x, '#4f9be0', 6, 4, 4, 5); fill(x, '#7cc8ee', 6, 4, 3, 3); px(x, 6, 4, '#ffffff'); fill(x, '#2b5aa8', 7, 8, 3, 1);
@@ -15805,10 +16200,11 @@ const Mill = {
     *afterKnot() {
         Progress.set('d3');
         Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
-        yield* say(null, 'Somewhere below, a great wheel turns over once, and stops. A hatch in the millpond wall swings open onto the falls.');
+        /* (the hatch first, then the words about it, on it: down in the millpond's south-west corner) */
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 2, r.y + 9, { to: 'hollow', tx2: MILL_OUT.x, ty2: MILL_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 2, r.y + 9, { im: ART.exitlight, solid: [] }));
+        yield* say(null, 'Somewhere below, a great wheel turns over once, and stops. A hatch in the millpond wall swings open onto the falls.', { focus: [r.x + 2, r.y + 9] });
     },
 };
 
@@ -15918,13 +16314,19 @@ class Snapjaw extends Enemy {
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.ambrose);
         Progress.set('millrace_snapjaw');
         for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'sj') s.shut = false;
+        /* it rolls over, belly up, a moment; then a ball of its yarn bobs away down the race to the pool at its foot (staged
+           under the words: MillFoes.snapDown) */
+        const a = this.area; let ey = this.ty;
+        while (ey < this.ty + 12 && a.kind(this.hx, ey + 1).water) ey++;
+        const belly = RemainsKit.flipV(spr('snapjaw')), x = this.x, y = this.y;
+        this.remains = a.add(new Remains([
+            { from: [x, y], to: [x, y], end: 'gone', linger: 40, look: (sx, sy) => { if (belly) Gfx.img(belly, sx - 12, sy - 14); Gfx.alpha(0.5); Gfx.rect(sx - 10, sy - 2, 20, 2, '#ffffff'); Gfx.alpha(1); } },
+            { from: [x, y - 2], to: [x, ey * T + 6], delay: 40, speed: 0.3, hop: 5, lift: 1, end: 'fade', fade: 30, shadow: false, look: RemainsKit.yarn(THREAD.ambrose) },
+        ], { x, y }));
         Script.run(MillFoes.snapDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) {
-            if ((this.yarnT || 0) < 120) { this.yarnT = (this.yarnT || 0) + 1; const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ambrose); }
-            return;
-        }
+        if (!this.alive) return;
         const x = this.x - cx, y = this.y - cy;
         if (this.hidden) { if ((this.t >> 3) % 2) Gfx.img(spr('snap_ripple'), x - 8, y - 12); return; }
         /* rearing: jaws open till the snap; then hunting, it sways along the bank snapping at the air */
@@ -15991,7 +16393,7 @@ class Grindle extends GridThing {
     }
     tick() {
         const p = G.player, a = this.area;
-        if (!this.alive) return;
+        if (!this.alive) { this.deadT = (this.deadT || 0) + 1; return; }
         if (this.flash > 0) this.flash--;
         if (this.state === 'sleep') {
             const r = this.pond;
@@ -16139,11 +16541,22 @@ class Grindle extends GridThing {
         this.spitOut();
         this.area.unplace(this, this.tx, this.ty); this.area.unplace(this, this.tx + 1, this.ty);
         Progress.set('millrace_boss');
+        /* its gears spin loose, out over the pond (staged under the words, with its sinking: drawSink) */
+        const gx = this.tx * T + 16, gy = this.ty * T + 4, gear = (x, y) => { const k = (G.t >> 2) % 2; Gfx.circle(x, y - 3, 3, PAL.ink); Gfx.circle(x, y - 3, 2, '#e2b45a'); Gfx.rect(x - 1 + k, y - 4, 1, 1, '#7a5a20'); for (const [dx, dy] of k ? [[0, -4], [0, 2], [-4, -1], [4, -1]] : [[-3, -6], [3, 0], [-3, 0], [3, -6]]) Gfx.rect(x + dx - (dx > 0 ? 1 : 0), y + dy - (dy > 0 ? 1 : 0), 2, 2, '#a6772a'); };
+        this.gears = this.area.add(new Remains([[-30, 22, 0], [26, 26, 8], [-10, 34, 16], [40, 14, 24]].map(([dx, dy, d]) => ({ from: [gx, gy], to: [gx + dx, gy + dy], delay: d, speed: 0.55, hop: Math.hypot(dx, dy), lift: 16, end: 'fade', fade: 160, look: gear })), { x: gx, y: gy }));
         Script.run(MillFoes.grindleDown(this));
+    }
+    /* beaten: its plates folded up (shut), it sinks into the intake a little at a time, bubbles coming up over it */
+    drawSink(cx, cy) {
+        const t = this.deadT || 0, im = spr('grindle_shut') || spr('grindle'), x = this.tx * T - cx, y = this.ty * T - cy;
+        const sink = Math.round(clamp((t - 30) / 210, 0, 1) * (im ? im.height : 30));
+        if (im && sink < im.height) Gfx.sub(im, 0, 0, im.width, im.height - sink, x + (t < 30 ? (t >> 1) % 2 : 0), y - 18 + sink);
+        if (t > 30 && t < 300) for (let i = 0; i < 4; i++) { const f = (t + i * 13) % 40; Gfx.alpha(0.8 - f / 50); Gfx.rect(x + 6 + i * 7, y + 10 - f / 2, 2, 2, '#ffffff'); Gfx.alpha(1); }
+        Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
     }
     draw(cx, cy) {
         for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 3, '#a5dcf7'); Gfx.rect(s.x - cx - 1, s.y - cy - 2, 2, 2, '#ffffff'); }
-        if (!this.alive) return;
+        if (!this.alive) return this.drawSink(cx, cy);
         const x = this.tx * T - cx, y = this.ty * T - cy;
         let low = this.state === 'full' || this.state === 'hurt' || this.state === 'sulk' ? 5 : this.state === 'turn' ? 3 : 0;
         const bob = this.state === 'sulk' ? 0 : Math.round(Math.sin(G.t / 20) * 1);
@@ -16207,8 +16620,8 @@ const MillFoes = {
     },
     *snapDown(s) {
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: s });
+        yield 14;
+        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: s.remains });
         Music.play('millrace');
         Sfx.play('appear');
     },
@@ -16219,15 +16632,15 @@ const MillFoes = {
     /* the sluice turns: the races run another way, and Grindle with them */
     *turn(g) {
         yield 50;
-        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
+        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about. The side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
         else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again: there's only a chink left between its teeth, too fine for anything bigger than a chip, and deep in its throat the gear-heart spins. One race runs straight past its teeth now.", { focus: g });
         g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
     },
     *grindleDown(g) {
         const a = g.area;
         Music.play('silence');
-        yield 40;
-        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.", { focus: g });
+        yield 14;
+        yield* say(null, "Old Grindle's gears spin loose. Its plates fold up like a fan, and the whole fish sinks with a sigh into the intake, gone back wherever it came from.", { focus: [g, g.gears] });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 17, br.y + 9));       /* at the east end of the bank, clear of the raft's landing and the way out */
@@ -16349,10 +16762,11 @@ CONTENT_INIT.push(initMillraceArt);
 const Prologue = {
     start() {
         G.hideHud = true;
+        /* (dark before the room's there, so its name waits to come up with it) */
+        UI.fadeA = 1;
         World.enter('gran_room', 6, 3, { dir: DOWN, noSave: true });
         const p = G.player;
         p.x = 7 * T + 8; p.y = 2 * T + 10; p.state = 'sleep'; p.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
-        UI.fadeA = 1;
         Progress.setGoal('Get up and go downstairs to see Gran.');
         Script.run(function* () {
             yield 30;
@@ -17188,11 +17602,10 @@ SPAWN.stickthread = () => {
     e.floor = true;
     Object.defineProperty(e, 'sortY', { get() { return -2000; } });
     e.draw = function (cx, cy) {
+        /* (a thread like any other, over its dark under-stroke; slack and gone from the street once the Spool stops) */
+        if (Progress.flag('spool_cut') || Progress.flag('unwound')) return;
         const pts = STICK_THREAD.map(([x, y]) => hubAt(x, y)).map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]);
-        for (let i = 0; i + 1 < pts.length; i++) {
-            Gfx.alpha(0.35); Gfx.line(pts[i][0], pts[i][1] + 1, pts[i + 1][0], pts[i + 1][1] + 1, '#1a1018'); Gfx.alpha(0.8);
-            Gfx.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], THREAD.jory); Gfx.alpha(1);
-        }
+        Gfx.alpha(0.8); Threads.path(pts, THREAD.jory); Gfx.alpha(1);
     };
     /* (on the screen wherever the camera is: the culling looks at x and y) */
     e.update = function () { this.x = Cam.x + 100; this.y = Cam.y + 60; };
@@ -17815,7 +18228,7 @@ SPAWN.gust = (x, y, p) => new Gust(x, y, p);
 
 /* a weathervane: shows which way the next gust blows, and spins up as it comes */
 class Vane extends GridThing {
-    constructor(tx, ty, p = {}) { super('vane', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p)); this.ang = 0; }
+    constructor(tx, ty, p = {}) { super('vane', tx, ty, Object.assign({ weight: WEIGHT.fixed, fixed: true, marked: false }, p)); this.ang = 0; this.tall = 38; }
     tick() {
         const g = this.area.ents.find(e => e.kind === 'gust' && (!this.gust || e.id === this.gust));
         this.g = g; if (!g) return;
@@ -18312,10 +18725,11 @@ FLOORS.belfryhouse = {
 WALLS.belfryhouse = {
     edge: '#2a2438',
     top: (x) => { fill(x, '#4a4258'); speckle(x, ['#5a5264'], 8, 0.15); },
-    face: (x, th, v) => {
+    face: (x, th, v, hud) => {
         Paint.bricks(x, ['#a39aa8', '#7f7688', '#c4bccb', '#3e3a52'], v);
         fill(x, '#e8b04a', 0, 12, 16, 1); fill(x, '#2a2438', 0, 15, 16, 1);
-        if (v === 1) { fill(x, '#2a2438', 6, 3, 4, 7); fill(x, '#78c4ea', 7, 4, 2, 5); }   /* an arrow slit */
+        /* an arrow slit (not in a room's top wall, among the hearts: it read as one of the HUD's gems) */
+        if (v === 1 && !hud) { fill(x, '#2a2438', 6, 3, 4, 7); fill(x, '#78c4ea', 7, 4, 2, 5); }
     },
 };
 
@@ -18937,16 +19351,21 @@ class Clangor extends Enemy {
     }
     defeat() {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
-        Sfx.play('unravel'); Fx.yarn(this.x, this.y - 12, THREAD.tess);
+        Sfx.play('unravel'); Sfx.play('hitthing'); Fx.yarn(this.x, this.y - 12, THREAD.tess);
         Progress.set('belfry_clangor');
         for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'cl') s.shut = false;
+        /* it falls to pieces where it stands: bell-helm, breastplate, arms and legs clattering down round it, and left lying
+           there (its sprite cut into its parts: [sx, sy, w, h] and where each lands) */
+        const a = this.area, r = a.roomAt(this.hx, this.hy), im = spr('clangor'), x0 = this.x - 12, y0 = this.y - 30;
+        const fx = x => clamp(x, (r.x + 1) * T + 6, (r.x + r.w - 1) * T - 6), fy = y => clamp(y, (r.y + 1) * T + 10, (r.y + r.h - 1) * T - 2);
+        this.pieces = a.add(new Remains([[1, 0, 22, 15, 26, 10], [5, 14, 14, 12, -4, 8], [1, 14, 6, 11, -26, 2], [17, 14, 6, 11, 18, -12], [5, 25, 7, 7, -16, 20], [12, 25, 7, 7, 8, 24]].map(([sx, sy, w, h, dx, dy], i) => {
+            const from = [x0 + sx + w / 2, y0 + sy + h], to = [fx(this.x + dx), fy(this.y + dy)];
+            return { from, to, delay: [0, 2, 1, 3, 4, 5][i], speed: 1.1, hop: Math.max(8, Math.hypot(to[0] - from[0], to[1] - from[1])), lift: 10, end: 'lie', tall: h, look: RemainsKit.part(im, sx, sy, w, h) };
+        }), { x: this.x, y: this.y }));
         Script.run(BelfryFoes.clangorDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) {
-            if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.tess); }
-            return;
-        }
+        if (!this.alive) return;
         const x = this.x - cx, y = this.y - cy;
         Gfx.alpha(0.25); Gfx.rect(x - 8, y + 1, 16, 3, PAL.ink); Gfx.alpha(1);
         const im = spr(this.state === 'stunned' ? 'clangor_off' : 'clangor');
@@ -19169,6 +19588,10 @@ class Tollgrim extends Enemy {
         this.weather();
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 8, THREAD.tess);
         Progress.set('belfry_boss');
+        /* a ball of brass-coloured yarn, rolling (ringing faintly) into the dark under the great bell (staged under the words:
+           BelfryFoes.tollDown) */
+        const to = [this.hx * T + 8, this.hy * T + 8];
+        this.ball = this.area.add(new Remains([{ from: [this.x, this.y], to, delay: 10, speed: Math.max(0.35, Math.hypot(to[0] - this.x, to[1] - this.y) / 170), end: 'fade', fade: 24, look: RemainsKit.yarn('#d9a33a', 4) }], { x: this.x, y: this.y }));
         Script.run(BelfryFoes.tollDown(this));
     }
     draw(cx, cy) {
@@ -19181,10 +19604,7 @@ class Tollgrim extends Enemy {
             Gfx.alpha(1);
             Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, '#d8d0de'); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff');
         }
-        if (!this.alive) {
-            if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.tess); }
-            return;
-        }
+        if (!this.alive) return;
         /* pounding on the bell from inside: dust sifting down round its rim, his eyes showing */
         if (this.pounding > 0) {
             this.pounding--;
@@ -19246,12 +19666,13 @@ const BelfryFoes = {
     drawRubble(x, y) { Gfx.rect(x - 4, y - 7, 8, 6, PAL.ink); Gfx.rect(x - 3, y - 6, 6, 4, '#a89fb0'); Gfx.rect(x - 3, y - 6, 3, 1, '#d8d0de'); },
     *clangorIntro(c) {
         yield 20;
+        yield* stepIn();
         yield* say(null, "A suit of armour clanks to life. Where its head should be there's a bell, upside down, and inside the bell a clapper swinging like a tongue. CLANG, it says. The doors grind shut.");
     },
     *clangorDown(c) {
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. Somewhere in the room, something goes clunk.');
+        yield 30;
+        yield* say(null, 'Clangor falls to pieces with a noise like a dropped cutlery drawer. Somewhere in the room, something goes clunk.', { focus: c.pieces });
         Music.play('belfry'); Sfx.play('appear');
     },
     *tollIntro(t) {
@@ -19275,8 +19696,8 @@ const BelfryFoes = {
     *tollDown(t) {
         const a = t.area;
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'Tollgrim unravels into a ball of brass-coloured yarn and rolls, ringing faintly, into the dark under the great bell.');
+        yield 14;
+        yield* say(null, 'Tollgrim unravels into a ball of brass-coloured yarn and rolls, ringing faintly, into the dark under the great bell.', { focus: [t.ball, [t.hx, t.hy, 40]] });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 15, br.y + 6));
@@ -20486,14 +20907,39 @@ SPAWN.campfire = (x, y) => {
 };
 
 const Hushwood = {
+    /* sat up: moss and leaves slide off his shoulders to the road (the moss is left lying there), and one surprised
+       squirrel, who sits a moment where it lands and then bolts for the trees */
+    shrug(g) {
+        const x = g.x, y = g.y, bits = [];
+        const moss = (sx, sy) => { Gfx.rect(sx - 3, sy - 3, 7, 4, PAL.ink); Gfx.rect(sx - 2, sy - 2, 5, 2, '#5a9a3a'); Gfx.rect(sx - 1, sy - 3, 2, 1, '#8fd46a'); };
+        const leaf = (sx, sy, b) => { Gfx.rect(sx - 1, sy - 2, 3, 2, PAL.ink); Gfx.rect(sx, sy - 2, 2, 1, b.col); };
+        const sq = (sx, sy, b) => {
+            const f = b.flip ? -1 : 1, R = (c, a, bb, w, h) => Gfx.rect(f > 0 ? sx + a : sx - a - w, sy + bb, w, h, c);
+            R(PAL.ink, -4, -5, 8, 5); R('#b0703a', -3, -4, 6, 3); R('#e8c098', -3, -2, 3, 1);
+            R(PAL.ink, 3, -11, 5, 8); R('#c8844a', 4, -10, 3, 6); R('#e0a060', 4, -10, 1, 2);
+            R(PAL.ink, -6, -8, 5, 5); R('#b0703a', -5, -7, 3, 3); R(PAL.ink, -5, -6, 1, 1); R(PAL.ink, -4, -9, 1, 2);
+            if (b.bang) Font.draw('!', sx - 2, sy - 21, '#f7d64a');
+        };
+        [[16, 12, 6, 58, 0], [22, 8, 12, 60, 6], [10, 16, 2, 61, 12], [64, 12, 72, 59, 3], [58, 8, 66, 61, 9], [70, 16, 78, 60, 15]].forEach(([fx, fy, tx2, ty2, d]) =>
+            bits.push({ from: [x + fx, y + fy], to: [x + tx2, y + ty2], delay: d, speed: 0.45, end: 'lie', look: moss }));
+        [[20, 6, -4, 48, 4, '#8fd46a'], [60, 6, 84, 46, 10, '#e8b04a'], [30, 4, 18, 62, 16, '#6ab84a'], [52, 4, 70, 63, 2, '#c8a040']].forEach(([fx, fy, tx2, ty2, d, col]) =>
+            bits.push({ from: [x + fx, y + fy], to: [x + tx2, y + ty2], delay: d, speed: 0.4, hop: 9, lift: 3, end: 'fade', fade: 80, col, look: leaf }));
+        /* the squirrel: off his right shoulder, a moment's sit (startled), and away east into the trees */
+        const s0 = [x + 66, y + 10], s1 = [x + 80, y + 60], s2 = [x + 132, y + 44], t1 = 8 + Math.ceil(Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) / 0.5);
+        bits.push({ from: s0, to: s1, delay: 8, speed: 0.5, end: 'gone', look: sq, shadow: false });
+        bits.push({ from: s1, to: s1, delay: t1, end: 'gone', linger: 50, bang: true, look: sq });
+        bits.push({ from: s1, to: s2, delay: t1 + 50, speed: 1, hop: 10, lift: 3, end: 'gone', look: sq });
+        return g.area.add(new Remains(bits, { x: x + 40, y: y + 66 }));     /* (over him, as it slides off) */
+    },
     *giantWakes(g) {
         Music.play('silence');
         G.shake = 20; Sfx.play('rumble');
         yield 50;
         yield* say(null, 'The ring rolls through the trees. The giant stops snoring. Somewhere, a bird stops singing to listen.');
         g.up = true; G.shake = 10; Sfx.play('rumble');
-        yield 30;
-        yield* say(null, '"HRRRMMMMMMHH." He sits up, very slowly, and moss and leaves and one surprised squirrel slide off his shoulders.');
+        const off = Hushwood.shrug(g);
+        yield 24;
+        yield* say(null, '"HRRRMMMMMMHH." He sits up, very slowly, and moss and leaves and one surprised squirrel slide off his shoulders.', { focus: [g, off] });
         yield* say(null, '"Is it... morning? It\'s always morning somewhere. Oh. Oh dear. Was I across the road again? I was, wasn\'t I. I\'m so sorry, little Wanderer."');
         yield* say(null, '"I meant to go home to bed. I only sat down for a moment. I\'ll go now. My bed\'s just over there. Mind your feet."');
         /* up and away to his own bed, over the stream in a stride */
@@ -21042,6 +21488,7 @@ OWA.ground.hush = {
         for (let n = 0; n < 2; n++) { const bx = 3 + Math.floor(hash2(v, n, 74) * 10), by = 3 + Math.floor(hash2(n, v, 75) * 10); px(x, bx, by, '#2a1638'); px(x, bx + 1, by, '#3a2050'); px(x, bx, by - 1, '#7a5aa0'); }
     },
 };
+UI.keepClear.push(() => Hushwood.lampBoxes());
 Object.assign(Hushwood, {
     /* the door's three lamps, on the board over it, and their cords: each runs down beside the door and away over the
        stream to one of the garden's cradles, slack while the cradle's empty, drawn taut (and its lamp lit) while
@@ -21075,6 +21522,8 @@ Object.assign(Hushwood, {
             Gfx.rect(lx - 2, ly - 2, 1, 1, on ? '#ffffff' : '#9a8ac8');
         });
     },
+    /* (the HUD steps back from them: drawn by the place, they're the cradles' tell) */
+    lampBoxes() { return G.map && G.map.id === 'hollow' ? this.CORDS.map((c, i) => { const [x, y] = this.lampAt(i); return [x - 6, y - 8, x + 6, y + 6]; }) : []; },
     /* how deep in the wood a point is, 0 at its edges (with the town, the Heights, the Reaches) to 1 four tiles in */
     depth(wx, wy) { return clamp(Math.min(wx - 128 * T, wy - 40 * T, 80 * T - wy) / (4 * T), 0, 1); },
     /* small things on the ground: across the edge with the town, moss creeping out over the town's grass and road and the
@@ -22153,6 +22602,23 @@ class MotherSloth extends Enemy {
         const b = Inv.bedroll;
         if (phase > 1 && b && b.area === a.id && !Bedroll.float && this.isFar(b.tx, b.ty)) { Bedroll.lost(); G.pendingToast = null; this.rollLost = true; }
     }
+    /* the old boards along the bottom (or where they were), as a box: what the words about them keep clear of */
+    boardsBox() {
+        const r = this.arena, y = r.y + r.h - 2, xs = this.far.filter(q => q[1] === y).map(q => q[0]);
+        return xs.length ? { x0: Math.min(...xs) * T, y0: y * T - 2, x1: (Math.max(...xs) + 1) * T, y1: (y + 1) * T } : [r.x + 9, y];
+    }
+    /* beaten: the floor out past the stars comes back up out of the dark a board at a time, row by row from the top, the
+       bedposts gone first (as setArena(1), slowly: run alongside the words that say so) */
+    *floorBack() {
+        const a = this.area, mid = this.hx + 0.5;
+        for (const e of a.ents.slice()) if (e.slothBit) { Fx.poof(e.x + 8, e.y + 6); a.remove(e); }
+        const order = this.far.slice().sort((p, q) => p[1] - q[1] || Math.abs(p[0] - mid) - Math.abs(q[0] - mid)), step = 150 / Math.max(1, order.length);
+        let wait = 0;
+        for (const [x, y, ch] of order) {
+            a.setCell(x, y, ch); Fx.sparkle(x * T + 8, y * T + 8, '#d8c8f8'); Sfx.play('step', 0.25);
+            for (wait += step; wait >= 1; wait--) yield 1;
+        }
+    }
     /* (the Bedroll gone with the floor: told once she's done talking) */
     tellRollLost() { if (this.rollLost) { this.rollLost = false; UI.toast('The floor went out from under your Bedroll. It turned up, rolled, in your pack.', 180); } }
     onTile() { return false; }
@@ -22331,7 +22797,7 @@ class MotherSloth extends Enemy {
         for (const s of this.pillows) { Gfx.rect(s.x - cx - 4, s.y - cy - 3, 8, 6, '#fbf6ea'); Gfx.rect(s.x - cx - 4, s.y - cy + 2, 8, 1, '#d8c8f8'); }
         const bx = this.hx * T - cx - 40, by = this.hy * T - cy - 30;
         if (ART.sloth_bed) Gfx.img(ART.sloth_bed, bx, by);
-        if (!this.alive) { if ((this.yarnT || 0) < 160) this.drawFeather(cx, cy, this.yarnT || 0); return; }
+        if (!this.alive) { if ((this.yarnT || 0) < 260) this.drawFeather(cx, cy, this.yarnT || 0); return; }
         /* where her arms can reach: a ring of little stars in the carpet */
         if (this.state !== 'sleep') {
             Gfx.alpha(0.6);
@@ -22367,10 +22833,10 @@ class MotherSloth extends Enemy {
     /* what's left of her: a soft lavender feather that rocks to and fro as it drifts down off the bed, and sinks into
        the floor (drawn pixel by pixel at its tilt: a quill, a vane wider on one side, a notch or two in it) */
     drawFeather(cx, cy, t) {
-        const k = Math.min(1, t / 130), fall = 1 - (1 - k) * (1 - k), sw = Math.sin(t / 16) * 9;
+        const k = Math.min(1, t / 220), fall = 1 - (1 - k) * (1 - k), sw = Math.sin(t / 16) * 9;
         const fx = Math.round(this.capX - cx + sw), fy = Math.round(this.capY - cy - 46 + fall * 50);
         const th = -0.35 + Math.cos(t / 16) * 0.5, ux = Math.cos(th), uy = Math.sin(th), L = 17;
-        const a = t < 130 ? 1 : Math.max(0, 1 - (t - 130) / 30);
+        const a = t < 220 ? 1 : Math.max(0, 1 - (t - 220) / 40);
         if (a <= 0) return;
         Gfx.alpha((0.06 + 0.2 * fall) * a); Gfx.rect(fx - 6, Math.round(this.capY - cy + 5), 12, 2, PAL.ink);
         Gfx.alpha(a);
@@ -22433,6 +22899,7 @@ const SlumberFoes = {
     *slothIntro(s) {
         s.dozing = true;
         yield 20;
+        yield* stepIn();
         yield* say(null, 'Something enormous hangs over the four-poster: a sloth as big as a haycart, in a nightcap, fast asleep. Its arms are very, very long.');
         yield* say(null, '"Mmmmh," it says, without opening its eyes. "Another one up past bedtime. Come here, dear. Come to bed. Nothing ever gets away from Mother."');
         yield* say(null, '"...Nothing except what\'s going home, anyway. Mmh."');
@@ -22446,18 +22913,34 @@ const SlumberFoes = {
         G.shake = 14; Sfx.play('rumble'); Sfx.play('crumble');
         s.setArena(s.phase, true);
         yield 40;
-        if (s.phase === 2) yield* say(null, 'Mother Sloth yawns, enormously, and thumps the mattress. Out past the stars the floor drops away into the dark, all of it but a row of old boards along the bottom. "There," she murmurs. "Nowhere left to wander off to. Nowhere but bed."', { focus: s });
-        else yield* say(null, 'She thumps the mattress again, harder, and the old boards drop into the dark after the rest. Only the bedposts they were laid across are left standing out there, ringed with brass. "Now then," she murmurs, and stretches. "No more of that."', { focus: s });
+        /* (each sentence focused on what it tells of: her, the boards along the bottom, the posts) */
+        if (s.phase === 2) {
+            yield* say(null, 'Mother Sloth yawns, enormously, and thumps the mattress.', { focus: s });
+            yield* say(null, 'Out past the stars the floor drops away into the dark, all of it but a row of old boards along the bottom.', { focus: s.boardsBox() });
+            yield* say(null, '"There," she murmurs. "Nowhere left to wander off to. Nowhere but bed."', { focus: s });
+        } else {
+            const r = s.arena;
+            yield* say(null, 'She thumps the mattress again, harder, and the old boards drop into the dark after the rest.', { focus: s.boardsBox() });
+            yield* say(null, 'Only the bedposts they were laid across are left standing out there, ringed with brass.', { focus: SLOTH.POSTS.map(([x, y]) => [r.x + x, r.y + y, 22]) });
+            yield* say(null, '"Now then," she murmurs, and stretches. "No more of that."', { focus: s });
+        }
         s.tellRollLost();
         s.rise();
     },
     *slothDown(s) {
         const a = s.area;
         Music.play('silence');
-        yield 50;
-        /* the floor comes back up out of the dark, board by board */
-        if (a.ents.some(e => e.slothBit) || s.far.some(([x, y]) => a.kind(x, y).pit)) { s.setArena(1, true); Sfx.play('appear'); yield 24; }
-        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor. Board by board, the floor comes back up out of the dark.');
+        yield 14;
+        /* (the feather drifting down off the bed while it's told: drawFeather; then the floor coming back up out of the dark,
+           board by board, while that is) */
+        yield* say(null, 'Mother Sloth lets go of everything at once with a long, long sigh, and unravels into soft lavender yarn that drifts down, slowly, like a feather, into the floor.', { focus: { x0: s.capX - 16, y0: s.capY - 64, x1: s.capX + 16, y1: s.capY + 8 } });
+        if (a.ents.some(e => e.slothBit) || s.far.some(([x, y]) => a.kind(x, y).pit)) {
+            Sfx.play('appear');
+            Script.run(s.floorBack(), { blocking: false, name: 'slothFloor' });
+            yield 20;
+            yield* say(null, 'Board by board, the floor comes back up out of the dark.', { focus: s.boardsBox() });
+            yield () => !Script.running('slothFloor');
+        }
         s.shutters(false);
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 15, br.y + 6));
@@ -22656,10 +23139,7 @@ const Crossbar = {
         if (!c || !p) return;
         const hx = p.x - cx, hy = p.y - cy - 24;
         Gfx.rect(hx - 6, hy, 12, 2, '#9a6438'); Gfx.rect(hx - 1, hy - 2, 2, 6, '#9a6438');
-        for (const e of c.puppets) {
-            const ex = e.px - cx + 8, ey = e.py - cy - 8;
-            Gfx.alpha(0.8); Gfx.line(hx, hy, ex, ey - 6, THREAD.jory); Gfx.alpha(1);
-        }
+        for (const e of c.puppets) Threads.stroke(hx, hy, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
     },
 };
 
@@ -22747,9 +23227,10 @@ class Rack extends GridThing {
     sprite() { return spr('rack'); }
     draw(cx, cy) {
         const im = spr('rack'); if (im) Gfx.img(im, this.px - cx, this.py - cy - 8);
-        /* its strings run off to its puppets, faintly */
-        Gfx.alpha(0.25);
-        for (const e of this.area.ents) if (e.kind === 'puppet' && e.group === this.group) Gfx.line(this.px - cx + 8, this.py - cy - 6, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
+        /* its strings run off to its puppets: thread like any other, over its dark under-stroke (which puppets a rack
+           works is the puzzle), and brighter while the Crossbar's in hand */
+        Gfx.alpha(Inv.equipped === 'crossbar' ? 1 : 0.7);
+        for (const e of this.area.ents) if (e.kind === 'puppet' && e.group === this.group) Threads.stroke(this.px - cx + 8, this.py - cy - 6, e.px - cx + 8, e.py - cy - 14, THREAD.jory);
         Gfx.alpha(1);
     }
 }
@@ -22930,8 +23411,8 @@ defBlock({
         /* the big wheel in the west meadow, stopped */
         { k: 'deco', x: 15, y: 22, look: 'bigwheel', solid: [[0, 0], [1, 0], [2, 0], [3, 0]], ox: -16, text: 'The big wheel, stopped with one car at the top. Nobody has ridden it in a long time: there are birds nesting in the top car.' },
         /* the east gate to town, bolted on this side */
-        { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA' },
-        { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB' },
+        { k: 'door', x: 61, y: 19, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateA', look: 'fairgate', hinge: 'n' },
+        { k: 'door', x: 61, y: 20, type: 'gate', when: 'flag:fair_gate', dir: 'v', id: 'fairGateB', look: 'fairgate', hinge: 's' },
         { k: 'bolt', x: 59, y: 18 },
         /* the edge of the valley */
         { k: 'sign', x: 4, y: 19, text: 'THE EDGE. No further. (The fog will see to that.)' },
@@ -23040,7 +23521,8 @@ SPAWN.bolt = (x, y) => {
                 const up = e.skey === 'westGateA', im = e.im, t0 = G.t;
                 e.draw = (cx, cy) => {
                     const k = Math.min(1, (G.t - t0) / 28), h = Math.round(im.height * (1 - k * k * 0.85));
-                    if (!im || HEADLESS || k >= 1) return;
+                    if (k >= 1) return Larkspur.drawLeaf(e.tx * T - cx, e.ty * T - cy, up, 'rail');
+                    if (!im || HEADLESS) return;
                     Gfx.ctx.drawImage(im, 0, 0, im.width, im.height, Math.round(e.x - cx), Math.round(e.y - cy) + (up ? 0 : im.height - h), im.width, h);
                 };
             }
@@ -23049,6 +23531,28 @@ SPAWN.bolt = (x, y) => {
         return true;
     };
     pr.talkBox = (pl, f) => f.tx === x && f.ty === y;
+    /* its bar, out along the road's edge into a keeper on the gate's upper leaf; heaved back, it's in the post */
+    pr.draw = function (cx, cy) {
+        Gfx.img(this.im, this.x - cx, this.y - cy);
+        const open = Progress.flag('fair_gate'), x0 = (x + 1) * T - cx - 4, y0 = (y + 1) * T - cy - 2, len = open ? 5 : T + 8;
+        Gfx.rect(x0, y0 - 1, len + 2, 4, PAL.ink); Gfx.rect(x0, y0, len, 2, '#6a6070'); Gfx.rect(x0, y0, len, 1, '#a8a0b0');
+        if (!open) { Gfx.rect(x0 + len - 2, y0 - 3, 5, 8, PAL.ink); Gfx.rect(x0 + len - 1, y0 - 2, 3, 6, '#8a8296'); }
+    };
+    return pr;
+};
+/* the fair's gate, drawn back: each leaf swung round on its hinge (the upper one's at the road's north edge, the lower
+   one's at its south), standing open along the edge of the road */
+{
+    const draw0 = Door.prototype.draw;
+    Door.prototype.draw = function (cx, cy) {
+        if (this.look !== 'fairgate' || this.anim < 8) return draw0.call(this, cx, cy);
+        Larkspur.drawLeaf(this.x - cx, this.y - cy, this.hinge !== 's', 'gate', this.area.theme);
+    };
+}
+/* (the town's side of it, after: its two fence leaves, swung open the same way) */
+SPAWN.gateleaf = (x, y, p) => {
+    const pr = new Prop(x, y, { solid: [] });
+    pr.draw = (cx, cy) => Larkspur.drawLeaf(x * T - cx, y * T - cy, p.hinge !== 's', 'rail');
     return pr;
 };
 /* the carousel: turns slowly by itself, whether anyone rides or not */
@@ -23061,6 +23565,17 @@ SPAWN.carousel = (x, y) => {
 };
 
 const Larkspur = {
+    /* a gate's leaf standing open, lying east from its hinge (at the north or south edge of its tile, sx, sy on the screen):
+       the fair's barred leaf, or a fence's rail */
+    drawLeaf(sx, sy, north, kind, th) {
+        const x = sx + 7, y = sy + (north ? -2 : 13);
+        if (kind === 'gate') {
+            const bar = th && th.wall ? th.wall[3] : '#5a4a4a', hi = th && th.wall ? th.wall[2] : '#9a8a8a';
+            Gfx.rect(x, y, 18, 5, PAL.ink); Gfx.rect(x + 1, y + 1, 16, 3, bar);
+            for (let i = 4; i < 16; i += 4) Gfx.rect(x + i, y + 1, 2, 3, hi);
+        } else { Gfx.rect(x, y, 18, 5, PAL.ink); Gfx.rect(x + 1, y + 1, 16, 3, '#9a6438'); Gfx.rect(x + 1, y + 1, 16, 1, '#c9925a'); Gfx.rect(x + 8, y + 1, 2, 3, '#6b4128'); }
+        Gfx.rect(x - 1, y - 1, 4, 7, PAL.ink); Gfx.rect(x, y, 2, 5, '#c9925a');
+    },
     *leap() {
         if (!Inv.has('bedroll')) { yield* say(null, "The mesa drops away to a fairground, far below: tents, a carousel, a theatre, all very small. It's a long way down, and no way back up."); return; }
         const b = Inv.bedroll;
@@ -24597,8 +25112,12 @@ const MarionetteFoes = {
         if (t) { g.bags.push({ x: t.tx * T + 8, y: t.ty * T + 10, t: 0 }); yield 76; }
         g.lowerThird(false);
         yield 36;
-        yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: g });
+        /* (it's off on its march, a few steps along, before that's said: the scene steps it) */
         g.state = 'march'; g.st = 0; g.march = LEFT;
+        for (let i = 0; i < GM.MARCH * 3; i++) { g.st++; g.marchOn(null); yield 1; }
+        yield () => !g.mv;
+        yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: [g, g.third()].filter(Boolean) });
+        g.st = 0;
     },
     /* the second: out of the trap, its strings let out long and slack, its bar down low */
     *toAct3(g) {
@@ -24819,8 +25338,10 @@ const Reveal1 = {
         yield* settle([ives]);
         ives.dir = RIGHT;
         yield* say('ives', "{surprised}Jory! You've dropped the whole— oh. Oh, she's looking right at us.");
-        const bram = out('bram', 1, 4, 3, 4);
+        /* (a step along from her, not in file behind her, and turned to you to say it) */
+        const bram = out('bram', 1, 4, 4, 4);
         yield* settle([bram]);
+        bram.dir = DOWN;
         yield* say('bram', "{happy}HA! Well! That's torn it!");
         const dad = out('ambrose', 1, 6, 4, 6);
         yield* settle([dad]);
@@ -24834,7 +25355,8 @@ const Reveal1 = {
         yield* settle(cast, 240);
         for (const n of cast) { n.dir = DOWN; n.fixedFace = true; }
         yield 40;
-        const away = { ives: LEFT, bram: UP, ambrose: RIGHT, tess: LEFT, mallow: UP, jory: RIGHT };
+        /* (each glancing off to one side: a back turned in a line-up read as a Maker saying his piece to the wall) */
+        const away = { ives: LEFT, bram: RIGHT, ambrose: RIGHT, tess: LEFT, mallow: LEFT, jory: RIGHT };
         for (const n of cast) n.dir = away[n.who];
         yield 30;
         mum.fixedFace = false;
@@ -25170,7 +25692,7 @@ const Spool = {
                 const k = a.kindName(tx, ty), sx = tx * T - ux, sy = ty * T - uy;
                 if (k === 'floor') continue;
                 if (k === 'wall' || k === 'void') { if (!a.kind(tx - r.above.dx, ty - r.above.dy).solid) this.plan(a, tx, ty, sx, sy); }
-                else if (k === 'pit') Gfx.img(tileCanvas('spool:hole', x => { fill(x, '#fff3d0'); for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) if ((i * 3 + j * 5) % 11 === 0) px(x, i, j, '#ffe6a0'); }), sx, sy);
+                else if (k === 'pit') Gfx.img(this.holeTile(a, tx, ty), sx, sy);
                 else TileDraw.draw(a, tx, ty, sx, sy);
             }
             const inR = e => { const tx = e.tx !== undefined ? e.tx : tileOf(e.x), ty = e.ty !== undefined ? e.ty : tileOf(e.y); return tx >= ar.x && ty >= ar.y && tx < ar.x + ar.w && ty < ar.y + ar.h; };
@@ -25192,6 +25714,21 @@ const Spool = {
         g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.35; g.fillStyle = '#cfe0ff'; g.fillRect(0, 0, W, H);
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
         Gfx.alpha(0.55); ctx0.drawImage(c, 0, 0); Gfx.alpha(1);
+    },
+    /* a hole up above, seen from below: the light coming down through it, in rays, soft at its edges where it meets the
+       boards (not a flat pale band with hard sides) */
+    holeTile(a, tx, ty) {
+        const pit = (x, y) => a.kindName(x, y) === 'pit', l = pit(tx - 1, ty), r = pit(tx + 1, ty), u = pit(tx, ty - 1), d = pit(tx, ty + 1);
+        return tileCanvas(`spool:hole:${+l}${+r}${+u}${+d}:${tx % 3}`, x => {
+            for (let i = 0; i < 16; i++) {
+                const ray = hash2(tx * 16 + i, 5, 77), edge = Math.min(l ? 99 : i, r ? 99 : 15 - i);
+                for (let j = 0; j < 16; j++) {
+                    const ve = Math.min(u ? 99 : j, d ? 99 : 15 - j), k = Math.min(1, (Math.min(edge, ve) + 1) / 6);
+                    if (hash2(tx * 16 + i, ty * 16 + j, 78) > k * 1.15) continue;
+                    px(x, i, j, ray > 0.72 ? '#fffbe8' : ray < 0.25 ? '#f6e2b0' : (i * 3 + j * 5) % 11 === 0 ? '#ffe6a0' : '#fff3d0');
+                }
+            }
+        });
     },
     /* a wall up above, seen from below: its plan, hatched, its edges dashed */
     plan(a, tx, ty, sx, sy) {
@@ -25423,7 +25960,9 @@ const Needle = {
             this.unpick(oldest);
             /* (something that's held where it is when its stitch lets go, tied off below or gripped, stays put) */
             const was = oldest.area === a.id && a.ents.find(o => this.key(o) === oldest.key && !o.removed);
-            UI.toast(this.letGo(oldest, !!(was && was.ret && Return.held(was))), 200, { focus: was || null });
+            const said = this.letGo(oldest, !!(was && was.ret && Return.held(was)));
+            /* (a short one about a stitch in another room gives way to anything said about this one) */
+            UI.toast(said, 200, { focus: was || null, minor: !this.saidFull && !(was && a.roomAt(was.tx, was.ty) === Cam.room) });
         }
     },
     /* what a stitched thing is called, for saying which one let go */
@@ -25435,10 +25974,13 @@ const Needle = {
         const here = room && G.map && G.map.id === rec.area && Cam.room && Cam.room.key === room.key, n = room && room.name;
         const where = here ? ' here' : !n ? '' : /^Under /.test(n) ? ' under ' + n.slice(6) : /Floor$/.test(n) ? ' on ' + n.replace(/^The /, 'the ') : ' in ' + n.replace(/^The /, 'the ');
         const what = (rec.noun || (rec.chalk ? 'a sewn plank' : 'something')) + where;
-        /* (the whole of it the first two times; after that, just which thing it was and where) */
-        const n2 = Stats.c['said:needleLetGo'] || 0;
+        /* (the whole of it the first time, and the second unless the first was only a minute ago; after that, just which
+           thing it was and where) */
+        const n2 = Stats.c['said:needleLetGo'] || 0, recent = this.fullAt !== undefined && G.t - this.fullAt < 60 * 60;
         Stats.count('said:needleLetGo');
-        if (n2 >= 2) return 'Your oldest stitch lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back, but something is holding it.' : ' goes back to its old place.');
+        this.saidFull = !(n2 >= 2 || (n2 === 1 && recent));
+        if (!this.saidFull) return 'Your oldest stitch lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back, but something is holding it.' : ' goes back to its old place.');
+        this.fullAt = G.t;
         return 'The Needle only holds three stitches, so your oldest lets go: ' + what + (rec.chalk ? ' goes back to chalk.' : held ? ' would go back to its old place, but something is holding it where it is.' : ' goes back to its old place.');
     },
     /* a stitch undone: the thing's old place back, and its way home is the way it came */
@@ -25983,7 +26525,14 @@ const StaffStairs = {
         if (!this.on(a, cx, cy)) return;
         if (!this.art) this.art = this.paint();
         const X = this.ox - cx, Y = this.oy - cy;
-        Gfx.img(this.art, X, Y);
+        /* (Wren under a beam: the beam and its threads thin to a ghost round her, so she's never lost under them) */
+        const p = G.player, bx0 = p && p.area === a && !p.hidden ? Math.round(p.x - this.ox) - 9 : -99, by0 = p ? Math.round(p.y - this.oy) - 24 : 0;
+        if (bx0 > -18 && bx0 < 320 && this.beams.some(by => by0 < by + 22 && by0 + 28 > by - 2)) {
+            const x0 = clamp(bx0, 0, 320), x1 = clamp(bx0 + 18, 0, 320), y0 = clamp(by0, 0, 176), y1 = clamp(by0 + 28, 0, 176), im = this.art;
+            const part = (sx, sy, sw, sh) => { if (sw > 0 && sh > 0) Gfx.sub(im, sx, sy, sw, sh, X + sx, Y + sy); };
+            part(0, 0, 320, y0); part(0, y1, 320, 176 - y1); part(0, y0, x0, y1 - y0); part(x1, y0, 320 - x1, y1 - y0);
+            Gfx.alpha(0.3); part(x0, y0, x1 - x0, y1 - y0); Gfx.alpha(1);
+        } else Gfx.img(this.art, X, Y);
         this.beams.forEach((by, b) => {
             for (let k = 0; k < 26; k++) {
                 const px = 14 + Math.floor(hash2(k, b, 21) * 292), len = 3 + Math.floor(hash2(b, k, 22) * 11), sw = Math.round(Math.sin(G.t / 47 + k * 1.7) * Math.min(1, len / 8));
@@ -26554,7 +27103,7 @@ const Spoolworks = {
         /* the Bobbin Loft opens when all four plates have been held down together a moment (not a single frame) */
         const all = ['bl1', 'bl2', 'bl3', 'bl4'].every(s => Signals.get(a, s));
         this.blT = all ? (this.blT || 0) + 1 : 0;
-        if (this.blT === 1 && !Progress.areaFlag('spoolworks', 'blHeld')) { Sfx.play('rumble'); G.pendingToast = "All four plates down: somewhere in the wall, a winch begins, very slowly, to turn."; }
+        if (this.blT === 1 && !Progress.areaFlag('spoolworks', 'blHeld')) { Sfx.play('rumble'); G.pendingToast = { s: "All four plates down: somewhere in the wall, a winch begins, very slowly, to turn.", focus: a.ents.filter(e => e.kind === 'plate' && /^bl\d$/.test(e.sig)).map(e => [e.tx, e.ty, 16]) }; }
         if (this.blT > 300 || Progress.areaFlag('spoolworks', 'blHeld')) { Signals.set(a, 'blHeld'); if (!Progress.areaFlag('spoolworks', 'blHeld')) Progress.setAreaFlag('spoolworks', 'blHeld'); }
         /* once through the Practice Floor's door, the Ropewalk's opens; once the Ropewalk's key is taken, its far door */
         if (Progress.areaFlag('spoolworks', 'door:gaGateE')) Signals.set(a, 'paDone');
@@ -26871,6 +27420,8 @@ class Cog extends Enemy {
         const crouch = this.state === 'crouch' && this.st <= this.leap.tell;
         Gfx.img(im, x - 10 + shake + (crouch ? ((this.t >> 1) % 2 ? 1 : -1) : 0), y - 13 + (crouch ? 2 : 0) - Math.round(this.z || 0), this.dir === LEFT);
         if (crouch) Tells.bang(x, y - 30);
+        /* (wound so tight he hums: the air shivers either side of him now and then) */
+        if (this.state !== 'sleep' && !this.down && (this.t >> 2) % 4 === 0) { Gfx.alpha(0.6); Gfx.rect(x - 12, y - 9, 1, 3, '#f7e8b8'); Gfx.rect(x + 11, y - 10, 1, 3, '#f7e8b8'); Gfx.alpha(1); }
         if (this.state === 'held') {
             /* his cord, taut, straight down through the floor */
             Gfx.line(x, y - 2, x, y + 4, THREAD.guild); Gfx.rect(x - 1, y + 3, 3, 2, '#c9a24a');
@@ -27170,6 +27721,9 @@ class Tangle extends Ent {
         this.alive = false; this.balls = []; this.gone = true; this.unseal();
         for (const e of this.area.ents.slice()) if (e.tangleMite) { if (e.alive) Fx.yarn(e.x, e.y - 6, THREAD.guild); this.area.remove(e); }
         Sfx.play('unravel'); Fx.yarn(this.x + 8, this.y, THREAD.guild);
+        /* all of it slithers apart and away down the cracks between the boards, every colour of it (staged under the words:
+           SpoolFoes.tangleDown) */
+        this.runs = this.area.add(new CrackRuns(this.area, this.x + 8, this.y + 10, 14, 7, [THREAD.guild, '#c9925a', THREAD.ives, THREAD.bram, '#7a5233', THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory], 0.35, 140));
         Script.run(SpoolFoes.tangleDown(this));
     }
     draw(cx, cy) {
@@ -27257,14 +27811,25 @@ const SpoolFoes = {
         c.unravel();
         yield 20;
         yield* say(null, 'All the thread wound in him comes loose and runs away down the cracks in the floor like water.', { focus: c });
+        /* (the trap open under the chest that comes up out of it, its lid tipped up behind) */
+        const ch = a.find('kNeedle');
+        if (ch) a.add(new Remains([{ from: [ch.tx * T + 8, ch.ty * T + 16], to: [ch.tx * T + 8, ch.ty * T + 16], end: 'lie', look: SpoolFoes.drawHatch }], { x: ch.tx * T + 8, y: ch.ty * T + 16, floor: true }));
+        Sfx.play('click');
         Progress.set('spool_cog');
         yield 25;
-        yield* say(null, 'By the kennel, a little trap in the floor springs open with a ping, and up comes a chest.');
+        yield* say(null, 'A little trap in the floor springs open with a ping, and up comes a chest.', { focus: ch || c });
         c.shutters(false);
         Music.play('spoolworks');
     },
+    /* a trap in the floor, open (x, y: the foot of its tile): the dark of the hole round whatever came up out of it, and
+       its lid tipped up behind */
+    drawHatch(x, y) {
+        Gfx.rect(x - 8, y - 22, 16, 5, PAL.ink); Gfx.rect(x - 7, y - 21, 14, 3, '#a8784a'); Gfx.rect(x - 7, y - 21, 14, 1, '#c9925a');
+        Gfx.rect(x - 9, y - 17, 18, 16, '#1a1018'); Gfx.rect(x - 8, y - 2, 16, 1, '#3a2618');
+    },
     *tangleIntro(t) {
         yield 20;
+        yield* stepIn();
         yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.', { focus: [t, ...t.bobbins()] });
         t.eyes = true; Sfx.play('click');
         yield 20;
@@ -27291,8 +27856,8 @@ const SpoolFoes = {
     *tangleDown(t) {
         const a = t.area, r = a.roomAt(t.tx, t.ty);
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'The little knot at the heart of the Tangle gives, and all of it, forty years of loose ends, slithers apart and away down every crack in the floor, back to wherever each thread belongs.');
+        yield 14;
+        yield* say(null, 'The little knot at the heart of the Tangle gives, and all of it, forty years of loose ends, slithers apart and away down every crack in the floor, back to wherever each thread belongs.', { focus: t.runs });
         t.shutters(false);
         const g = a.add(new NPC(r.x + 9, r.y + 9, { who: 'gundry', face: 'up' }));
         Fx.poof(g.x + 8, g.y + 8);
@@ -27352,14 +27917,15 @@ function initSpoolFoes() {
     defSprite('spoolmite_0', mite('....kl.kl.kl....'), sm); defSprite('spoolmite_1', mite('...kl.kl.kl.....'), sm);
     ENEMY_DRAW.spoolmite = e => spr('spoolmite_' + ((e.anim >> 3) % 2));
     ENEMY.cog = { hp: 2, r: 7, tall: 14, yarn: THREAD.guild, weight: WEIGHT.heavy };
-    const cg = { b: '#c9a24a', B: '#8a6a2a', w: '#f7e8b8', e: '#2a1f2d', t: THREAD.guild, r: '#d6304e' };
-    const dog = (legs, tail) => ['....................', '..............kk....', '.............kbbk...', '............kbbbbk..', '............kbebbkk.', '...' + tail + '.....kbbbbbbk', '..kk..kkkkkkkbbbbkk.', '..kbkkbbbbbbbbbkk...', '...kbbbbbbbbbbbk....', '...kbBbBbBbBbBbk....', '...kbbbbbbbbbbbk....', '....kttttttttttk....', '....' + legs + '....', '....kk..kk..kk..kk..'.slice(0, 20), '....................', '....................', '....................', '....................'];
+    /* (brass head, legs and tail; his middle a great deal of the Guild's thread, wound round and round: u, v) */
+    const cg = { b: '#c9a24a', B: '#8a6a2a', w: '#f7e8b8', e: '#2a1f2d', t: THREAD.guild, r: '#d6304e', u: '#e8c08a', v: '#9a6a3a' };
+    const dog = (legs, tail) => ['....................', '..............kk....', '.............kbbk...', '............kbbbbk..', '............kbebbkk.', '...' + tail + '.....kbbbbbbk', '..kk..kkkkkkkbbbbkk.', '..kbkkuuvuuvuuvkk...', '...kvuuvuuvuuvuk....', '...kuvuuvuuvuuvk....', '...kuuvuuvuuvuuk....', '....kttttttttttk....', '....' + legs + '....', '....kk..kk..kk..kk..'.slice(0, 20), '....................', '....................', '....................', '....................'];
     defSprite('cog_0', dog('kbk.kbk..kbk.kbk', 'kk'), cg); defSprite('cog_1', dog('.kbkkbk...kbkkbk', 'k.'), cg);
     defSprite('cog_sit', dog('kbbk......kbbk..', '..'), cg);
     defSprite('cog_held', dog('kbk.kbk..kbk.kbk', 'kk').map((r, i) => i === 11 ? '....krrrrrrrrrrk....' : r), cg);
     /* run down: over on his side, legs out, his key still in his back */
     defSprite('cog_down', ['....................', '....................', '....................', '....................', '....................', '....................', '....................',
-        '.......k............', '......kbk...........', '..kkkkkbkkkkkkk.....', '.kbbbbbbbbbbbbbkkk..', 'kbBbBbBbBbBbBbbbebk.', 'kbbbbbbbbbbbbbbbbbk.', '.kttttttttttttkkkk..', '..kbk.kbk.kbk.kbk...', '..kk..kk..kk..kk....', '....................', '....................'], cg);
+        '.......k............', '......kbk...........', '..kkkkkbkkkkkkk.....', '.kuuvuuvuuvuuvbkkk..', 'kvuuvuuvuuvuuvbbebk.', 'kuvuuvuuvuuvuubbbbk.', '.kttttttttttttkkkk..', '..kbk.kbk.kbk.kbk...', '..kk..kk..kk..kk....', '....................', '....................'], cg);
     defSprite('tangle_core', ['................', '.....kkkkkk.....', '....kttTTttk....', '...ktTkkkkTtk...', '...kTk.ww.kTk...', '..ktk.wwww.ktk..', '..kTk.wkkw.kTk..', '..ktk.wwww.ktk..', '...kTk.ww.kTk...', '...ktTkkkkTtk...', '....kttTTttk....', '.....kkkkkk.....', '................', '................', '................', '................'], { t: THREAD.guild, T: '#7a5233', w: '#fbf6ea' });
     defSprite('bobbin', ['................', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kIIIIIIIIIIk..', '..kkkkkkkkkkkk..', '................'], { i: '#6a6e78', I: '#484c56', c: '#a8784a', C: '#7a5233' });
     defSprite('bobbin_t', ['................', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..', '................'], { w: '#c9925a', W: '#9a6438', c: THREAD.guild, C: '#7a5233' });
@@ -27479,7 +28045,7 @@ class Tuck extends NPC {
     /* (a new line replaces the one still floating, so two never sit on each other) */
     /* (what he says when it's the same thing again and again: the next of a few, in turn: never the game's dice) */
     line(kind) { const L = TUCK_SAYS[kind], n = TUCK_SAYS.n[kind] = (TUCK_SAYS.n[kind] || 0) + 1; return L[(n - 1) % L.length]; }
-    say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea'); } }
+    say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea', this); } }
     step(nx, ny) { this.dir = dirOf(nx - this.tx, ny - this.ty); this.startMove(nx, ny, 14); }
     /* a bump: a biter, or a heavy thing on its way home: "Ow!", and back to the start */
     bump(why) {
@@ -27705,7 +28271,10 @@ const Making = {
         const c = this.cur;
         if (!this.tallyShown(a)) return;
         const n = c.ahas.size, x = Math.round(W / 2 - 29), y = 2, pop = c.lit !== undefined && G.t - c.lit < 20;
-        Gfx.alpha(UI.hudA === undefined ? 1 : UI.hudA);
+        /* (it steps back as the HUD's corners do, over Wren too: at the top of the screen she was under it) */
+        const p = G.player, under = !!p && !p.hidden && !G.hideWren && p.y - 15 - Cam.y < y + 16 && Math.abs(p.x - Cam.x - W / 2) < 38;
+        this.tallyA = approach(this.tallyA === undefined ? 1 : this.tallyA, under ? HUD_BACK : 1, 0.08);
+        Gfx.alpha(Math.min(this.tallyA, UI.hudA === undefined ? 1 : UI.hudA));
         stitchedBox(x, y, 58, 14, { fill: '#fbf3df' });
         Font.draw('Aha', x + 7, y + 4, PAL.ink);
         /* (a round pip, seven across: gold when it's earned, an empty socket when not; the newest a size up a moment) */
@@ -27738,6 +28307,7 @@ const Making = {
         if (c && c.bumps === 0) this.aha('unhurt');
         Script.run(function* () {
             yield 30;
+            yield* stepAside();
             Sfx.play('knot');
             yield* say('tuck', MAKINGS[n - 1].tuck || TUCK_DONE);
             if (a.def.afterHoop) yield* a.def.afterHoop(a);
@@ -28652,8 +29222,14 @@ const Capstone = {
         a.add(new CapTag());
         if (!Progress.flag('cap_seen')) {
             Progress.set('cap_seen');
-            Script.run(function* () { yield 20; yield* say(null, 'Up through the boards: an empty Little House. Three things by the wall, a hoop at the far end, and nobody in it yet.'); });
+            Script.run(function* () { yield 20; yield* say(null, 'Up through the boards: an empty Little House. Three things by the wall, a hoop at the far end, and nobody in it yet.', { focus: Capstone.seen(a, true) }); });
         }
+    },
+    /* the three things (and the hoop) as they're seen from underneath, up through the boards: what the words about them
+       keep clear of */
+    seen(a, hoop) {
+        const b = a.rooms.find(r => r.key === '0,1');
+        return CAP_KIT.map(k => [b.x + k.x, b.y + k.y, 20]).concat(hoop ? [[b.x + 17, b.y + 5, 30]] : []);
     },
     /* the button, up there under whatever it's under (or nowhere, while it's in the tin) */
     placeButton(a) {
@@ -28700,7 +29276,7 @@ const Capstone = {
             const cur = Capstone.button();
             if (Capstone.run) { yield* say(null, cur ? `The tin's empty: the button's up there under ${Capstone.noun(cur)}.` : "There's the button, in its tin. Too late to hide it now: he's in."); return; }
             const opts = CAP_KIT.map(k => 'Under ' + k.noun);
-            const i = yield* ask(null, cur ? `The button's up under ${Capstone.noun(cur)}. Move it?` : "Gundry's button, in a tin: a shiny one, for hiding. Under which?", [...opts, cur ? 'Back in the tin' : 'Leave it in the tin']);
+            const i = yield* ask(null, cur ? `The button's up under ${Capstone.noun(cur)}. Move it?` : "Gundry's button, in a tin: a shiny one, for hiding. Under which?", [...opts, cur ? 'Back in the tin' : 'Leave it in the tin'], { focus: Capstone.seen(a) });
             if (i < 0) return;
             const id = i < CAP_KIT.length ? CAP_KIT[i].id : null;
             if (id === cur) return;
@@ -29041,8 +29617,11 @@ SPAWN.freshspool = (x, y, p) => {
     pr.interact = () => {
         if (Inv.items.tuckspool) return false;
         Script.run(function* () {
-            Inv.items.tuckspool = 1; Sfx.play('smallitem'); pr.im = ART.freshspool_gone;
-            yield* say(null, 'A fresh spool on a little stand, bright green, labelled TUCK in Gundry\'s big square letters. You tuck it in your satchel.');
+            /* (on its stand while it's looked at; then into the satchel) */
+            Inv.items.tuckspool = 1;
+            yield* say(null, 'A fresh spool on a little stand, bright green, labelled TUCK in Gundry\'s big square letters.', { focus: [x, y, 22] });
+            Sfx.play('smallitem'); pr.im = ART.freshspool_gone;
+            yield* say(null, 'You tuck it in your satchel.');
             yield* say(null, "From the old hall beyond, very faintly, comes a sound like a winch turning. Click. Click. Click.");
             Progress.setGoal("Tuck's spool is in your satchel. (And there's a door east, into the old hall...)");
         });
@@ -29703,7 +30282,8 @@ SPAWN.strayhouse = (tx, ty) => {
         if (tick0) tick0(a);
         if (Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && G.player && G.player.ty > 33 && G.player.ty < 41 && G.player.tx > 88 && G.player.tx < 102) {
             Progress.set('north_gate_seen');
-            G.pendingToast = 'The north gate stands open, for the first time in anybody\'s memory. Beyond it, silver trees.';
+            /* (clear of the gate and the trees beyond it) */
+            G.pendingToast = { s: 'The north gate stands open, for the first time in anybody\'s memory. Beyond it, silver trees.', focus: { x0: (64 + 29) * T, y0: 31 * T, x1: (64 + 35) * T, y1: 38 * T } };
         }
     };
 }
@@ -31336,6 +31916,7 @@ const LoomFoes = {
     *weaverIntro(w) {
         const r = w.room, at = [r.x + 9, r.y + 4, 60];
         yield 20;
+        yield* stepIn();
         yield* say(null, "In front of the old loom, the Weaver hangs in a web strung to three great posts and up into the loom itself: grey, many-legged, very old, spinning. It has been keeping this loom for the First Spinner since she stopped coming.", { focus: at });
         yield* say(null, 'It does not want anything to change at all.', { focus: at });
     },
@@ -33018,11 +33599,12 @@ const GreatSpool = {
         gran.noBudge = gran.noPull = true;
         Music.play('pull');
         yield 20;
+        yield* stepIn();
         yield* say('gran', "{sad}You came back. You walked. I felt you go out past the edge, love, and I pulled, and there was nothing on the end.");
         yield* say('gran', "{worried}So I pulled everything else. Down here, where nobody gets lost.");
         yield* say('wren', "You can't pull me, Gran.");
         yield* say('gran', granCount());
-        yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.");
+        yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.", { focus: gran });
         yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.");
         Progress.setGoal(SpoolTop.goal());
     },
@@ -33036,6 +33618,8 @@ const GreatSpool = {
         yield 30;
         const gran = a.ents.find(e => e.who === 'gran');
         yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
+        /* (Wren turns from the post she's just cut, and comes a few steps in towards Gran: not left facing the wall) */
+        if (gran) yield* this.toward(p, gran);
         yield* say('gran', "{worried}Don't, love. If I let go of it, I'll lose you.");
         yield* say(null, "She keeps hold of the Spool, both hands on it.");
         /* Linnet, down the Well after you: in at the door and up the room towards her mother (walks here keep round
@@ -33075,6 +33659,18 @@ const GreatSpool = {
         }
         Progress.setGoal("Take Gran's other hand.");
         a.climax = { linnet, h: 0, down: 0 };
+    },
+    /* Wren, from wherever she cut the last thread, a few steps in towards Gran (on her own side of her, round the dark),
+       and turned to her */
+    *toward(p, gran) {
+        const a = G.map, s = Math.sign(p.tx - gran.tx) || 1;
+        if (Math.abs(p.tx - gran.tx) + Math.abs(p.ty - gran.ty) > 4) {
+            const ok = (x, y) => { const k = a.kind(x, y); if (!a.inside(x, y) || k.solid || k.pit || k.deep || a.at(x, y)) return false; const q = critterPath(a, p.tx, p.ty, x, y), e = q[q.length - 1]; return !!e && e[0] === x && e[1] === y; };
+            const spot = [[3, 1], [3, 2], [4, 1], [2, 2]].map(([dx, dy]) => [gran.tx + dx * s, gran.ty + dy]).find(([x, y]) => ok(x, y));
+            if (spot) yield* walkTo(p, spot[0], spot[1]);
+        }
+        p.dir = dirOf(gran.tx - p.tx, gran.ty - p.ty);
+        yield 10;
     },
     /* the end, in Wren's hands: Linnet has one of Gran's, and the other's still on the Spool. Take it (hold [act], facing
        her, as you'd hold on to anything): held things wait. She tries twice to take it back to the Spool; then she lets
@@ -33973,7 +34569,7 @@ SPAWN.gardenplot = (tx, ty) => {
             const i = yield* ask(null, "A bare patch by Gran's gate. Plant the Drift-bloom seed here?", ['Plant it', 'Not yet']);
             if (i !== 0) return;
             delete Inv.items.driftseed; Progress.set('seed_planted'); Stats.count('seed_planted'); Sfx.play('appear');
-            yield* say(null, 'You press it into the earth and water it from the butt. Something past the fog, growing in the Hollow.');
+            yield* say(null, 'You press it into the earth and water it. Something past the fog, growing in the Hollow.');
         });
         return true;
     };
@@ -36063,6 +36659,7 @@ const Game = {
             stand.sort((m, n) => m.sortY - n.sortY);
             for (const e of stand) e.draw(cx, cy);
             if (a.def.drawFront) a.def.drawFront(a, cx, cy);
+            p.drawThrough(cx, cy, stand);
             if (p.state === 'flight' && p.flight) {
                 /* Wren's own thread, red, during the flight home */
                 const f = p.flight, pts = f.pts;
@@ -36080,7 +36677,7 @@ const Game = {
             if (G.holdUp) {
                 const im = spr(G.holdUp.id === 'pattern' && G.map ? patternIcon(G.map.def.house) : ITEM_ICON[G.holdUp.id] || ('icon_' + G.holdUp.id)) || spr(G.holdUp.id);
                 /* (on its glow, drawn with Wren: a chest right behind her that she couldn't step back from, up high over it) */
-                if (im) Gfx.img(im, p.x - cx - im.width / 2, p.y - cy - (G.holdUp.high ? 52 : 30));
+                if (im) { const [hx, hy] = holdUpSpot(p, cx, cy); Gfx.img(im, hx - im.width / 2, hy - Math.floor(im.height / 2)); }
             }
             if (a.def.dark) Lighting.draw(a, cx, cy);
             UI.drawHUD();

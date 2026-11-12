@@ -119,7 +119,7 @@ const World = {
         const name = r ? r.name : a.name;
         if (name !== G.regionName) {
             G.regionName = name;
-            if (name && (!first || !a.def.quietName)) UI.showBanner(name, r && r.sub);
+            if (name && (!first || !a.def.quietName)) UI.showBanner(name, r && r.sub, !first);
             const m = r && r.music;
             if (m) Music.play(m);
             if (r && r.mark !== false && a.family === 'outdoor' && p.state === 'normal') p.setMark();

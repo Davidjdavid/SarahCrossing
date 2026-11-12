@@ -54,11 +54,11 @@ WALLS.millhouse = {
         if (v === 1) { fill(x, '#3a4450', 0, 7, 15, 1); fill(x, '#56626e', 0, 8, 15, 1); }
         if (v === 2) { px(x, 3, 3, '#6a7682'); px(x, 4, 4, '#2e3844'); px(x, 11, 11, '#6a7682'); px(x, 12, 12, '#2e3844'); }
     },
-    face: (x, th, v) => {
+    face: (x, th, v, hud) => {
         Paint.bricks(x, ['#8c98a4', '#66727e', '#aab6c0', '#3e4852'], v);
         fill(x, '#4f9be0', 0, 13, 16, 1); fill(x, '#1c2630', 0, 15, 16, 1);
-        /* a little round porthole, brass-rimmed (a square one in the top wall, beside the hearts, read as part of the HUD) */
-        if (v === 3) {
+        /* a little round porthole, brass-rimmed (not in a room's top wall, beside the hearts: it read as part of the HUD) */
+        if (v === 3 && !hud) {
             fill(x, '#1c2630', 6, 2, 4, 9); fill(x, '#1c2630', 5, 3, 6, 7); fill(x, '#1c2630', 4, 4, 8, 5);
             fill(x, '#c8903a', 6, 3, 4, 7); fill(x, '#c8903a', 5, 4, 6, 5); fill(x, '#e8b860', 6, 3, 3, 1); fill(x, '#e8b860', 5, 4, 1, 2);
             fill(x, '#4f9be0', 6, 4, 4, 5); fill(x, '#7cc8ee', 6, 4, 3, 3); px(x, 6, 4, '#ffffff'); fill(x, '#2b5aa8', 7, 8, 3, 1);
@@ -479,9 +479,10 @@ const Mill = {
     *afterKnot() {
         Progress.set('d3');
         Progress.setGoal('Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)');
-        yield* say(null, 'Somewhere below, a great wheel turns over once, and stops. A hatch in the millpond wall swings open onto the falls.');
+        /* (the hatch first, then the words about it, on it: down in the millpond's south-west corner) */
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 2, r.y + 9, { to: 'hollow', tx2: MILL_OUT.x, ty2: MILL_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 2, r.y + 9, { im: ART.exitlight, solid: [] }));
+        yield* say(null, 'Somewhere below, a great wheel turns over once, and stops. A hatch in the millpond wall swings open onto the falls.', { focus: [r.x + 2, r.y + 9] });
     },
 };

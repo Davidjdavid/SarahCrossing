@@ -821,11 +821,12 @@ const GreatSpool = {
         gran.noBudge = gran.noPull = true;
         Music.play('pull');
         yield 20;
+        yield* stepIn();
         yield* say('gran', "{sad}You came back. You walked. I felt you go out past the edge, love, and I pulled, and there was nothing on the end.");
         yield* say('gran', "{worried}So I pulled everything else. Down here, where nobody gets lost.");
         yield* say('wren', "You can't pull me, Gran.");
         yield* say('gran', granCount());
-        yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.");
+        yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.", { focus: gran });
         yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.");
         Progress.setGoal(SpoolTop.goal());
     },
@@ -839,6 +840,8 @@ const GreatSpool = {
         yield 30;
         const gran = a.ents.find(e => e.who === 'gran');
         yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
+        /* (Wren turns from the post she's just cut, and comes a few steps in towards Gran: not left facing the wall) */
+        if (gran) yield* this.toward(p, gran);
         yield* say('gran', "{worried}Don't, love. If I let go of it, I'll lose you.");
         yield* say(null, "She keeps hold of the Spool, both hands on it.");
         /* Linnet, down the Well after you: in at the door and up the room towards her mother (walks here keep round
@@ -878,6 +881,18 @@ const GreatSpool = {
         }
         Progress.setGoal("Take Gran's other hand.");
         a.climax = { linnet, h: 0, down: 0 };
+    },
+    /* Wren, from wherever she cut the last thread, a few steps in towards Gran (on her own side of her, round the dark),
+       and turned to her */
+    *toward(p, gran) {
+        const a = G.map, s = Math.sign(p.tx - gran.tx) || 1;
+        if (Math.abs(p.tx - gran.tx) + Math.abs(p.ty - gran.ty) > 4) {
+            const ok = (x, y) => { const k = a.kind(x, y); if (!a.inside(x, y) || k.solid || k.pit || k.deep || a.at(x, y)) return false; const q = critterPath(a, p.tx, p.ty, x, y), e = q[q.length - 1]; return !!e && e[0] === x && e[1] === y; };
+            const spot = [[3, 1], [3, 2], [4, 1], [2, 2]].map(([dx, dy]) => [gran.tx + dx * s, gran.ty + dy]).find(([x, y]) => ok(x, y));
+            if (spot) yield* walkTo(p, spot[0], spot[1]);
+        }
+        p.dir = dirOf(gran.tx - p.tx, gran.ty - p.ty);
+        yield 10;
     },
     /* the end, in Wren's hands: Linnet has one of Gran's, and the other's still on the Spool. Take it (hold [act], facing
        her, as you'd hold on to anything): held things wait. She tries twice to take it back to the Spool; then she lets

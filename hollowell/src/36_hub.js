@@ -81,6 +81,7 @@ defBlock({
         { k: 'sign', x: 5, y: 21, text: "West Gate. To Larkspur Fair. (Open. Somebody drew the bolt on the far side.)", if: 'fair_gate' },
         { k: 'sign', x: 13, y: 12, text: 'The Ravels. (Gran, and {name}.)' },
         { k: 'deco', x: 3, y: 19, look: 'fence_v', solid: [[0, 0]], id: 'westGateA', if: '!fair_gate' }, { k: 'deco', x: 3, y: 20, look: 'fence_v', solid: [[0, 0]], id: 'westGateB', if: '!fair_gate' },
+        { k: 'gateleaf', x: 3, y: 19, hinge: 'n', if: 'fair_gate' }, { k: 'gateleaf', x: 3, y: 20, hinge: 's', if: 'fair_gate' },
         { k: 'rest', x: 28, y: 34 },
         /* townsfolk */
         /* (after the fifth Knot Burr moves his post in a few steps: the fog's closer, he says) */

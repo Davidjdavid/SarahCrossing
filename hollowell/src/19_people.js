@@ -51,6 +51,8 @@ const EXTRA = {
     beard: { down: { 7: '...khhssssshk...', 8: '....khhhhhhk....', 9: '.....khhhhk.....' }, right: { 7: '...kHhhhhhhhk...', 8: '....kHhhhhhk....', 9: '.....khhhk......' } },
     glasses: { down: { 6: '...kskkskkssk...' }, right: { 6: '...kHhhhhskkk...' } },
     mustache: { down: { 8: '....kshhhhSk....' } },
+    /* grey coming in at the temples */
+    greying: { down: { 4: '....v......V....', 5: '....v......V....' }, right: { 5: '.........v......', 6: '........v.......' }, up: { 6: '....V......V....', 7: '.....V....V.....' } },
 };
 
 function overrideRows(rows, ov) {
@@ -73,7 +75,7 @@ function makePerson(id, look) {
         s: s1, S: s2, h: look.hairC || '#6b4128', H: shade(look.hairC || '#6b4128', -0.3),
         t: look.top || '#5a8ad0', T: shade(look.top || '#5a8ad0', -0.28), p: look.bottom || '#6b4128', P: shade(look.bottom || '#6b4128', -0.3),
         a: look.accent || look.top || '#f0d080', A: shade(look.accent || look.top || '#f0d080', -0.28), b: look.boots || '#5a3a26', l: shade(look.hairC || '#6b4128', 0.25),
-        c: look.cheek || '#f0a0a0', e: '#2a1f2d',
+        c: look.cheek || '#f0a0a0', e: '#2a1f2d', v: look.greyC || '#cfc6b8', V: shade(look.greyC || '#cfc6b8', -0.25),
     };
     for (const dir of ['down', 'right', 'up']) {
         let rows = B[dir];

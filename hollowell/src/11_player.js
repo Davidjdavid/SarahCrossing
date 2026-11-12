@@ -4,6 +4,23 @@
 const PSPEED = 1.3;
 const PBOX = { hw: 5, hh: 4 };          /* half the hitbox at Wren's feet */
 
+/* where a find is held up, on the screen (the middle of it): over her head, or high over a chest right behind her; and
+   where that would be off the top of the screen, beside her head instead (a key found in a room's top row was cut off) */
+function holdUpSpot(p, cx, cy) {
+    const x = p.x - cx, y = p.y - cy - (G.holdUp && G.holdUp.high ? 44 : 22);
+    if (y >= 9) return [x, y];
+    return [x + (x > W - 40 ? -15 : 15), Math.max(9, p.y - cy - 10)];
+}
+/* a sprite's outline, in one colour (its edge pixels): Wren drawn through whoever stands in front of her */
+function outlineOf(im, col = '#fff4c0') {
+    if (HEADLESS || !im || !im.getContext) return null;
+    const cache = outlineOf.cache || (outlineOf.cache = new Map());
+    let o = cache.get(im); if (o) return o;
+    const w = im.width, h = im.height, d = im.getContext('2d').getImageData(0, 0, w, h).data, on = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 0;
+    o = Gfx.makeCanvas(w, h); const g = o.getContext('2d'); g.fillStyle = col;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (on(x, y) && !(on(x - 1, y) && on(x + 1, y) && on(x, y - 1) && on(x, y + 1))) g.fillRect(x, y, 1, 1);
+    cache.set(im, o); return o;
+}
 class Player extends Ent {
     constructor(x, y) {
         super('player');
@@ -620,8 +637,8 @@ class Player extends Ent {
         /* holding up a find: a soft glow behind it, in front of whatever's behind her (the chest she opened), so the find
            reads as the find */
         if (this.state === 'hold' && G.holdUp) {
-            const gy = this.y - cy - (G.holdUp.high ? 44 : 22);
-            Gfx.alpha(0.3); Gfx.circle(this.x - cx, gy, 12, '#fff4c0'); Gfx.alpha(0.55); Gfx.circle(this.x - cx, gy, 9, '#fffaf0'); Gfx.alpha(1);
+            const [gx, gy] = holdUpSpot(this, cx, cy);
+            Gfx.alpha(0.3); Gfx.circle(gx, gy, 12, '#fff4c0'); Gfx.alpha(0.55); Gfx.circle(gx, gy, 9, '#fffaf0'); Gfx.alpha(1);
         }
         /* shadow (laid out flat, she's longer and lower) */
         const flat = im === SPR.wren_lie;
@@ -636,6 +653,25 @@ class Player extends Ent {
             if (ci) Gfx.img(ci, this.x - cx - 8, this.y - cy - 25 - z);
         }
         if (this.swingT > 0) this.drawStick(cx, cy);
+    }
+    /* behind somebody (a person a step in front of her, or one up above seen through the boards, drawn over everything):
+       her outline drawn through them, so she's never lost under someone (a Little House starts with the boy up above on
+       her very spot) */
+    drawThrough(cx, cy, stand) {
+        if (HEADLESS || this.behind(cx, cy, stand) < 0.25) return;
+        const { im, flip } = this.sprite(), o = outlineOf(im);
+        if (o) { Gfx.alpha(0.9); Gfx.img(o, this.x - cx - 8, this.y - cy - 13 - (this.z || 0), flip); Gfx.alpha(1); }
+    }
+    /* how much of her (as drawn, 0 to 1) is behind people drawn after her: those standing in front of her (stand: what's
+       drawn standing), and anyone up above seen through the boards */
+    behind(cx, cy, stand) {
+        if (this.hidden || G.hideWren || this.state === 'fall' || this.state === 'flight' || (this.state === 'sleep' && this.inBed)) return 0;
+        const z = this.z || 0, me = [this.x - cx - 6, this.y - cy - 13 - z, this.x - cx + 6, this.y - cy + 3 - z], at = Fx.view(cx, cy);
+        const person = e => e.isGrid && (e.kind === 'npc' || e.person) && !e.hidden && !e.removed;
+        const box = (e, [x, y]) => { const im = e.sprite && e.sprite(), h = im ? im.height : 24; return [x + 2, y + 14 - h, x + 14, y + 14]; };
+        const over = stand.filter(e => e !== this && e.sortY > this.sortY && person(e)).map(e => box(e, [e.px - cx, e.py - cy]));
+        for (const e of this.area.ents) if (e.showThrough && person(e)) { const q = at(e.px, e.py); if (q[0] !== e.px - cx || q[1] !== e.py - cy) over.push(box(e, q)); }
+        return Math.min(1, over.reduce((n, r) => n + Math.max(0, Math.min(me[2], r[2]) - Math.max(me[0], r[0])) * Math.max(0, Math.min(me[3], r[3]) - Math.max(me[1], r[1])), 0) / (12 * 16));
     }
     drawStick(cx, cy) {
         /* the stick sweeps through an arc in front */

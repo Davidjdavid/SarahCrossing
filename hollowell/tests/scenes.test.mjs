@@ -285,29 +285,33 @@ test('Tollgrim: "two yellow eyes" in the bell, drawn all the while that is said;
     assert.ok(seen.after > 0 && seen.after < 64, 'and back to now and then after: ' + seen.after + ' of 64');
     noErrors(HW);
 });
-test("the Tidyhouse: the way out opens before it's said to, where it's said to be: a corner of the Grand Hall, on screen, clear of the box", () => {
-    const HW = inHouse('tidy', 29, 42);
-    HW.warp('tidy', 20 + 9, 6); HW.step(20); HW.skipTalk();
-    HW.Script.run(HW.AREAS.tidy.afterKnot());
-    const Cam = HW.global('Cam'), T = 16, W = 320, H = 180;
-    let seen = null, said = '';
-    lines(HW, l => {
-        if (!/^A door opens in/.test(l)) return;
-        said = l;
-        /* (the hall's own way out: not the Foyer's door home) */
-        const a = HW.G.map, hall = a.rooms.find(r => r.key === '1,0'), d = a.ents.find(e => e.kind === 'warp' && e.to === 'hollow' && !e.removed && a.roomAt(e.tx, e.ty) === hall);
-        seen = { open: !!d };
-        if (!d) return;
-        /* (in the hall, by one of its side walls and its top or bottom wall) */
-        const sx = Math.min(d.tx - hall.x, hall.x + hall.w - 1 - d.tx), sy = Math.min(d.ty - hall.y, hall.y + hall.h - 1 - d.ty);
-        seen.corner = sx >= 0 && sy >= 0 && sx <= 2 && sy <= 2;
-        const x = d.tx * T - Cam.x, y = d.ty * T - Cam.y;
-        seen.onScreen = x >= 0 && x + T <= W && y >= 0 && y + T <= H;
-        seen.clear = !HW.Dialog.rects().some(([x0, y0, x1, y1]) => x < x1 && x + T > x0 && y < y1 && y + T > y0);
-    });
-    assert.deepEqual(seen, { open: true, corner: true, onScreen: true, clear: true });
-    assert.match(said, /^A door opens in the corner of the Grand Hall/);
-    noErrors(HW);
+test("the way out of a House opens before it's said to, where it's said to be: a corner of the boss's room, on screen, clear of the box (the Tidyhouse, the Kiln, the Millrace)", () => {
+    for (const [id, re, beaten] of [['tidy', /^A door opens in the corner of the Grand Hall/, 'tidy_boss'], ['kiln', /^A door opens in the corner of the chamber/, 'kiln_boss'], ['millrace', /hatch in the millpond wall swings open/, 'millrace_boss']]) {
+        const HW = inHouse(id, 29, 42);
+        HW.Progress.set(beaten);
+        const r0 = HW.G.map.rooms.find(r => r.key === '1,0');
+        HW.warp(id, r0.x + 9, r0.y + 6); HW.step(20); HW.skipTalk();
+        const hall = HW.G.map.rooms.find(r => r.key === '1,0');
+        HW.Script.run(HW.AREAS[id].afterKnot());
+        const Cam = HW.global('Cam'), T = 16, W = 320, H = 180;
+        let seen = null, said = '';
+        lines(HW, l => {
+            if (!re.test(l)) return;
+            said = l;
+            /* (the hall's own way out: not the door home from the House's first room) */
+            const a = HW.G.map, d = a.ents.find(e => e.kind === 'warp' && e.to === 'hollow' && !e.removed && a.roomAt(e.tx, e.ty) === hall);
+            seen = { open: !!d };
+            if (!d) return;
+            /* (in the room, by one of its side walls and its top or bottom wall) */
+            const sx = Math.min(d.tx - hall.x, hall.x + hall.w - 1 - d.tx), sy = Math.min(d.ty - hall.y, hall.y + hall.h - 1 - d.ty);
+            seen.corner = sx >= 0 && sy >= 0 && sx <= 2 && sy <= 2;
+            const x = d.tx * T - Cam.x, y = d.ty * T - Cam.y;
+            seen.onScreen = x >= 0 && x + T <= W && y >= 0 && y + T <= H;
+            seen.clear = !HW.Dialog.rects().some(([x0, y0, x1, y1]) => x < x1 && x + T > x0 && y < y1 && y + T > y0);
+        });
+        assert.deepEqual(seen, { open: true, corner: true, onScreen: true, clear: true }, id + ': ' + said);
+        noErrors(HW);
+    }
 });
 test("the Snapjaw's door grinds shut behind Wren, once she's wholly in off the doorstep", () => {
     const HW = inHouse('millrace', 29, 42);

@@ -164,6 +164,8 @@ class Cog extends Enemy {
         const crouch = this.state === 'crouch' && this.st <= this.leap.tell;
         Gfx.img(im, x - 10 + shake + (crouch ? ((this.t >> 1) % 2 ? 1 : -1) : 0), y - 13 + (crouch ? 2 : 0) - Math.round(this.z || 0), this.dir === LEFT);
         if (crouch) Tells.bang(x, y - 30);
+        /* (wound so tight he hums: the air shivers either side of him now and then) */
+        if (this.state !== 'sleep' && !this.down && (this.t >> 2) % 4 === 0) { Gfx.alpha(0.6); Gfx.rect(x - 12, y - 9, 1, 3, '#f7e8b8'); Gfx.rect(x + 11, y - 10, 1, 3, '#f7e8b8'); Gfx.alpha(1); }
         if (this.state === 'held') {
             /* his cord, taut, straight down through the floor */
             Gfx.line(x, y - 2, x, y + 4, THREAD.guild); Gfx.rect(x - 1, y + 3, 3, 2, '#c9a24a');
@@ -463,6 +465,9 @@ class Tangle extends Ent {
         this.alive = false; this.balls = []; this.gone = true; this.unseal();
         for (const e of this.area.ents.slice()) if (e.tangleMite) { if (e.alive) Fx.yarn(e.x, e.y - 6, THREAD.guild); this.area.remove(e); }
         Sfx.play('unravel'); Fx.yarn(this.x + 8, this.y, THREAD.guild);
+        /* all of it slithers apart and away down the cracks between the boards, every colour of it (staged under the words:
+           SpoolFoes.tangleDown) */
+        this.runs = this.area.add(new CrackRuns(this.area, this.x + 8, this.y + 10, 14, 7, [THREAD.guild, '#c9925a', THREAD.ives, THREAD.bram, '#7a5233', THREAD.ambrose, THREAD.tess, THREAD.mallow, THREAD.jory], 0.35, 140));
         Script.run(SpoolFoes.tangleDown(this));
     }
     draw(cx, cy) {
@@ -550,14 +555,25 @@ const SpoolFoes = {
         c.unravel();
         yield 20;
         yield* say(null, 'All the thread wound in him comes loose and runs away down the cracks in the floor like water.', { focus: c });
+        /* (the trap open under the chest that comes up out of it, its lid tipped up behind) */
+        const ch = a.find('kNeedle');
+        if (ch) a.add(new Remains([{ from: [ch.tx * T + 8, ch.ty * T + 16], to: [ch.tx * T + 8, ch.ty * T + 16], end: 'lie', look: SpoolFoes.drawHatch }], { x: ch.tx * T + 8, y: ch.ty * T + 16, floor: true }));
+        Sfx.play('click');
         Progress.set('spool_cog');
         yield 25;
-        yield* say(null, 'By the kennel, a little trap in the floor springs open with a ping, and up comes a chest.');
+        yield* say(null, 'A little trap in the floor springs open with a ping, and up comes a chest.', { focus: ch || c });
         c.shutters(false);
         Music.play('spoolworks');
     },
+    /* a trap in the floor, open (x, y: the foot of its tile): the dark of the hole round whatever came up out of it, and
+       its lid tipped up behind */
+    drawHatch(x, y) {
+        Gfx.rect(x - 8, y - 22, 16, 5, PAL.ink); Gfx.rect(x - 7, y - 21, 14, 3, '#a8784a'); Gfx.rect(x - 7, y - 21, 14, 1, '#c9925a');
+        Gfx.rect(x - 9, y - 17, 18, 16, '#1a1018'); Gfx.rect(x - 8, y - 2, 16, 1, '#3a2618');
+    },
     *tangleIntro(t) {
         yield 20;
+        yield* stepIn();
         yield* say(null, 'In the heart of the Works, held in the middle of the floor by four threads to four bobbins, sits a great knot of old cord: every colour, every House, every Wander there has ever been, all wound into one.', { focus: [t, ...t.bobbins()] });
         t.eyes = true; Sfx.play('click');
         yield 20;
@@ -584,8 +600,8 @@ const SpoolFoes = {
     *tangleDown(t) {
         const a = t.area, r = a.roomAt(t.tx, t.ty);
         Music.play('silence');
-        yield 40;
-        yield* say(null, 'The little knot at the heart of the Tangle gives, and all of it, forty years of loose ends, slithers apart and away down every crack in the floor, back to wherever each thread belongs.');
+        yield 14;
+        yield* say(null, 'The little knot at the heart of the Tangle gives, and all of it, forty years of loose ends, slithers apart and away down every crack in the floor, back to wherever each thread belongs.', { focus: t.runs });
         t.shutters(false);
         const g = a.add(new NPC(r.x + 9, r.y + 9, { who: 'gundry', face: 'up' }));
         Fx.poof(g.x + 8, g.y + 8);
@@ -645,14 +661,15 @@ function initSpoolFoes() {
     defSprite('spoolmite_0', mite('....kl.kl.kl....'), sm); defSprite('spoolmite_1', mite('...kl.kl.kl.....'), sm);
     ENEMY_DRAW.spoolmite = e => spr('spoolmite_' + ((e.anim >> 3) % 2));
     ENEMY.cog = { hp: 2, r: 7, tall: 14, yarn: THREAD.guild, weight: WEIGHT.heavy };
-    const cg = { b: '#c9a24a', B: '#8a6a2a', w: '#f7e8b8', e: '#2a1f2d', t: THREAD.guild, r: '#d6304e' };
-    const dog = (legs, tail) => ['....................', '..............kk....', '.............kbbk...', '............kbbbbk..', '............kbebbkk.', '...' + tail + '.....kbbbbbbk', '..kk..kkkkkkkbbbbkk.', '..kbkkbbbbbbbbbkk...', '...kbbbbbbbbbbbk....', '...kbBbBbBbBbBbk....', '...kbbbbbbbbbbbk....', '....kttttttttttk....', '....' + legs + '....', '....kk..kk..kk..kk..'.slice(0, 20), '....................', '....................', '....................', '....................'];
+    /* (brass head, legs and tail; his middle a great deal of the Guild's thread, wound round and round: u, v) */
+    const cg = { b: '#c9a24a', B: '#8a6a2a', w: '#f7e8b8', e: '#2a1f2d', t: THREAD.guild, r: '#d6304e', u: '#e8c08a', v: '#9a6a3a' };
+    const dog = (legs, tail) => ['....................', '..............kk....', '.............kbbk...', '............kbbbbk..', '............kbebbkk.', '...' + tail + '.....kbbbbbbk', '..kk..kkkkkkkbbbbkk.', '..kbkkuuvuuvuuvkk...', '...kvuuvuuvuuvuk....', '...kuvuuvuuvuuvk....', '...kuuvuuvuuvuuk....', '....kttttttttttk....', '....' + legs + '....', '....kk..kk..kk..kk..'.slice(0, 20), '....................', '....................', '....................', '....................'];
     defSprite('cog_0', dog('kbk.kbk..kbk.kbk', 'kk'), cg); defSprite('cog_1', dog('.kbkkbk...kbkkbk', 'k.'), cg);
     defSprite('cog_sit', dog('kbbk......kbbk..', '..'), cg);
     defSprite('cog_held', dog('kbk.kbk..kbk.kbk', 'kk').map((r, i) => i === 11 ? '....krrrrrrrrrrk....' : r), cg);
     /* run down: over on his side, legs out, his key still in his back */
     defSprite('cog_down', ['....................', '....................', '....................', '....................', '....................', '....................', '....................',
-        '.......k............', '......kbk...........', '..kkkkkbkkkkkkk.....', '.kbbbbbbbbbbbbbkkk..', 'kbBbBbBbBbBbBbbbebk.', 'kbbbbbbbbbbbbbbbbbk.', '.kttttttttttttkkkk..', '..kbk.kbk.kbk.kbk...', '..kk..kk..kk..kk....', '....................', '....................'], cg);
+        '.......k............', '......kbk...........', '..kkkkkbkkkkkkk.....', '.kuuvuuvuuvuuvbkkk..', 'kvuuvuuvuuvuuvbbebk.', 'kuvuuvuuvuuvuubbbbk.', '.kttttttttttttkkkk..', '..kbk.kbk.kbk.kbk...', '..kk..kk..kk..kk....', '....................', '....................'], cg);
     defSprite('tangle_core', ['................', '.....kkkkkk.....', '....kttTTttk....', '...ktTkkkkTtk...', '...kTk.ww.kTk...', '..ktk.wwww.ktk..', '..kTk.wkkw.kTk..', '..ktk.wwww.ktk..', '...kTk.ww.kTk...', '...ktTkkkkTtk...', '....kttTTttk....', '.....kkkkkk.....', '................', '................', '................', '................'], { t: THREAD.guild, T: '#7a5233', w: '#fbf6ea' });
     defSprite('bobbin', ['................', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kiiiiiiiiiik..', '..kIIIIIIIIIIk..', '..kkkkkkkkkkkk..', '................'], { i: '#6a6e78', I: '#484c56', c: '#a8784a', C: '#7a5233' });
     defSprite('bobbin_t', ['................', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kkkkkkkkkkkk..', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '....kCcCcCcCk...', '....kccccccck...', '..kkkkkkkkkkkk..', '..kwwwwwwwwwwk..', '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..', '................'], { w: '#c9925a', W: '#9a6438', c: THREAD.guild, C: '#7a5233' });

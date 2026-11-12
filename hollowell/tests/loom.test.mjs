@@ -438,7 +438,8 @@ test("the Weaver's silk: it rears back, its belly aglow, before it spits; a step
     for (const dodge of [true, false]) {
         const [HW, w] = webGame(); HW.G.cheats.god = false;
         const p = HW.player();
-        wgo(HW, 'web', 3, 8); w.warpT = 9999; w.st = 19;
+        /* (from rest: no spit begun nor warp thread lit while she walked over, to go where she was or knock her aside) */
+        wgo(HW, 'web', 3, 8); HW.global('calmBlows')(w); w.puff = 0; w.shots = []; w.warpT = 9999; w.st = 19;
         assert.ok(until(HW, () => w.puff > 0, 10), 'it rears back');
         assert.ok(until(HW, () => w.shots.length > 0, 40), 'and spits');
         w.rear = () => { };                         /* (just the one) */
