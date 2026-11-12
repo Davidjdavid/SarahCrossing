@@ -20,7 +20,7 @@
 
 **Overview.** The first House, in Meadowfold (door at overworld 108,92; out to 108,93). Mother Ives's (teal thread). Its grammar is the Return itself: patience as a timer, plates pressed by things in passing, heavier shoves lighter, a thing at home blocks the way home, carried and thrown traces; then (with the Gloves) pulling and gripping. Needs nothing to enter (the Wanderstaff from the ceremony). Gives the Gloves (from the Dust Monger, mid-House), 3 small keys, the Plan, the Pattern, 2 Heart Patches, the Heartstitch, the Tidy Knot. The Gloves are introduced by their item line ("Hold [act] against something to grip it... Step back while gripping to pull it") and first needed in the Laundry next door.
 
-**Save states.** S04 (Foyer, just inside), S05 (entering the Hall of Busts), S06 (Linen Closets, just after the Gloves), S07 (Antechamber, before the boss), S08 (outside after the Knot).
+**Save states.** T04 (Foyer, just inside), T05 (entering the Hall of Busts), T06 (Linen Closets, just after the Gloves), T07 (Antechamber, before the boss), T08 (outside after the Knot).
 
 **Map** (lock = small key; gate = signal; big = Pattern):
 
@@ -165,7 +165,7 @@
 
 **Charms** hang from the ceiling over floor; only flying things (thrown things, shards) reach them. Modes: `once` (stays rung), `pulse` (rung for a while, a ring of stitches shown at the gate it holds), `seq` (must be struck in order; with `fade`, each only rings a moment). Clay **seals** shatter when something thrown or shards hit them; the stick doesn't ("Hard clay. Something thrown might crack it."). **Hookline:** reach about 7 tiles; latches on eyelets, heavy or fixed things, and empty marks (reels Wren there); pulls light or medium things toward her (up to 8 tiles); a reeled thing hangs over pits; fetches pickups; never latches on a sleeper or a chest.
 
-**Save states.** S10 (Kiln Door), S11 (Glazing Room with the Hookline), S12 (Glaze Vats), S13 (outside after the Knot).
+**Save states.** T10 (Kiln Door), T11 (Glazing Room with the Hookline), T12 (Glaze Vats), T13 (outside after the Knot).
 
 **Map:**
 
@@ -271,7 +271,7 @@
 
 **Overview.** House 3, above the falls in Millwater, on the far bank (door 175,105; out to 175,106). Dad's (Ambrose, blue). Reached across the river on the Millwater ferry. Grammar: currents against the Return. Floating things (crates, wood, rafts, barrels) drift a tile at a time along currents; their trace grows as they go, so they come home the long way, at half speed against the flow. A float whose mark is on a current runs by itself like a ferry: waits at its mark, goes, waits at the end, comes back. Rafts carry Wren (and what she carries). Wheels watch a water tile: `pulse` wheels turn a while after a float passes, `hold` wheels (red ratchet hub) only while one sits there. **The Paddle:** stand on any float and hold [tool] with a direction to steer it a tile at a time; paddling holds it (no drift, no return). Strays fill water in. Deep water can be stepped into on purpose (lean on the edge): Wren sinks and flies home. A **ferry bell** on a post by a landing: rung, its ferry stops waiting (at home it sets off now; at the far end it starts home now). A float coming home onto the bank with Wren aboard sets her down beside it. Gives the Paddle (from the Snapjaw), 2 keys, the Plan, the Pattern, a Heart Patch (Shard Race), a Heart Patch (Workshop), the Heartstitch, the Running Knot. Its item line names the button to hold and steer (finding 71).
 
-**Save states.** S15 (Wheel Hall), S16 (Snapjaw's Race with the Paddle), S17 (the Lock, before the boss), S18 (Millrace Falls after the Knot).
+**Save states.** T15 (Wheel Hall), T16 (Snapjaw's Race with the Paddle), T17 (the Lock, before the boss), T18 (Millrace Falls after the Knot).
 
 **Map:**
 
@@ -373,7 +373,7 @@
 
 **Sleepers (review_d4):** can't be pulled, gripped, lifted or hooked (the Hookline bounces off with a "z"); only a ring moves them. A woken sleeper stays awake through leaving, re-entry, save and load (`woke:<id>`), except puzzle sleepers (`resetSleep`), which lie down again when Wren leaves the room unsolved (the Reach, Bell Ropes, the Bell Frame). Slabs of wall "a bit too clean, warm, like something asleep" are sleepers hiding doorways.
 
-**Save states.** S20 (Bell Porch), S21 (Clangor's Loft with the Bell), S22 (the Cistern, before the boss), S23 (Hollowell after the Knot).
+**Save states.** T20 (Bell Porch), T21 (Clangor's Loft with the Bell), T22 (the Cistern, before the boss), T23 (outside the Belfry just after the Knot; the goal line says home for the festival).
 
 **Map:**
 
@@ -432,7 +432,7 @@
 - **Solution (test):** with the Recall Bell, ring at (16,1), near the top sleeper only: it goes home onto the top plate; the bottom one sleeps on; the gate opens.
 - **Blocked (tests):** ring where both hear (e.g. (17,5)): the bottom one wakes and the gate stays shut; shoving the woken bottom one off its plate doesn't open it either; leaving the room lets both lie down again where they slept (for another go).
 
-#### Echo Room (2,2), optional (S15: Heart Patch, Linnet's note 4)
+#### Echo Room (2,2), optional (secret S15: Heart Patch, Linnet's note 4)
 - Behind the Loft's sleeping slab (ring near it). Three stones: low (5,4), middle (9,4), high (13,4); chalked: "SING HER TO SLEEP." Strike them in Gran's bedtime tune (heard on the first morning, and kept in the Journal as "Gran's bedtime tune": "low... high... in between... high... and low again"): low, high, middle, high, low. The stones hum it together; a chest appears (9,2). Flag `belfry_echo`. (The Journal note was added in fix round E so the room doesn't rely on memory; older saves get it on loading.)
 
 #### Bell Ropes (1,1): the Pattern
