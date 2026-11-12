@@ -776,8 +776,11 @@ const Shards = {
             if (h && cx + 6 > h.x0 && cx - 6 < h.x1 && cy + 6 > h.y0 && cy - 6 < h.y1) e.struck(s.o, 1, -1, true);
         }
         if (s.o.onShardTile) s.o.onShardTile(tx, ty);
-        /* clay creatures' pieces hurt Wren too */
-        if (s.hurt) { const p = G.player; if (p && p.area === area && p.feetOn(tx, ty)) p.hurt(1, tx * T + 8 - DX[dirOf(1, 0)], ty * T + 8); }
+        /* clay creatures' pieces hurt Wren too (knocking her on the way they fly, not off to one side) */
+        if (s.hurt) {
+            const p = G.player, b = s.path[Math.max(0, s.i - 1)];
+            if (p && p.area === area && p.feetOn(tx, ty)) p.hurt(1, p.x - sign(tx - b[0]) * 8, p.y - sign(ty - b[1]) * 8);
+        }
     },
     reform(s) {
         const o = s.o;

@@ -71,6 +71,11 @@ defHouse({
             nudge: { solved: 'kc', at: [4, 1], say: 'A pot on the shelf wobbles, as if it would like to be thrown.' },
         },
         /* ---------------- 3 Gallery ---------------- */
+        /* (the closet wants the bust at home on its own plate, a stiff iron one that only something heavy come to rest on
+           sinks, and the far plate pressed, together: a bust pushed onto the far plate lifts its own, and going home it
+           never sinks both at once, so it can't be dashed; the far plate's nook is reached only through the bust's place,
+           so whatever holds it there has its way home through that place; and anyone in the nook can hop down off its
+           step, so the bust coming home never shuts her in) */
         '2,3': {
             name: 'Gallery',
             rows: [
@@ -80,7 +85,7 @@ defHouse({
                 '#.......#.#........#',
                 '#...#####.######.###',
                 '...........#.......#',
-                '#.........##.......#',
+                '#.........v#.......#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -89,24 +94,29 @@ defHouse({
             ents: [
                 { k: 'wood', x: 8, y: 5, id: 'galBlock' },
                 { k: 'bust', x: 9, y: 5, id: 'galBust' },
+                { k: 'plate', x: 9, y: 5, sig: 'g2', minWeight: WEIGHT.heavy, settled: true, look: 'iron' },
                 { k: 'plate', x: 10, y: 5, sig: 'g1' },
-                { k: 'door', x: 16, y: 4, type: 'gate', when: 'g1', passed: 'up', id: 'gG' },
+                { k: 'door', x: 16, y: 4, type: 'gate', when: 'g1&g2', passed: 'up', id: 'gG' },
                 { k: 'chest', x: 16, y: 1, item: 'plan', id: 'gPlan' },
                 { k: 'deco', x: 2, y: 1, look: 'painting', solid: false, oy: -12, baseY: -100 },
                 { k: 'deco', x: 5, y: 1, look: 'painting2', solid: false, oy: -12, baseY: -100 },
                 { k: 'enemy', x: 5, y: 8, type: 'dustbunny' },
                 { k: 'pot', x: 17, y: 9, style: 'pot_teal' },
+                { k: 'sign', x: 1, y: 7, text: 'THE GALLERY. Please mind the busts. Each one knows its place, and once it is back in it, nothing gets past.' },
             ],
-            nudge: { solved: 'g1', thing: 'galBust', say: 'The bust looks very pleased with its spot. Nothing gets past it once it is home.' },
+            nudge: { solved: 'tidy_gG', thing: 'galBust', say: "The far plate's nook can only be reached through the bust's own spot. The bust looks very pleased with that spot." },
         },
         /* ---------------- 4 Hall of Busts ---------------- */
+        /* (the gallery along the top is reached only round its far end, so the north door is a long walk from the plate:
+           nothing pushed onto it and left there holds it long enough; the block, waiting beside the bust's way up and
+           back, is what does) */
         '1,2': {
             name: 'Hall of Busts',
             rows: [
                 '###.################',
                 '#..................#',
                 '#..................#',
-                '########...........#',
+                '##################.#',
                 '#,,,,,,,,,,,,,,,,,,#',
                 ',,,,,,,,,,,,,,,,,,,,',
                 '#,,,,,,,,,,,,,,,,,,#',
@@ -118,13 +128,14 @@ defHouse({
             ents: [
                 { k: 'bust', x: 9, y: 6, id: 'hallBust' },
                 { k: 'plate', x: 9, y: 7, sig: 'hb' },
-                { k: 'wood', x: 8, y: 4, id: 'hallBlock' },
+                { k: 'wood', x: 8, y: 5, id: 'hallBlock' },
                 { k: 'bust', x: 2, y: 8 }, { k: 'bust', x: 17, y: 8 },
                 { k: 'door', x: 3, y: 0, type: 'gate', when: 'hb', passed: 'up', id: 'hN' },
                 { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'hE' },
                 { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
+                { k: 'sign', x: 11, y: 9, text: 'THE HALL OF BUSTS. Solid marble, every one. They always go home, and anything lighter in the way gets moved along.' },
             ],
-            nudge: { solved: 'hb', after: 60 * 60 * 4, thing: 'hallBust', say: 'The bust in the middle looks restless. It would knock anything out of its way, going home.' },
+            nudge: { solved: 'tidy_hN', after: 60 * 60 * 4, thing: 'hallBust', say: 'The bust in the middle looks restless. Anything it moves along on its way home ends up one step past its spot.' },
         },
         /* ---------------- 5 Pantry ---------------- */
         '0,2': {
@@ -406,7 +417,10 @@ const TidyLogic = {
         /* the ballroom: both blocks home */
         if (!Progress.flag('tidy_ballDone')) {
             const ball = a.ents.filter(e => e.group === 'ball');
-            if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) { Progress.set('tidy_ballDone'); Sfx.play('appear'); }
+            if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) {
+                Progress.set('tidy_ballDone'); Sfx.play('appear'); G.shake = 4;
+                G.pendingToast = 'Both busts home, and the ballroom tidy at last. Something clicks, and a big chest stands where nothing stood before.';
+            }
         }
         const sc = a.find('shortcut');
         if (sc && sc.on && !Progress.flag('tidy_shortcut')) Progress.set('tidy_shortcut');
@@ -1128,7 +1142,7 @@ const TIDY_DRESS = {
     /* the gallery: pictures on its red walls */
     '2,3': { wall: [['td_paint_sea', 180, 0], ['td_paint_fruit', 214, 0], ['td_paint_hills', 82, 64], ['td_paint_horse', 197, 64]] },
     /* the hall of busts: marble pilasters marching down it */
-    '1,2': { wall: [['td_pilaster', 83, 0], ['td_pilaster', 131, 0], ['td_pilaster', 179, 0], ['td_pilaster', 227, 0], ['td_pilaster', 35, 48], ['td_pilaster', 83, 48]] },
+    '1,2': { wall: [['td_pilaster', 83, 0], ['td_pilaster', 131, 0], ['td_pilaster', 179, 0], ['td_pilaster', 227, 0], ['td_pilaster', 35, 48], ['td_pilaster', 83, 48], ['td_pilaster', 131, 48], ['td_pilaster', 179, 48], ['td_pilaster', 227, 48]] },
     /* the pantry: a ham, strings of onions and garlic, herbs drying (the larder dresser where the bookcase stood) */
     '0,2': { wall: [['td_hams', 85, 0], ['td_herbs', 197, 1]] },
     /* the parlour: the fire, the armchairs drawn up to it (the piano where the bookcase stood) */

@@ -79,10 +79,10 @@ test('hall of busts: the bust coming home shoves the block onto the plate and ho
     HW.Progress.setAreaFlag('tidy', 'door:fN');
     HW.warp('tidy', ...at('hall', 9, 8));
     go(HW, 'hall', 9, 7);
-    HW.push('up', 3);
-    go(HW, 'hall', 7, 4);
-    HW.push('right', 1);
-    go(HW, 'hall', 6, 6);
+    HW.push('up', 2);                        // bust (9,6) up to (9,4), against the wall
+    go(HW, 'hall', 7, 5);
+    HW.push('right', 1);                     // block (8,5) into its way home
+    go(HW, 'hall', 6, 7);
     HW.step(400);
     assert.equal(thing(HW, 'hallBlock').ty, 22 + 7, 'block shoved onto the plate');
     assert.ok(thing(HW, 'hN').open, 'north door open');
@@ -94,8 +94,8 @@ test('hall of busts: the bust coming home shoves the block onto the plate and ho
 
 test('hall of busts: just pushing the block onto the plate is not enough', () => {
     const HW = game();
-    HW.warp('tidy', ...at('hall', 8, 2));
-    HW.push('down', 3);                      // block (8,4) -> (8,7)
+    HW.warp('tidy', ...at('hall', 8, 4));
+    HW.push('down', 2);                      // block (8,5) -> (8,7)
     go(HW, 'hall', 7, 7);
     HW.push('right', 1);                     // onto the plate
     assert.ok(thing(HW, 'hN').open);

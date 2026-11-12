@@ -177,6 +177,63 @@ const NUDGE_VOICES = {
     marionette: { pre: 'Somewhere behind the scenery, someone whispers, very loudly: "Psst!"', yes: '"Bravo."', no: '"Quite right too. Your scene." A door closes softly, somewhere in the wings.' },
 };
 
+/* a boss's nudges, one for each beat of its fight that needs an idea: how things behave there, in the House's way of
+   saying it, never the step (a boss room has no nudge of its own; while its boss is up and about, its beat's nudge
+   stands in for one, and comes after a while stuck in that beat: the time in the room since the beat began, kept
+   across goes at it) */
+const BOSS_NUDGE_AFTER = 60 * 60 * 2.5;
+const BOSS_NUDGES = {
+    /* the Tidyhouse */
+    monger: { 1: "Swing at it all you like: it only dusts itself off. Anything thrown hits it properly, and so does anything heavy on its way home." },
+    housekeeper: {
+        1: "It always walks right up to the mess before it yanks it home. A bust coming home stops for nobody standing on its way.",
+        2: "It yanks things home from its cross now, each along its own thread. Whatever's standing on a thread gets what's coming home along it.",
+        3: "It yanks the moment anything's out of its place. A thing held fast won't come when it's yanked: whatever's yanking comes to it instead.",
+    },
+    /* the Kiln */
+    glazer: { 1: 'Its shield turns to follow you wherever you go. Its shot, though, always comes home the way it went.' },
+    kilnwyrm: {
+        1: "It follows your footprints exactly, step for step. A pot's pieces fly home along the very steps it was carried.",
+        2: "Round the rim it goes, the same way every time. A pot's pieces fly home the whole way it was carried, and hit whatever's on that way.",
+        3: "Down in the pit, nothing that walks can reach it. A pot's pieces fly home the way the pot went, over a pit or not.",
+    },
+    /* the Millrace */
+    snapjaw: { 1: "It ducks anything floating its way, so long as it's watching the water. Reared up at you on the bank, it isn't." },
+    grindle: {
+        1: "It swallows anything that floats to rest in its open mouth. Full, it settles low, and its gear-heart is there for the hitting.",
+        2: "It eats the ferry now. Anything else that floats goes wherever it's paddled, with the race or against it.",
+        3: "Clamped shut, it takes nothing whole between its teeth. Little pieces get in, and a pot's pieces fly home the whole way it was carried.",
+    },
+    /* the Belfry */
+    clangor: { 1: "When it rings, everything out of its place snaps home, through whatever's standing on the way. A thing being held doesn't." },
+    tollgrim: {
+        1: 'Only the clapper coming home hard knocks him out of the bell. Blown out of it, the clapper leaves room for him in the mouth.',
+        2: 'He hears a ring as far as a bell can reach, and no further. And not every bell in the tower is the one in your hand.',
+        3: "He watches you now, not the clapper, and stays in while you're near enough to ring it. A pot's pieces flying home ring any bell they pass.",
+    },
+    /* the Slumberhouse */
+    matron: { 1: 'She treads exactly where you trod, step for step. The old boards here hold one walker, and give way under the next.' },
+    mothersloth: {
+        1: "Her arms reel you in to be tucked up. Drawn out past the ring of stars, an arm snaps; and Homeward flies you to your Bedroll, wherever it lies.",
+        2: "Homeward flies you back the way you came, over anything you crossed on the way, even if it isn't there any more.",
+        3: "Caught in her grip, you can still turn round. A hook caught on a brass ring pulls you to it, whatever's pulling the other way.",
+    },
+    /* Marionette Hall */
+    captain: { 1: "He marches on till something stands in his way, and turns at it. Knocked flat, a flat stands in nobody's way." },
+    greatmarionette: {
+        1: 'Its strings run all the way down to its feet. A string walked right round something tangles on it.',
+        2: "It marches round its stage, turning right at whatever's in its way, and wherever it turns, a foot comes down. The stage has a trap in it.",
+        3: "Its bar hangs low, out of reach of a hand but not of a hook. Brought down in front of you, its strings are anybody's.",
+    },
+    /* the Spoolworks */
+    cog: { 1: "His brass hide shrugs off the stick. His cord hangs down under his kennel, and a cord tied off below holds whatever's on the end of it." },
+    tangle: {
+        1: 'Four threads tie it together. Drawn out of it and held out, all four at once, they let it go.',
+        2: "Up on the old hoist it's out of reach, and the hoist answers to its counterweight below.",
+        3: "It hauls in every thread it can. A ring sends everything home at once, home being wherever the Needle put it; a thing being held stays where it is.",
+    },
+};
+
 /* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
 const Nudges = {
     /* "<house>_<id>" means that thing of the House is done: a chest opened, a door or gate opened, a lever pulled;
@@ -194,15 +251,33 @@ const Nudges = {
             return !!(e && (e.opened || e.openedOnce || (e.kind === 'door' && e.open && e.type !== 'shutter') || (e.kind === 'lever' && e.on)));
         });
     },
+    /* the boss up and about in this room, and which beat of its fight it's in (the beats count up as its hits run out) */
+    boss(a, r) {
+        for (const e of a.ents) {
+            const N = BOSS_NUDGES[e.type || e.kind];
+            if (!N || e.alive === false || e.removed || e.state === 'sleep' || !isBoss(e)) continue;
+            const tx = e.hx !== undefined ? e.hx : e.isGrid ? e.tx : tileOf(e.x), ty = e.hy !== undefined ? e.hy : e.isGrid ? e.ty : tileOf(e.y);
+            if (a.roomAt(tx, ty) !== r) continue;
+            const beat = typeof e.phase === 'number' ? e.phase : N[2] ? 4 - clamp(e.hp, 1, 3) : 1;
+            return N[beat] ? { e, beat, say: N[beat] } : null;
+        }
+        return null;
+    },
+    beatT: {},
     update(a) {
         if (!Settings.hints || !a.def.house || a.def.noNudges || Progress.flag('noNudges')) return;
-        const r = Cam.room; if (!r || !r.nudge) return;
-        const n = r.nudge;
-        const key = a.id + ':' + r.key;
-        if (Progress.areaFlag(a.id, 'nudged:' + r.key)) return;
-        if (n.solved && Nudges.solved(a, n.solved)) return;
+        const r = Cam.room; if (!r) return;
         const st = Stats.rooms[a.id + ':' + r.i];
-        if (!st || st.t < (n.after || 60 * 60 * 3)) return;
+        /* (a boss's beat: nudged once a beat, counted from when the beat was first seen) */
+        const b = !r.nudge && st ? Nudges.boss(a, r) : null;
+        if (!r.nudge && !b) return;
+        const n = b ? { key: r.key + ':' + b.beat, say: b.say, focus: b.e, after: BOSS_NUDGE_AFTER } : r.nudge;
+        const key = n.key || r.key;
+        if (Progress.areaFlag(a.id, 'nudged:' + key)) return;
+        if (n.solved && Nudges.solved(a, n.solved)) return;
+        let t = st ? st.t : 0;
+        if (b) { const k = a.id + ':' + key; if (this.beatT[k] === undefined || this.beatT[k] > t) this.beatT[k] = t; t -= this.beatT[k]; }
+        if (!st || t < (n.after || 60 * 60 * 3)) return;
         if (Script.blocking() || Dialog.active) return;
         /* the first time, the House asks whether it should (the answer stands; Options > Hints changes it) */
         if (!Progress.flag('hintsAsked')) { Progress.set('hintsAsked'); Script.run(Nudges.ask(a, r, n)); return; }
@@ -220,8 +295,8 @@ const Nudges = {
         }
     },
     fire(a, r, n) {
-        const key = a.id + ':' + r.key, st = Stats.rooms[a.id + ':' + r.i];
-        Progress.setAreaFlag(a.id, 'nudged:' + r.key);
+        const key = a.id + ':' + (n.key || r.key), st = Stats.rooms[a.id + ':' + r.i];
+        Progress.setAreaFlag(a.id, 'nudged:' + (n.key || r.key));
         st.nudges = (st.nudges || 0) + 1;
         Stats.count('nudges');
         Stats.nudgeLog = Stats.nudgeLog || [];
@@ -229,7 +304,8 @@ const Nudges = {
         if (n.at) { const [x, y] = n.at; Fx.sparkle((r.x + x) * T + 8, (r.y + y) * T + 4, '#fff6c0'); Fx.ring((r.x + x) * T + 8, (r.y + y) * T + 8, '#fff6c0'); }
         if (n.thing) { const o = a.ents.find(e => e.id === n.thing); if (o) { o.nudgeT = 90; Fx.sparkle(o.tx * T + 8, o.ty * T + 2, '#fff6c0'); } }
         Sfx.play('twang');
-        if (n.say) UI.toast(n.say, 240);
+        /* (a boss's: kept clear of the boss it's about) */
+        if (n.say) UI.toast(n.say, 240, { focus: n.focus || null });
     },
 };
 

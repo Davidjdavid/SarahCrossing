@@ -201,3 +201,7 @@
   happen shows it; a broken-looking rule made visible; the middle act's small Houses say what's true, stop handing over
   steps, and let you find everything there is to find; the screen's corners get out of the way of anything that
   matters.
+- The first four Houses: two rooms that could be raced now want their own idea (and leave room to do it); a door held
+  open by a timer shows its time; no room leaves you stranded once it's solved; a fight that asked nothing now asks
+  one thing; a fight's hardest stage says its rule; hints (if you've asked for them) reach the fights too; a hard-to-see
+  attack is easy to see; the Options say hints wait to be asked for; the Journal keeps a tune you'll want later.

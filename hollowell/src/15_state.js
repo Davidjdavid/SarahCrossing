@@ -4,7 +4,7 @@
 const ITEMS = {
     gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold [act] against a block to grip it: it stays put while you hold on. Step back to pull it. (Or tap [act] to take hold and again to let go: Options, Grip.)' },
     hook: { name: 'Hookline', kind: 'tool', desc: '[tool]: throw the hook. Catches on eyelets and empty marks and reels you over; reels light things to you.' },
-    paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and paddle it about.' },
+    paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and hold [tool]: it goes wherever you steer it.' },
     bell: { name: 'Recall Bell', kind: 'tool', desc: '[tool]: ring it. Everything nearby out of place snaps straight home, shoving harder than it would on its own.' },
     bedroll: { name: 'Bedroll', kind: 'tool', desc: '[tool]: lay it down to make a place of your own. Hold [tool] to go home to it.' },
     crossbar: { name: 'Crossbar', kind: 'tool', desc: '[tool]: take up the strings of a puppet you can see, and walk it.' },

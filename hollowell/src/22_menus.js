@@ -418,7 +418,8 @@ const Options = {
             ['Sound', () => Math.round(Audio.vol.sfx * 10), d => { Audio.vol.sfx = clamp(Audio.vol.sfx + d * 0.1, 0, 1); Audio.setVolumes(); Sfx.play('menu'); }],
             ['Text speed', () => ['slow', 'normal', 'fast'][Settings.textSpeed === 0.5 ? 0 : Settings.textSpeed === 1 ? 1 : 2], d => { const v = [0.5, 1, 2]; let i = v.indexOf(Settings.textSpeed); i = clamp(i + d, 0, 2); Settings.textSpeed = v[i]; }],
             ['Screen shake', () => Settings.shake ? 'on' : 'off', () => { Settings.shake = !Settings.shake; }],
-            [Progress.flag && Progress.flag('reveal1') ? "Makers' nudges" : 'Hints', () => Settings.hints ? 'on' : 'off', () => { Settings.hints = !Settings.hints; Stats.count(Settings.hints ? 'hintsOn' : 'hintsOff'); }],
+            /* (on, until the House has asked whether it should: it asks first, so a player can see they're offered, not given) */
+            [Progress.flag && Progress.flag('reveal1') ? "Makers' nudges" : 'Hints', () => !Settings.hints ? 'off' : Progress.flag && Progress.flag('hintsAsked') ? 'on' : 'ask first', () => { Settings.hints = !Settings.hints; Stats.count(Settings.hints ? 'hintsOn' : 'hintsOff'); }],
         ];
     },
     open() { this.sel = 0; },

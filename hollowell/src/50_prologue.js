@@ -12,6 +12,7 @@ const Prologue = {
             yield 30;
             Music.play('lullaby');
             yield* say(null, "Half asleep, you hear Gran humming downstairs: the bedtime tune she always hums. Low... high... in between... high... and low again. It goes round and round.");
+            Progress.addNote('granTune');
             Music.play('home');
             yield* fadeIn(60);
             yield 40;
@@ -26,6 +27,9 @@ const Prologue = {
         });
     },
 };
+
+/* the Journal keeps the tune (only the tune, as it was heard), for whenever it's wanted again */
+NOTES.granTune = { title: "Gran's bedtime tune", text: 'The tune Gran always hums at bedtime: low... high... in between... high... and low again.' };
 
 /* Gran, at home, the morning of the ceremony */
 TALK.gran = function* (npc) {

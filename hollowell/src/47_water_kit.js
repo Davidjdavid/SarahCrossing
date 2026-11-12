@@ -120,6 +120,8 @@ class Wheel extends GridThing {
         this.timer = 0; this.ang = 0; this.on = false;
     }
     get watch() { return this.at || [this.tx + DX[this.face], this.ty + DY[this.face]]; }
+    /* (a pulse wheel's time left, 0 to 1, full while it turns: a gate it holds open shows it, Door.timerLeft) */
+    sigLeft() { return this.mode === 'pulse' ? this.timer / this.time : null; }
     tick() {
         const [wx, wy] = this.watch;
         const o = this.area.at(wx, wy);

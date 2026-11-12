@@ -141,7 +141,7 @@ never says a count of times home, not that one nor one shaped like it).
 | Invisible wall at the world's edge (fog pushes back) | Normal | The Return's limit; the fog is threads |
 | Dungeon keys can't leave the dungeon | Normal | Keys are marked to their House |
 | A map showing places you haven't been | Normal | The Makers drew the map (the Drift's is blank) |
-| Hint system (Options: Hints) | Normal | The Makers' nudges (logged in their logbooks); the voice that asks first talks like its Maker |
+| Hint system (Options: Hints, "ask first" until the House has asked) | Normal | The Makers' nudges (logged in their logbooks); the voice that asks first talks like its Maker; in a boss room, one nudge for each beat of the fight that needs an idea, saying how things behave there (`BOSS_NUDGES`, Houses 1 to 7) |
 | Big locked doors with the dungeon's key | Normal | Makers' "Patterns" |
 | Boss defeated stays defeated | Normal | Makers cut its thread after (costume/automaton) |
 | Save points | "Tie off here?" | Re-tying your thread at a mark |
@@ -190,7 +190,8 @@ Numbering is stable; DUNGEON_TRACKER.md and tests refer to these ids.
 13. **S13 The Wren puppet** (D6): walk it through the stage set of the Tidyhouse foyer.
 14. **S14 Bosses come back** (after each boss, revisit its arena): the boss re-formed, asleep; pet it (all seven: a Heart Patch).
 15. **S15 Echo room** (D4): ring bell-stones in the order of Gran's lullaby (hummed by Gran at bedtime,
-    Linnet's theme): hidden room with a Heart Patch and Linnet's note 4.
+    Linnet's theme; the Journal keeps a note of the tune, as heard, from the first morning): hidden room with a Heart
+    Patch and Linnet's note 4.
 16. **S16 The sleeping giant's cave** (Hushwood): after Old Hummock goes home (the Recall Bell), the hollow he slept
     in leads down; only with the Bedroll laid up top (or climb the roots back out, the hard way). Below: a small round
     door painted the colour of the rock, a red X over the keyhole, somebody sawing and humming behind it (the
@@ -411,8 +412,10 @@ anywhere in a House: Wren comes to by its door.
   rim, its head glows and a glob of glaze comes down where she stood (its shadow first), leaving a puddle that burns
   for a few seconds; in the pit, it rattles and sheds pieces of itself round the edge (shadows first), which lie on
   their threads to the pit and fly home along them (half a heart each). The Glazer: two hits; its shot's line lights
-  while it aims; too close, it braces behind its shield (its "!", the tiles ahead lit) and barges through them (a
-  heart).
+  while it aims; it keeps its glazed shield turned towards Wren, and its shot's pieces coming home clatter off it if
+  they meet it head on: step off its line once it has thrown and it turns its shield to her, side on to its own shot,
+  which cracks it (stood still in front of it, the shot hits Wren and the pieces hit the shield; fix round E); too
+  close, it braces behind its shield (its "!", the tiles ahead lit) and barges through them (a heart).
 - **Old Grindle (D3)**: (1) push a barrel into a side current; it gulps it and settles with its gear-heart showing;
   ride the ferry (the ferry bell sends it at once) to below its mouth and strike; (2) the sluice turns the currents:
   barrels drift away and the ferry would carry Wren into its bite: stand on a barrel with the Paddle, paddle up

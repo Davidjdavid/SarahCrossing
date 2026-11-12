@@ -89,7 +89,7 @@ defHouse({
         '1,2': {
             name: 'Charm Hall',
             rows: [
-                '#########.##########',
+                '##L######.##########',
                 '#..................#',
                 '#..................#',
                 '#...###......###...#',
@@ -258,6 +258,8 @@ defHouse({
             nudge: { solved: 'kiln_bKey', after: 60 * 60 * 3, at: [6, 5], say: 'The charm hangs over the drop, out of reach of any throw from the edge. But a path can cross a chasm, if you fly it.' },
         },
         /* ---------------- 9 Furnace Hall ---------------- */
+        /* (the west strip, once reached, has a way back east: a step down through the floor's edge into the Charm Hall
+           below, whose north gate is open by then; it only goes down, so it's no way in) */
         '1,1': {
             name: 'Furnace Hall',
             rows: [
@@ -271,7 +273,7 @@ defHouse({
                 '#...ooo............#',
                 '#...ooo............#',
                 '#...ooo............#',
-                '#########.##########',
+                '##L######.##########',
             ],
             ents: [
                 { k: 'crate', x: 3, y: 5, id: 'fCrate' },
@@ -381,7 +383,7 @@ defHouse({
             ],
         },
     },
-    legend: { 'v': { k: 'low', p: 'vat' } },
+    legend: { 'v': { k: 'low', p: 'vat' }, 'L': { k: 'ledge', p: 'ledge' } },     /* (L: a step down through a floor's edge) */
     tick: a => KilnLogic.tick(a),
     afterKnot: function* () { yield* Kiln.afterKnot(); },
     /* (each room its own look, its dressing laid over the floor and its fires flickering: see the end of this file) */
@@ -426,6 +428,8 @@ Charm.prototype.update = function () {
     if (this.mode === 'pulse') { if (this.pulse > 0) { this.pulse--; this.on = true; } else this.on = false; }
     _charmUpdate.call(this);
 };
+/* (how much of its ring is left, 0 to 1: a gate it holds open shows it, src/08_things.js Door.timerLeft) */
+Charm.prototype.sigLeft = function () { return this.mode === 'pulse' ? (this.pulse > 0 ? this.pulse / (this.time || 160) : 0) : null; };
 
 /* ---------- the clay creatures ---------- */
 /* Crocks: walking pots. One knock shatters them; the pieces fly home the way the crock walked, and they hurt */
@@ -448,12 +452,23 @@ SPAWN.crock = (x, y, p) => {
     return e;
 };
 
-/* the Glazer: a clay knight who throws clay shot. The shot breaks; its pieces fly back to the Glazer's
-   hand along the same line, and the Glazer is still standing on that line */
+/* the Glazer: a clay knight who throws clay shot, and keeps its glazed shield turned towards Wren. The shot breaks; its
+   pieces fly back to the Glazer's hand along the same line, and the Glazer stands on that line till they're home: the
+   one thing that cracks it, if they come at it where its shield isn't. Met head on they clatter off the shield, so the
+   fight asks one thing: be off to its side (or behind it) when its shot comes home, and it turns its shield to you and
+   its side to its own shot. Standing still in front of it, the shot hits Wren and the pieces hit the shield. */
 class Glazer extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'glazer', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
-        this.state = 'sleep'; this.st = 0;
+        this.state = 'sleep'; this.st = 0; this.shotOut = false; this.shotDir = DOWN;
+    }
+    /* its shot out, its shield to Wren: still on the line it threw along, it keeps facing down it; off it (a step to
+       either side), it turns to her, side on to the line; behind it, it turns round */
+    face(p) {
+        const d = this.shotDir, dx = p.x - this.x, dy = p.y - this.y, upDown = d === UP || d === DOWN;
+        const along = dx * DX[d] + dy * DY[d], perp = upDown ? dx : dy;
+        if (Math.abs(perp) <= 10) this.dir = along >= 0 ? d : OPP[d];
+        else this.dir = upDown ? (perp < 0 ? LEFT : RIGHT) : (perp < 0 ? UP : DOWN);
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
     update() {
@@ -465,7 +480,7 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
-                Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands.'); });
+                Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands. Its shield turns to follow you.'); });
             }
             return;
         }
@@ -479,12 +494,15 @@ class Glazer extends Enemy {
                 /* (its one dangerous move: come too close and it braces behind its shield, then barges two tiles on) */
                 if (Math.hypot(dx, dy) < 30 && this.st > 30 && p.state === 'normal') { this.brace(dirOf(dx, dy)); break; }
                 if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.aim(); break; }
+                /* (sidling to line up, its shield kept on her) */
+                this.dir = ax > ay ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
                 if (ax < ay) this.move(sign(dx) * 0.7, 0); else this.move(0, sign(dy) * 0.7);
                 this.anim++;
                 break;
             }
             case 'aim': if (this.st >= this.tellN) { this.throwShot(); this.setState('hold'); } break;
-            case 'hold': if (this.st > 70) this.setState('walk'); break;
+            /* (its shot out, it stands on its line and turns to keep its shield on her, till the pieces are home) */
+            case 'hold': if (this.shotOut) this.face(p); if (this.st > 70 && (!this.shotOut || this.st > 240)) { this.shotOut = false; this.setState('walk'); } break;
             case 'hurt': if (this.st > 30) this.setState('walk'); break;
             case 'brace': if (this.st >= this.tellN) { this.setState('barge'); Sfx.play('boss'); } break;
             case 'barge':
@@ -521,12 +539,19 @@ class Glazer extends Enemy {
             const p = G.player;
             if (p.feetOn(x, y)) break;
         }
-        this.shot = { path, i: 0, t: 0 };
+        this.shot = { path, i: 0, t: 0 }; this.shotDir = this.dir; this.shotOut = true;
         GlazerShots.list.push({ g: this, path, i: 0, t: 0 });
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
         if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); return; }   /* the stick bounces off its glaze */
+        /* its own shot, met head on (its shield still facing down the line it threw along): off the shield */
+        if (by && by.owner === this && this.dir === this.shotDir) {
+            Sfx.play('hitthing'); Fx.ring(this.x + DX[this.dir] * 6, this.y - 12 + DY[this.dir] * 3, '#bff3ee');
+            Stats.count('boss:glazer:shield');
+            if (!Progress.flag('glazer_shield')) { Progress.set('glazer_shield'); UI.toast('The pieces come home and clatter off its glazed shield. It never takes its shield off you.', 200); }
+            return;
+        }
         this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt'); calmBlows(this);
         Stats.count('boss:glazer:shards');
         if (this.hp <= 0) {
@@ -537,6 +562,13 @@ class Glazer extends Enemy {
             Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.'); });
         }
     }
+    /* its glazed shield, held on whichever side it faces (big, braced, before a barge) */
+    drawShield(cx, cy, sh, low) {
+        const big = this.state === 'brace', d = this.dir, w = big ? 10 : 8, h = big ? 11 : 10;
+        const sx = Math.round(this.x - cx + DX[d] * (big ? 5 : 7)) + sh, sy = Math.round(this.y - cy) - (big ? 17 : 16) + low + (d === UP ? -3 : d === DOWN ? 2 : 0);
+        Gfx.rect(sx - w / 2, sy, w, h, PAL.ink); Gfx.rect(sx - w / 2 + 1, sy + 1, w - 2, h - 2, '#5ad1c5'); Gfx.rect(sx - w / 2 + 1, sy + 1, w - 2, 1, '#bff3ee'); Gfx.rect(sx - w / 2 + 1, sy + h - 2, w - 2, 1, '#2e9a96');
+        Gfx.rect(sx - 2, sy + h, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, h - 7, '#e8a070');
+    }
     draw(cx, cy) {
         if (!this.alive) return;
         const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
@@ -544,14 +576,11 @@ class Glazer extends Enemy {
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         /* bracing: crouched behind its shield, shivering, its "!" up */
         const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
+        /* (its shield always towards her: behind it when it faces away up the room, in front of it otherwise) */
+        if (this.dir === UP) this.drawShield(cx, cy, sh, low);
         Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
-        /* (its glazed shield up before it, toward her) */
-        if (this.state === 'brace') {
-            const sx = Math.round(this.x - cx + DX[this.dir] * 5) + sh, sy = Math.round(this.y - cy) - 17 + low + (this.dir === UP ? -3 : 0);
-            Gfx.rect(sx - 5, sy, 10, 11, PAL.ink); Gfx.rect(sx - 4, sy + 1, 8, 9, '#5ad1c5'); Gfx.rect(sx - 4, sy + 1, 8, 1, '#bff3ee'); Gfx.rect(sx - 4, sy + 9, 8, 1, '#2e9a96');
-            Gfx.rect(sx - 2, sy + 11, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, 4, '#e8a070');
-            Tells.bang(this.x - cx, this.y - cy - 36);
-        }
+        if (this.dir !== UP) this.drawShield(cx, cy, sh, low);
+        if (this.state === 'brace') Tells.bang(this.x - cx, this.y - cy - 36);
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -567,10 +596,11 @@ const GlazerShots = {
             if (s.i >= s.path.length) {
                 s.done = true;
                 const [lx, ly] = s.path[s.path.length - 1];
-                if (p.feetOn(lx, ly)) p.hurt(1, lx * T + 8 - DX[s.g.dir] * 8, ly * T + 8 - DY[s.g.dir] * 8);
+                /* (it knocks her straight on down its line: it never shoves her off it) */
+                if (p.feetOn(lx, ly)) p.hurt(1, p.x - DX[s.g.shotDir] * 8, p.y - DY[s.g.shotDir] * 8);
                 Sfx.play('shatter'); Fx.burst(lx * T + 8, ly * T + 8, '#c4623a');
-                /* home along the same line, through the thrower if it's still there */
-                Shards.flight(area, s.path.slice().reverse(), { col: '#c4623a', hurt: true, pace: 4, delay: 8 });
+                /* home along the same line, through the thrower if it's still there (its shield turned away from them, or not) */
+                Shards.flight(area, s.path.slice().reverse(), { col: '#c4623a', hurt: true, pace: 4, delay: 8, owner: s.g, onDone: () => { s.g.shotOut = false; } });
             }
         }
         this.list = this.list.filter(s => !s.done);

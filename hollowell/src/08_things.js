@@ -152,11 +152,12 @@ class Bust extends GridThing {
 class FloorThing extends Ent {
     constructor(kind, tx, ty, props = {}) { super(kind, props); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.floor = true; }
     get sortY() { return -1000 + this.y; }
-    /* is anything weighing on this tile? */
+    /* is anything weighing on this tile? (a stiff plate, `settled`, only feels what has come to rest on it, not a thing
+       passing over it or setting off from it) */
     weighed() {
         const a = this.area, o = a.at(this.tx, this.ty);
         if (this.puppetOnly) return !!(o && o.kind === 'puppet' && !o.carried);
-        if (o && !o.carried && !o.flying && o.weight >= (this.minWeight || 1)) return true;
+        if (o && !o.carried && !o.flying && o.weight >= (this.minWeight || 1) && !(this.settled && o.mv)) return true;
         const p = G.player;
         if (p && p.area === a && !p.flying && !p.dead && p.feetOn(this.tx, this.ty) && (this.minWeight || 1) <= WEIGHT.medium) return true;
         for (const m of a.walkers) if (m.alive !== false && m.feetOn && m.feetOn(this.tx, this.ty) && (m.weightN || 2) >= (this.minWeight || 1)) return true;
@@ -172,13 +173,21 @@ class Plate extends FloorThing {
     }
     update() {
         const w = this.weighed();
-        if (w && !this.down) { Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed' || this.mode === 'pulse') this.timer = this.time || 300; }
+        /* (no click for what was already sitting on it when the place was built: a bust at home on its plate) */
+        if (w && !this.down) { if (this._was) Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed' || this.mode === 'pulse') this.timer = this.time || 300; }
         if (!w && this.down) Sfx.play('unclick');
-        this.down = w;
+        this.down = w; this._was = true;
         if (this.mode === 'hold') this.on = w;
         if (this.mode === 'timed') { if (this.timer > 0) this.timer--; this.on = w || this.timer > 0; }
         if (this.mode === 'pulse') { if (this.timer > 0) this.timer--; this.on = this.timer > 0; }
         if (this.on) Signals.set(this.area, this.sig);
+    }
+    /* how much of its time is left, 0 to 1 (a plate that runs down: a pulse plate's from the moment it clicks, whatever
+       sits on it; a timed plate's once it's let go); null for a plate that holds */
+    sigLeft() {
+        if (this.mode !== 'pulse' && this.mode !== 'timed') return null;
+        if (this.mode === 'timed' && this.down) return 1;
+        return this.timer > 0 ? this.timer / (this.time || 300) : 0;
     }
     draw(cx, cy) {
         Gfx.img(spr(this.down ? 'plate_down' : 'plate'), this.x - cx, this.y - cy);
@@ -189,10 +198,10 @@ class Plate extends FloorThing {
             Gfx.rect(lx + 1, ly + 1, 2, 2, this.on ? '#5ad1c5' : '#4a3e2c');
             if (this.on) { Gfx.rect(lx + 1, ly + 1, 1, 1, '#d8fff8'); Gfx.alpha(0.35 + 0.15 * Math.sin(G.t / 8)); Gfx.rect(lx - 1, ly - 1, 6, 6, '#5ad1c5'); Gfx.alpha(1); }
         }
-        if ((this.mode === 'timed' || this.mode === 'pulse') && this.timer > 0 && (!this.down || this.mode === 'pulse')) {
-            const n = Math.ceil(this.timer / 60);
-            for (let i = 0; i < n && i < 8; i++) Gfx.rect(this.x - cx + 3 + i * 2, this.y - cy + 2, 1, 2, PAL.yellow);
-        }
+        /* a plate that runs down: its patience as a ring of brass stitches round it, unpicking as its time runs out (the ring
+           a thing out of place shows round its mark), steady while a timed plate is held down */
+        const k = this.sigLeft();
+        if (k > 0) Threads.ring(this.x - cx + 8, this.y - cy + 8, k, PAL.brass, this.mode === 'timed' && this.down);
     }
 }
 
@@ -285,9 +294,26 @@ class Door extends Ent {
         if (this.id) Progress.setAreaFlag(this.area.id, 'door:' + this.id);
     }
     get sortY() { return this.y + (this.dir === 'h' ? 15 : 15); }
+    /* a gate held open by something that runs down (a pulse or timed plate, a pulse charm, a wheel turning on after a float
+       has passed): how much of that time is left, 0 to 1 (the least, if it waits on more than one); null if nothing that
+       runs down is holding it */
+    timerLeft() {
+        if (this.type !== 'gate' || !this.open || this.keep || !this.when) return null;
+        if (!this._timers) {
+            const names = this.when.split(/[&|]/).map(t => t.trim()).filter(t => t && t[0] !== '!' && !t.startsWith('flag:'));
+            this._timers = this.area.ents.filter(e => e.sigLeft && names.includes(e.sig));
+        }
+        let k = null;
+        for (const e of this._timers) { const v = e.sigLeft(); if (v !== null && v > 0) k = k === null ? v : Math.min(k, v); }
+        return k;
+    }
     draw(cx, cy) {
         const sx = this.x - cx, sy = this.y - cy;
         const a = this.anim;
+        /* (a gate on a timer says so: the ring of stitches round the doorway that a thing out of place shows round its mark,
+           unpicking as the time that holds it open runs out) */
+        const k = this.timerLeft();
+        if (k !== null && k < 1) Threads.ring(sx + 8, sy + 8, k, PAL.brass);
         if (a >= 8) return;
         const th = this.area.theme;
         const bar = this.type === 'lock' ? '#8a5a2a' : this.type === 'big' ? '#2e5a98' : (th.wall ? th.wall[3] : '#5a4a4a');

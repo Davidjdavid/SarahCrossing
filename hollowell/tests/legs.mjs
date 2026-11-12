@@ -176,7 +176,7 @@ export const LEG1 = (HW, chain) => {
     ok(HW.Inv.plans.includes('tidy'), 'plan');
     /* the hall: shove trick */
     walk(...t('gallery', 1, 5)); walk(...t('foyer', 9, 1)); walk(...t('hall', 9, 7));
-    HW.push('up', 3); walk(...t('hall', 7, 4)); HW.push('right', 1); walk(...t('hall', 6, 6)); HW.step(400);
+    HW.push('up', 2); walk(...t('hall', 7, 5)); HW.push('right', 1); walk(...t('hall', 6, 7)); HW.step(400);
     ok(thing('hN').open, 'hall north door open');
     /* pantry: key 2 */
     walk(...t('pantry', 10, 3)); HW.face('up'); HW.press('act', 1); walk(...t('pantry', 8, 5)); HW.face('left'); HW.press('act', 1); HW.step(28);

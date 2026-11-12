@@ -329,7 +329,15 @@ class Tollgrim extends Enemy {
         Script.run(BelfryFoes.tollDown(this));
     }
     draw(cx, cy) {
-        for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 2, '#7f7688'); Gfx.rect(s.x - cx - 1, s.y - cy - 1, 1, 1, '#c4bccb'); }
+        /* his gravel: each stone inked round and pale, so it reads on the dark boards, with its shadow on the floor under it
+           and a streak behind it the way it's going */
+        for (const s of this.spits) {
+            const x = Math.round(s.x - cx), y = Math.round(s.y - cy);
+            Gfx.alpha(0.35); Gfx.rect(x - 2, y + 6, 5, 2, PAL.ink); Gfx.rect(x - 1, y + 5, 3, 1, PAL.ink);
+            for (let i = 1; i <= 2; i++) { Gfx.alpha(0.5 - i * 0.15); Gfx.circle(x - s.vx * i * 3, y - s.vy * i * 3, 2, '#efe8f2'); }
+            Gfx.alpha(1);
+            Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, '#d8d0de'); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff');
+        }
         if (!this.alive) {
             if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.tess); }
             return;

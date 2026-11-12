@@ -124,18 +124,20 @@ test('doubling back: along the corridor and back loses a charm', () => {
     assert.equal(thing(HW, 'dKey').hidden, true);
 });
 
-test('the Glazer: its own shot comes home through it', () => {
+test('the Glazer: its own shot comes home through it, when its shield is turned to Wren off its line', () => {
     const HW = game();
     HW.warp('kiln', ...at('glazer', 16, 9)); HW.step(60); HW.skipTalk();
     const g = HW.ents('enemy').find(e => e.type === 'glazer');
     assert.ok(g);
-    for (let n = 0; n < 2000 && g.alive; n++) {
-        // stand in line with it a little way off; when it throws, step aside
-        if (g.state === 'walk' || g.state === 'hold') { const p = HW.player(); HW.hold(p.tx < g.tx ? 'right' : 'left'); HW.step(1); HW.release(); }
-        else if (g.state === 'aim') { HW.hold('down'); HW.step(12); HW.release(); }
-        else HW.step(1);
+    for (let n = 0, stepT = 0; n < 3000 && g.alive; n++) {
+        // a little way off; once it has thrown, a step aside off its line (it turns its shield to her, side on to its shot)
+        const p = HW.player(), upDown = g.shotDir === 0 || g.shotDir === 3;
+        if (g.state === 'hold' && g.shotOut && stepT < 14) { HW.hold(upDown ? (p.x < g.x ? 'left' : 'right') : (p.y < g.y ? 'up' : 'down')); HW.step(1); stepT++; }
+        else if (g.state === 'walk') { stepT = 0; HW.hold(p.tx < g.tx ? 'right' : 'left'); HW.step(1); HW.release(); }
+        else { HW.release(); HW.step(1); }
         if (HW.Inv.hp < 3) HW.Inv.hp = 6;
     }
+    HW.release();
     HW.step(60); HW.skipTalk();
     assert.ok(flag(HW, 'kiln_glazer'), 'Glazer broken');
     go(HW, 'glazer', 9, 7); HW.face('up'); HW.press('act', 1); HW.skipTalk();

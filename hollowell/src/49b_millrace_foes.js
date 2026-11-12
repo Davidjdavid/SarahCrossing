@@ -309,7 +309,7 @@ class Grindle extends GridThing {
         if (!this.alive || this.flash > 0) return;
         if (this.state === 'full' || (this.state === 'shut' && shard)) return this.hurt();
         Sfx.play('hitthing'); Fx.ring(this.tx * T + 16, this.ty * T);
-        if (this.state === 'shut' && !Progress.flag('grindle_shut')) { Progress.set('grindle_shut'); UI.toast("Clang! Its jaw is shut fast. The gear-heart turns in there, behind its teeth.", 200); }
+        if (this.state === 'shut' && !Progress.flag('grindle_shut')) { Progress.set('grindle_shut'); UI.toast("Clang! Nothing whole gets between those teeth. The gear-heart turns in there, behind the chink.", 200); }
     }
     hurt() {
         this.hp--; this.flash = 40; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
@@ -343,7 +343,11 @@ class Grindle extends GridThing {
         if (b && b.kind === 'rivets') for (const ex of [x + 3, x + 28]) if ((G.t >> 2) % 2) Gfx.rect(ex + sh, y - 4 + low + bob, 2, 2, '#fff6c0');
         if (b) Tells.bang(x + 16, y - 32 + low);
         if (this.state === 'full' || this.state === 'hurt') Gfx.img(spr('grindle_heart'), x + 11, y - 16 + low + bob);
-        if (this.state === 'shut') { Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1); }
+        if (this.state === 'shut') {
+            Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1);
+            /* (the gear-heart glimpsed through the chink between its teeth: its cogs going by, brass on red) */
+            for (let i = 0; i < 3; i++) Gfx.rect(x + 9 + ((G.t >> 2) + i * 5) % 14, y + 4 + bob, 1, 1, '#f7d64a');
+        }
         Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
     }
 }
@@ -401,7 +405,7 @@ const MillFoes = {
     *turn(g) {
         yield 50;
         if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
-        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again. One race runs straight past its teeth now; between them, deep in its throat, the gear-heart spins.", { focus: g });
+        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again: there's only a chink left between its teeth, too fine for anything bigger than a chip, and deep in its throat the gear-heart spins. One race runs straight past its teeth now.", { focus: g });
         g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
     },
     *grindleDown(g) {

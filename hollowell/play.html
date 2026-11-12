@@ -1889,11 +1889,12 @@ class Bust extends GridThing {
 class FloorThing extends Ent {
     constructor(kind, tx, ty, props = {}) { super(kind, props); this.tx = tx; this.ty = ty; this.x = tx * T; this.y = ty * T; this.floor = true; }
     get sortY() { return -1000 + this.y; }
-    /* is anything weighing on this tile? */
+    /* is anything weighing on this tile? (a stiff plate, `settled`, only feels what has come to rest on it, not a thing
+       passing over it or setting off from it) */
     weighed() {
         const a = this.area, o = a.at(this.tx, this.ty);
         if (this.puppetOnly) return !!(o && o.kind === 'puppet' && !o.carried);
-        if (o && !o.carried && !o.flying && o.weight >= (this.minWeight || 1)) return true;
+        if (o && !o.carried && !o.flying && o.weight >= (this.minWeight || 1) && !(this.settled && o.mv)) return true;
         const p = G.player;
         if (p && p.area === a && !p.flying && !p.dead && p.feetOn(this.tx, this.ty) && (this.minWeight || 1) <= WEIGHT.medium) return true;
         for (const m of a.walkers) if (m.alive !== false && m.feetOn && m.feetOn(this.tx, this.ty) && (m.weightN || 2) >= (this.minWeight || 1)) return true;
@@ -1909,13 +1910,21 @@ class Plate extends FloorThing {
     }
     update() {
         const w = this.weighed();
-        if (w && !this.down) { Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed' || this.mode === 'pulse') this.timer = this.time || 300; }
+        /* (no click for what was already sitting on it when the place was built: a bust at home on its plate) */
+        if (w && !this.down) { if (this._was) Sfx.play('click'); if (this.mode === 'toggle') this.on = !this.on; if (this.mode === 'timed' || this.mode === 'pulse') this.timer = this.time || 300; }
         if (!w && this.down) Sfx.play('unclick');
-        this.down = w;
+        this.down = w; this._was = true;
         if (this.mode === 'hold') this.on = w;
         if (this.mode === 'timed') { if (this.timer > 0) this.timer--; this.on = w || this.timer > 0; }
         if (this.mode === 'pulse') { if (this.timer > 0) this.timer--; this.on = this.timer > 0; }
         if (this.on) Signals.set(this.area, this.sig);
+    }
+    /* how much of its time is left, 0 to 1 (a plate that runs down: a pulse plate's from the moment it clicks, whatever
+       sits on it; a timed plate's once it's let go); null for a plate that holds */
+    sigLeft() {
+        if (this.mode !== 'pulse' && this.mode !== 'timed') return null;
+        if (this.mode === 'timed' && this.down) return 1;
+        return this.timer > 0 ? this.timer / (this.time || 300) : 0;
     }
     draw(cx, cy) {
         Gfx.img(spr(this.down ? 'plate_down' : 'plate'), this.x - cx, this.y - cy);
@@ -1926,10 +1935,10 @@ class Plate extends FloorThing {
             Gfx.rect(lx + 1, ly + 1, 2, 2, this.on ? '#5ad1c5' : '#4a3e2c');
             if (this.on) { Gfx.rect(lx + 1, ly + 1, 1, 1, '#d8fff8'); Gfx.alpha(0.35 + 0.15 * Math.sin(G.t / 8)); Gfx.rect(lx - 1, ly - 1, 6, 6, '#5ad1c5'); Gfx.alpha(1); }
         }
-        if ((this.mode === 'timed' || this.mode === 'pulse') && this.timer > 0 && (!this.down || this.mode === 'pulse')) {
-            const n = Math.ceil(this.timer / 60);
-            for (let i = 0; i < n && i < 8; i++) Gfx.rect(this.x - cx + 3 + i * 2, this.y - cy + 2, 1, 2, PAL.yellow);
-        }
+        /* a plate that runs down: its patience as a ring of brass stitches round it, unpicking as its time runs out (the ring
+           a thing out of place shows round its mark), steady while a timed plate is held down */
+        const k = this.sigLeft();
+        if (k > 0) Threads.ring(this.x - cx + 8, this.y - cy + 8, k, PAL.brass, this.mode === 'timed' && this.down);
     }
 }
 
@@ -2022,9 +2031,26 @@ class Door extends Ent {
         if (this.id) Progress.setAreaFlag(this.area.id, 'door:' + this.id);
     }
     get sortY() { return this.y + (this.dir === 'h' ? 15 : 15); }
+    /* a gate held open by something that runs down (a pulse or timed plate, a pulse charm, a wheel turning on after a float
+       has passed): how much of that time is left, 0 to 1 (the least, if it waits on more than one); null if nothing that
+       runs down is holding it */
+    timerLeft() {
+        if (this.type !== 'gate' || !this.open || this.keep || !this.when) return null;
+        if (!this._timers) {
+            const names = this.when.split(/[&|]/).map(t => t.trim()).filter(t => t && t[0] !== '!' && !t.startsWith('flag:'));
+            this._timers = this.area.ents.filter(e => e.sigLeft && names.includes(e.sig));
+        }
+        let k = null;
+        for (const e of this._timers) { const v = e.sigLeft(); if (v !== null && v > 0) k = k === null ? v : Math.min(k, v); }
+        return k;
+    }
     draw(cx, cy) {
         const sx = this.x - cx, sy = this.y - cy;
         const a = this.anim;
+        /* (a gate on a timer says so: the ring of stitches round the doorway that a thing out of place shows round its mark,
+           unpicking as the time that holds it open runs out) */
+        const k = this.timerLeft();
+        if (k !== null && k < 1) Threads.ring(sx + 8, sy + 8, k, PAL.brass);
         if (a >= 8) return;
         const th = this.area.theme;
         const bar = this.type === 'lock' ? '#8a5a2a' : this.type === 'big' ? '#2e5a98' : (th.wall ? th.wall[3] : '#5a4a4a');
@@ -3350,8 +3376,11 @@ const Shards = {
             if (h && cx + 6 > h.x0 && cx - 6 < h.x1 && cy + 6 > h.y0 && cy - 6 < h.y1) e.struck(s.o, 1, -1, true);
         }
         if (s.o.onShardTile) s.o.onShardTile(tx, ty);
-        /* clay creatures' pieces hurt Wren too */
-        if (s.hurt) { const p = G.player; if (p && p.area === area && p.feetOn(tx, ty)) p.hurt(1, tx * T + 8 - DX[dirOf(1, 0)], ty * T + 8); }
+        /* clay creatures' pieces hurt Wren too (knocking her on the way they fly, not off to one side) */
+        if (s.hurt) {
+            const p = G.player, b = s.path[Math.max(0, s.i - 1)];
+            if (p && p.area === area && p.feetOn(tx, ty)) p.hurt(1, p.x - sign(tx - b[0]) * 8, p.y - sign(ty - b[1]) * 8);
+        }
     },
     reform(s) {
         const o = s.o;
@@ -4334,7 +4363,7 @@ function patternIcon(h) { return spr('hud_pattern_' + h) ? 'hud_pattern_' + h : 
 const ITEMS = {
     gloves: { name: 'Gloves', kind: 'tool', desc: 'Hold [act] against a block to grip it: it stays put while you hold on. Step back to pull it. (Or tap [act] to take hold and again to let go: Options, Grip.)' },
     hook: { name: 'Hookline', kind: 'tool', desc: '[tool]: throw the hook. Catches on eyelets and empty marks and reels you over; reels light things to you.' },
-    paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and paddle it about.' },
+    paddle: { name: 'Paddle', kind: 'tool', desc: 'Stand on anything that floats and hold [tool]: it goes wherever you steer it.' },
     bell: { name: 'Recall Bell', kind: 'tool', desc: '[tool]: ring it. Everything nearby out of place snaps straight home, shoving harder than it would on its own.' },
     bedroll: { name: 'Bedroll', kind: 'tool', desc: '[tool]: lay it down to make a place of your own. Hold [tool] to go home to it.' },
     crossbar: { name: 'Crossbar', kind: 'tool', desc: '[tool]: take up the strings of a puppet you can see, and walk it.' },
@@ -4672,6 +4701,8 @@ const Save = {
         s.inv = Object.assign({ hp: 6, maxHp: 6, buttons: 0, tools: [], keyCount: {}, patterns: [], plans: [], knots: [], patches: 0, patchIds: [], items: {}, bedroll: null }, s.inv || {});
         s.progress = Object.assign({ flags: {}, areaFlags: {}, notes: [], journal: [], goal: '' }, s.progress || {});
         s.stats = Object.assign({ c: {}, rooms: {}, playFrames: 0, visited: {} }, s.stats || {});
+        /* (Gran's tune went into the Journal when she hummed it: a save from before that heard her hum it too) */
+        if (!s.progress.notes.includes('granTune')) s.progress.notes.unshift('granTune');
         /* (the Guild's thread was lightened to read on its floors: a Needle stitch remembers a thing's old colour) */
         for (const st of s.inv.stitches || []) if (st && st.color0 === '#a8784a') st.color0 = THREAD.guild;
         s.v = SAVE_V;
@@ -5992,7 +6023,8 @@ const Options = {
             ['Sound', () => Math.round(Audio.vol.sfx * 10), d => { Audio.vol.sfx = clamp(Audio.vol.sfx + d * 0.1, 0, 1); Audio.setVolumes(); Sfx.play('menu'); }],
             ['Text speed', () => ['slow', 'normal', 'fast'][Settings.textSpeed === 0.5 ? 0 : Settings.textSpeed === 1 ? 1 : 2], d => { const v = [0.5, 1, 2]; let i = v.indexOf(Settings.textSpeed); i = clamp(i + d, 0, 2); Settings.textSpeed = v[i]; }],
             ['Screen shake', () => Settings.shake ? 'on' : 'off', () => { Settings.shake = !Settings.shake; }],
-            [Progress.flag && Progress.flag('reveal1') ? "Makers' nudges" : 'Hints', () => Settings.hints ? 'on' : 'off', () => { Settings.hints = !Settings.hints; Stats.count(Settings.hints ? 'hintsOn' : 'hintsOff'); }],
+            /* (on, until the House has asked whether it should: it asks first, so a player can see they're offered, not given) */
+            [Progress.flag && Progress.flag('reveal1') ? "Makers' nudges" : 'Hints', () => !Settings.hints ? 'off' : Progress.flag && Progress.flag('hintsAsked') ? 'on' : 'ask first', () => { Settings.hints = !Settings.hints; Stats.count(Settings.hints ? 'hintsOn' : 'hintsOff'); }],
         ];
     },
     open() { this.sel = 0; },
@@ -10428,6 +10460,63 @@ const NUDGE_VOICES = {
     marionette: { pre: 'Somewhere behind the scenery, someone whispers, very loudly: "Psst!"', yes: '"Bravo."', no: '"Quite right too. Your scene." A door closes softly, somewhere in the wings.' },
 };
 
+/* a boss's nudges, one for each beat of its fight that needs an idea: how things behave there, in the House's way of
+   saying it, never the step (a boss room has no nudge of its own; while its boss is up and about, its beat's nudge
+   stands in for one, and comes after a while stuck in that beat: the time in the room since the beat began, kept
+   across goes at it) */
+const BOSS_NUDGE_AFTER = 60 * 60 * 2.5;
+const BOSS_NUDGES = {
+    /* the Tidyhouse */
+    monger: { 1: "Swing at it all you like: it only dusts itself off. Anything thrown hits it properly, and so does anything heavy on its way home." },
+    housekeeper: {
+        1: "It always walks right up to the mess before it yanks it home. A bust coming home stops for nobody standing on its way.",
+        2: "It yanks things home from its cross now, each along its own thread. Whatever's standing on a thread gets what's coming home along it.",
+        3: "It yanks the moment anything's out of its place. A thing held fast won't come when it's yanked: whatever's yanking comes to it instead.",
+    },
+    /* the Kiln */
+    glazer: { 1: 'Its shield turns to follow you wherever you go. Its shot, though, always comes home the way it went.' },
+    kilnwyrm: {
+        1: "It follows your footprints exactly, step for step. A pot's pieces fly home along the very steps it was carried.",
+        2: "Round the rim it goes, the same way every time. A pot's pieces fly home the whole way it was carried, and hit whatever's on that way.",
+        3: "Down in the pit, nothing that walks can reach it. A pot's pieces fly home the way the pot went, over a pit or not.",
+    },
+    /* the Millrace */
+    snapjaw: { 1: "It ducks anything floating its way, so long as it's watching the water. Reared up at you on the bank, it isn't." },
+    grindle: {
+        1: "It swallows anything that floats to rest in its open mouth. Full, it settles low, and its gear-heart is there for the hitting.",
+        2: "It eats the ferry now. Anything else that floats goes wherever it's paddled, with the race or against it.",
+        3: "Clamped shut, it takes nothing whole between its teeth. Little pieces get in, and a pot's pieces fly home the whole way it was carried.",
+    },
+    /* the Belfry */
+    clangor: { 1: "When it rings, everything out of its place snaps home, through whatever's standing on the way. A thing being held doesn't." },
+    tollgrim: {
+        1: 'Only the clapper coming home hard knocks him out of the bell. Blown out of it, the clapper leaves room for him in the mouth.',
+        2: 'He hears a ring as far as a bell can reach, and no further. And not every bell in the tower is the one in your hand.',
+        3: "He watches you now, not the clapper, and stays in while you're near enough to ring it. A pot's pieces flying home ring any bell they pass.",
+    },
+    /* the Slumberhouse */
+    matron: { 1: 'She treads exactly where you trod, step for step. The old boards here hold one walker, and give way under the next.' },
+    mothersloth: {
+        1: "Her arms reel you in to be tucked up. Drawn out past the ring of stars, an arm snaps; and Homeward flies you to your Bedroll, wherever it lies.",
+        2: "Homeward flies you back the way you came, over anything you crossed on the way, even if it isn't there any more.",
+        3: "Caught in her grip, you can still turn round. A hook caught on a brass ring pulls you to it, whatever's pulling the other way.",
+    },
+    /* Marionette Hall */
+    captain: { 1: "He marches on till something stands in his way, and turns at it. Knocked flat, a flat stands in nobody's way." },
+    greatmarionette: {
+        1: 'Its strings run all the way down to its feet. A string walked right round something tangles on it.',
+        2: "It marches round its stage, turning right at whatever's in its way, and wherever it turns, a foot comes down. The stage has a trap in it.",
+        3: "Its bar hangs low, out of reach of a hand but not of a hook. Brought down in front of you, its strings are anybody's.",
+    },
+    /* the Spoolworks */
+    cog: { 1: "His brass hide shrugs off the stick. His cord hangs down under his kennel, and a cord tied off below holds whatever's on the end of it." },
+    tangle: {
+        1: 'Four threads tie it together. Drawn out of it and held out, all four at once, they let it go.',
+        2: "Up on the old hoist it's out of reach, and the hoist answers to its counterweight below.",
+        3: "It hauls in every thread it can. A ring sends everything home at once, home being wherever the Needle put it; a thing being held stays where it is.",
+    },
+};
+
 /* nudges: the Hints option. A room can say how to tell it's solved and what to nudge */
 const Nudges = {
     /* "<house>_<id>" means that thing of the House is done: a chest opened, a door or gate opened, a lever pulled;
@@ -10445,15 +10534,33 @@ const Nudges = {
             return !!(e && (e.opened || e.openedOnce || (e.kind === 'door' && e.open && e.type !== 'shutter') || (e.kind === 'lever' && e.on)));
         });
     },
+    /* the boss up and about in this room, and which beat of its fight it's in (the beats count up as its hits run out) */
+    boss(a, r) {
+        for (const e of a.ents) {
+            const N = BOSS_NUDGES[e.type || e.kind];
+            if (!N || e.alive === false || e.removed || e.state === 'sleep' || !isBoss(e)) continue;
+            const tx = e.hx !== undefined ? e.hx : e.isGrid ? e.tx : tileOf(e.x), ty = e.hy !== undefined ? e.hy : e.isGrid ? e.ty : tileOf(e.y);
+            if (a.roomAt(tx, ty) !== r) continue;
+            const beat = typeof e.phase === 'number' ? e.phase : N[2] ? 4 - clamp(e.hp, 1, 3) : 1;
+            return N[beat] ? { e, beat, say: N[beat] } : null;
+        }
+        return null;
+    },
+    beatT: {},
     update(a) {
         if (!Settings.hints || !a.def.house || a.def.noNudges || Progress.flag('noNudges')) return;
-        const r = Cam.room; if (!r || !r.nudge) return;
-        const n = r.nudge;
-        const key = a.id + ':' + r.key;
-        if (Progress.areaFlag(a.id, 'nudged:' + r.key)) return;
-        if (n.solved && Nudges.solved(a, n.solved)) return;
+        const r = Cam.room; if (!r) return;
         const st = Stats.rooms[a.id + ':' + r.i];
-        if (!st || st.t < (n.after || 60 * 60 * 3)) return;
+        /* (a boss's beat: nudged once a beat, counted from when the beat was first seen) */
+        const b = !r.nudge && st ? Nudges.boss(a, r) : null;
+        if (!r.nudge && !b) return;
+        const n = b ? { key: r.key + ':' + b.beat, say: b.say, focus: b.e, after: BOSS_NUDGE_AFTER } : r.nudge;
+        const key = n.key || r.key;
+        if (Progress.areaFlag(a.id, 'nudged:' + key)) return;
+        if (n.solved && Nudges.solved(a, n.solved)) return;
+        let t = st ? st.t : 0;
+        if (b) { const k = a.id + ':' + key; if (this.beatT[k] === undefined || this.beatT[k] > t) this.beatT[k] = t; t -= this.beatT[k]; }
+        if (!st || t < (n.after || 60 * 60 * 3)) return;
         if (Script.blocking() || Dialog.active) return;
         /* the first time, the House asks whether it should (the answer stands; Options > Hints changes it) */
         if (!Progress.flag('hintsAsked')) { Progress.set('hintsAsked'); Script.run(Nudges.ask(a, r, n)); return; }
@@ -10471,8 +10578,8 @@ const Nudges = {
         }
     },
     fire(a, r, n) {
-        const key = a.id + ':' + r.key, st = Stats.rooms[a.id + ':' + r.i];
-        Progress.setAreaFlag(a.id, 'nudged:' + r.key);
+        const key = a.id + ':' + (n.key || r.key), st = Stats.rooms[a.id + ':' + r.i];
+        Progress.setAreaFlag(a.id, 'nudged:' + (n.key || r.key));
         st.nudges = (st.nudges || 0) + 1;
         Stats.count('nudges');
         Stats.nudgeLog = Stats.nudgeLog || [];
@@ -10480,7 +10587,8 @@ const Nudges = {
         if (n.at) { const [x, y] = n.at; Fx.sparkle((r.x + x) * T + 8, (r.y + y) * T + 4, '#fff6c0'); Fx.ring((r.x + x) * T + 8, (r.y + y) * T + 8, '#fff6c0'); }
         if (n.thing) { const o = a.ents.find(e => e.id === n.thing); if (o) { o.nudgeT = 90; Fx.sparkle(o.tx * T + 8, o.ty * T + 2, '#fff6c0'); } }
         Sfx.play('twang');
-        if (n.say) UI.toast(n.say, 240);
+        /* (a boss's: kept clear of the boss it's about) */
+        if (n.say) UI.toast(n.say, 240, { focus: n.focus || null });
     },
 };
 
@@ -10641,6 +10749,11 @@ defHouse({
             nudge: { solved: 'kc', at: [4, 1], say: 'A pot on the shelf wobbles, as if it would like to be thrown.' },
         },
         /* ---------------- 3 Gallery ---------------- */
+        /* (the closet wants the bust at home on its own plate, a stiff iron one that only something heavy come to rest on
+           sinks, and the far plate pressed, together: a bust pushed onto the far plate lifts its own, and going home it
+           never sinks both at once, so it can't be dashed; the far plate's nook is reached only through the bust's place,
+           so whatever holds it there has its way home through that place; and anyone in the nook can hop down off its
+           step, so the bust coming home never shuts her in) */
         '2,3': {
             name: 'Gallery',
             rows: [
@@ -10650,7 +10763,7 @@ defHouse({
                 '#.......#.#........#',
                 '#...#####.######.###',
                 '...........#.......#',
-                '#.........##.......#',
+                '#.........v#.......#',
                 '#..................#',
                 '#..................#',
                 '#..................#',
@@ -10659,24 +10772,29 @@ defHouse({
             ents: [
                 { k: 'wood', x: 8, y: 5, id: 'galBlock' },
                 { k: 'bust', x: 9, y: 5, id: 'galBust' },
+                { k: 'plate', x: 9, y: 5, sig: 'g2', minWeight: WEIGHT.heavy, settled: true, look: 'iron' },
                 { k: 'plate', x: 10, y: 5, sig: 'g1' },
-                { k: 'door', x: 16, y: 4, type: 'gate', when: 'g1', passed: 'up', id: 'gG' },
+                { k: 'door', x: 16, y: 4, type: 'gate', when: 'g1&g2', passed: 'up', id: 'gG' },
                 { k: 'chest', x: 16, y: 1, item: 'plan', id: 'gPlan' },
                 { k: 'deco', x: 2, y: 1, look: 'painting', solid: false, oy: -12, baseY: -100 },
                 { k: 'deco', x: 5, y: 1, look: 'painting2', solid: false, oy: -12, baseY: -100 },
                 { k: 'enemy', x: 5, y: 8, type: 'dustbunny' },
                 { k: 'pot', x: 17, y: 9, style: 'pot_teal' },
+                { k: 'sign', x: 1, y: 7, text: 'THE GALLERY. Please mind the busts. Each one knows its place, and once it is back in it, nothing gets past.' },
             ],
-            nudge: { solved: 'g1', thing: 'galBust', say: 'The bust looks very pleased with its spot. Nothing gets past it once it is home.' },
+            nudge: { solved: 'tidy_gG', thing: 'galBust', say: "The far plate's nook can only be reached through the bust's own spot. The bust looks very pleased with that spot." },
         },
         /* ---------------- 4 Hall of Busts ---------------- */
+        /* (the gallery along the top is reached only round its far end, so the north door is a long walk from the plate:
+           nothing pushed onto it and left there holds it long enough; the block, waiting beside the bust's way up and
+           back, is what does) */
         '1,2': {
             name: 'Hall of Busts',
             rows: [
                 '###.################',
                 '#..................#',
                 '#..................#',
-                '########...........#',
+                '##################.#',
                 '#,,,,,,,,,,,,,,,,,,#',
                 ',,,,,,,,,,,,,,,,,,,,',
                 '#,,,,,,,,,,,,,,,,,,#',
@@ -10688,13 +10806,14 @@ defHouse({
             ents: [
                 { k: 'bust', x: 9, y: 6, id: 'hallBust' },
                 { k: 'plate', x: 9, y: 7, sig: 'hb' },
-                { k: 'wood', x: 8, y: 4, id: 'hallBlock' },
+                { k: 'wood', x: 8, y: 5, id: 'hallBlock' },
                 { k: 'bust', x: 2, y: 8 }, { k: 'bust', x: 17, y: 8 },
                 { k: 'door', x: 3, y: 0, type: 'gate', when: 'hb', passed: 'up', id: 'hN' },
                 { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'hE' },
                 { k: 'enemy', x: 15, y: 2, type: 'nibbler' },
+                { k: 'sign', x: 11, y: 9, text: 'THE HALL OF BUSTS. Solid marble, every one. They always go home, and anything lighter in the way gets moved along.' },
             ],
-            nudge: { solved: 'hb', after: 60 * 60 * 4, thing: 'hallBust', say: 'The bust in the middle looks restless. It would knock anything out of its way, going home.' },
+            nudge: { solved: 'tidy_hN', after: 60 * 60 * 4, thing: 'hallBust', say: 'The bust in the middle looks restless. Anything it moves along on its way home ends up one step past its spot.' },
         },
         /* ---------------- 5 Pantry ---------------- */
         '0,2': {
@@ -10976,7 +11095,10 @@ const TidyLogic = {
         /* the ballroom: both blocks home */
         if (!Progress.flag('tidy_ballDone')) {
             const ball = a.ents.filter(e => e.group === 'ball');
-            if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) { Progress.set('tidy_ballDone'); Sfx.play('appear'); }
+            if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) {
+                Progress.set('tidy_ballDone'); Sfx.play('appear'); G.shake = 4;
+                G.pendingToast = 'Both busts home, and the ballroom tidy at last. Something clicks, and a big chest stands where nothing stood before.';
+            }
         }
         const sc = a.find('shortcut');
         if (sc && sc.on && !Progress.flag('tidy_shortcut')) Progress.set('tidy_shortcut');
@@ -11698,7 +11820,7 @@ const TIDY_DRESS = {
     /* the gallery: pictures on its red walls */
     '2,3': { wall: [['td_paint_sea', 180, 0], ['td_paint_fruit', 214, 0], ['td_paint_hills', 82, 64], ['td_paint_horse', 197, 64]] },
     /* the hall of busts: marble pilasters marching down it */
-    '1,2': { wall: [['td_pilaster', 83, 0], ['td_pilaster', 131, 0], ['td_pilaster', 179, 0], ['td_pilaster', 227, 0], ['td_pilaster', 35, 48], ['td_pilaster', 83, 48]] },
+    '1,2': { wall: [['td_pilaster', 83, 0], ['td_pilaster', 131, 0], ['td_pilaster', 179, 0], ['td_pilaster', 227, 0], ['td_pilaster', 35, 48], ['td_pilaster', 83, 48], ['td_pilaster', 131, 48], ['td_pilaster', 179, 48], ['td_pilaster', 227, 48]] },
     /* the pantry: a ham, strings of onions and garlic, herbs drying (the larder dresser where the bookcase stood) */
     '0,2': { wall: [['td_hams', 85, 0], ['td_herbs', 197, 1]] },
     /* the parlour: the fire, the armchairs drawn up to it (the piano where the bookcase stood) */
@@ -12714,7 +12836,7 @@ defHouse({
         '1,2': {
             name: 'Charm Hall',
             rows: [
-                '#########.##########',
+                '##L######.##########',
                 '#..................#',
                 '#..................#',
                 '#...###......###...#',
@@ -12883,6 +13005,8 @@ defHouse({
             nudge: { solved: 'kiln_bKey', after: 60 * 60 * 3, at: [6, 5], say: 'The charm hangs over the drop, out of reach of any throw from the edge. But a path can cross a chasm, if you fly it.' },
         },
         /* ---------------- 9 Furnace Hall ---------------- */
+        /* (the west strip, once reached, has a way back east: a step down through the floor's edge into the Charm Hall
+           below, whose north gate is open by then; it only goes down, so it's no way in) */
         '1,1': {
             name: 'Furnace Hall',
             rows: [
@@ -12896,7 +13020,7 @@ defHouse({
                 '#...ooo............#',
                 '#...ooo............#',
                 '#...ooo............#',
-                '#########.##########',
+                '##L######.##########',
             ],
             ents: [
                 { k: 'crate', x: 3, y: 5, id: 'fCrate' },
@@ -13006,7 +13130,7 @@ defHouse({
             ],
         },
     },
-    legend: { 'v': { k: 'low', p: 'vat' } },
+    legend: { 'v': { k: 'low', p: 'vat' }, 'L': { k: 'ledge', p: 'ledge' } },     /* (L: a step down through a floor's edge) */
     tick: a => KilnLogic.tick(a),
     afterKnot: function* () { yield* Kiln.afterKnot(); },
     /* (each room its own look, its dressing laid over the floor and its fires flickering: see the end of this file) */
@@ -13051,6 +13175,8 @@ Charm.prototype.update = function () {
     if (this.mode === 'pulse') { if (this.pulse > 0) { this.pulse--; this.on = true; } else this.on = false; }
     _charmUpdate.call(this);
 };
+/* (how much of its ring is left, 0 to 1: a gate it holds open shows it, src/08_things.js Door.timerLeft) */
+Charm.prototype.sigLeft = function () { return this.mode === 'pulse' ? (this.pulse > 0 ? this.pulse / (this.time || 160) : 0) : null; };
 
 /* ---------- the clay creatures ---------- */
 /* Crocks: walking pots. One knock shatters them; the pieces fly home the way the crock walked, and they hurt */
@@ -13073,12 +13199,23 @@ SPAWN.crock = (x, y, p) => {
     return e;
 };
 
-/* the Glazer: a clay knight who throws clay shot. The shot breaks; its pieces fly back to the Glazer's
-   hand along the same line, and the Glazer is still standing on that line */
+/* the Glazer: a clay knight who throws clay shot, and keeps its glazed shield turned towards Wren. The shot breaks; its
+   pieces fly back to the Glazer's hand along the same line, and the Glazer stands on that line till they're home: the
+   one thing that cracks it, if they come at it where its shield isn't. Met head on they clatter off the shield, so the
+   fight asks one thing: be off to its side (or behind it) when its shot comes home, and it turns its shield to you and
+   its side to its own shot. Standing still in front of it, the shot hits Wren and the pieces hit the shield. */
 class Glazer extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'glazer', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
-        this.state = 'sleep'; this.st = 0;
+        this.state = 'sleep'; this.st = 0; this.shotOut = false; this.shotDir = DOWN;
+    }
+    /* its shot out, its shield to Wren: still on the line it threw along, it keeps facing down it; off it (a step to
+       either side), it turns to her, side on to the line; behind it, it turns round */
+    face(p) {
+        const d = this.shotDir, dx = p.x - this.x, dy = p.y - this.y, upDown = d === UP || d === DOWN;
+        const along = dx * DX[d] + dy * DY[d], perp = upDown ? dx : dy;
+        if (Math.abs(perp) <= 10) this.dir = along >= 0 ? d : OPP[d];
+        else this.dir = upDown ? (perp < 0 ? LEFT : RIGHT) : (perp < 0 ? UP : DOWN);
     }
     hurtBox() { if (!this.alive) return null; return { x0: this.x - 8, x1: this.x + 8, y0: this.y - 22, y1: this.y + 4 }; }
     update() {
@@ -13090,7 +13227,7 @@ class Glazer extends Enemy {
                 this.state = 'walk'; this.st = 0;
                 for (const s of a.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = true;
                 Music.play('boss');
-                Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands.'); });
+                Script.run(function* () { yield* stepIn(); yield* say(null, 'A clay knight with a glazed shield clanks to its feet, rolling a ball of clay between its hands. Its shield turns to follow you.'); });
             }
             return;
         }
@@ -13104,12 +13241,15 @@ class Glazer extends Enemy {
                 /* (its one dangerous move: come too close and it braces behind its shield, then barges two tiles on) */
                 if (Math.hypot(dx, dy) < 30 && this.st > 30 && p.state === 'normal') { this.brace(dirOf(dx, dy)); break; }
                 if ((ax < 8 || ay < 8) && this.st > 40) { this.dir = ax < 8 ? (dy < 0 ? UP : DOWN) : (dx < 0 ? LEFT : RIGHT); this.aim(); break; }
+                /* (sidling to line up, its shield kept on her) */
+                this.dir = ax > ay ? (dx < 0 ? LEFT : RIGHT) : (dy < 0 ? UP : DOWN);
                 if (ax < ay) this.move(sign(dx) * 0.7, 0); else this.move(0, sign(dy) * 0.7);
                 this.anim++;
                 break;
             }
             case 'aim': if (this.st >= this.tellN) { this.throwShot(); this.setState('hold'); } break;
-            case 'hold': if (this.st > 70) this.setState('walk'); break;
+            /* (its shot out, it stands on its line and turns to keep its shield on her, till the pieces are home) */
+            case 'hold': if (this.shotOut) this.face(p); if (this.st > 70 && (!this.shotOut || this.st > 240)) { this.shotOut = false; this.setState('walk'); } break;
             case 'hurt': if (this.st > 30) this.setState('walk'); break;
             case 'brace': if (this.st >= this.tellN) { this.setState('barge'); Sfx.play('boss'); } break;
             case 'barge':
@@ -13146,12 +13286,19 @@ class Glazer extends Enemy {
             const p = G.player;
             if (p.feetOn(x, y)) break;
         }
-        this.shot = { path, i: 0, t: 0 };
+        this.shot = { path, i: 0, t: 0 }; this.shotDir = this.dir; this.shotOut = true;
         GlazerShots.list.push({ g: this, path, i: 0, t: 0 });
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
         if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); return; }   /* the stick bounces off its glaze */
+        /* its own shot, met head on (its shield still facing down the line it threw along): off the shield */
+        if (by && by.owner === this && this.dir === this.shotDir) {
+            Sfx.play('hitthing'); Fx.ring(this.x + DX[this.dir] * 6, this.y - 12 + DY[this.dir] * 3, '#bff3ee');
+            Stats.count('boss:glazer:shield');
+            if (!Progress.flag('glazer_shield')) { Progress.set('glazer_shield'); UI.toast('The pieces come home and clatter off its glazed shield. It never takes its shield off you.', 200); }
+            return;
+        }
         this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt'); calmBlows(this);
         Stats.count('boss:glazer:shards');
         if (this.hp <= 0) {
@@ -13162,6 +13309,13 @@ class Glazer extends Enemy {
             Script.run(function* () { yield 40; yield* say(null, 'The Glazer cracks from head to foot and crumbles away to dust. Its own shot, coming home, was the one thing its shield never faced.'); });
         }
     }
+    /* its glazed shield, held on whichever side it faces (big, braced, before a barge) */
+    drawShield(cx, cy, sh, low) {
+        const big = this.state === 'brace', d = this.dir, w = big ? 10 : 8, h = big ? 11 : 10;
+        const sx = Math.round(this.x - cx + DX[d] * (big ? 5 : 7)) + sh, sy = Math.round(this.y - cy) - (big ? 17 : 16) + low + (d === UP ? -3 : d === DOWN ? 2 : 0);
+        Gfx.rect(sx - w / 2, sy, w, h, PAL.ink); Gfx.rect(sx - w / 2 + 1, sy + 1, w - 2, h - 2, '#5ad1c5'); Gfx.rect(sx - w / 2 + 1, sy + 1, w - 2, 1, '#bff3ee'); Gfx.rect(sx - w / 2 + 1, sy + h - 2, w - 2, 1, '#2e9a96');
+        Gfx.rect(sx - 2, sy + h, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, h - 7, '#e8a070');
+    }
     draw(cx, cy) {
         if (!this.alive) return;
         const im = spr(this.state === 'aim' ? 'glazer_aim' : 'glazer');
@@ -13169,14 +13323,11 @@ class Glazer extends Enemy {
         Gfx.alpha(0.25); Gfx.rect(this.x - cx - 7, this.y - cy + 1, 14, 3, PAL.ink); Gfx.alpha(1);
         /* bracing: crouched behind its shield, shivering, its "!" up */
         const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
+        /* (its shield always towards her: behind it when it faces away up the room, in front of it otherwise) */
+        if (this.dir === UP) this.drawShield(cx, cy, sh, low);
         Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
-        /* (its glazed shield up before it, toward her) */
-        if (this.state === 'brace') {
-            const sx = Math.round(this.x - cx + DX[this.dir] * 5) + sh, sy = Math.round(this.y - cy) - 17 + low + (this.dir === UP ? -3 : 0);
-            Gfx.rect(sx - 5, sy, 10, 11, PAL.ink); Gfx.rect(sx - 4, sy + 1, 8, 9, '#5ad1c5'); Gfx.rect(sx - 4, sy + 1, 8, 1, '#bff3ee'); Gfx.rect(sx - 4, sy + 9, 8, 1, '#2e9a96');
-            Gfx.rect(sx - 2, sy + 11, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, 4, '#e8a070');
-            Tells.bang(this.x - cx, this.y - cy - 36);
-        }
+        if (this.dir !== UP) this.drawShield(cx, cy, sh, low);
+        if (this.state === 'brace') Tells.bang(this.x - cx, this.y - cy - 36);
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);
@@ -13192,10 +13343,11 @@ const GlazerShots = {
             if (s.i >= s.path.length) {
                 s.done = true;
                 const [lx, ly] = s.path[s.path.length - 1];
-                if (p.feetOn(lx, ly)) p.hurt(1, lx * T + 8 - DX[s.g.dir] * 8, ly * T + 8 - DY[s.g.dir] * 8);
+                /* (it knocks her straight on down its line: it never shoves her off it) */
+                if (p.feetOn(lx, ly)) p.hurt(1, p.x - DX[s.g.shotDir] * 8, p.y - DY[s.g.shotDir] * 8);
                 Sfx.play('shatter'); Fx.burst(lx * T + 8, ly * T + 8, '#c4623a');
-                /* home along the same line, through the thrower if it's still there */
-                Shards.flight(area, s.path.slice().reverse(), { col: '#c4623a', hurt: true, pace: 4, delay: 8 });
+                /* home along the same line, through the thrower if it's still there (its shield turned away from them, or not) */
+                Shards.flight(area, s.path.slice().reverse(), { col: '#c4623a', hurt: true, pace: 4, delay: 8, owner: s.g, onDone: () => { s.g.shotOut = false; } });
             }
         }
         this.list = this.list.filter(s => !s.done);
@@ -14527,6 +14679,8 @@ class Wheel extends GridThing {
         this.timer = 0; this.ang = 0; this.on = false;
     }
     get watch() { return this.at || [this.tx + DX[this.face], this.ty + DY[this.face]]; }
+    /* (a pulse wheel's time left, 0 to 1, full while it turns: a gate it holds open shows it, Door.timerLeft) */
+    sigLeft() { return this.mode === 'pulse' ? this.timer / this.time : null; }
     tick() {
         const [wx, wy] = this.watch;
         const o = this.area.at(wx, wy);
@@ -15964,7 +16118,7 @@ class Grindle extends GridThing {
         if (!this.alive || this.flash > 0) return;
         if (this.state === 'full' || (this.state === 'shut' && shard)) return this.hurt();
         Sfx.play('hitthing'); Fx.ring(this.tx * T + 16, this.ty * T);
-        if (this.state === 'shut' && !Progress.flag('grindle_shut')) { Progress.set('grindle_shut'); UI.toast("Clang! Its jaw is shut fast. The gear-heart turns in there, behind its teeth.", 200); }
+        if (this.state === 'shut' && !Progress.flag('grindle_shut')) { Progress.set('grindle_shut'); UI.toast("Clang! Nothing whole gets between those teeth. The gear-heart turns in there, behind the chink.", 200); }
     }
     hurt() {
         this.hp--; this.flash = 40; G.hitstop = 8; G.shake = 8; Sfx.play('enemyhit');
@@ -15998,7 +16152,11 @@ class Grindle extends GridThing {
         if (b && b.kind === 'rivets') for (const ex of [x + 3, x + 28]) if ((G.t >> 2) % 2) Gfx.rect(ex + sh, y - 4 + low + bob, 2, 2, '#fff6c0');
         if (b) Tells.bang(x + 16, y - 32 + low);
         if (this.state === 'full' || this.state === 'hurt') Gfx.img(spr('grindle_heart'), x + 11, y - 16 + low + bob);
-        if (this.state === 'shut') { Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1); }
+        if (this.state === 'shut') {
+            Gfx.alpha(0.35 + 0.25 * Math.sin(G.t / 6)); Gfx.rect(x + 9, y + 3 + bob, 14, 3, '#e8463c'); Gfx.alpha(1);
+            /* (the gear-heart glimpsed through the chink between its teeth: its cogs going by, brass on red) */
+            for (let i = 0; i < 3; i++) Gfx.rect(x + 9 + ((G.t >> 2) + i * 5) % 14, y + 4 + bob, 1, 1, '#f7d64a');
+        }
         Gfx.alpha(0.55); Gfx.rect(x - 2, y + 12, 36, 2, '#ffffff'); Gfx.alpha(1);
     }
 }
@@ -16056,7 +16214,7 @@ const MillFoes = {
     *turn(g) {
         yield 50;
         if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about: the side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
-        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again. One race runs straight past its teeth now; between them, deep in its throat, the gear-heart spins.", { focus: g });
+        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again: there's only a chink left between its teeth, too fine for anything bigger than a chip, and deep in its throat the gear-heart spins. One race runs straight past its teeth now.", { focus: g });
         g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
     },
     *grindleDown(g) {
@@ -16194,6 +16352,7 @@ const Prologue = {
             yield 30;
             Music.play('lullaby');
             yield* say(null, "Half asleep, you hear Gran humming downstairs: the bedtime tune she always hums. Low... high... in between... high... and low again. It goes round and round.");
+            Progress.addNote('granTune');
             Music.play('home');
             yield* fadeIn(60);
             yield 40;
@@ -16208,6 +16367,9 @@ const Prologue = {
         });
     },
 };
+
+/* the Journal keeps the tune (only the tune, as it was heard), for whenever it's wanted again */
+NOTES.granTune = { title: "Gran's bedtime tune", text: 'The tune Gran always hums at bedtime: low... high... in between... high... and low again.' };
 
 /* Gran, at home, the morning of the ceremony */
 TALK.gran = function* (npc) {
@@ -19004,7 +19166,15 @@ class Tollgrim extends Enemy {
         Script.run(BelfryFoes.tollDown(this));
     }
     draw(cx, cy) {
-        for (const s of this.spits) { Gfx.circle(s.x - cx, s.y - cy, 2, '#7f7688'); Gfx.rect(s.x - cx - 1, s.y - cy - 1, 1, 1, '#c4bccb'); }
+        /* his gravel: each stone inked round and pale, so it reads on the dark boards, with its shadow on the floor under it
+           and a streak behind it the way it's going */
+        for (const s of this.spits) {
+            const x = Math.round(s.x - cx), y = Math.round(s.y - cy);
+            Gfx.alpha(0.35); Gfx.rect(x - 2, y + 6, 5, 2, PAL.ink); Gfx.rect(x - 1, y + 5, 3, 1, PAL.ink);
+            for (let i = 1; i <= 2; i++) { Gfx.alpha(0.5 - i * 0.15); Gfx.circle(x - s.vx * i * 3, y - s.vy * i * 3, 2, '#efe8f2'); }
+            Gfx.alpha(1);
+            Gfx.circle(x, y, 3, PAL.ink); Gfx.circle(x, y, 2, '#d8d0de'); Gfx.rect(x - 1, y - 1, 1, 1, '#ffffff');
+        }
         if (!this.alive) {
             if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.tess); }
             return;
