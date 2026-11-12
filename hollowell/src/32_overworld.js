@@ -76,7 +76,9 @@ SPAWN.rest = (tx, ty, p) => {
         Script.run(function* () {
             const pl = G.player;
             const cut = Progress.flag('cut_self');
-            const i = yield* ask(null, cut ? "A stump with a little red cross stitched into the bark. There's nothing to tie off any more. Remember this place?" : 'A stump with a little red cross stitched into the bark. Tie off your thread here?', [cut ? 'Remember it (save)' : 'Tie off (save)', 'Not now']);
+            /* (said in full the first time, and the first time after your thread's cut; then short: every save out of doors) */
+            const full = cut ? firstTime('stumpCut') : !Progress.flag('rested');
+            const i = yield* ask(null, cut ? (full ? "A stump with a little red cross stitched into the bark. There's nothing to tie off any more. Remember this place?" : 'The stitched stump. Remember this place?') : full ? 'A stump with a little red cross stitched into the bark. Tie off your thread here?' : 'The stitched stump. Tie off your thread here?', [cut ? 'Remember it (save)' : 'Tie off (save)', 'Not now']);
             if (i === 0) {
                 pl.setMark(tx, ty + 1);
                 Inv.hp = Math.max(Inv.hp, Math.min(Inv.maxHp, Inv.hp + 2));

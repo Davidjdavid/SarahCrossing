@@ -7373,7 +7373,9 @@ SPAWN.rest = (tx, ty, p) => {
         Script.run(function* () {
             const pl = G.player;
             const cut = Progress.flag('cut_self');
-            const i = yield* ask(null, cut ? "A stump with a little red cross stitched into the bark. There's nothing to tie off any more. Remember this place?" : 'A stump with a little red cross stitched into the bark. Tie off your thread here?', [cut ? 'Remember it (save)' : 'Tie off (save)', 'Not now']);
+            /* (said in full the first time, and the first time after your thread's cut; then short: every save out of doors) */
+            const full = cut ? firstTime('stumpCut') : !Progress.flag('rested');
+            const i = yield* ask(null, cut ? (full ? "A stump with a little red cross stitched into the bark. There's nothing to tie off any more. Remember this place?" : 'The stitched stump. Remember this place?') : full ? 'A stump with a little red cross stitched into the bark. Tie off your thread here?' : 'The stitched stump. Tie off your thread here?', [cut ? 'Remember it (save)' : 'Tie off (save)', 'Not now']);
             if (i === 0) {
                 pl.setMark(tx, ty + 1);
                 Inv.hp = Math.max(Inv.hp, Math.min(Inv.maxHp, Inv.hp + 2));
@@ -9157,7 +9159,10 @@ function bossSong(h) { return SONGS['boss_' + h] ? 'boss_' + h : 'boss'; }
    the boss, the shop, the inn, the festival, home), and a fight tune for each of the first four Houses' bosses.
    Each song below starts with its old tune exactly as it was (section A: the place's own motif), then new sections
    in the same key, tempo, instruments and volumes, coming back round to A at the loop. Every channel is the
-   song's full length, so the parts never drift apart. Loaded after 40_music.js, so these definitions win. */
+   song's full length, so the parts never drift apart. Loaded after 40_music.js, so these definitions win.
+   The fights, the inn, the Knot, the lullaby and the Pull were lengthened again later (none loops in under 45 s): a
+   section added then is lettered after the others but plays where it stands (the fights' D comes after A, so the
+   last section still turns back into A). */
 
 /* Hollowell and the Hollow (C major): A as it was (the Return motif G A C A G, then its answer); B a new lilting tune on
    F G Em Am; C the motif visiting F, G and A minor; D a breakdown, the motif heard far off while the lead rests,
@@ -9402,25 +9407,30 @@ SONGS.belfry = {
     ],
 };
 
-/* the boss (E minor): A as it was; B a long heroic line climbing over C, D, E minor; C arpeggios driving over a
-   bass that falls a half step at a time (E D# D C# C, A, B) into the turn back to A */
+/* the boss (E minor): A as it was; D its riff with the bass in unison, the lead and bass running down together
+   from E, from C, from A, held each time on a long note; B a long heroic line climbing over C, D, E minor; C arpeggios
+   driving over a bass that falls a half step at a time (E D# D C# C, A, B) into the turn back to A */
 SONGS.boss = {
     bpm: 150, div: 2,
     ch: [
         { wave: 'p50', vol: 0.08, n:
             /* A */ 'E5 . E5 . G5 . E5 . | D#5 . F#5 . B4 . . . | E5 . E5 . G5 . A5 . | B5 - - - A5 . G5 . | C6 . B5 . A5 . G5 . | F#5 . G5 . A5 . F#5 . | E5 . D#5 . E5 . F#5 . | B4 - - - . . . . | ' +
+            /* D */ 'E5 . G5 F#5 . E5 D5 . | E5 - - - B4 . . . | E5 . G5 F#5 . E5 D5 . | G5 - - - F#5 . . . | C6 . B5 A5 . G5 F#5 . | G5 - - - E5 . . . | A5 . G5 F#5 . E5 D#5 . | E5 - - - F#5 . D#5 . | ' +
             /* B */ 'E5 - - - G5 - - - | F#5 - - - A5 - - - | G5 - - - B5 - - - | B5 - - - G5 . E5 . | C6 - - - G5 . E5 . | A5 - - - F#5 . D5 . | D#5 - - - F#5 . B5 . | A5 - - - - - . . | ' +
             /* C */ 'B4 . E5 . G5 . B5 . | F#5 . D#5 . B4 . D#5 . | G5 . E5 . B4 . E5 . | A5 . E5 . C#5 . E5 . | G5 . E5 . C5 . E5 . | A5 . E5 . C5 . E5 . | B5 . F#5 . D#5 . F#5 . | A5 . F#5 . D#5 . B4 .' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'E2 E3 E2 E3 E2 E3 E2 E3 | B1 B2 B1 B2 B1 B2 B1 B2 | E2 E3 E2 E3 E2 E3 E2 E3 | G2 G3 G2 G3 A2 A3 A2 A3 | C3 C4 C3 C4 C3 C4 C3 C4 | D3 D4 D3 D4 D3 D4 D3 D4 | E2 E3 E2 E3 C3 C4 C3 C4 | B1 B2 B1 B2 B1 B2 B1 B2 | ' +
+            /* D */ 'E2 . G2 F#2 . E2 D2 . | E2 E3 E2 E3 B1 B2 B1 B2 | E2 . G2 F#2 . E2 D2 . | G2 G3 G2 G3 F#2 F#3 F#2 F#3 | C3 . B2 A2 . G2 F#2 . | G2 G3 G2 G3 E2 E3 E2 E3 | A2 . G2 F#2 . E2 D#2 . | E2 E3 E2 E3 B1 B2 B1 B2 | ' +
             /* B */ 'C3 C4 C3 C4 C3 C4 C3 C4 | D3 D4 D3 D4 D3 D4 D3 D4 | E2 E3 E2 E3 E2 E3 E2 E3 | E2 E3 E2 E3 E2 E3 E2 E3 | C3 C4 C3 C4 C3 C4 C3 C4 | D3 D4 D3 D4 D3 D4 D3 D4 | B1 B2 B1 B2 B1 B2 B1 B2 | B1 B2 B1 B2 B1 B2 B1 B2 | ' +
             /* C */ 'E2 E3 E2 E3 E2 E3 E2 E3 | D#2 D#3 D#2 D#3 D#2 D#3 D#2 D#3 | D2 D3 D2 D3 D2 D3 D2 D3 | C#2 C#3 C#2 C#3 C#2 C#3 C#2 C#3 | C2 C3 C2 C3 C2 C3 C2 C3 | A1 A2 A1 A2 A1 A2 A1 A2 | B1 B2 B1 B2 B1 B2 B1 B2 | B1 B2 B1 B2 B1 B2 B1 B2' },
         { wave: 'p25', vol: 0.04, n:
             /* A */ 'B4 . G4 . B4 . G4 . | F#4 . D#4 . F#4 . D#4 . | B4 . G4 . B4 . G4 . | D5 . B4 . E5 . C5 . | E5 . C5 . E5 . C5 . | F#5 . D5 . F#5 . D5 . | B4 . G4 . A4 . E4 . | F#4 . D#4 . F#4 . D#4 . | ' +
+            /* D */ 'B4 - - - - - - - | G4 . B4 . G4 . B4 . | B4 - - - - - - - | D5 . B4 . D5 . A4 . | E5 - - - - - - - | D5 . B4 . G4 . B4 . | A4 - - - F#4 - - - | B4 . G4 . F#4 . D#4 . | ' +
             /* B */ 'G4 . E4 . G4 . E4 . | A4 . F#4 . A4 . F#4 . | B4 . G4 . B4 . G4 . | B4 . G4 . B4 . G4 . | E5 . C5 . E5 . C5 . | F#5 . D5 . F#5 . D5 . | F#4 . D#4 . F#4 . D#4 . | F#4 . D#4 . A4 . D#4 . | ' +
             /* C */ 'G4 . B4 . G4 . B4 . | D#4 . F#4 . D#4 . F#4 . | E4 . G4 . E4 . G4 . | C#4 . E4 . C#4 . E4 . | E4 . G4 . E4 . G4 . | C5 . A4 . C5 . A4 . | D#5 . B4 . D#5 . B4 . | D#5 . A4 . D#5 . A4 .' },
         { drum: true, vol: 0.11, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
             /* B */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s' },
     ],
@@ -9445,7 +9455,8 @@ SONGS.shop = {
 };
 
 /* the inn: a tavern jig (G major, 6/8). A as it was; B a second strain from up high; A' the tune again as a fiddler
-   would play it the second time round, every gap filled; B' the second strain's answer through E minor; C a strain
+   would play it the second time round, every gap filled; B' the second strain's answer through E minor; D a strain
+   in D major; D' its answer back in G, every gap filled again, ending on D so that C comes as a surprise; C a strain
    in E minor; C' its way home, by A's own D major bar */
 SONGS.inn = {
     bpm: 132, div: 3,
@@ -9455,6 +9466,8 @@ SONGS.inn = {
             /* B */ 'G5 - D5 B4 - D5 | E5 - C5 G4 - C5 | D5 - A4 F#4 - A4 | B4 - - D5 - - | G5 - D5 B4 - D5 | E5 - G5 E5 - C5 | D5 - F#5 A5 - F#5 | G5 - - - - . | ' +
             /* A' */ 'D5 C5 B4 G4 A4 B4 | D5 E5 D5 G5 - . | E5 D5 C5 A4 B4 C5 | E5 G5 F#5 A5 - . | F#5 E5 D5 A4 B4 C5 | F#5 G5 A5 G5 F#5 E5 | D5 C5 B4 A4 G4 F#4 | G4 - - - - . | ' +
             /* B' */ 'G5 - E5 B4 - E5 | G5 - E5 C5 - E5 | A4 - C5 E5 - C5 | D5 - - F#5 - - | B4 - E5 G5 - E5 | C5 - E5 G5 - E5 | A5 - F#5 D5 - F#5 | G5 - - - - . | ' +
+            /* D */ 'A5 - F#5 D5 - F#5 | A5 - G5 F#5 - E5 | G5 - E5 C#5 - E5 | G5 - F#5 E5 - C#5 | D5 - F#5 A5 - F#5 | G5 - D5 B4 - D5 | F#5 - E5 D5 - C#5 | D5 - - - - . | ' +
+            /* D' */ 'G5 - D5 B4 - D5 | A5 - E5 C5 - E5 | G5 - D5 B4 - G4 | A4 - - D5 - - | B4 C5 D5 G5 F#5 E5 | D5 E5 F#5 A5 - F#5 | G5 - E5 D5 - B4 | A4 - - - - . | ' +
             /* C */ 'E5 - F#5 G5 - E5 | F#5 - E5 D5 - A4 | E5 - D5 C5 - G4 | D#5 - - B4 - - | E5 - F#5 G5 - A5 | A5 - F#5 D5 - F#5 | E5 - C5 B4 - A4 | B4 - - - - . | ' +
             /* C' */ 'C5 - E5 G5 - E5 | F#5 - D5 A4 - D5 | D5 - B4 F#4 - B4 | E5 - - B4 - - | C5 - E5 A5 - E5 | F#5 - A5 F#5 - D5 | C5 - A4 F#4 - A4 | G4 - - - - .' },
         { wave: 'triangle', vol: 0.2, n:
@@ -9462,6 +9475,8 @@ SONGS.inn = {
             /* B */ 'G2 . . D3 . . | C3 . . G2 . . | D3 . . A2 . . | G2 . . D3 . . | G2 . . D3 . . | C3 . . G2 . . | D3 . . A2 . . | G2 . . G2 . . | ' +
             /* A' */ 'G2 . . D3 . . | G2 . . D3 . . | A2 . . E3 . . | A2 . . E3 . . | D3 . . A3 . . | D3 . . A2 . . | D3 . . D3 . . | G2 . . G2 . . | ' +
             /* B' */ 'E2 . . B2 . . | C3 . . G2 . . | A2 . . E3 . . | D3 . . A2 . . | E2 . . B2 . . | C3 . . G2 . . | D3 . . A2 . . | G2 . . G2 . . | ' +
+            /* D */ 'D3 . . A2 . . | D3 . . A2 . . | A2 . . E3 . . | A2 . . E3 . . | D3 . . A2 . . | G2 . . D3 . . | A2 . . A2 . . | D3 . . D3 . . | ' +
+            /* D' */ 'G2 . . D3 . . | C3 . . G2 . . | G2 . . D3 . . | D3 . . A2 . . | G2 . . D3 . . | D3 . . A2 . . | C3 . . G2 . . | D3 . . A2 . . | ' +
             /* C */ 'E2 . . B2 . . | D3 . . A2 . . | C3 . . G2 . . | B2 . . F#2 . . | E2 . . B2 . . | D3 . . A2 . . | C3 . . B2 . . | E2 . . E2 . . | ' +
             /* C' */ 'C3 . . G2 . . | D3 . . A2 . . | B2 . . F#2 . . | E2 . . B2 . . | A2 . . E3 . . | D3 . . A2 . . | D3 . . A2 . . | G2 . . G2 . .' },
         { drum: true, vol: 0.08, n:
@@ -9469,6 +9484,8 @@ SONGS.inn = {
             /* B */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h | ' +
             /* A' */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h | ' +
             /* B' */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h | ' +
+            /* D */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h | ' +
+            /* D' */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h | ' +
             /* C */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h | ' +
             /* C' */ 'k . h s . h | k . h s . h | k . h s . h | k . h s h h | k . h s . h | k . h s . h | k . h s . h | k . h s h h' },
     ],
@@ -9521,98 +9538,120 @@ SONGS.home = {
 };
 
 /* the Tidyhouse's keeper: the House's minuet as a fight (A minor). A the whole Tidyhouse tune folded into driving
-   cells of three; B its trio in C major; C its D minor strain, coming back by the tune's own cadence */
+   cells of three; D the minuet's falling bass (A G# G F# F E) under the same cells, twice, closing as A closes; B its
+   trio in C major; C its D minor strain, coming back by the tune's own cadence */
 SONGS.boss_tidy = {
     bpm: 156, div: 2,
     ch: [
         { wave: 'p25', vol: 0.085, legato: 0.6, n:
             /* A */ 'A4 C5 E5 . D5 C5 B4 . | A4 C5 E5 . G#4 - - . | A4 C5 E5 . F5 E5 D5 . | C5 B4 A4 . E5 - - . | F5 E5 D5 . C5 D5 E5 . | D5 C5 B4 . A4 B4 C5 . | B4 A4 G#4 . A4 B4 C5 . | B4 G#4 E4 . A4 - - . | ' +
+            /* D */ 'E5 D5 C5 . B4 D5 E5 . | E5 C5 G4 . A4 D5 F#5 . | F5 D5 A4 . G#4 B4 E5 . | C5 B4 A4 . B4 - - . | A4 C5 E5 . G#4 B4 E5 . | G4 C5 E5 . F#4 A4 D5 . | F4 A4 C5 . E4 G#4 B4 . | B4 G#4 E4 . A4 - - . | ' +
             /* B */ 'G4 C5 E5 . D5 C5 B4 C5 | E5 G5 E5 . D5 - - . | A4 C5 F5 . E5 D5 C5 D5 | F5 D5 B4 . C5 - - . | E5 D5 C5 . G#4 B4 E5 . | C5 B4 A4 . B4 - - . | F5 C5 A4 . D5 E5 F5 . | B4 D5 F5 . E5 - - . | ' +
             /* C */ 'F5 - E5 D5 C#5 - D5 E5 | A4 - D5 F5 E5 - - . | D5 - C5 Bb4 A4 - Bb4 A4 | G#4 - A4 B4 A4 - - . | F5 - E5 D5 C#5 - D5 E5 | F5 - D5 Bb4 A4 - C#5 E5 | F5 - E5 D5 C5 - B4 A4 | B4 - G#4 - E4 - - .' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'A2 A3 A2 A3 D3 D4 D3 D4 | A2 A3 A2 A3 E2 E3 E2 E3 | A2 A3 A2 A3 D3 D4 D3 D4 | A2 A3 A2 A3 E2 E3 E2 E3 | D3 D4 D3 D4 C3 C4 C3 C4 | G2 G3 G2 G3 A2 A3 A2 A3 | E2 E3 E2 E3 A2 A3 A2 A3 | E2 E3 E2 E3 A2 A3 A2 A3 | ' +
+            /* D */ 'A2 A3 A2 A3 G#2 G#3 G#2 G#3 | G2 G3 G2 G3 F#2 F#3 F#2 F#3 | F2 F3 F2 F3 E2 E3 E2 E3 | A2 A3 A2 A3 E2 E3 E2 E3 | A2 A3 A2 A3 G#2 G#3 G#2 G#3 | G2 G3 G2 G3 F#2 F#3 F#2 F#3 | F2 F3 F2 F3 E2 E3 E2 E3 | E2 E3 E2 E3 A2 A3 A2 A3 | ' +
             /* B */ 'C3 C4 C3 C4 G2 G3 G2 G3 | C3 C4 C3 C4 G2 G3 G2 G3 | F2 F3 F2 F3 C3 C4 C3 C4 | G2 G3 G2 G3 C3 C4 C3 C4 | A2 A3 A2 A3 E2 E3 E2 E3 | A2 A3 A2 A3 E2 E3 E2 E3 | F2 F3 F2 F3 D3 D4 D3 D4 | G2 G3 G2 G3 C3 C4 C3 C4 | ' +
             /* C */ 'D3 D4 D3 D4 A2 A3 A2 A3 | D3 D4 D3 D4 A2 A3 A2 A3 | G2 G3 G2 G3 D3 D4 D3 D4 | E2 E3 E2 E3 A2 A3 A2 A3 | D3 D4 D3 D4 A2 A3 A2 A3 | Bb2 Bb3 Bb2 Bb3 A2 A3 A2 A3 | D3 D4 D3 D4 A2 A3 A2 A3 | E2 E3 E2 E3 E2 E3 E2 E3' },
         { wave: 'p12', vol: 0.04, n:
             /* A */ 'E4 . A4 . F4 . A4 . | E4 . A4 . E4 . B4 . | E4 . A4 . F4 . A4 . | E4 . A4 . G#4 . B4 . | F4 . A4 . E4 . G4 . | D4 . G4 . E4 . A4 . | E4 . B4 . E4 . A4 . | G#4 . E4 . C5 . A4 . | ' +
+            /* D */ 'A4 . E4 . G#4 . E4 . | G4 . C5 . F#4 . A4 . | F4 . A4 . E4 . G#4 . | E4 . A4 . E4 . G#4 . | E4 . A4 . E4 . B4 . | E4 . G4 . D4 . F#4 . | C4 . F4 . B3 . E4 . | G#4 . E4 . C5 . A4 . | ' +
             /* B */ 'E4 . G4 . D4 . G4 . | E4 . G4 . D4 . B4 . | F4 . A4 . E4 . G4 . | D4 . F4 . E4 . G4 . | A4 . C5 . G#4 . B4 . | A4 . E4 . G#4 . E4 . | A4 . C5 . F4 . A4 . | D4 . F4 . E4 . G4 . | ' +
             /* C */ 'D4 . A4 . E4 . G4 . | D4 . F4 . C#4 . E4 . | G4 . Bb4 . F4 . D4 . | E4 . D4 . E4 . C5 . | D4 . A4 . E4 . G4 . | D4 . F4 . C#4 . E4 . | D4 . A4 . E4 . A4 . | E4 . G#4 . D4 . B4 .' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
             /* B */ 'k . h k s . h k | k k h . s . h s | k . h k s . h k | k k h . s . h s | k . h k s . h k | k k h . s . h s | k . h k s . h k | k k h . s s s s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k s . s s s s' },
     ],
 };
 
 /* the Kiln's keeper: the House's motif as a fight (E Phrygian). A the Kiln's tune as a riff, lead and bass together,
-   then over the hot three-three-two; B the old falling bass of the south (A G F E), ending bright; C long notes
-   over the fire, then the riff climbing E, F, G and crashing back down into A */
+   then over the hot three-three-two; D long notes high over the three-three-two (the mode's own turn, C to B), then
+   the riff a step up on F, lead and bass together, climbing back into A's last bar; B the old falling bass of the
+   south (A G F E), ending bright; C long notes over the fire, then the riff climbing E, F, G and crashing back down
+   into A */
 SONGS.boss_kiln = {
     bpm: 144, div: 2,
     ch: [
         { wave: 'p50', vol: 0.08, n:
             /* A */ 'E5 - F5 - E5 - - B4 | C5 - B4 - A4 - - - | E5 - F5 - G5 - - F5 | E5 - - - . . . . | E5 - F5 G5 - - A5 - | A5 - G5 - F5 - - - | G5 - F5 E5 - - D5 - | C5 - - - B4 - - - | ' +
+            /* D */ 'B5 - - - C6 - B5 - | A5 - - - G5 - F5 - | G5 - - - F5 - E5 - | F5 - E5 - D5 - E5 - | F5 - G5 - F5 - - C5 | D5 - C5 - B4 - - - | E5 - F5 - G5 - - A5 | C5 - - - B4 - - - | ' +
             /* B */ 'E5 - A5 - C6 - - A5 | B5 - A5 - G5 - - B5 | A5 - G5 - F5 - - G5 | G#5 - F5 E5 - - - - | C6 - B5 - A5 - E5 - | B5 - A5 - G5 - D5 - | A5 - G5 - F5 - C5 - | E5 - F5 E5 - - - - | ' +
             /* C */ 'B5 - - - - - - - | C6 - - - - - - - | B5 - - - G5 - - - | A5 - - - F5 - - - | E5 - F5 - E5 - B4 - | F5 - G5 - F5 - C5 - | G5 - A5 - G5 - D5 - | A5 - G5 - F5 - E5 -' },
         { wave: 'triangle', vol: 0.24, n:
             /* A */ 'E2 E3 F2 F3 E2 E3 E2 B1 | C2 C3 B1 B2 A1 A2 A1 A2 | E2 E3 F2 F3 G2 G3 G2 F2 | E2 E3 E2 E3 F2 F3 E2 E3 | E2 . . E2 . . E2 E3 | F2 . . F2 . . F2 F3 | E2 . . E2 . . E2 E3 | E2 . . E2 . . D2 D3 | ' +
+            /* D */ 'E2 . . E2 . . E2 E3 | F2 . . F2 . . F2 F3 | E2 . . E2 . . E2 E3 | D2 . . D2 . . E2 E3 | F2 F3 G2 G3 F2 F3 F2 C2 | D2 D3 C2 C3 B1 B2 B1 B2 | E2 E3 F2 F3 G2 G3 G2 A2 | E2 . . E2 . . D2 D3 | ' +
             /* B */ 'A2 A3 A2 A3 A2 A3 A2 A3 | G2 G3 G2 G3 G2 G3 G2 G3 | F2 F3 F2 F3 F2 F3 F2 F3 | E2 . . E2 . . E2 E3 | A2 A3 A2 A3 A2 A3 A2 A3 | G2 G3 G2 G3 G2 G3 G2 G3 | F2 F3 F2 F3 F2 F3 F2 F3 | E2 . . E2 . . E2 E3 | ' +
             /* C */ 'E2 . . E2 . . E2 E3 | F2 . . F2 . . F2 F3 | E2 . . E2 . . E2 E3 | F2 . . F2 . . F2 F3 | E2 E3 F2 F3 E2 E3 B1 B2 | F2 F3 G2 G3 F2 F3 C2 C3 | G2 G3 A2 A3 G2 G3 D2 D3 | A2 A3 G2 G3 F2 F3 E2 E3' },
         { wave: 'p25', vol: 0.04, n:
             /* A */ 'E4 . . . B4 . E4 . | E4 . . . E4 . E4 . | E4 . . . B4 . E4 . | E4 . . . B4 . . . | G4 . . . B4 . G4 . | A4 . . . F4 . A4 . | G4 . . . B4 . G4 . | G4 . . . B4 . G4 . | ' +
+            /* D */ 'E4 . . . G4 . B4 . | F4 . . . A4 . C5 . | E4 . . . G4 . B4 . | D4 . . . F4 . E4 . | A4 . . . C5 . A4 . | F4 . . . E4 . D4 . | G4 . . . B4 . E4 . | G4 . . . B4 . G4 . | ' +
             /* B */ 'E4 . A4 . C5 . A4 . | D4 . G4 . B4 . G4 . | C4 . F4 . A4 . F4 . | B3 . . G#4 . . B4 . | E4 . A4 . C5 . A4 . | D4 . G4 . B4 . G4 . | C4 . F4 . A4 . F4 . | B3 . . E4 . . G#4 . | ' +
             /* C */ 'E4 . . . B4 . . . | F4 . . . C5 . . . | E4 . . . B4 . . . | F4 . . . C5 . . . | B4 . . . B4 . . . | C5 . . . C5 . . . | D5 . . . D5 . . . | E5 . . . C5 . . .' },
         { drum: true, vol: 0.11, n:
             /* A */ 'k . h k s . h . | k . h k s h h s | k . h k s . h . | k . h k s h h s | k . h k s . h . | k . h k s h h s | k . h k s . h . | k . h k s h h s | ' +
+            /* D */ 'k . . k . . k . | k . . k s . h s | k . . k . . k . | k . . k s h s s | k . h k s . h . | k . h k s h h s | k . h k s . h . | k . h k s h h s | ' +
             /* B */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
             /* C */ 'k . . k . . k . | k . . k . . k . | k . . k . . k . | k . . k s . s s | k . h k s . h . | k . h k s h h s | k . h k s . h . | k k s . s s s s' },
     ],
 };
 
 /* the Millrace's keeper: the House's tune as a fight (D Dorian). A the Millrace tune made sharp over a wheel turning
-   in eighths; B gears, falling and then climbing; C the House's long notes over the race at full tilt */
+   in eighths; D the race in running eighths down the wheel's chords (D minor, C, B flat, A), then long notes on the
+   mode's bright side (G, C) and A7, closing as A closes; B gears, falling and then climbing; C the House's long notes
+   over the race at full tilt */
 SONGS.boss_mill = {
     bpm: 152, div: 2,
     ch: [
         { wave: 'p25', vol: 0.08, legato: 0.7, n:
             /* A */ 'D5 . D5 F5 E5 . D5 . | C5 . A4 . B4 . C5 . | D5 . D5 F5 G5 . A5 . | G5 . F5 . E5 - - - | F5 . F5 E5 D5 . C5 . | B4 . G4 . A4 . B4 . | C#5 . D5 . E5 . C#5 . | D5 - - - . . E5 . | ' +
+            /* D */ 'F5 E5 D5 E5 F5 G5 A5 F5 | E5 D5 C5 D5 E5 F5 G5 E5 | D5 C5 Bb4 C5 D5 E5 F5 D5 | C#5 D5 E5 C#5 A4 - - . | G5 - - - B5 - A5 G5 | E5 - - - G5 - F5 E5 | C#5 - - - E5 - G5 - | D5 - - - . . E5 . | ' +
             /* B */ 'A5 . F5 . D5 . F5 . | G5 . E5 . C5 . E5 . | F5 . D5 . Bb4 . D5 . | E5 . C#5 . A4 . C#5 . | Bb4 . D5 . F5 . Bb5 . | A5 . F5 . C5 . A4 . | G4 . Bb4 . D5 . G5 . | A5 . E5 . C#5 . A4 . | ' +
             /* C */ 'C5 - - - - - D5 C5 | E5 - - - - - D5 C5 | F5 - - - - - E5 D5 | E5 - - - - - . . | D5 - - - - - C5 D5 | C5 - - - - - Bb4 A4 | Bb4 - - - - - A4 G4 | A4 - - - C#5 - E5 -' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'D2 A2 D3 D2 A2 D3 D2 A2 | C2 G2 C3 C2 G2 C3 C2 G2 | D2 A2 D3 D2 A2 D3 D2 A2 | A1 E2 A2 A1 E2 A2 A1 E2 | Bb1 F2 Bb2 Bb1 F2 Bb2 Bb1 F2 | G1 D2 G2 G1 D2 G2 G1 D2 | A1 E2 A2 A1 E2 A2 A1 E2 | D2 A2 D3 D2 A2 D3 D2 A2 | ' +
+            /* D */ 'D2 A2 D3 D2 A2 D3 D2 A2 | C2 G2 C3 C2 G2 C3 C2 G2 | Bb1 F2 Bb2 Bb1 F2 Bb2 Bb1 F2 | A1 E2 A2 A1 E2 A2 A1 E2 | G1 D2 G2 G1 D2 G2 G1 D2 | C2 G2 C3 C2 G2 C3 C2 G2 | A1 E2 A2 A1 E2 A2 A1 E2 | D2 A2 D3 D2 A2 D3 D2 A2 | ' +
             /* B */ 'D2 A2 D3 D2 A2 D3 D2 A2 | C2 G2 C3 C2 G2 C3 C2 G2 | Bb1 F2 Bb2 Bb1 F2 Bb2 Bb1 F2 | A1 E2 A2 A1 E2 A2 A1 E2 | Bb1 F2 Bb2 Bb1 F2 Bb2 Bb1 F2 | F1 C2 F2 F1 C2 F2 F1 C2 | G1 D2 G2 G1 D2 G2 G1 D2 | A1 E2 A2 A1 E2 A2 A1 E2 | ' +
             /* C */ 'F2 F3 F2 F3 F2 F3 F2 F3 | C2 C3 C2 C3 C2 C3 C2 C3 | D2 D3 D2 D3 D2 D3 D2 D3 | A1 A2 A1 A2 A1 A2 A1 A2 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | F2 F3 F2 F3 F2 F3 F2 F3 | G1 G2 G1 G2 G1 G2 G1 G2 | A1 A2 A1 A2 A1 A2 A1 A2' },
         { wave: 'p12', vol: 0.04, n:
             /* A */ 'F4 A4 F4 A4 D4 A4 F4 A4 | E4 G4 E4 G4 E4 G4 E4 G4 | F4 A4 F4 A4 F4 A4 F4 A4 | E4 A4 C#4 A4 C#4 E4 C#4 E4 | F4 Bb4 F4 D4 F4 Bb4 F4 Bb4 | D4 G4 D4 G4 D4 G4 B4 G4 | E4 A4 E4 A4 C#4 E4 G4 E4 | F4 A4 F4 A4 D4 F4 A4 . | ' +
+            /* D */ 'A4 D4 A4 D4 A4 D4 A4 D4 | G4 C4 G4 C4 G4 C4 G4 C4 | F4 Bb3 F4 Bb3 F4 Bb3 F4 Bb3 | E4 A3 E4 A3 C#4 E4 A3 E4 | D4 G4 B4 G4 D4 G4 B4 G4 | E4 G4 C5 G4 E4 G4 C5 G4 | E4 A4 C#5 A4 E4 A4 C#5 A4 | F4 A4 F4 A4 D4 F4 A4 . | ' +
             /* B */ 'F4 A4 F4 A4 F4 A4 F4 A4 | E4 G4 E4 G4 E4 G4 E4 G4 | F4 Bb4 F4 Bb4 F4 Bb4 F4 Bb4 | E4 A4 E4 A4 C#4 E4 C#4 E4 | D4 F4 D4 F4 D4 F4 D4 F4 | C4 F4 C4 F4 C4 F4 C4 F4 | D4 G4 D4 G4 D4 G4 D4 G4 | C#4 E4 C#4 E4 C#4 E4 C#4 E4 | ' +
             /* C */ 'F4 A4 F4 A4 F4 A4 F4 A4 | E4 G4 E4 G4 E4 G4 E4 G4 | F4 A4 F4 A4 F4 A4 D4 A4 | E4 A4 C5 A4 E4 A4 C5 A4 | F4 Bb4 F4 Bb4 F4 Bb4 F4 Bb4 | F4 A4 F4 A4 F4 A4 F4 A4 | D4 G4 D4 G4 D4 G4 D4 G4 | E4 A4 E4 A4 C#4 E4 C#4 E4' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
             /* B */ 'k . h k s . h k | k k h . s . h s | k . h k s . h k | k k h . s . h s | k . h k s . h k | k k h . s . h s | k . h k s . h k | k k h . s . h s | ' +
             /* C */ 'k . h . s . h k | k . h k s . h s | k . h . s . h k | k . h k s . h s | k . h . s . h k | k . h k s . h s | k . h . s . h k | k k s . s s s s' },
     ],
 };
 
 /* the Belfry's keeper: the House's peal as a fight. A the peal in G minor at twice the speed, then its bells changing
-   wildly; B tolling on E flat, B flat, C minor and D under a long line; C the peal as it was in G major, and the
-   change ringing, turning on D back into the minor */
+   wildly; D rounds: the eight bells rung straight down the scale, then changes on C minor, E flat and D, over a long
+   bell that never rubs against them; B tolling on E flat, B flat, C minor and D under a long line; C the peal as it
+   was in G major, and the change ringing, turning on D back into the minor */
 SONGS.boss_belfry = {
     bpm: 150, div: 2,
     ch: [
         { wave: 'p12', vol: 0.08, n:
             /* A */ 'G5 D5 Bb4 G4 A4 Bb4 D5 G5 | G5 Eb5 C5 A4 Bb4 D5 G5 D5 | Eb5 C5 G4 C5 D5 Bb4 G4 Bb4 | C5 A4 F#4 A4 G4 - G5 - | D5 G5 G4 Bb4 D5 G4 G5 Bb4 | G4 Eb5 C5 G5 G4 C5 Eb5 G5 | A4 F#4 F#5 D5 A4 F#5 F#4 D5 | G5 Bb4 D5 G4 G5 D5 Bb4 G4 | ' +
+            /* D */ 'G5 F5 Eb5 D5 C5 Bb4 A4 G4 | G5 Eb5 F5 D5 Eb5 C5 D5 Bb4 | Bb5 G5 Eb5 Bb4 G5 Eb5 Bb4 G4 | A5 F#5 D5 A4 F#5 D5 A4 F#4 | G5 F5 Eb5 D5 C5 Bb4 A4 G4 | Eb5 G5 Bb5 G5 F5 A5 C6 A5 | Eb5 C5 G4 C5 D5 A4 F#4 A4 | G5 Bb4 D5 G4 G5 D5 Bb4 G4 | ' +
             /* B */ 'G5 . Eb5 . Bb4 . Eb5 . | F5 . D5 . Bb4 . D5 . | G5 . Eb5 . C5 . Eb5 . | F#5 . D5 . A4 . D5 . | Bb5 . G5 . Eb5 . G5 . | F5 . D5 . Bb4 . F5 . | Eb5 . C5 . G4 . C5 . | F#5 . D5 . A4 . F#5 . | ' +
             /* C */ 'G5 D5 B4 G4 A4 B4 D5 G5 | G5 E5 C5 A4 B4 D5 G5 D5 | E5 C5 G4 C5 D5 B4 G4 B4 | C5 A4 F#4 A4 G4 - G5 - | E5 B4 G4 E4 E5 G5 G4 C5 | D5 G4 G5 B4 F#4 D5 A4 F#5 | E4 G4 B4 E5 C5 G4 G5 E5 | A4 E5 E4 C5 D5 A4 F#5 D5' },
         { wave: 'p25', vol: 0.05, legato: 0.7, n:
             /* A */ 'Bb4 - - - C5 - - - | C5 - - - Bb4 - - - | C5 - - - Bb4 - - - | A4 - - - G4 - - - | D5 - - - - - - - | Eb5 - - - - - - - | D5 - - - A4 - - - | Bb4 - - - - - - - | ' +
+            /* D */ 'G4 - - - - - - - | C5 - - - - - - - | G4 - - - - - - - | A4 - - - - - - - | G4 - - - - - - - | G4 - - - F4 - - - | C5 - - - A4 - - - | Bb4 - - - - - - - | ' +
             /* B */ 'G5 - - - - - - - | F5 - - - - - - - | Eb5 - - - - - - - | D5 - - - - - - - | Eb5 - - - G5 - - - | F5 - - - D5 - - - | Eb5 - - - C5 - - - | D5 - - - C5 - - - | ' +
             /* C */ 'B4 - - - D5 - - - | C5 - - - B4 - - - | C5 - - - B4 - - - | A4 - - - G4 - - - | B4 - - - C5 - - - | B4 - - - A4 - - - | B4 - - - C5 - - - | C5 - - - A4 - - -' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'G2 G3 G2 G3 G2 G3 G2 G3 | C3 C4 C3 C4 G2 G3 G2 G3 | C3 C4 C3 C4 G2 G3 G2 G3 | D3 D4 D3 D4 G2 G3 G2 G3 | G2 G3 G2 G3 G2 G3 G2 G3 | C3 C4 C3 C4 C3 C4 C3 C4 | D3 D4 D3 D4 D3 D4 D3 D4 | G2 G3 G2 G3 G2 G3 G2 G3 | ' +
+            /* D */ 'G2 G3 G2 G3 G2 G3 G2 G3 | C3 C4 C3 C4 C3 C4 C3 C4 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | G2 G3 G2 G3 G2 G3 G2 G3 | Eb2 Eb3 Eb2 Eb3 F2 F3 F2 F3 | C3 C4 C3 C4 D3 D4 D3 D4 | G2 G3 G2 G3 G2 G3 G2 G3 | ' +
             /* B */ 'Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 C2 C3 C2 C3 | D2 D3 D2 D3 D2 D3 D2 D3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | C2 C3 C2 C3 C2 C3 C2 C3 | D2 D3 D2 D3 D2 D3 D2 D3 | ' +
             /* C */ 'G2 G3 G2 G3 G2 G3 G2 G3 | C3 C4 C3 C4 G2 G3 G2 G3 | C3 C4 C3 C4 G2 G3 G2 G3 | D3 D4 D3 D4 G2 G3 G2 G3 | E2 E3 E2 E3 C3 C4 C3 C4 | G2 G3 G2 G3 D3 D4 D3 D4 | E2 E3 E2 E3 C3 C4 C3 C4 | A2 A3 A2 A3 D3 D4 D3 D4' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . H s | k . h k s . h . | k k h . s . H s | k . h k s . h . | k k h . s . H s | k . h k s . h . | k k h . s . H s | ' +
             /* B */ 'k . h k s . h . | k k h . s . H s | k . h k s . h . | k k h . s . H s | k . h k s . h . | k k h . s . H s | k . h k s . h . | k k h . s . H s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k s . s s s s' },
     ],
@@ -9644,32 +9683,40 @@ SONGS.title = {
 };
 
 /* Gran's lullaby (Linnet's theme), G major: A as it was (low, high, in between, high, low); B its answer, stepping
-   down from E over C, G and A minor to rest on D; A' the first line again, closing by step (B A G) this time */
+   down from E over C, G and A minor to rest on D; A' the first line again, closing by step (B A G) this time; C the
+   first line turned over (high, low, in between, low, high), resting on D to rock back into A */
 SONGS.lullaby = {
     bpm: 66, div: 2,
     ch: [
         { wave: 'triangle', vol: 0.16, vib: true, n:
             /* A */ 'G4 - - - D5 - - - | B4 - - - D5 - - - | G4 - - - - - - - | . . . . . . . . | ' +
             /* B */ 'E5 - - - D5 - - - | C5 - - - B4 - - - | A4 - - - - - - - | . . . . . . . . | ' +
-            /* A' */ 'G4 - - - D5 - - - | B4 - - - A4 - - - | G4 - - - - - - - | . . . . . . . .' },
+            /* A' */ 'G4 - - - D5 - - - | B4 - - - A4 - - - | G4 - - - - - - - | . . . . . . . . | ' +
+            /* C */ 'D5 - - - G4 - - - | B4 - - - G4 - - - | D5 - - - - - - - | . . . . . . . .' },
         { wave: 'p12', vol: 0.04, n:
             /* A */ 'G3 . D4 . B3 . D4 . | G3 . D4 . B3 . D4 . | G3 . D4 . B3 . D4 . | G3 . . . . . . . | ' +
             /* B */ 'C4 . G4 . B3 . G4 . | A3 . E4 . G3 . D4 . | F#3 . D4 . A3 . D4 . | F#3 . A3 . C4 . A3 . | ' +
-            /* A' */ 'G3 . D4 . B3 . D4 . | G3 . D4 . F#3 . D4 . | G3 . D4 . B3 . D4 . | G3 . . . . . . .' },
+            /* A' */ 'G3 . D4 . B3 . D4 . | G3 . D4 . F#3 . D4 . | G3 . D4 . B3 . D4 . | G3 . . . . . . . | ' +
+            /* C */ 'B3 . D4 . G3 . D4 . | E3 . B3 . G3 . B3 . | F#3 . A3 . D4 . A3 . | F#3 . A3 . C4 . A3 .' },
     ],
 };
 
 /* a Knot tied (C major): A as it was (up C E G to A, and down home); B its answer over A minor, F and G, the
-   same falling steps a tone higher (G F E D) coming home to C */
+   same falling steps a tone higher (G F E D) coming home to C; C the climb again, higher, over F, G and E minor to A
+   minor; D coming down by D minor and A minor to rest on G, the half close the motif sets out from */
 SONGS.knot = {
     bpm: 80, div: 2,
     ch: [
         { wave: 'triangle', vol: 0.2, vib: true, n:
             /* A */ 'C5 - E5 - G5 - - - | A5 - G5 - E5 - - - | F5 - E5 - D5 - C5 - | C5 - - - - - - - | ' +
-            /* B */ 'E5 - - - C5 - E5 - | F5 - - - A5 - - - | G5 - F5 - E5 - D5 - | C5 - - - - - . .' },
+            /* B */ 'E5 - - - C5 - E5 - | F5 - - - A5 - - - | G5 - F5 - E5 - D5 - | C5 - - - - - . . | ' +
+            /* C */ 'A4 - C5 - F5 - - - | G5 - F5 - D5 - - - | E5 - G5 - B5 - A5 G5 | A5 - - - - - . . | ' +
+            /* D */ 'F5 - - - E5 - D5 - | E5 - - - C5 - A4 - | D5 - E5 - F5 - D5 - | G5 - - - - - . .' },
         { wave: 'p12', vol: 0.05, n:
             /* A */ 'C4 G4 E4 G4 C4 G4 E4 G4 | F4 A4 C5 A4 C4 G4 E4 G4 | F4 A4 D4 G4 B4 G4 D4 G4 | C4 G4 E4 G4 C5 - - - | ' +
-            /* B */ 'A3 E4 C4 E4 A3 E4 C4 E4 | F4 A4 C5 A4 F4 A4 C5 A4 | D4 G4 B4 G4 D4 G4 B4 G4 | C4 G4 E4 G4 C5 - - .' },
+            /* B */ 'A3 E4 C4 E4 A3 E4 C4 E4 | F4 A4 C5 A4 F4 A4 C5 A4 | D4 G4 B4 G4 D4 G4 B4 G4 | C4 G4 E4 G4 C5 - - . | ' +
+            /* C */ 'F3 C4 A3 C4 F3 C4 A3 C4 | G3 D4 B3 D4 G3 D4 B3 D4 | E3 B3 G3 B3 E3 B3 G3 B3 | A3 E4 C4 E4 A3 E4 C4 E4 | ' +
+            /* D */ 'D4 A4 F4 A4 D4 A4 F4 A4 | A3 E4 C4 E4 A3 E4 C4 E4 | F4 A4 D4 A4 B3 D4 F4 D4 | G3 D4 B3 D4 G3 B3 D4 F4' },
     ],
 };
 
@@ -9864,22 +9911,26 @@ SONGS.drift = {
     ],
 };
 
-/* the Great Pull: everything wound in at once (C minor, relentless). A as it was; B darker still: F minor, G,
-   C minor, A flat, then F minor and the Neapolitan D flat, held on G; C two bars of nothing but the bass and the
-   drums, then the motif climbing (Ab Bb Cm Fm) to G7 and back into A */
+/* the Great Pull: everything wound in at once (C minor, relentless). A as it was; D the motif dragged round the
+   relative major's chords (A flat, B flat, E flat, C minor) and up to the top, then home by F minor and G as A goes
+   home; B darker still: F minor, G, C minor, A flat, then F minor and the Neapolitan D flat, held on G; C two bars of
+   nothing but the bass and the drums, then the motif climbing (Ab Bb Cm Fm) to G7 and back into A */
 SONGS.pull = {
     bpm: 132, div: 2,
     ch: [
         { wave: 'p25', vol: 0.07, n:
             /* A */ 'C5 . Eb5 . G5 . C6 . | B5 . G5 . D5 . B4 . | C5 . Eb5 . Ab5 . C6 . | Bb5 . G5 . Eb5 . D5 . | C5 . Eb5 . G5 . C6 . | D6 . B5 . G5 . F5 . | Eb5 . D5 . C5 . B4 . | C5 - - - . . . . | ' +
+            /* D */ 'Ab5 . Eb5 . C5 . Eb5 . | Bb5 . F5 . D5 . F5 . | G5 . Eb5 . Bb4 . Eb5 . | C6 . G5 . Eb5 . G5 . | Ab5 . C6 . Eb6 . C6 . | Ab5 . F5 . C5 . F5 . | Eb5 . D5 . C5 . B4 . | C5 - - - . . . . | ' +
             /* B */ 'C6 . Ab5 . F5 . Ab5 . | B5 . G5 . D5 . G5 . | C6 . G5 . Eb5 . G5 . | Ab5 . Eb5 . C5 . Eb5 . | F5 . Ab5 . C6 . Ab5 . | F5 . Ab5 . Db6 . Ab5 . | D6 . B5 . G5 . D5 . | B4 - - - . . . . | ' +
             /* C */ '. . . . . . . . | . . . . . . . . | C5 . Eb5 . Ab5 . C6 . | D5 . F5 . Bb5 . D6 . | Eb5 . G5 . C6 . G5 . | F5 . Ab5 . C6 . Ab5 . | B5 . G5 . D6 . B5 . | G5 . F5 . D5 . B4 .' },
         { wave: 'triangle', vol: 0.18, n:
             /* A */ 'C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | Ab1 Ab2 Ab1 Ab2 G1 G2 G1 G2 | C2 C3 C2 C3 C2 . . . | ' +
+            /* D */ 'Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | F2 F3 F2 F3 F2 F3 F2 F3 | G1 G2 G1 G2 G1 G2 G1 G2 | C2 C3 C2 C3 C2 . . . | ' +
             /* B */ 'F2 F3 F2 F3 F2 F3 F2 F3 | G1 G2 G1 G2 G1 G2 G1 G2 | C2 C3 C2 C3 C2 C3 C2 C3 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | F2 F3 F2 F3 F2 F3 F2 F3 | Db2 Db3 Db2 Db3 Db2 Db3 Db2 Db3 | G1 G2 G1 G2 G1 G2 G1 G2 | G1 G2 G1 G2 G1 G2 G1 G2 | ' +
             /* C */ 'C2 C3 C2 C3 C2 C3 C2 C3 | C2 C3 C2 C3 C2 C3 C2 C3 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 C2 C3 C2 C3 | F2 F3 F2 F3 F2 F3 F2 F3 | G1 G2 G1 G2 G1 G2 G1 G2 | G1 G2 G1 G2 G1 G2 G1 G2' },
         { drum: true, vol: 0.07, n:
             /* A */ 'k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | ' +
             /* B */ 'k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k s . s s s s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k h . s . h h | k . h k s . h . | k k s . s s s s' },
     ],
@@ -9928,100 +9979,121 @@ SONGS.greatspool = {
 };
 
 /* the Slumberhouse's keeper: the House's music box as a fight (F minor). A the whole Slumberhouse tune in the
-   minor, folded into driving cells of three; B its cradle-rocking turned to a clock ticking too fast (Bbm Ab, Eb Fm,
-   C Db, C7); C the tune's head falling down F minor, E flat, D flat to C, then climbing back to C7 and round */
+   minor, folded into driving cells of three; D the box wound too tight: the same cells on the major side (A flat,
+   E flat), then down by D flat and B flat minor to C7, closing as A closes; B its cradle-rocking turned to a clock
+   ticking too fast (Bbm Ab, Eb Fm, C Db, C7); C the tune's head falling down F minor, E flat, D flat to C, then
+   climbing back to C7 and round */
 SONGS.boss_slumber = {
     bpm: 152, div: 2,
     ch: [
         { wave: 'p12', vol: 0.08, n:
             /* A */ 'C6 Ab5 F5 . G5 Ab5 C6 . | Bb5 G5 E5 . F5 G5 Ab5 . | Db6 Bb5 F5 . Ab5 Bb5 C6 . | Bb5 G5 E5 . F5 - - . | C6 Ab5 F5 . G5 Ab5 Bb5 . | Ab5 F5 Db5 . Eb5 F5 G5 . | Ab5 F5 Db5 . E5 F5 G5 . | C5 E5 G5 . F5 - - . | ' +
+            /* D */ 'C6 Ab5 Eb5 . F5 Ab5 C6 . | Bb5 G5 Eb5 . F5 G5 Bb5 . | Ab5 F5 C5 . Db5 Eb5 F5 . | G5 E5 C5 . E5 - - . | Ab5 F5 Db5 . Eb5 F5 Ab5 . | Bb5 F5 Db5 . C5 Db5 F5 . | E5 G5 Bb5 . G5 E5 C5 . | C5 E5 G5 . F5 - - . | ' +
             /* B */ 'Db6 Bb5 Db6 Bb5 C6 Ab5 C6 Ab5 | Bb5 G5 Bb5 G5 Ab5 F5 Ab5 F5 | G5 E5 G5 E5 F5 Db5 F5 Db5 | E5 - - . G5 . Bb5 . | Db6 Bb5 Db6 Bb5 C6 Ab5 C6 Ab5 | Bb5 G5 Bb5 G5 Ab5 F5 Ab5 F5 | G5 E5 G5 E5 Bb5 G5 E5 C5 | F5 - - . . . . . | ' +
             /* C */ 'C6 Ab5 F5 . G5 Ab5 C6 . | Bb5 G5 Eb5 . F5 G5 Bb5 . | Ab5 F5 Db5 . Eb5 F5 Ab5 . | G5 E5 C5 . D5 E5 G5 . | Ab5 F5 C5 . F5 Ab5 C6 . | Db6 Bb5 F5 . F5 Bb5 Db6 . | C6 G5 E5 . G5 E5 C5 . | Bb5 G5 E5 . C5 - - .' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'F2 F3 F2 F3 C2 C3 C2 C3 | C2 C3 C2 C3 F2 F3 F2 F3 | Bb1 Bb2 Bb1 Bb2 F2 F3 F2 F3 | C2 C3 C2 C3 F2 F3 F2 F3 | F2 F3 F2 F3 E2 E3 E2 E3 | Db2 Db3 Db2 Db3 Eb2 Eb3 Eb2 Eb3 | Db2 Db3 Db2 Db3 C2 C3 C2 C3 | C2 C3 C2 C3 F2 F3 F2 F3 | ' +
+            /* D */ 'Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | F2 F3 F2 F3 F2 F3 F2 F3 | C2 C3 C2 C3 C2 C3 C2 C3 | Db2 Db3 Db2 Db3 Db2 Db3 Db2 Db3 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 C2 C3 C2 C3 | C2 C3 C2 C3 F2 F3 F2 F3 | ' +
             /* B */ 'Bb1 Bb2 Bb1 Bb2 Ab1 Ab2 Ab1 Ab2 | Eb2 Eb3 Eb2 Eb3 F2 F3 F2 F3 | C2 C3 C2 C3 Db2 Db3 Db2 Db3 | C2 C3 C2 C3 C2 C3 C2 C3 | Bb1 Bb2 Bb1 Bb2 Ab1 Ab2 Ab1 Ab2 | Eb2 Eb3 Eb2 Eb3 F2 F3 F2 F3 | C2 C3 C2 C3 C2 C3 C2 C3 | F2 F3 F2 F3 F2 F3 F2 F3 | ' +
             /* C */ 'F2 F3 F2 F3 F2 F3 F2 F3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | Db2 Db3 Db2 Db3 Db2 Db3 Db2 Db3 | C2 C3 C2 C3 C2 C3 C2 C3 | F2 F3 F2 F3 F2 F3 F2 F3 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 C2 C3 C2 C3 | C2 C3 C2 C3 E2 E3 E2 E3' },
         { wave: 'p25', vol: 0.04, n:
             /* A */ 'F4 . Ab4 . E4 . G4 . | E4 . Bb4 . F4 . Ab4 . | F4 . Db5 . F4 . Ab4 . | E4 . Bb4 . F4 . Ab4 . | F4 . Ab4 . E4 . Bb4 . | F4 . Ab4 . G4 . Bb4 . | F4 . Ab4 . E4 . G4 . | E4 . Bb4 . F4 . C5 . | ' +
+            /* D */ 'Eb4 . Ab4 . C4 . Eb4 . | Eb4 . G4 . Bb3 . Eb4 . | F4 . Ab4 . Ab3 . F4 . | E4 . G4 . C4 . E4 . | F4 . Ab4 . Db4 . F4 . | F4 . Bb4 . Bb3 . F4 . | E4 . Bb4 . G4 . Bb4 . | E4 . Bb4 . F4 . C5 . | ' +
             /* B */ 'F4 . Db5 . Eb4 . C5 . | Eb4 . G4 . F4 . Ab4 . | E4 . G4 . F4 . Ab4 . | E4 . G4 . Bb4 . G4 . | F4 . Db5 . Eb4 . C5 . | Eb4 . G4 . F4 . Ab4 . | E4 . G4 . E4 . Bb4 . | F4 . Ab4 . C5 . Ab4 . | ' +
             /* C */ 'F4 . Ab4 . F4 . Ab4 . | Eb4 . G4 . Eb4 . G4 . | F4 . Ab4 . F4 . Ab4 . | E4 . G4 . E4 . G4 . | F4 . Ab4 . F4 . Ab4 . | F4 . Db5 . F4 . Db5 . | E4 . G4 . E4 . G4 . | E4 . Bb4 . E4 . Bb4 .' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* B */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s' },
     ],
 };
 
 /* the Marionette Hall's keeper: the House's overture as a fight. A the toy-piano tune turned to G minor at
-   full tilt; B the dark wing's falling G minor, F, E flat, D, answered in B flat; C the tune bright in G major for a
-   moment, then pulled dark again (E flat, C minor) and hung on D7 to start over */
+   full tilt; D the music-hall trio come back in the minor's E flat, singing in held notes (E flat, A flat, B flat 7,
+   C minor) and turning on D7 home; B the dark wing's falling G minor, F, E flat, D, answered in B flat; C the tune
+   bright in G major for a moment, then pulled dark again (E flat, C minor) and hung on D7 to start over */
 SONGS.boss_marionette = {
     bpm: 150, div: 2,
     ch: [
         { wave: 'p12', vol: 0.08, n:
             /* A */ 'G5 . Bb5 . D6 . Bb5 . | C6 . A5 . F#5 . A5 . | G5 . D5 . Bb4 . D5 . | Eb5 - - . D5 - - . | G5 . Bb5 . D6 . Bb5 . | Eb6 . C6 . G5 . C6 . | Bb5 . G5 . A5 . F#5 . | G5 - - - . . . . | ' +
+            /* D */ 'G5 - - . Bb5 . G5 . | Ab5 - - . C6 . Ab5 . | F5 - - . Bb5 . Ab5 . | G5 - - . Eb5 - - . | C6 - - . Eb6 . C6 . | Ab5 - - . . C6 F#5 . | G5 . Bb5 . A5 . F#5 . | G5 - - - . . . . | ' +
             /* B */ 'Bb5 . G5 . D5 . G5 . | A5 . F5 . C5 . F5 . | G5 . Eb5 . Bb4 . Eb5 . | D5 - - . F#5 . A5 . | D6 . Bb5 . F5 . Bb5 . | C6 . A5 . F5 . A5 . | Bb5 . G5 . Eb5 . G5 . | F#5 - - . A5 . C6 . | ' +
             /* C */ 'G5 . B5 . D6 . B5 . | C6 . A5 . F#5 . A5 . | G5 . D5 . B4 . D5 . | E5 - - . D5 - - . | G5 . Eb5 . Bb4 . Eb5 . | C6 . G5 . Eb5 . G5 . | F#5 . A5 . C6 . A5 . | D6 - - . C6 . A5 .' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'G2 G3 G2 G3 G2 G3 G2 G3 | D2 D3 D2 D3 D2 D3 D2 D3 | G2 G3 G2 G3 G2 G3 G2 G3 | C2 C3 C2 C3 D2 D3 D2 D3 | G2 G3 G2 G3 G2 G3 G2 G3 | C2 C3 C2 C3 C2 C3 C2 C3 | G2 G3 G2 G3 D2 D3 D2 D3 | G2 G3 G2 G3 G2 G3 G2 G3 | ' +
+            /* D */ 'Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 Ab1 Ab2 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | Ab1 Ab2 Ab1 Ab2 D2 D3 D2 D3 | G2 G3 G2 G3 D2 D3 D2 D3 | G2 G3 G2 G3 G2 G3 G2 G3 | ' +
             /* B */ 'G2 G3 G2 G3 G2 G3 G2 G3 | F2 F3 F2 F3 F2 F3 F2 F3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | F2 F3 F2 F3 F2 F3 F2 F3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | ' +
             /* C */ 'G2 G3 G2 G3 G2 G3 G2 G3 | D2 D3 D2 D3 D2 D3 D2 D3 | G2 G3 G2 G3 G2 G3 G2 G3 | C2 C3 C2 C3 D2 D3 D2 D3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | D2 D3 D2 D3 D2 D3 D2 D3 | D2 D3 D2 D3 D2 D3 F#2 F#3' },
         { wave: 'p25', vol: 0.04, n:
             /* A */ 'G4 . Bb4 . G4 . Bb4 . | F#4 . A4 . F#4 . C5 . | D4 . G4 . D4 . G4 . | Eb4 . G4 . D4 . F#4 . | G4 . Bb4 . G4 . Bb4 . | Eb4 . G4 . Eb4 . G4 . | G4 . Bb4 . F#4 . A4 . | G4 . Bb4 . D5 . Bb4 . | ' +
+            /* D */ 'Eb4 . G4 . Bb4 . G4 . | Eb4 . Ab4 . C5 . Ab4 . | D4 . F4 . Ab4 . F4 . | Eb4 . G4 . Bb4 . G4 . | Eb4 . G4 . C5 . G4 . | Eb4 . Ab4 . D4 . F#4 . | G4 . Bb4 . F#4 . A4 . | G4 . Bb4 . D5 . Bb4 . | ' +
             /* B */ 'D4 . G4 . D4 . G4 . | C4 . F4 . A4 . F4 . | Eb4 . G4 . Bb4 . G4 . | D4 . F#4 . A4 . F#4 . | D4 . F4 . Bb4 . F4 . | C4 . F4 . A4 . F4 . | Eb4 . G4 . Bb4 . G4 . | D4 . F#4 . C5 . F#4 . | ' +
             /* C */ 'D4 . G4 . B4 . G4 . | D4 . F#4 . C5 . F#4 . | D4 . G4 . B4 . G4 . | E4 . G4 . D4 . F#4 . | Eb4 . G4 . Bb4 . G4 . | Eb4 . G4 . C5 . G4 . | D4 . F#4 . C5 . F#4 . | D4 . F#4 . A4 . C5 .' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* B */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s' },
     ],
 };
 
 /* the Spoolworks' keeper: the House's machine as a fight (E minor). A the Spoolworks tune over its own spinning
-   bass, its last suspended E falling to D sharp this time; B the riff shifting gear up a fourth (A minor, F, D minor),
-   then grinding back over E minor, A minor, D7 and B; C the shuttle running in eighths, then the riff once more */
+   bass, its last suspended E falling to D sharp this time; D its answer, as the House plays it (G D Em C, Am C B7 Em),
+   over the spinning bass; B the riff shifting gear up a fourth (A minor, F, D minor), then grinding back over E minor,
+   A minor, D7 and B; C the shuttle running in eighths, then the riff once more */
 SONGS.boss_spoolworks = {
     bpm: 156, div: 2,
     ch: [
         { wave: 'p12', vol: 0.08, n:
             /* A */ 'E5 . . G5 . . F#5 . | E5 . D5 . B4 . . . | C5 . . E5 . . D5 . | C5 . B4 . A4 . . . | E5 . . G5 . . B5 . | A5 . G5 . F#5 . E5 . | D5 . F#5 . A5 . F#5 . | E5 - - - D#5 - - - | ' +
+            /* D */ 'D5 . . G5 . . B5 . | A5 . F#5 . D5 . . . | B5 . . G5 . . E5 . | G5 . E5 . C5 . . . | C5 . . E5 . . A5 . | G5 . E5 . C5 . E5 . | D#5 . F#5 . A5 . F#5 . | E5 - - - . . . . | ' +
             /* B */ 'A5 . . C6 . . B5 . | A5 . G5 . E5 . . . | F5 . . A5 . . G5 . | F5 . E5 . D5 . . . | E5 . . G5 . . B5 . | C6 . B5 . A5 . G5 . | F#5 . A5 . C6 . A5 . | B5 - - - . . . . | ' +
             /* C */ 'B4 E5 G5 E5 B4 E5 G5 E5 | B4 E5 G5 B5 G5 E5 B4 E5 | C5 E5 G5 E5 C5 E5 G5 E5 | A4 C5 E5 C5 A4 C5 E5 C5 | E5 . . G5 . . B5 . | C6 . B5 . A5 . G5 . | F#5 . A5 . D6 . A5 . | B5 - - - A5 . F#5 .' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'E2 E3 B2 E3 E2 E3 B2 E3 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | A2 A3 E3 A3 A2 A3 E3 A3 | E2 E3 B2 E3 E2 E3 B2 E3 | A2 A3 E3 A3 A2 A3 E3 A3 | D3 D4 A3 D4 D3 D4 A3 D4 | B2 B3 F#3 B3 B2 B3 F#3 B3 | ' +
+            /* D */ 'G2 G3 D3 G3 G2 G3 D3 G3 | D3 D4 A3 D4 D3 D4 A3 D4 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | A2 A3 E3 A3 A2 A3 E3 A3 | C3 C4 G3 C4 C3 C4 G3 C4 | B2 B3 F#3 B3 B2 B3 F#3 B3 | E2 E3 B2 E3 E2 E3 B2 E3 | ' +
             /* B */ 'A2 A3 E3 A3 A2 A3 E3 A3 | A2 A3 E3 A3 A2 A3 E3 A3 | F2 F3 C3 F3 F2 F3 C3 F3 | D3 D4 A3 D4 D3 D4 A3 D4 | E2 E3 B2 E3 E2 E3 B2 E3 | A2 A3 E3 A3 A2 A3 E3 A3 | D3 D4 A3 D4 D3 D4 A3 D4 | B2 B3 F#3 B3 B2 B3 F#3 B3 | ' +
             /* C */ 'E2 E3 B2 E3 E2 E3 B2 E3 | E2 E3 B2 E3 E2 E3 B2 E3 | C3 C4 G3 C4 C3 C4 G3 C4 | A2 A3 E3 A3 A2 A3 E3 A3 | E2 E3 B2 E3 E2 E3 B2 E3 | A2 A3 E3 A3 A2 A3 E3 A3 | D3 D4 A3 D4 D3 D4 A3 D4 | B2 B3 F#3 B3 B2 B3 F#3 B3' },
         { wave: 'p25', vol: 0.04, n:
             /* A */ 'G4 . B4 . G4 . B4 . | G4 . B4 . G4 . B4 . | E4 . G4 . E4 . G4 . | E4 . A4 . E4 . A4 . | G4 . B4 . G4 . B4 . | E4 . A4 . E4 . A4 . | F#4 . A4 . F#4 . A4 . | F#4 . B4 . D#4 . F#4 . | ' +
+            /* D */ 'G4 . B4 . G4 . B4 . | F#4 . A4 . F#4 . A4 . | G4 . B4 . G4 . B4 . | E4 . G4 . E4 . G4 . | E4 . A4 . E4 . A4 . | E4 . G4 . E4 . G4 . | F#4 . A4 . D#4 . F#4 . | G4 . B4 . G4 . B4 . | ' +
             /* B */ 'E4 . A4 . E4 . A4 . | E4 . A4 . E4 . A4 . | F4 . A4 . F4 . A4 . | F4 . A4 . D4 . F4 . | G4 . B4 . G4 . B4 . | E4 . A4 . E4 . A4 . | F#4 . C5 . F#4 . A4 . | F#4 . B4 . D#4 . F#4 . | ' +
             /* C */ 'E4 . G4 . E4 . G4 . | E4 . G4 . E4 . G4 . | E4 . G4 . E4 . G4 . | E4 . A4 . E4 . A4 . | G4 . B4 . G4 . B4 . | E4 . A4 . E4 . A4 . | F#4 . A4 . F#4 . A4 . | F#4 . B4 . D#4 . F#4 .' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* B */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s' },
     ],
 };
 
 /* the Loom's keeper: the First Spinner's machine running at last (D phrygian). A the Loom's tune hammered out
-   like a beater on the weft, its E flat a chord of its own; B the House's second strain the same way (Bb Cm Gm D,
-   Eb Cm Eb D); C the tune's long notes again over the shuttle flying in eighths, closing on A7 and D */
+   like a beater on the weft, its E flat a chord of its own; D the beater on new threads, down by G minor, F, E flat to
+   D, then up by B flat and C minor to A7; B the House's second strain the same way (Bb Cm Gm D, Eb Cm Eb D); C the
+   tune's long notes again over the shuttle flying in eighths, closing on A7 and D */
 SONGS.boss_loom = {
     bpm: 144, div: 2,
     ch: [
         { wave: 'p25', vol: 0.08, n:
             /* A */ 'D5 - - A4 Eb5 - - Bb4 | D5 - - A4 C5 - - G4 | Bb4 - - Bb4 C5 - D5 - | A4 - - A4 - - A4 - | D5 - - D5 F5 - - F5 | Eb5 - - Eb5 D5 - - D5 | C5 - Bb4 - A4 - G4 - | A4 - - - - - . . | ' +
+            /* D */ 'Bb4 - - Bb4 D5 - - D5 | C5 - - C5 A4 - - A4 | Bb4 - - Bb4 G4 - - G4 | A4 - - A4 D5 - - - | D5 - - D5 F5 - - F5 | Eb5 - - Eb5 G5 - - G5 | G5 - - Eb5 E5 - - C#5 | A4 - - - - - . . | ' +
             /* B */ 'F5 - - F5 D5 - - D5 | Eb5 - - Eb5 C5 - - C5 | D5 - - D5 Bb4 - - Bb4 | A4 - - Bb4 A4 - G4 - | G4 - - G4 Bb4 - - Bb4 | C5 - - C5 Eb5 - - Eb5 | Bb4 - - Eb5 G5 - - Eb5 | D5 - - - - - . . | ' +
             /* C */ 'D5 - - - - - - - | Eb5 - - - - - - - | D5 - - - C5 - - - | Bb4 - - - C5 - D5 - | Eb5 - - - G5 - - - | D5 - - - Bb4 - - - | C5 - Bb4 - A4 - G4 - | A4 - - - - - . .' },
         { wave: 'triangle', vol: 0.22, n:
             /* A */ 'D2 D3 D2 D3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 C2 C3 C2 C3 | Bb1 Bb2 Bb1 Bb2 C2 C3 C2 C3 | D2 D3 D2 D3 D2 D3 D2 D3 | D2 D3 D2 D3 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 G1 G2 G1 G2 | C2 C3 C2 C3 A1 A2 A1 A2 | D2 D3 D2 D3 D2 D3 D2 D3 | ' +
+            /* D */ 'G1 G2 G1 G2 G1 G2 G1 G2 | F2 F3 F2 F3 F2 F3 F2 F3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 C2 C3 C2 C3 | Eb2 Eb3 Eb2 Eb3 A1 A2 A1 A2 | D2 D3 D2 D3 D2 D3 D2 D3 | ' +
             /* B */ 'Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | D2 D3 D2 D3 D2 D3 D2 D3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | ' +
             /* C */ 'D2 D3 D2 D3 D2 D3 D2 D3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | D2 D3 D2 D3 D2 D3 D2 D3 | Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 Eb2 Eb3 | C2 C3 C2 C3 C2 C3 C2 C3 | G1 G2 G1 G2 G1 G2 G1 G2 | C2 C3 C2 C3 A1 A2 A1 A2 | D2 D3 D2 D3 D2 D3 D2 D3' },
         { wave: 'p12', vol: 0.04, n:
             /* A */ 'D4 . A4 . Eb4 . Bb4 . | D4 . A4 . C4 . G4 . | D4 . F4 . C4 . G4 . | D4 . A4 . D4 . A4 . | D4 . F4 . D4 . F4 . | Eb4 . G4 . D4 . G4 . | Eb4 . G4 . C#4 . G4 . | D4 . A4 . D4 . A4 . | ' +
+            /* D */ 'D4 . G4 . D4 . G4 . | C4 . F4 . C4 . A4 . | Eb4 . G4 . Eb4 . G4 . | D4 . F4 . D4 . A4 . | D4 . F4 . D4 . Bb4 . | Eb4 . G4 . C4 . G4 . | Eb4 . Bb4 . C#4 . G4 . | D4 . A4 . D4 . A4 . | ' +
             /* B */ 'D4 . F4 . D4 . F4 . | Eb4 . G4 . Eb4 . G4 . | D4 . G4 . D4 . G4 . | D4 . A4 . D4 . A4 . | Eb4 . Bb4 . Eb4 . Bb4 . | Eb4 . G4 . Eb4 . G4 . | Eb4 . Bb4 . Eb4 . Bb4 . | D4 . A4 . D4 . A4 . | ' +
             /* C */ 'D4 A4 D5 A4 D4 A4 D5 A4 | Eb4 Bb4 Eb5 Bb4 Eb4 Bb4 Eb5 Bb4 | D4 A4 D5 A4 D4 A4 D5 A4 | Eb4 G4 Bb4 G4 Eb4 G4 Bb4 G4 | C4 G4 C5 G4 C4 G4 C5 G4 | D4 G4 Bb4 G4 D4 G4 Bb4 G4 | C4 G4 Eb4 G4 C#4 E4 G4 E4 | D4 A4 D5 A4 D4 A4 D5 A4' },
         { drum: true, vol: 0.1, n:
             /* A */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
+            /* D */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* B */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s | ' +
             /* C */ 'k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s . h s | k . h k s . h . | k k h . s s s s' },
     ],
@@ -10125,10 +10197,10 @@ for (const id of ['tidy', 'kilnhouse', 'millrace', 'belfry', 'slumber', 'marione
 
 Object.assign(SONG_LEVEL, {
     title: -3.2, town: 0.6, home: -3.0, inn: 2.5, shop: 4.3, meadow: 0.9,
-    tidy: 4.1, boss: -2.0, knot: -3.1, kiln: -0.1, kilnhouse: 2.2, water: 0.5,
+    tidy: 4.1, boss: -1.8, knot: -3.1, kiln: -0.1, kilnhouse: 2.2, water: 0.5,
     millrace: 0.5, heights: 1.4, belfry: 3.3, lullaby: -4.1, festival: 0.3, hush: -6.1,
-    slumber: -2.8, fair: -1.1, marionette: 2.5, underside: 4.0, spoolworks: -0.2, loomwood: -1.7,
-    loom: -2.3, drift: -2.2, pull: 0.6, boss_tidy: -2.2, boss_kiln: -1.8, boss_mill: -1.2,
+    slumber: -2.8, fair: -1.1, marionette: 2.5, underside: 4.2, spoolworks: -0.2, loomwood: -1.7,
+    loom: -2.3, drift: -2.2, pull: 0.6, boss_tidy: -2.2, boss_kiln: -1.6, boss_mill: -1.2,
     boss_belfry: -2.1, greatspool: 1.7, boss_slumber: -1.7, boss_marionette: -1.9, boss_spoolworks: -2.3, boss_loom: -1.7,
     makings: 4.7, unfinished: -0.7,
 });
@@ -25059,7 +25131,7 @@ const Needle = {
     use(p) {
         if (this.st) return this.confirm(p);
         const t = this.target(p);
-        if (!t && this.beyond(p)) { UI.toast("Too far off: the Needle's thread reaches four tiles, no further."); Sfx.play('hitthing', 0.4); return; }
+        if (!t && this.beyond(p)) { UI.often("Too far off: the Needle's thread reaches four tiles, no further.", 'Too far off.'); Sfx.play('hitthing', 0.4); return; }
         if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }
@@ -25560,7 +25632,7 @@ UNDER_TALK.gundry = function* () {
         Progress.set('met_gundry_below');
         yield* say('gundry', "So. You found the stairs. Up top I keep the Well; down here, the Guild. Every Maker you've met learnt the trade here, in the Spoolworks.");
         yield* say('gundry', "A House is PLAYED from up top. It's WORKED from down here: every mark up there has its cord below. Tug one, tie one off, see what happens.");
-        yield* say('gundry', "Through the big door. It's got itself in a tangle. And mind the hound: he was a good dog once, till somebody wound him too tight.");
+        yield* say('gundry', "Through the big door. The Works has got itself in a tangle. And mind the hound: he was a good dog once, till somebody wound him too tight.");
         Progress.setGoal('The Spoolworks: through the big door in the Guild Hall, under the Inn.');
         return;
     }

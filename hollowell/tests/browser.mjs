@@ -144,7 +144,7 @@ async function audioCheck() {
     /* the worst moments, at the top volumes and at the defaults: a pile-up of effects on a fight's loudest moment and on
        the loudest tune's; a crossfade between the two loudest; the end of the Pull with its effects */
     const by = f => Object.keys(song).filter(f).sort((a, b) => song[b].tp - song[a].tp)[0];
-    const fight = by(id => id.startsWith('boss')), loudest = by(() => true), next = by(id => id !== loudest && id.startsWith('boss'));
+    const loudest = by(() => true), next = by(id => id !== loudest && id.startsWith('boss'));
     async function scene(id, t, vol, fx, then) {
         const R = begin(t + 3.4, vol), ev = fx.map(n => ({ t, fn: () => { Sfx.last = {}; Sfx.play(n); } }));
         if (then) ev.push({ t, fn: () => Music.play(then) });
@@ -154,13 +154,17 @@ async function audioCheck() {
         return peak(x, Math.round((t - 2) * SR), Math.round((t + 3) * SR)).tp;
     }
     const PILE = ['hitthing', 'enemyhit', 'boss', 'bell', 'item', 'rumble', 'heart', 'hookhit'], FOUR = ['hitthing', 'bell', 'boss', 'heart'];
-    const checks = [
-        [`${fight}, a hit, a ring, the boss's attack and a pickup at once, at the default volumes`, await scene(fight, song[fight].at, DEF, FOUR), -6],
-        [`${fight} and eight effects at once, everything at the top`, await scene(fight, song[fight].at, MAX, PILE), -0.5],
+    const checks = [];
+    /* every fight's busiest moment on its own loudest: under the limiter's knee at the defaults (it never works in
+       play), and even eight effects at once with everything at the top never reach full scale */
+    for (const id of Object.keys(song).filter(id => id.startsWith('boss'))) {
+        checks.push([`${id}, a hit, a ring, the boss's attack and a pickup at once, at the default volumes`, await scene(id, song[id].at, DEF, FOUR), -5.5]);
+        checks.push([`${id} and eight effects at once, everything at the top`, await scene(id, song[id].at, MAX, PILE), -0.5]);
+    }
+    checks.push(
         [`${loudest} and eight effects at once, everything at the top`, await scene(loudest, song[loudest].at, MAX, PILE), -0.5],
         [`${loudest} crossfading into ${next}, at the top`, await scene(loudest, song[loudest].at, MAX, [], next), Math.max(song[loudest].max, song[next].max) + 0.5],
-        ['the Pull and six effects at once, at the top', await scene('pull', song.pull.at, MAX, ['rumble', 'snip', 'knot', 'twang', 'unclick', 'shatter']), -0.5],
-    ];
+        ['the Pull and six effects at once, at the top', await scene('pull', song.pull.at, MAX, ['rumble', 'snip', 'knot', 'twang', 'unclick', 'shatter']), -0.5]);
     for (const [what, tp, lim] of checks) if (tp > lim) out.push(`${what}: peaks at ${tp.toFixed(2)} dBTP (over ${lim.toFixed(1)})`);
     return out;
 }

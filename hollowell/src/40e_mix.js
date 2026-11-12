@@ -9,10 +9,10 @@
 
 Object.assign(SONG_LEVEL, {
     title: -3.2, town: 0.6, home: -3.0, inn: 2.5, shop: 4.3, meadow: 0.9,
-    tidy: 4.1, boss: -2.0, knot: -3.1, kiln: -0.1, kilnhouse: 2.2, water: 0.5,
+    tidy: 4.1, boss: -1.8, knot: -3.1, kiln: -0.1, kilnhouse: 2.2, water: 0.5,
     millrace: 0.5, heights: 1.4, belfry: 3.3, lullaby: -4.1, festival: 0.3, hush: -6.1,
-    slumber: -2.8, fair: -1.1, marionette: 2.5, underside: 4.0, spoolworks: -0.2, loomwood: -1.7,
-    loom: -2.3, drift: -2.2, pull: 0.6, boss_tidy: -2.2, boss_kiln: -1.8, boss_mill: -1.2,
+    slumber: -2.8, fair: -1.1, marionette: 2.5, underside: 4.2, spoolworks: -0.2, loomwood: -1.7,
+    loom: -2.3, drift: -2.2, pull: 0.6, boss_tidy: -2.2, boss_kiln: -1.6, boss_mill: -1.2,
     boss_belfry: -2.1, greatspool: 1.7, boss_slumber: -1.7, boss_marionette: -1.9, boss_spoolworks: -2.3, boss_loom: -1.7,
     makings: 4.7, unfinished: -0.7,
 });

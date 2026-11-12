@@ -336,7 +336,7 @@ const Needle = {
     use(p) {
         if (this.st) return this.confirm(p);
         const t = this.target(p);
-        if (!t && this.beyond(p)) { UI.toast("Too far off: the Needle's thread reaches four tiles, no further."); Sfx.play('hitthing', 0.4); return; }
+        if (!t && this.beyond(p)) { UI.often("Too far off: the Needle's thread reaches four tiles, no further.", 'Too far off.'); Sfx.play('hitthing', 0.4); return; }
         if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }

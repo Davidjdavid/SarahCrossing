@@ -245,7 +245,7 @@ UNDER_TALK.gundry = function* () {
         Progress.set('met_gundry_below');
         yield* say('gundry', "So. You found the stairs. Up top I keep the Well; down here, the Guild. Every Maker you've met learnt the trade here, in the Spoolworks.");
         yield* say('gundry', "A House is PLAYED from up top. It's WORKED from down here: every mark up there has its cord below. Tug one, tie one off, see what happens.");
-        yield* say('gundry', "Through the big door. It's got itself in a tangle. And mind the hound: he was a good dog once, till somebody wound him too tight.");
+        yield* say('gundry', "Through the big door. The Works has got itself in a tangle. And mind the hound: he was a good dog once, till somebody wound him too tight.");
         Progress.setGoal('The Spoolworks: through the big door in the Guild Hall, under the Inn.');
         return;
     }
