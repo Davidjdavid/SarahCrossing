@@ -43,8 +43,8 @@ edge, a grainy night sky, people facing the wrong way at counters, things hoveri
 6. **Live playthrough #2, #3...** until a whole run turns up nothing new; final verification.
 
 ## Exit criteria (all must hold)
-- [ ] Two consecutive full live playthroughs: no errors, no unexplained probe anomalies, and snapshot review finds
-      nothing new above cosmetic.
+- [ ] One full live playthrough (David, 12 November: one clean run is enough, no need for two in a row): no errors, no
+      unexplained probe anomalies, and snapshot review finds nothing new above cosmetic.
 - [ ] Text-fit audit passes for every string (longest player name included).
 - [ ] Placement audit passes: nobody and nothing starts in or walks through a solid; no two things share a tile.
 - [ ] Frame pacing: at 60 Hz (with jitter) every refresh gets exactly one step; at 120/144 Hz the pattern is as even
