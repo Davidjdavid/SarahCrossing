@@ -195,3 +195,5 @@
   one.
 - Sound: the whole game is louder (it was very quiet), the tunes even with each other, effects clear over the music,
   no clicks at note starts and ends, smoother changes of tune, and every tune at least 45 seconds before it repeats.
+- Writing: typos and spellings made consistent, every character in their own voice, long speeches trimmed, and lines
+  you'd see again and again shortened, varied or quietened after the first time.

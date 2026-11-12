@@ -105,10 +105,7 @@ const CHECKS = {
     'a key named outright (the game names the bound one: [act])': t => (t.match(/\((?:Z|X|C) on the|press (?:Z|X|C)\b/) || [null])[0],
 };
 /* (files another helper had open during the pass, their slips handed over in its report: src/67b, 70, 72b, 75) */
-const PENDING = [
-    ['a tool named in lower case', '67b_spool_foes.js', /walk the needle with the arrows/],
-    ['an American spelling', '75_greatspool.js', /toward the drum|Toward the town, toward the Well/],
-];
+const PENDING = [];
 const pending = (name, x) => PENDING.some(([n, f, re]) => n === name && f === x.file && re.test(x.s));
 
 for (const [name, find] of Object.entries(CHECKS)) {

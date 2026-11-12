@@ -159,7 +159,7 @@ const Pull = {
     /* every thread down here is too taut to stitch or to cut (but a great thread gone slack) */
     const needle0 = TOOLS.needle.use;
     TOOLS.needle.use = function (p) {
-        if (Pull.on(p.area) && !Needle.st) { Sfx.play('hitthing'); UI.toast("Every thread down here is drawn taut as wire toward the drum. The Needle won't take a stitch.", 170); return; }
+        if (Pull.on(p.area) && !Needle.st) { Sfx.play('hitthing'); UI.toast("Every thread down here is drawn taut as wire towards the drum. The Needle won't take a stitch.", 170); return; }
         return needle0.call(this, p);
     };
     const shears0 = TOOLS.shears.use;
@@ -598,7 +598,7 @@ class GreatPost extends GridThing {
         if (this.cut || !Progress.flag('spool_met')) return;
         if (this.held) { Sfx.play('hitthing'); UI.toast("Gran has this one wound round her hand. It won't give.", 160); return; }
         /* the Spool keeps its threads taut: the Shears only bite one that something's just been dragged along */
-        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : 'Too taut: the Shears skid right off it. It hums, pulled tight as a bowstring toward the drum.', 200); Progress.set('taut_told'); return; }
+        if (this.slack <= 0) { Sfx.play('hitthing'); UI.toast(Progress.flag('taut_told') ? 'Too taut.' : 'Too taut: the Shears skid right off it. It hums, pulled tight as a bowstring towards the drum.', 200); Progress.set('taut_told'); return; }
         Progress.set('great:' + this.house); Sfx.play('snip'); G.shake = 8; Fx.ring(this.tx * T + 8, this.ty * T, KNOT_COL[this.house]);
         const n = KNOT_HOUSES.filter(h => Progress.flag('great:' + h)).length;
         if (n >= 6) Script.run(GreatSpool.finale(), { name: 'finale' });
@@ -994,7 +994,7 @@ const GreatSpool = {
         }
         /* everyone else with a thread, wherever they are, is holding on to something */
         if (Progress.flag('great_pull') && !Progress.flag('unwound') && !Progress.flag('cut:' + npc.who) && npc.who !== 'gran' && npc.who !== 'linnet' && PEOPLE_DEF[npc.who]) {
-            return function* () { yield* say(npc.who, ["{worried}It's pulling. Toward the town, toward the Well. I've got my arm round the post, love, I'm all right. Go on.", "Can you feel it? No. No, you can't, can you. Go on, then. Go and stop it."][Math.floor(G.rng() * 2)]); };
+            return function* () { yield* say(npc.who, ["{worried}It's pulling. Towards the town, towards the Well. I've got my arm round the post, love, I'm all right. Go on.", "Can you feel it? No. No, you can't, can you. Go on, then. Go and stop it."][Math.floor(G.rng() * 2)]); };
         }
         return talk0.call(this, npc);
     };
