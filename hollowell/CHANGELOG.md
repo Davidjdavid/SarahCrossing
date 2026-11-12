@@ -205,3 +205,4 @@
   open by a timer shows its time; no room leaves you stranded once it's solved; a fight that asked nothing now asks
   one thing; a fight's hardest stage says its rule; hints (if you've asked for them) reach the fights too; a hard-to-see
   attack is easy to see; the Options say hints wait to be asked for; the Journal keeps a tune you'll want later.
+- Fixed: creatures no longer move or bite while you're reading a line or watching a scene.
