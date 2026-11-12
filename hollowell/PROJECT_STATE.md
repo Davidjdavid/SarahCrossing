@@ -1,14 +1,16 @@
 # HOLLOWELL: Project State
 
-_Last updated: 2026-11-10 (session 1, day 2)._
+_Last updated: 2026-11-12 (session 1, day 4)._
 
 ## Status
-**Polish campaign in progress (POLISH.md, from 10 November):** David asked for a long, thorough polish pass. So far:
-every House reworked (bosses in three beats, mini-bosses two hits, new rooms that combine earlier rules, floors and
-set pieces), the Makings grown to eight Little Houses with a second child, all music lengthened (a fight tune per
-House), the story's big scenes staged, and two rounds of fixes from a full live run and a critic's review. Running:
-the Great Spool's rebuild and the overworld regions. Then: live run 2, picture reviews, blind solvers, the critic
-again. Room counts and the length estimate below are from before the campaign and will be re-measured.
+**Polish campaign complete (10-12 November, POLISH.md).** David asked for a long, thorough polish pass; every exit
+criterion is met. Every House reworked (bosses in three beats, mini-bosses two hits, rooms that combine earlier rules,
+floors and set pieces), the Makings grown to eight Little Houses with a second child, the Great Spool rebuilt, all music
+lengthened (a fight tune per House), the story's big scenes staged, a full dialogue and audio pass, every main-path room
+played blind by reviewers, and fix rounds A-H from five full live playthroughs in Chromium and their picture reviews.
+The last of them (live run 5) came back clean; with David's rule (one clean run is enough) the campaign ended there.
+Final state: 851 headless tests, the browser checks, the placement audit (0 findings) and a live run of all nine legs
+(0 probe issues, 0 errors) all pass. Next: a testing package for an outside QA tester (David's request of 12 November).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
 headless tests including one continuous scripted game from the title to the credits, every browser scenario (the game
