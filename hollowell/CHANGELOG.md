@@ -193,3 +193,5 @@
 - Fixed: Options on the title screen of a browser that had never started a game showed nothing (found by an outside
   tester); the menu now shows which keys turn its tabs; the playable page has a Save code box, to copy a save or load
   one.
+- Sound: the whole game is louder (it was very quiet), the tunes even with each other, effects clear over the music,
+  no clicks at note starts and ends, smoother changes of tune, and every tune at least 45 seconds before it repeats.
