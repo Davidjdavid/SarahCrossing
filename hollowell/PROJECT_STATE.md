@@ -16,7 +16,8 @@ Final state: 851 headless tests, the browser checks, the placement audit (0 find
 confidential guide (about 61,000 words); spoiler-free instructions and how to run it; the QA copy of the page (the
 tester's link). Preparing it found POLISH.md findings 82-89 (one softlock below the falls), left unfixed while the
 outside tester works and listed for it. Next: the tester's report (David passes on `developer-report.md`), then one fix
-round for its findings and 82-89.
+round for its findings and 82-89. David has frozen copies of the 12 November version (commit b217800) to compare
+with later ones: the artifact https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV and a Linux folder (CLAUDE.md).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
 headless tests including one continuous scripted game from the title to the credits, every browser scenario (the game

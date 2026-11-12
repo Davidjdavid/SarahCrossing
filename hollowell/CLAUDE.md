@@ -38,6 +38,14 @@ The saves as delivered on 12 November are in `qa_kit/saves/` (74, every one pass
 for the tester are POLISH.md findings 82-89; the game was frozen while the package was prepared.
 Never put anything from `private/` in it.
 
+## Frozen copies for David (12 November)
+David keeps copies of a version to compare with later ones: the 12 November version (commit b217800) is the artifact
+https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV (never to be updated) and a Linux folder (`Hollowell.html` plus the
+launcher in `tools/linux/`: its own Chromium profile per version, so versions' saves stay apart). For a later version:
+build, copy `dist/hollowell_page.html` with the title and the version line under the lede changed, and copy
+`tools/linux/*` with the date changed (2026-11-12, 12 November) in every file; publish the page as a new artifact. His
+main page (https://claude.ai/artifact/4cwxT315Taw5N4ewmxertc) is the one that's kept up to date.
+
 ## The code (src/)
 - One script, joined in file-name order by `tools/build.mjs`; `00_core.js` has `'use strict'`. Everything
   is global. A new file's name decides its place (data files 30–79, story 80–89, `90_main.js` last: it boots).
