@@ -17,7 +17,7 @@
 const MAKINGS = [
     { name: 'The Little Tidyhouse', by: 'Ives', after: "Ives, from somewhere above: \"He thinks he did it all himself. Bless him.\"" },
     { name: 'Mind the Nibbler', by: 'Bram', tuck: 'I got past the NIBBLER! All by MYSELF!', after: "Bram, from somewhere above: \"HA! He never even saw you. Not once.\"" },
-    { name: 'The Little Wander', by: 'Tess', tuck: 'The heavy one MOVED! I think it was scared of me.', after: "Tess, from somewhere above: \"Oh, his face. Did you see his face?\"" },
+    { name: 'The Little Wander', by: 'Tess', tuck: 'The heavy one MOVED! I think it was scared of me.', after: "Your mum, from somewhere above: \"Oh, his face. Did you see his face?\"" },
     { name: 'The Long Sulk', by: 'Gundry', tuck: "I wasn't sulking. I was THINKING. And then I did it!", after: "Gundry, from somewhere above: \"He sulked exactly where we needed him to. Took me forty years to learn that one.\"" },
     { name: 'The Tidyhouse, Underneath', by: 'Ives', entry: { x: 56, y: 16 }, tuck: "That was the REAL Tidyhouse! I bet I did it faster than you.", after: "Ives, from somewhere above: \"That's the Foyer you came in by, and the Hall you were so cross in. Now you know what I was doing all that time, love: sitting under you, holding my breath.\"" },
     { name: 'The Housekeeper', by: 'Jory', tuck: 'I DID IT! Even with Otto tidying EVERYTHING.', after: "Jory, from somewhere above: \"A two-hander! Two little players, neither knowing the other's lines. Bravo. BRAVO.\"" },
@@ -361,7 +361,10 @@ const Making = {
             yield 30;
             yield* stepAside();
             Sfx.play('knot');
-            yield* say('tuck', MAKINGS[n - 1].tuck || TUCK_DONE);
+            /* (where he shows through the boards, if he's up over the room Wren's under: the box keeps off him there. Up
+               over another room, the next one along, nothing of him shows from down here) */
+            const tk = a.ents.find(e => e.who === 'tuck' && !e.removed), r = Cam.room, over = !!tk && !!r && !!r.above && Layers.upRoom(a, r) === a.roomAt(tk.tx, tk.ty);
+            yield* say('tuck', MAKINGS[n - 1].tuck || TUCK_DONE, over ? { focus: [tk.tx - r.above.dx, tk.ty - r.above.dy, 26] } : {});
             if (a.def.afterHoop) yield* a.def.afterHoop(a);
             const ahas = c ? c.ahas.size : 0;
             const first = !Progress.flag('making' + n);

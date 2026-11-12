@@ -1,5 +1,6 @@
 // Fix round C, art (POLISH.md findings 42, 47, 50, 52, 53): layering, the find held up, what's drawn where the words
-// say, kept fixed. (The threads' contrast is tests/contrast.test.mjs; the pictures are looked at in Chromium.)
+// say, kept fixed. (The threads' contrast is tests/contrast.test.mjs; the pictures are looked at in Chromium.) And live run
+// 4's (findings 77, 78): the Glazer on its feet; a find's glow over the dark.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
@@ -177,4 +178,21 @@ test('the Glazer stands on its shadow, facing any way and braced: the bottom of 
         const low = state === 'brace' ? 2 : 0;
         assert.ok(at + feet - low >= shadow - 1 && at + feet - low <= shadow + 1, `${dir} ${state}: its feet at ${at + feet}, its shadow from ${shadow}`);
     }
+});
+
+test('the glow behind a find held up is warm and pale even over the dark of a chasm, not a flat grey disc', () => {
+    const HW = loadGame();
+    HW.newGame('Wren', { area: 'tidy', x: 10, y: 38, noAutosave: true, skipIntro: true }); HW.step(5);
+    const p = HW.player(), Gfx = HW.global('Gfx'), hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    HW.G.holdUp = { id: 'key', t: 0 }; p.state = 'hold';
+    const circles = [], c0 = Gfx.circle, a0 = Gfx.alpha; let alpha = 1;
+    Gfx.alpha = function (a) { alpha = a; return a0.apply(this, arguments); };
+    Gfx.circle = function (x, y, r, col) { circles.push({ r, col, a: alpha }); return c0.apply(this, arguments); };
+    try { p.draw(HW.global('Cam').x, HW.global('Cam').y); } finally { Gfx.circle = c0; Gfx.alpha = a0; HW.G.holdUp = null; p.state = 'normal'; }
+    assert.ok(circles.length >= 2, 'a glow drawn');
+    /* (laid over black, at its middle and near its rim) */
+    const over = d => circles.filter(q => q.r >= d).reduce((c, q) => c.map((v, i) => q.a * hex(q.col)[i] + (1 - q.a) * v), [0, 0, 0]);
+    const mid = over(0), rim = over(Math.max(...circles.map(q => q.r)) - 1), lum = c => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255;
+    assert.ok(lum(mid) >= 0.75, `pale in the middle (${mid.map(Math.round)})`);
+    assert.ok(rim[0] - rim[2] >= 30, `warm at the rim (${rim.map(Math.round)})`);
 });

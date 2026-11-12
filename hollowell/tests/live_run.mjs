@@ -43,7 +43,10 @@ await page.evaluate(({ legSrc, CHAIN }) => {
     window.chainTo = name => { const c = CHAIN[name]; HW.warp(c.id, c.tx, c.ty); HW.step(5); HW.skipTalk(); };
     /* pictures: what changed on screen worth a look */
     const Game = HW.global('Game'), Gfx = HW.global('Gfx'), Dialog = HW.global('Dialog'), UI = HW.global('UI'), Cam = HW.global('Cam');
-    window.SNAPS = []; let n = 0, lastRoom = '', roomT = 0, lastDlg = '', lastToast = '', lastBanner = '', lastT = 0;
+    window.SNAPS = []; let n = 0, lastRoom = '', roomT = 0, lastDlg = '', lastBanner = '', lastT = 0;
+    /* (each notice pictured once, as it reaches t 12: a second one placed in the same frame as the first, or while it was
+       still up, has a picture of its own) */
+    const snapped = new WeakSet();
     const P = HW.probe(true);
     const where = () => { const a = HW.G.map, p = HW.G.player, r = a && p ? a.roomAt(p.tx, p.ty) : null; return { area: a ? a.id : HW.G.scene, room: r && r.name || '', x: p ? p.tx : 0, y: p ? p.ty : 0 }; };
     const snap = (why, text) => { window.SNAPS.push({ n: n++, frame: HW.G.t, why, text: text || '', ...where(), png: Gfx.canvas.toDataURL('image/png') }); };
@@ -56,7 +59,8 @@ await page.evaluate(({ legSrc, CHAIN }) => {
         if (roomT > 0 && --roomT === 0) snap('room', w.room || w.area);
         if (Dialog.active && Dialog.shown >= Dialog.pageLen()) { const k = Dialog.page + '|' + (Dialog.pages[Dialog.page] || []).join(' '); if (k !== lastDlg) { lastDlg = k; snap('dialogue', (Dialog.pages[Dialog.page] || []).join(' ')); } }
         if (!Dialog.active) lastDlg = '';
-        const ts = UI.toasts.map(t => t.s).join('|'); if (ts && ts !== lastToast && UI.toasts.some(t => t.t === 12)) { lastToast = ts; snap('notice', ts); }
+        const fresh = UI.toasts.filter(t => !t.wait && t.t === 12 && !snapped.has(t));
+        if (fresh.length) { for (const t of fresh) snapped.add(t); snap('notice', fresh.map(t => t.s).join('|')); }
         if (UI.banner && UI.banner.t === 40 && UI.banner.s !== lastBanner) { lastBanner = UI.banner.s; snap('banner', UI.banner.s); }
         if (HW.G.t - lastT >= 1800) { lastT = HW.G.t; snap('timer'); }
     };

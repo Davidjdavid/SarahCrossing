@@ -775,7 +775,7 @@ class Housekeeper extends Enemy {
         Gfx.alpha(0.3); Gfx.rect(x - 12, y - 1, 24, 3, PAL.ink); Gfx.alpha(1);
         const im = spr(this.state === 'stunned' && this.doors >= 1 ? 'keeper_open' : 'keeper');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
-        Gfx.img(img, x - 16 + ox, y - 34 + oy);
+        Gfx.img(img, x - 16 + ox, y - 34 + oy - (this.lift || 0));
         /* a hanger about to be flung: its doors ajar a crack, and the hanger glinting in the gap */
         if (this.state === 'aimH') { Gfx.rect(x - 1 + ox, y - 30, 3, 15, '#1e3a3a'); if ((this.st >> 2) % 2) Gfx.rect(x + ox, y - 26, 1, 3, '#fff6c0'); }
         if (this.bang > 0) Gfx.img(spr('bubble_bang'), x - 4, y - 46 + oy);
@@ -813,8 +813,21 @@ const Tidy = {
     *bossIntro(k) {
         yield 20;
         yield* say(null, 'The great wardrobe at the end of the hall creaks, unfolds a pair of polished feet, and turns to face you. Its doors rattle like teeth.');
-        yield* say(null, "It stamps back onto a little teal cross in the middle of the floor, its own spot, and glares round the hall: at the busts, all in their places, and at you, who are not.");
+        yield* Tidy.stampHome(k);
+        const busts = k.area.ents.filter(e => e.kind === 'bust' && k.area.roomAt(e.tx, e.ty) === k.area.roomAt(k.homeX, k.homeY)).map(e => [e.tx, e.ty, 24]);
+        yield* say(null, "It stamps back onto a little teal cross in the middle of the floor, its own spot, and glares round the hall: at the busts, all in their places, and at you, who are not.", { focus: busts });
         G.boss = k;
+    },
+    /* it steps aside off its spot, so the teal cross under it shows, and then up on its toes and back down onto it: stamp.
+       (What the next line tells; it ends just where it stood, so the fight starts as it always has) */
+    *stampHome(k) {
+        const x0 = k.x, y0 = k.y;
+        for (let i = 1; i <= 14; i++) { k.x = x0 - Math.round(20 * i / 14); k.anim++; yield 1; }
+        yield 24;
+        for (let i = 1; i <= 10; i++) { const f = i / 10; k.x = Math.round(x0 - 20 + 20 * f); k.lift = Math.round(Math.sin(f * Math.PI) * 6); yield 1; }
+        k.x = x0; k.y = y0; k.lift = 0;
+        G.shake = 8; Sfx.play('boss'); Fx.dust(k.x, k.y);
+        yield 16;
     },
     /* the Housekeeper beaten: three strands of its teal yarn running from the heap across the floor to a little hole at the
        foot of the north wall (beside it, clear of the busts), and down it */
@@ -1186,8 +1199,9 @@ const TIDY_DRESS = {
     '2,3': { wall: [['td_paint_sea', 180, 0], ['td_paint_fruit', 214, 0], ['td_paint_hills', 82, 64], ['td_paint_horse', 197, 64]] },
     /* the hall of busts: marble pilasters marching down it */
     '1,2': { wall: [['td_pilaster', 83, 0], ['td_pilaster', 131, 0], ['td_pilaster', 179, 0], ['td_pilaster', 227, 0], ['td_pilaster', 35, 48], ['td_pilaster', 83, 48], ['td_pilaster', 131, 48], ['td_pilaster', 179, 48], ['td_pilaster', 227, 48]] },
-    /* the pantry: a ham, strings of onions and garlic, herbs drying (the larder dresser where the bookcase stood) */
-    '0,2': { wall: [['td_hams', 85, 0], ['td_herbs', 197, 1]] },
+    /* the pantry: a ham, strings of onions and garlic, herbs drying (the larder dresser where the bookcase stood); the ham
+       hung past where a tenth heart comes in the HUD's row, so the hearts never sit on it */
+    '0,2': { wall: [['td_hams', 130, 0], ['td_herbs', 197, 1]] },
     /* the parlour: the fire, the armchairs drawn up to it (the piano where the bookcase stood) */
     '2,2': { wall: [['td_fireplace', 63, 0]] },
     /* the linen room: its four cupboards made linen presses */

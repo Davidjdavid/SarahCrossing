@@ -527,7 +527,9 @@ const Belfry = {
         if (this.seq.join() === want.join()) {
             Progress.set('belfry_echo'); Stats.count('secret:echo');
             Sfx.play('appear'); Music.play('lullaby');
-            UI.toast('The stones hum the tune all together, once, softly. Somewhere a chest clicks open.', 220);
+            /* (clear of the chest that comes up in this room as it's said) */
+            const ch = st.area.find('esPatch');
+            UI.toast({ s: 'The stones hum the tune all together, once, softly. Somewhere a chest clicks open.', focus: ch && [ch.tx, ch.ty, 16] }, 220);
         }
     },
     *afterKnot() {

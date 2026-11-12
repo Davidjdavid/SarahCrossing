@@ -837,8 +837,11 @@ const GreatSpool = {
         if (p.carry) p.dropCarry();
         if (p.grip) p.release();
         G.shake = 14; Sfx.play('rumble');
-        yield 30;
         const gran = a.ents.find(e => e.who === 'gran');
+        /* (and with nothing left in her hands, she takes hold of the Spool itself: her back to you, both hands up on the
+           drum's rim, till Linnet takes one; the other stays on it till you take it: SpoolArt.rimHands) */
+        if (gran) { gran.dir = UP; gran.fixedFace = true; gran.onRim = true; }
+        yield 30;
         yield* say(null, "The last great thread parts. The Spool lurches, and everything it was winding goes slack at once: in the walls, overhead, all the way up the Well, a long, long sigh of thread.");
         /* (Wren turns from the post she's just cut, and comes a few steps in towards Gran: not left facing the wall) */
         if (gran) yield* this.toward(p, gran);
@@ -937,7 +940,7 @@ const GreatSpool = {
         const a = G.map, p = G.player;
         yield 8;
         if (p.grip) p.release();
-        gran.dir = DOWN;
+        gran.dir = DOWN; gran.onRim = false;
         Sfx.play('unclick'); G.shake = 6;
         yield* say(null, "She lets go of the Spool.");
         /* the three of you in a row, facing out, hands held */
@@ -1095,7 +1098,7 @@ CONTENT_INIT.push(initGreatSpool);
     const draw0 = NPC.prototype.draw;
     NPC.prototype.draw = function (cx, cy) {
         const r = draw0.call(this, cx, cy);
-        if (this.who === 'gran' && this.area && this.area.id === 'greatspool' && Progress.flag('spool_met') && !Progress.flag('unwound')) SpoolArt.hands(this, cx, cy);
+        if (this.who === 'gran' && this.area && this.area.id === 'greatspool' && Progress.flag('spool_met') && !Progress.flag('unwound')) { SpoolArt.hands(this, cx, cy); if (this.onRim) SpoolArt.rimHands(this, cx, cy); }
         return r;
     };
 }

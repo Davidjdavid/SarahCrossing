@@ -70,7 +70,8 @@ const Reveal1 = {
             }
             for (const n of ns) if (!there(n) && !a.at(n.goal[0], n.goal[1])) { a.unplace(n, n.tx, n.ty); n.mv = null; n.path = null; n.walking = false; n.tx = n.goal[0]; n.ty = n.goal[1]; n.x = n.tx * T; n.y = n.ty * T; a.place(n, n.tx, n.ty); }
         };
-        const ives = out('ives', 1, 5, 3, 5);
+        /* (a step short of the little wooden Wren's string, which ran up the stage right over her face where she stood) */
+        const ives = out('ives', 1, 5, 2, 5);
         yield* settle([ives]);
         ives.dir = RIGHT;
         yield* say('ives', "{surprised}Jory! You've dropped the whole— oh. Oh, she's looking right at us.");

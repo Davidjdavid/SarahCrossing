@@ -36,6 +36,8 @@ const VIEW_BOX = {
     mothersloth: e => e.hx === undefined ? null : [e.hx * T - 40, e.hy * T - 30, e.hx * T + 56, e.hy * T + 30],
     /* (the great Spool's drum, in its brass flanges) */
     greatspool: e => [e.x - 5, e.y - 7, e.x + 69, e.y + 35],
+    /* (the millpond's sluice: its iron wheel in the wall, the gate frame under it) */
+    sluice: e => [e.x + 3, e.y - 4, e.x + 29, e.y + 28],
     /* (the great marionette stands on its two feet and rises 74 pixels over them) */
     greatmarionette: e => { const f = e.feet; if (!f || !f.length) return null; const xs = f.map(q => q[0] * T), y = Math.max(...f.map(q => q[1])) * T; return [Math.min(...xs) - 8, y - 76, Math.max(...xs) + 24, y + 16]; },
 };
@@ -222,12 +224,13 @@ const Dialog = {
     tagShift(at) {
         this.tagDx = 0;
         if (!this.who || G.scene !== 'play' || !G.map) return;
-        /* (where it covers least: a face ten times a body, and sliding off its end costs too: along a whole row of people it
-           would only move onto as many more of them) */
+        /* (where it covers least: a face ten times a body, and Wren's legs as much as a face (the "Jory" tag sat on hers),
+           and sliding off its end costs too: along a whole row of people it would only move onto as many more of them) */
         const v = Fx.view(Cam.x, UI.camBaseY() + at.lean), faces = Fx.heads(v), bodies = Fx.heads(v, true), r = this.rects(at.top)[1], s = this.face && this.side === 'right' ? -1 : 1;
+        const p = G.player, [wx, wy] = p && !p.hidden && !G.hideWren ? v(p.x, p.y - 13 - Math.round(p.z || 0)) : [-99, -99], wren = [wx - 6, wy, wx + 6, wy + 16];
         const over = (q, dx) => Math.max(0, Math.min(q[2], r[2] + s * dx) - Math.max(q[0], r[0] + s * dx)) * Math.max(0, Math.min(q[3], r[3]) - Math.max(q[1], r[1]));
         let best = Infinity;
-        for (let dx = 0; dx <= 96; dx += 8) { const c = faces.reduce((n, q) => n + 10 * over(q, dx), 0) + bodies.reduce((n, q) => n + over(q, dx), 0) + dx * 4; if (c < best) { best = c; this.tagDx = dx; } }
+        for (let dx = 0; dx <= 96; dx += 8) { const c = faces.reduce((n, q) => n + 10 * over(q, dx), 0) + bodies.reduce((n, q) => n + over(q, dx), 0) + 10 * over(wren, dx) + dx * 4; if (c < best) { best = c; this.tagDx = dx; } }
     },
     /* the box goes top or bottom, and in a scene the camera may lean up or down for it (UI.lean): whatever hides least of
        what the line is about (items), so Wren and the line's subject are both clear of the box where they can be. Wren
@@ -652,6 +655,16 @@ const UI = {
         let low = sides[0];
         if (sides.length > 1 && play) low = this.bannerCost(b, true, cy) < this.bannerCost(b, false, cy);
         b.low = low; b.wait = false;
+        /* (at the top, over somebody's face, it sits a little lower, just under the faces it would hide, where that's clear
+           of Wren and of every face and still in the top half: the innkeeper behind his counter) */
+        b.dy = 0;
+        if (!low && play) {
+            const faces = Fx.heads(Fx.view(Cam.x, cy)), on = (f, r) => f[0] < r[2] && r[0] < f[2] && f[1] < r[3] && r[1] < f[3], r = this.bannerRect(b, false), hit = faces.filter(f => on(f, r));
+            if (hit.length) {
+                const dy = Math.max(...hit.map(f => f[3])) + 2 - r[1], r2 = [r[0], r[1] + dy, r[2], r[3] + dy];
+                if (r2[3] <= H / 2 + 8 && !this.overWren(r2, cy) && !faces.some(f => on(f, r2))) b.dy = dy;
+            }
+        }
     },
     /* what the place's name would hide on a side (all else equal, the top) */
     bannerCost(b, low, cy) {
@@ -659,7 +672,7 @@ const UI = {
         return hiddenBy(Dialog.items({}, true), [r], Cam.x, cy) + (this.overWren(r, cy) ? 1 : 0) + (low ? 0.02 : 0);
     },
     bannerRect(b, low) {
-        const w = Math.max(Font.width(b.s), b.sub ? Font.width(b.sub) : 0) + 30, h = b.sub ? 28 : 18, x = Math.round((W - w) / 2), y = low ? H - 24 - h : 30;
+        const w = Math.max(Font.width(b.s), b.sub ? Font.width(b.sub) : 0) + 30, h = b.sub ? 28 : 18, x = Math.round((W - w) / 2), y = low ? H - 24 - h : 30 + (b.dy || 0);
         return [x, y, x + w, y + h];
     },
     /* ---- the camera's lean ---- */

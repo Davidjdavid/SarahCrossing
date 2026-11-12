@@ -2,7 +2,10 @@
 // told (its pieces, its yarn, its thread down the cracks); a line about something said with it clear of the box; what a
 // line says is there, there (a trap under a chest, a spool on its stand, a squirrel); the Great Marionette off on its march
 // before that's said; at the Spool's top, Wren turned to Gran; the stick favour's thread a thread, gone once the Spool
-// stops; the fair gate standing open; a touch of grey on Gundry.
+// stops; the fair gate standing open; a touch of grey on Gundry. And fix round G (live run 4's): the way out of a House
+// clear of the box, door frame and all; Captain Tin's coil and Matron Hush's yarn; Tollgrim seen climbing back into his
+// bell; the Housekeeper's stamp onto its cross; the Snapjaw's yarn under the crates; Grindle's wheel; Gran's hands on
+// the Spool.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
@@ -287,4 +290,133 @@ test("the way out of the Tidyhouse and the Kiln, told as it opens after the Knot
         assert.deepEqual(seen, { door: true, wren: true }, id);
         noErrors(HW);
     }
+});
+
+test('Tollgrim, knocked into his next beat, lies dazed on the floor and is then seen getting back up into his bell, before the line says he does; the fight resumes on the same frame as ever', () => {
+    for (const n of [2, 3]) {
+        const [HW, t] = foeAt('tollgrim');
+        /* (dazed on the floor under the bell's mouth, one knock from his next beat) */
+        t.hp = 5 - n; t.told = n - 1; t.state = 'stunned'; t.st = 0; t.hidden = false; t.knocks = 0;
+        t.x = t.mouth[0] * T + 8; t.y = (t.mouth[1] + 2) * T + 10;
+        const hit = () => { t.flash = 0; t.struck(HW.player(), 1, 0); };
+        hit(); hit();
+        assert.equal(t.phase, n, 'his next beat');
+        const D = HW.Dialog, frames = [];
+        let f = 0;
+        for (; f < 200 && !D.active; f++) { frames.push({ shown: !t.hidden, lying: t.state === 'climb' && !t.hop, hop: !!t.hop, y: t.y }); HW.step(1); }
+        assert.ok(D.active && (n === 2 ? /^Tollgrim scrambles back up/ : /^Tollgrim drags himself back/).test((D.pages[0] || []).join(' ')), `beat ${n}: the line`);
+        assert.equal(f, 30, 'said half a second on, as ever');
+        assert.ok(frames.filter(q => q.shown && q.lying).length >= 5, 'he lay there a moment, to be seen');
+        const hop = frames.filter(q => q.hop);
+        assert.ok(hop.length >= 12 && hop[hop.length - 1].y < hop[0].y, 'and was seen going back up to the bell');
+        assert.ok(t.hidden && t.state === 'hide', 'in it, as it is said');
+        HW.skipTalk();
+        noErrors(HW);
+    }
+});
+
+test("the Grand Hall: the Housekeeper steps off its spot, the teal cross under it shows, and it stamps back onto it before that's said; said with every bust, it and Wren clear of the box", () => {
+    const HW = loadGame();
+    HW.newGame('Test', { area: 'tidy', x: 29, y: 42, noAutosave: true });
+    HW.Inv.items.staff = 1; HW.Inv.giveTool('gloves'); HW.Inv.patterns.push('tidy'); HW.step(5);
+    const r = HW.G.map.rooms.find(q => q.key === '1,0');
+    /* (in at its east door, as a player comes from the antechamber) */
+    HW.warp('tidy', r.x + 21, r.y + 5); HW.step(5);
+    HW.hold('left'); HW.step(50); HW.release(); HW.hold('left'); HW.step(60); HW.release();
+    const k = HW.G.map.ents.find(e => e.type === 'housekeeper'), D = HW.Dialog;
+    let cross = 0, seen = null;
+    for (let i = 0; i < 3000 && !seen && (D.active || HW.Script.blocking()); i++) {
+        const words = D.active ? (D.pages[D.page] || []).join(' ') : '';
+        if (D.active && D.shown >= D.pageLen()) {
+            if (/^It stamps back onto a little teal cross/.test(words)) {
+                const p = HW.player(), busts = HW.G.map.ents.filter(e => e.kind === 'bust' && HW.G.map.roomAt(e.tx, e.ty) === HW.G.map.roomAt(k.homeX, k.homeY));
+                seen = { home: k.atHome(), busts: busts.length === 4 && busts.every(b => clearOnScreen(HW, tileBox([b.tx, b.ty], 24))), it: clearOnScreen(HW, [k.x - 16, k.y - 34, k.x + 16, k.y + 2]), wren: clearOnScreen(HW, [p.x - 6, p.y - 13, p.x + 6, p.y + 3]) };
+            } else HW.press('act', 1);
+            continue;
+        }
+        /* (the cross wholly clear of the wardrobe, drawn because it's off its spot) */
+        if (!D.active && !k.atHome() && (k.x + 16 <= k.homeX * T + 4 || k.x - 16 >= k.homeX * T + 12)) cross++;
+        HW.step(1);
+    }
+    assert.ok(cross >= 15, `the cross shown a moment (${cross} frames)`);
+    assert.deepEqual(seen, { home: true, busts: true, it: true, wren: true });
+    HW.skipTalk();
+    assert.ok(until(HW, () => k.state === 'home', 300) && k.atHome(), 'and the fight begins from its spot');
+    noErrors(HW);
+});
+
+test("Grindle's turn: the great wheel in the wall is seen grinding round, in full, before \"The great wheel grinds over\" is said (the camera not left leaned down for Wren on the bank)", () => {
+    for (const [px, py] of [[29, 9], [24, 9]]) {
+        const HW = loadGame(); HW.preset('afterD2'); HW.step(5); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 30; HW.G.cheats.god = true;
+        HW.warp('millrace', px, py, 'up'); HW.step(30); HW.skipTalk();
+        const g = HW.G.map.ents.find(e => e.type === 'grindle'), s = HW.G.map.ents.find(e => e.kind === 'sluice'), Cam = HW.global('Cam'), D = HW.Dialog;
+        /* (a line said just before, the camera leaned down for her on the bank, as the fight's lines have it) */
+        HW.Script.run(function* () { yield* HW.global('say')(null, 'A line before, said low on the bank.', { focus: g }); });
+        HW.skipTalk();
+        g.phase = 1; g.turn();
+        let seen = 0;
+        for (let i = 0; i < 400 && !(D.active && D.shown >= D.pageLen()); i++) {
+            HW.step(1);
+            if (!D.active && s.spin > 0 && clearOnScreen(HW, [s.x + 4, s.y - 3, s.x + 28, s.y + 21])) seen++;
+        }
+        assert.match((D.pages[0] || []).join(' '), /The great wheel grinds over/);
+        assert.ok(seen >= 30, `${px},${py}: the wheel seen turning ${seen} frames`);
+        noErrors(HW);
+    }
+});
+
+test("the Snapjaw's ball of yarn bobs down the race in the water, under the crates afloat in it (not sat on them), and out from under them, clear of the box, as its line is read", () => {
+    const HW = loadGame(), M = [40, 22], m = (x, y) => [M[0] + x, M[1] + y];
+    HW.preset('afterD2'); HW.step(10); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 30; HW.G.cheats.god = true;
+    HW.warp('millrace', ...m(1, 5)); HW.step(30); HW.skipTalk();
+    const s = HW.G.map.ents.find(e => e.type === 'snapjaw');
+    /* (beaten as a player beats it: baited up on the bank, and a crate pushed down the race onto it, twice) */
+    until(HW, () => s.state === 'swim', 600);
+    for (const [crate, row] of [['sjCrate1', 2], ['sjCrate2', 4]]) {
+        until(HW, () => s.state === 'swim', 600);
+        HW.walkTo(...m(11, row)); until(HW, () => s.state === 'rear', 600); HW.walkTo(...m(10, row));
+        const c = HW.G.map.find(crate), hp0 = s.hp;
+        HW.walkTo(...m(10, c.ty - M[1])); HW.face('right'); HW.push('right', 1);
+        until(HW, () => s.hp < hp0 || !s.alive, 300);
+        if (!s.alive) break;
+    }
+    assert.ok(!s.alive, 'beaten');
+    const D = HW.Dialog, R = s.remains;
+    assert.ok(until(HW, () => D.active && D.shown >= D.pageLen() && /^The Snapjaw rolls over/.test((D.pages[0] || []).join(' ')), 600), 'its line');
+    HW.step(60);
+    const [x, y] = R.at(R.bits[0]), crates = HW.G.map.ents.filter(e => e.kind === 'crate' && Math.abs(e.px + 8 - x) < 12);
+    assert.ok(R.sortY < Math.min(...crates.map(c => c.sortY), Infinity), 'drawn in the water, under the crates');
+    assert.ok(!crates.some(c => y - 8 < c.py + 16 && y + 1 > c.py), `out from under them (the ball at ${Math.round(y)}; crates at ${crates.map(c => c.py)})`);
+    assert.ok(R.showing() && clearOnScreen(HW, [x - 4, y - 8, x + 4, y + 1]), 'and clear of the box');
+    HW.skipTalk(); HW.step(200);
+    assert.ok(R.removed, 'gone into the pool once read');
+    noErrors(HW);
+});
+
+test("the Spool's last thread cut: Gran is seen holding the Spool, her back to you and both hands up on the drum's rim, while that's told; one hand on it once Linnet has the other", async () => {
+    const { slackAndCut, junkAndCut, darkAndCut } = await import('./legs.mjs');
+    const TOP = [20, 0];
+    const HW = loadGame(); HW.preset('afterDrift'); HW.step(10); HW.skipTalk(); HW.Inv.maxHp = HW.Inv.hp = 36;
+    for (const h of ['tidy', 'kiln', 'mill', 'belfry', 'slumber', 'marionette']) HW.Progress.set('untie:' + h);
+    HW.Progress.set('spool_all');
+    const D = HW.Dialog, open0 = D.open, Gfx = HW.global('Gfx'), PAL = HW.global('PAL'), seen = {};
+    /* (her arms as drawn with her: the skin-coloured lines out from her) */
+    const arms = g => { let n = 0; const l0 = Gfx.line; Gfx.line = function (...q) { if (q[4] === PAL.skin) n++; return l0.apply(this, q); }; try { g.draw(0, 0); } finally { Gfx.line = l0; } return n; };
+    D.open = function (who, t, o) {
+        const g = HW.G.map && HW.G.map.ents.find(e => e.who === 'gran'), UP = HW.global('UP');
+        if (g && /^She keeps hold of the Spool|^Gran's hands go still/.test(t)) (seen.both = seen.both || []).push(g.dir === UP && arms(g) === 2);
+        if (g && /The other's still on it/.test(t)) seen.one = arms(g) === 1 && HW.global('Ending').hands.length === 2;
+        return open0.call(this, who, t, o);
+    };
+    HW.warp('greatspool', 29, 11); HW.step(30); HW.skipTalk();
+    HW.walkTo(29, 10); HW.hold('up'); HW.step(60); HW.release(); HW.step(10);
+    const settle = () => { for (let i = 0; i < 12; i++) { HW.step(5); HW.skipTalk(); } };
+    settle();
+    const post = h => HW.G.map.ents.find(e => e.kind === 'greatpost' && e.house === h);
+    for (const h of ['slumber', 'marionette']) slackAndCut(HW, post(h), TOP); settle();
+    for (const h of ['mill', 'belfry']) junkAndCut(HW, post(h)); settle();
+    for (const h of ['tidy', 'kiln']) darkAndCut(HW, post(h));
+    for (let i = 0; i < 4000 && !HW.G.map.climax; i++) { HW.skipTalk(); HW.step(1); }
+    assert.deepEqual(seen, { both: [true, true], one: true });
+    noErrors(HW);
 });

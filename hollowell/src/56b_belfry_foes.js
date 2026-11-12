@@ -311,8 +311,11 @@ class Tollgrim extends Enemy {
         calmBlows(this);
         if (this.hp <= 0) return this.defeat();
         bossHeart(this.area, this.x, this.y + 16);        /* (a heart drops from the rafters) */
-        this.duck(); this.tollCool = 150;
-        this.beginPhase(this.phase);
+        this.tollCool = 150;
+        /* (a new beat: he lies there dazed a moment longer, out of reach of anything, and is seen to get back up into his
+           bell as it's told: BelfryFoes.tollBeat) */
+        if (this.phase > this.told) { this.state = 'climb'; this.st = 0; this.beginPhase(this.phase); }
+        else this.duck();
     }
     /* a new beat: the hall changes with it (the bell heaved round, the wind turned), and a line says how he's changed */
     beginPhase(n) {
@@ -373,11 +376,12 @@ class Tollgrim extends Enemy {
             Gfx.rect(ex, ey, 2, 2, col); Gfx.rect(ex + 6, ey, 2, 2, col);
             return;
         }
-        const im = spr(this.state === 'stunned' ? 'toll_daze' : 'toll');
+        const im = spr(this.state === 'stunned' || (this.state === 'climb' && !this.hop) ? 'toll_daze' : 'toll');
         const img = this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im;
         /* cheeks puffed: about to spit (he swells a little, and the gravel glows in his mouth) */
-        const sw = this.puff > 0 ? ((this.t >> 1) % 2 ? 1 : 0) : 0;
-        Gfx.img(img, this.x - cx - 10 - sw, this.y - cy - 20 - sw);
+        const sw = this.puff > 0 ? ((this.t >> 1) % 2 ? 1 : 0) : 0, z = Math.round(this.z || 0);
+        if (z > 0) { Gfx.alpha(0.25); Gfx.rect(this.x - cx - 6, this.y - cy + 1, 12, 2, PAL.ink); Gfx.alpha(1); }
+        Gfx.img(img, this.x - cx - 10 - sw, this.y - cy - 20 - sw - z);
         if (this.puff > 0) Tells.glow(this.x - cx, this.y - cy - 8, 1 - this.puff / tellFor(4, this.phase), '#c4bccb');
     }
 }
@@ -427,10 +431,18 @@ const BelfryFoes = {
         t.peer = false;
         yield* say(null, 'A cold draught blows down through the tower, and the great clapper sways.', { focus: bell });
     },
-    /* a new beat of the fight: what's changed in the hall, and in him */
+    /* a new beat of the fight: he picks himself up off the floor and gets back up into his bell (a scramble; then a slow
+       drag), seen just before it's told, in the half second the line always waited (so the fight's clock is as it was);
+       then what's changed in the hall, and in him */
     *tollBeat(t, n) {
         const bell = [t.hx, t.hy, 48];
-        yield 30;
+        if (t.state === 'climb') {
+            const [mx, my] = t.mouth, x0 = t.x, y0 = t.y, x1 = mx * T + 8, y1 = my * T + 10, lie = n === 2 ? 12 : 6, dur = 30 - lie;
+            yield lie;
+            t.hop = true; Sfx.play('lift');
+            for (let i = 1; i <= dur; i++) { const k = i / dur; t.x = lerp(x0, x1, k); t.y = lerp(y0, y1, k); t.z = Math.sin(k * Math.PI) * (n === 2 ? 14 : 6); yield 1; }
+            t.hop = false; t.z = 0; t.duck();
+        } else yield 30;
         if (n === 2) {
             yield* say(null, 'Tollgrim scrambles back up into the great bell and heaves on it. The bell swings round on its beam, the shutters in the east wall bang open, and the wind comes in sideways now, without a let-up.', { focus: bell });
             yield* say(null, '"I HEARD YOUR LITTLE BELL," he grates, from the dark inside. "I\'LL HEAR IT NEXT TIME, TOO."', { focus: bell });

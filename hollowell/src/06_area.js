@@ -249,8 +249,12 @@ const TileDraw = {
                 const isW = k => k === 'wall' || k === 'void';
                 const below = isW(area.cell(tx, ty + 1).k);
                 const mask = (below ? 1 : 0) | (isW(area.cell(tx, ty - 1).k) ? 2 : 0) | (isW(area.cell(tx - 1, ty).k) ? 4 : 0) | (isW(area.cell(tx + 1, ty).k) ? 8 : 0);
-                /* (a room's top wall sits in the HUD's row: no portholes or arrow slits there, to be taken for its gems) */
-                const r = !below && area.rooms.length > 1 ? area.roomAt(tx, ty) : null, hud = !!r && ty === r.y;
+                /* (a room's top wall sits in the HUD's row: no portholes or arrow slits there, to be taken for its gems; nor
+                   on the face of a top wall two or three rows thick, wall from the room's top down to it: the camera
+                   gliding into the room carries it up under the HUD's corner) */
+                const r = !below && area.rooms.length > 1 ? area.roomAt(tx, ty) : null;
+                let hud = !!r && ty - r.y <= 2;
+                for (let y = r ? r.y : ty; hud && y < ty; y++) hud = isW(area.cell(tx, y).k);
                 c = tileCanvas(`${tn}:wall:${v}:${mask}${hud ? ':hud' : ''}`, x => Walls.draw(x, area, tn, th, v, mask, hud));
                 break;
             }

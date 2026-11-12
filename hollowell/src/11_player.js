@@ -635,10 +635,11 @@ class Player extends Ent {
         const { im, flip } = this.sprite();
         const z = this.z || 0;
         /* holding up a find: a soft glow behind it, in front of whatever's behind her (the chest she opened), so the find
-           reads as the find */
+           reads as the find; warm, pale in the middle and gold at its rim (faint white over the dark of a chasm was a flat
+           grey disc) */
         if (this.state === 'hold' && G.holdUp) {
             const [gx, gy] = holdUpSpot(this, cx, cy);
-            Gfx.alpha(0.3); Gfx.circle(gx, gy, 12, '#fff4c0'); Gfx.alpha(0.55); Gfx.circle(gx, gy, 9, '#fffaf0'); Gfx.alpha(1);
+            Gfx.alpha(0.4); Gfx.circle(gx, gy, 12, '#ffcf6a'); Gfx.alpha(0.6); Gfx.circle(gx, gy, 10, '#ffe8a8'); Gfx.alpha(0.8); Gfx.circle(gx, gy, 7, '#fffaf0'); Gfx.alpha(1);
         }
         /* shadow (laid out flat, she's longer and lower) */
         const flat = im === SPR.wren_lie;

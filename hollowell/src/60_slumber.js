@@ -550,9 +550,10 @@ const Dreams = {
         if (good === this.ROOMS.length && !Progress.flag('slumber_longway')) {
             Progress.set('slumber_longway'); Stats.count('longway');
             Sfx.play('knot'); G.shake = 3;
-            G.pendingToast = 'Three good dreams on one way home, and not one bad: every night-light in the House burns at once.';
-            /* the Pattern's chest comes down in the Long Ward: if that's not where she woke, the camera goes and looks */
+            /* the Pattern's chest comes down in the Long Ward: if that's not where she woke, the camera goes and looks (and if
+               it is, the words keep clear of it) */
             const ch = a.find('lwPattern');
+            G.pendingToast = { s: 'Three good dreams on one way home, and not one bad: every night-light in the House burns at once.', focus: ch && [ch.tx, ch.ty, 16] };
             if (ch && Cam.room && Cam.room.key !== '1,2') Script.run(function* () {
                 yield 30;
                 yield* camLook(ch.tx, ch.ty, 90);

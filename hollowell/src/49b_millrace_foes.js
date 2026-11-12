@@ -104,14 +104,18 @@ class Snapjaw extends Enemy {
         Progress.set('millrace_snapjaw');
         for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'sj') s.shut = false;
         /* it rolls over, belly up, a moment; then a ball of its yarn bobs away down the race to the pool at its foot (staged
-           under the words: MillFoes.snapDown) */
+           under the words: MillFoes.snapDown). The ball is in the water: under any crates afloat in the race (not sat on
+           them), bobbing out below them, where it waits, bobbing, till the line about it's read, and on into the pool */
         const a = this.area; let ey = this.ty;
         while (ey < this.ty + 12 && a.kind(this.hx, ey + 1).water) ey++;
-        const belly = RemainsKit.flipV(spr('snapjaw')), x = this.x, y = this.y;
-        this.remains = a.add(new Remains([
-            { from: [x, y], to: [x, y], end: 'gone', linger: 40, look: (sx, sy) => { if (belly) Gfx.img(belly, sx - 12, sy - 14); Gfx.alpha(0.5); Gfx.rect(sx - 10, sy - 2, 20, 2, '#ffffff'); Gfx.alpha(1); } },
-            { from: [x, y - 2], to: [x, ey * T + 6], delay: 40, speed: 0.3, hop: 5, lift: 1, end: 'fade', fade: 30, shadow: false, look: RemainsKit.yarn(THREAD.ambrose) },
-        ], { x, y, top: true }));
+        const belly = RemainsKit.flipV(spr('snapjaw')), x = this.x, y = this.y, to = [x, ey * T + 6], speed = 0.8, yarn = RemainsKit.yarn(THREAD.ambrose);
+        /* (it waits at the lowest stretch of the race clear of crates: the pool at its foot, or over the crate in it) */
+        const crated = ry => a.ents.some(e => e.kind === 'crate' && !e.removed && Math.abs(e.px + 8 - x) < 12 && e.py < ry * T + 16 && e.py + 16 > ry * T);
+        const ry = [...Array(Math.max(0, ey - this.ty)).keys()].map(i => ey - i).find(r => !crated(r)), rest = ry === undefined || ry === ey ? to[1] : ry * T + 12;
+        this.yarnRest = { x0: x - 6, y0: rest - 9, x1: x + 6, y1: rest + 2 };
+        this.belly = a.add(new Remains([{ from: [x, y], to: [x, y], end: 'gone', linger: 40, look: (sx, sy) => { if (belly) Gfx.img(belly, sx - 12, sy - 14); Gfx.alpha(0.5); Gfx.rect(sx - 10, sy - 2, 20, 2, '#ffffff'); Gfx.alpha(1); } }], { x, y, top: true }));
+        this.remains = a.add(new Remains([{ from: [x, y - 2], to, delay: 40, speed, hop: 5, lift: 1, end: 'fade', fade: 30, shadow: false, look: (sx, sy, b, k) => yarn(sx, sy + ((G.t >> 4) % 2 && (k >= 1 || this.remains.t === this.remains.holdAt) ? 1 : 0), b, k) }],
+            { x, y, floor: true, holdAt: Math.ceil(40 + Math.max(0, rest - (y - 2)) / speed), hold: () => Script.blocking() }));
         Script.run(MillFoes.snapDown(this));
     }
     draw(cx, cy) {
@@ -410,7 +414,7 @@ const MillFoes = {
     *snapDown(s) {
         Music.play('silence');
         yield 14;
-        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: s.remains });
+        yield* say(null, 'The Snapjaw rolls over, unravels into a ball of blue yarn and bobs away down the race.', { focus: [s.remains, s.yarnRest] });
         Music.play('millrace');
         Sfx.play('appear');
     },
@@ -418,11 +422,15 @@ const MillFoes = {
         yield 20;
         yield* say(null, "At the head of the millpond, bolted to the intake, a great iron pike lifts its head and opens a mouth like a mill hopper. OLD GRINDLE, says the brass plate on its nose. It's hungry.", { focus: g });
     },
-    /* the sluice turns: the races run another way, and Grindle with them */
+    /* the sluice turns: the races run another way, and Grindle with them. (The camera stands back where it stands for the
+       room meanwhile, not leaned as for the last line, so the great wheel in the wall is seen grinding round before it's
+       told: with Wren down on the bank, the box and the wheel can't both keep clear of her once the line's up) */
     *turn(g) {
+        Dialog.lean = 0;
         yield 50;
-        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about. The side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus: g });
-        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again: there's only a chink left between its teeth, too fine for anything bigger than a chip, and deep in its throat the gear-heart spins. One race runs straight past its teeth now.", { focus: g });
+        const focus = [g, g.area.ents.find(e => e.kind === 'sluice')].filter(Boolean);
+        if (g.phase === 2) yield* say(null, "Old Grindle heaves its iron head against the sluice. The great wheel grinds over and the whole millpond turns about. The side races run away from its mouth now, and the ferry race runs straight into it. Its round eye swivels to the raft.", { focus });
+        else yield* say(null, "Grindle wrenches the sluice round once more, then clamps its iron jaw shut with a clang. It won't be fed again: there's only a chink left between its teeth, too fine for anything bigger than a chip, and deep in its throat the gear-heart spins. One race runs straight past its teeth now.", { focus });
         g.state = g.phase === 3 ? 'shut' : 'home'; g.st = 0;
     },
     *grindleDown(g) {

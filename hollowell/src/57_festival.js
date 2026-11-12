@@ -228,10 +228,11 @@ const MakerProps = {
         R(PAL.ink, x - 1, y, 5, 7); R('#a6772a', x, y, 3, 1); R(f ? '#ffe08a' : '#ffd27a', x, y + 1, 3, 4); R('#fff4c8', x + 1, y + 2, 1, 2); R('#a6772a', x, y + 5, 3, 1);
     },
     crossbar(R, d, t) {
-        /* (as wide as a door, held up in both hands; a few slack strings still hanging off it) */
-        R(PAL.ink, -7, 11, 30, 5); R('#9a6438', -6, 12, 28, 3); R('#c9925a', -6, 12, 28, 1);
-        R(PAL.ink, 6, 9, 4, 10); R('#9a6438', 7, 10, 2, 8);
-        for (const x of [-5, 0, 16, 21]) R('#cfc6b8', x, 15, 1, 4 + (x & 3));
+        /* (as wide as a door, held in both hands at his middle, its upright below his chin, not up over his face; a few
+           slack strings still hanging off it) */
+        R(PAL.ink, -7, 14, 30, 5); R('#9a6438', -6, 15, 28, 3); R('#c9925a', -6, 15, 28, 1);
+        R(PAL.ink, 6, 12, 4, 10); R('#9a6438', 7, 13, 2, 8);
+        for (const x of [-5, 0, 16, 21]) R('#cfc6b8', x, 18, 1, 4 + (x & 3));
     },
     draw(n, sx, sy) {
         const f = MakerProps[n.prop]; if (!f) return;

@@ -211,3 +211,5 @@
   clearly; a few small pieces of art finished.
 - The words on screen never sit on the hero in the big scenes now, notices wait their turn and go when they're done,
   place names don't repeat themselves, and the screen's corners keep out of the way of what matters.
+- Last touches from the full playthroughs: doors and chests shown as they're announced, foes' ends seen through their
+  last lines, the climax's hands drawn, a line that contradicted an earlier one, a figure that floated.

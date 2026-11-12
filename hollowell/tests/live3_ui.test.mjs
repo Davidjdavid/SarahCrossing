@@ -1,4 +1,5 @@
-// Live run 3's picture reviews (POLISH.md finding 74): the screen's words, the HUD and people's overlaps, kept fixed.
+// Live run 3's picture reviews (POLISH.md finding 74): the screen's words, the HUD and people's overlaps, kept fixed. And
+// live run 4's (findings 77, 78): a notice the camera leans for, the HUD's row, the place's name and a name tag off people.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadGame } from './harness.mjs';
@@ -216,6 +217,22 @@ test('outdoors, back across a border into a region whose name was up a little wh
     assert.equal(named[named.length - 1], 'Belfry Heights', 'but again after a while');
 });
 
+test("the place's name, its only free side the top, sits under the innkeeper's face there rather than on it (the STAFF ONLY notice at the bottom)", () => {
+    const HW = start('afterD6');
+    delete HW.Progress.flags.inn_staffSeen;
+    const w = HW.G.map.ents.find(e => e.kind === 'warp' && e.to === 'inn');
+    HW.warp('hollow', w.tx, w.ty + 1); HW.step(20); HW.skipTalk();
+    const UI = HW.global('UI'), Fx = HW.global('Fx'), Cam = HW.global('Cam');
+    HW.hold('up'); for (let i = 0; i < 120 && HW.G.map.id !== 'inn'; i++) HW.step(1); HW.release();
+    for (let i = 0; i < 200 && !(UI.banner && !UI.banner.wait && UI.banner.t > 10); i++) HW.step(1);
+    const b = UI.banner, n = UI.toasts.find(t => /STAFF ONLY/.test(t.s));
+    assert.ok(b && !b.wait && n && !n.wait, 'the name and the notice both up');
+    assert.ok(!b.low && n.low, 'the notice at the bottom, the name at the top');
+    const r = UI.bannerRect(b, false), faces = Fx.heads(Fx.view(Cam.x, Cam.y));
+    assert.ok(faces.length >= 2, "the keeper's face and Wren's");
+    assert.ok(!faces.some(f => f[0] < r[2] && r[0] < f[2] && f[1] < r[3] && r[1] < f[3]), `the name (${r}) on a face (${faces.map(f => f.join(',')).join(' ')})`);
+});
+
 /* ---------- 4. the HUD over things ---------- */
 const covers = HW => { const UI = HW.global('UI'); HW.global('Game').render(); UI._hc = undefined; return UI.hudCovers() ? UI._hcSide.slice() : [false, false]; };
 
@@ -250,6 +267,29 @@ test("a room's top wall, in the HUD's row, has no portholes or arrow slits to be
         cols.length = 0; HW.global('WALLS')[th].face(ctx, null, v, false);
         assert.ok(cols.includes(gem), `${th}: still elsewhere`);
     }
+});
+
+test("the Pantry's ham and strings of onions hang clear of a full row of hearts (scenery never moves the HUD)", () => {
+    const HW = start(null);
+    HW.Inv.maxHp = HW.Inv.hp = 40;
+    HW.warp('tidy', 29, 42); HW.step(5); HW.skipTalk();
+    const r0 = HW.G.map.rooms.find(q => q.key === '0,2');
+    HW.warp('tidy', r0.x + 8, r0.y + 8); HW.step(30); HW.skipTalk();
+    const Cam = HW.global('Cam'), r = Cam.room, [, hx] = HW.global('TIDY_DRESS')['0,2'].wall.find(w => w[0] === 'td_hams'), hearts = HW.global('UI').hudBoxes()[0];
+    assert.equal(r.key, '0,2', 'in the Pantry');
+    assert.ok(r.x * 16 + hx - Cam.x >= hearts[2] + 8, `the ham at ${r.x * 16 + hx - Cam.x}, the hearts to ${hearts[2]}`);
+});
+
+test("the Carousel's top wall, three rows thick: no portholes on its face (gliding in from below it passes under the key count); the pillar's face mid-room keeps them", () => {
+    const HW = start('afterD2');
+    HW.warp('millrace', 29, 31); HW.step(5); HW.skipTalk();
+    const a = HW.G.map, TD = HW.global('TileDraw'), cache = HW.global('TILE_CACHE'), r = a.roomAt(29, 31);
+    assert.equal(r.name, 'The Carousel');
+    const keys = (x, y) => { for (const k of Object.keys(cache)) delete cache[k]; TD.draw(a, x, y, 0, 0); return Object.keys(cache).filter(k => /:wall:/.test(k)); };
+    /* (the face over the top run of the race: the wall above it all the way up to the room's top) */
+    for (let x = r.x + 5; x <= r.x + 14; x++) assert.ok(keys(x, r.y + 2).every(k => /:hud$/.test(k)), `face at ${x}: as a top wall's`);
+    /* (the millstone pillar's face over the bottom run: mid-room) */
+    assert.ok(keys(r.x + 9, r.y + 6).every(k => !/:hud$/.test(k)), "the pillar's face as before");
 });
 
 test('a find held up in a room\'s top row is on the screen (beside her head, not off its top)', () => {
@@ -362,6 +402,23 @@ test("the speaker's name tag slides along the box off a face it would sit on; a 
     Gfx.rect = function (x, y, w, h, c) { if (w <= 2 && h <= 2) small.push([x, y, w, h, c]); return r0.apply(this, arguments); };
     try { HW.global('stitchedBox')(10, 10, 60, 15, { fill: '#7ccfc0', stitch: '#ffffff' }); } finally { Gfx.rect = r0; }
     assert.deepEqual(small.filter(q => q[4] === '#ffffff'), [], 'no white stitches');
+});
+
+test("the speaker's name tag slides off Wren's legs as off a face (the \"Jory\" tag on the Great Stage, Wren talking to him from just below)", () => {
+    const HW = start('afterD5');
+    HW.warp('marionette', 28, 8, 'up'); HW.step(40); HW.skipTalk();
+    const g = HW.G.map.ents.find(e => e.type === 'greatmarionette'), D = HW.global('Dialog');
+    HW.global('Script').run(HW.global('Reveal1').curtain(g));
+    through(HW, 8000);
+    const j = HW.G.map.ents.find(e => e.who === 'jory' && e.kind === 'npc'), p = HW.player(), Cam = HW.global('Cam');
+    assert.ok(HW.walkTo(j.tx, j.ty + 1), 'below him');
+    HW.face('up'); HW.press('act', 1);
+    for (let i = 0; i < 300 && !(D.active && D.shown >= D.pageLen()); i++) HW.step(1);
+    const tag = D.rects()[1], legs = [p.x - 6 - Cam.x, p.y - 13 - Cam.y, p.x + 6 - Cam.x, p.y + 3 - Cam.y];
+    assert.equal(D.who, 'jory');
+    assert.ok(!D.top && D.side === 'right' && D.tagDx > 0, `slid along the box (${D.tagDx})`);
+    assert.equal(ov(tag, legs), 0, `the tag (${tag}) off her (${legs})`);
+    HW.skipTalk();
 });
 
 test("Grindle's turn reads in sentences: no page starts in the middle of one", () => {

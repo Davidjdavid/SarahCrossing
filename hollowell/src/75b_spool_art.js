@@ -230,6 +230,20 @@ const SpoolArt = {
             Gfx.rect(Math.round(x + 8 + (x1 - x - 8) * k) - 1, Math.round(y - 6 + (y1 - y + 6) * k) - 1, 2, 2, shade(col, 0.6));
         }
     },
+    /* Gran's hands on the Spool itself, once the last thread's cut (g.onRim): her back to you, both arms up to the drum's
+       rim at her head; or, Linnet holding one, the other reached back up to it over her shoulder (arms as the clasped
+       hands are drawn: a line of skin, inked either side, a hand at the end) */
+    rimHands(g, cx, cy) {
+        const im = g.sprite(), top = g.py + 14 - (im ? im.height : 24) - cy, x = g.px - cx;
+        const held = Ending.hands && Ending.hands.includes(g) ? Ending.hands : null, i = held ? held.indexOf(g) : -1;
+        /* (which of her hands are free: the one away from whoever holds the other) */
+        const sides = !held ? [true, false] : i === 0 && held.length > 1 ? [true] : i === held.length - 1 && held.length > 1 ? [false] : [];
+        for (const left of sides) {
+            const up = g.dir === UP, sx = x + (left ? 3 : 13), sy = top + 11, hx = x + (left ? (up ? -1 : 2) : (up ? 17 : 14)), hy = top + (up ? 4 : 1);
+            Gfx.line(sx, sy - 1, hx, hy - 1, PAL.ink); Gfx.line(sx, sy + 1, hx, hy + 1, PAL.ink); Gfx.line(sx, sy, hx, hy, PAL.skin);
+            Gfx.rect(hx - 2, hy - 2, 4, 4, PAL.ink); Gfx.rect(hx - 1, hy - 1, 2, 2, PAL.skin); Gfx.rect(hx - 1, hy - 1, 1, 1, '#ffe0c4');
+        }
+    },
     /* the great threads still in Gran's hands: from each post to her fist, taut, a shimmer running in to her; each fist
        wound round thick with them (drawn over her, as she's drawn) */
     hands(g, cx, cy) {
