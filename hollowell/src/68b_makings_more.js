@@ -147,7 +147,7 @@ defMaking(5, {
     ]),
     '1,1': Object.assign(BELOW_ROOM('Under the Hall of Busts', '1,0', 'we', [
         { k: 'memo', x: 16, y: 2, say: () => { const m = tidyMinutes('Hall of Busts'); return m ? `THE HALL OF BUSTS: ${G.wanderer || 'Wren'}, ${m} minute${m === 1 ? '' : 's'}. Stood on the plate, pushed the big bust up the lane, and let it come home through the block. I nearly clapped and gave us all away. -I.` : "THE HALL OF BUSTS. (The page is blank. That's not like me.) -I."; } },
-        { k: 'sign', x: 5, y: 9, text: "A HEAVY THING GOING HOME GOES THROUGH WHATEVER'S LIGHTER. (Mind the boy.) And a tug on a thing that's out of its place sends it home now. -I." },
+        { k: 'sign', x: 5, y: 9, text: "A HEAVY THING GOING HOME GOES THROUGH WHATEVER'S LIGHTER. (Mind the boy.) A knot undone, a thing waits its while, like anything let go; a tug on a thing out of its place sends it home now. -I." },
         { k: 'resetlever', x: 13, y: 9 },
         { k: 'sign', x: 14, y: 9, text: "IVES'S LEVER. Sets the Hall out again the way it was for him: the big bust back up its lane, tied. (We do it behind every Wanderer, love. You never once noticed.) -I." },
     ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 2, at: [9, 6], say: "The bust up the lane would come home through anything lighter that got in its way. Nothing's in its way. Yet." } }),
@@ -386,7 +386,7 @@ defMaking(7, {
         ],
     },
     '0,1': Object.assign(BELOW_ROOM('Under Tidy for Good', '0,0', 'e', [
-        { k: 'sign', x: 2, y: 2, text: "A KNOT HOLDS A THING. A STITCH GIVES IT A PLACE. Otto only minds places. (He'll stand and tsk at a knot all day, mind: wherever his side of it is.) -M." },
+        { k: 'sign', x: 2, y: 2, text: "OTTO ONLY MINDS PLACES. A thing in its place, he leaves be; a thing out of it, he tidies; one held fast, he stands and tsks at all day, wherever his side of it is. -M." },
     ]), { nudge: { solved: () => Making.past(18, true), after: 60 * 60 * 2, at: [9, 5], say: "Otto tidies whatever's out of its place. A thing with a new place isn't out of it." } }),
     '1,1': Object.assign(BELOW_ROOM('Under the Two Mats', '1,0', 'w', [
         { k: 'sign', x: 16, y: 8, text: "TWO MATS: somebody on each, both at once. One of them sits wherever he gets stuck. The other stands wherever his side of a mess is. -M." },
@@ -439,7 +439,7 @@ defMaking(8, {
     '1,1': Object.assign(BELOW_ROOM('Under the Grand Hall', '1,0', 'we', [
         { k: 'sign', x: 16, y: 2, text: "THE GRAND HALL. Mine, the real one. The Housekeeper always went and stood exactly where a thing was coming home to. Every Wanderer's beaten it that way, and every one thought they'd thought of it first. (You did think of it first, love.) -I." },
         { k: 'sign', x: 2, y: 8, text: "MIND THE NIBBLER. Tuck won't go near it, and it's got its eye on the very spot you'll want him in. -B." },
-    ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 3, at: [6, 5], say: "The Housekeeper only ever gets beaten one way: standing on a thing's way home when it tidies it. Hold the thing till he's standing there. Then let go." } }),
+    ]), { nudge: { solved: () => Making.past(20), after: 60 * 60 * 3, at: [6, 5], say: "The Housekeeper only ever gets beaten one way: standing on a thing's way home when it tidies it. Hold it fast till he's standing there. Then undo the knot." } }),
     '2,1': Object.assign(BELOW_ROOM('Under the Antechamber', '2,0', 'w', [
         { k: 'plate', x: 2, y: 5, sig: 'm8w' }, { k: 'weight', x: 2, y: 5, id: 'm8Weight', patience: 90 },
         { k: 'sign', x: 6, y: 8, text: "COUNTERWEIGHT: THE BIG DOOR. On its plate, the door's shut. Off it, open, till it goes home. (So that's what your Pattern did, love: I heard it in the lock, and pushed. -I.)" },

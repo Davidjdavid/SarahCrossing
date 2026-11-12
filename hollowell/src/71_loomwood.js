@@ -244,9 +244,25 @@ SPAWN.socket = (x, y, p) => {
     const enter0 = World.enter;
     World.enter = function (id, ...rest) {
         if ((id === 'loom' || (Progress.areaFlags && Progress.areaFlags.loom)) && !Progress.flag('loom_open')) Progress.set('loom_open');
+        LoomGoal.check(id);
         return enter0.call(this, id, ...rest);
     };
 }
+/* the goal, kept up with the way to the Loom: the gate open (a save that opened it before this was kept up keeps an old
+   line about the counterweight: put right as it next goes anywhere), then inside, then the Shears found */
+const LOOM_GOALS = {
+    gate: 'The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.',
+    road: 'Through the north gate, up the Loomwood road to the Loom.',
+    inside: "Inside the Loom: the First Spinner's Shears are somewhere in here.",
+    shears: "The Shears are yours. The Loom goes on, past the big door by the Shuttle's lane, to the First Spinner's own loom.",
+};
+const LoomGoal = {
+    check(id) {
+        const g = Progress.goal;
+        if (g === LOOM_GOALS.gate && Progress.flag('north_gate')) Progress.setGoal(LOOM_GOALS.road);
+        if (id === 'loom' && !Progress.flag('d8') && (Progress.goal === LOOM_GOALS.road || Progress.goal === LOOM_GOALS.gate)) Progress.setGoal(Inv.has('shears') ? LOOM_GOALS.shears : LOOM_GOALS.inside);
+    },
+};
 
 /* ---------- the Loomwood's look: silvery grass with silk lying in it, birch leaves, the ground fraying toward the fog;
    silk strung between the birches; the warp's cords running away to their sockets ---------- */

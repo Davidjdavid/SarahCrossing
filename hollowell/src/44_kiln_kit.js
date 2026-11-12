@@ -144,7 +144,7 @@ TOOLS.hook = {
         const o = area.at(tx, ty);
         if (o && o !== p.carry && !(tx === p.tx && ty === p.ty)) {
             /* a sleeper won't come; a chest is no post to swing on */
-            if (Return.asleep(o)) { h.state = 'back'; Sfx.play('hookhit'); Fx.text(o.tx * T + 8, o.ty * T - 4, 'z', '#d8c8f8'); return true; }
+            if (Return.asleep(o)) { h.state = 'back'; Sfx.play('hookhit'); Fx.text(o.tx * T + 8, o.ty * T - 4, 'z', '#d8c8f8'); Return.sleepSay(o); return true; }
             if (o.eyelet || o.fixed || o.weight >= WEIGHT.heavy) {
                 if (o.eyelet || o.hookable !== false) return this.latch(h, area, tx, ty, o.eyelet ? 'eyelet' : 'thing');
                 h.state = 'back'; Sfx.play('hookhit'); return true;

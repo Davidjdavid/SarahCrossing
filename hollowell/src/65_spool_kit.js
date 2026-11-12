@@ -548,6 +548,12 @@ TOOLS.needle = {
     draw(cx, cy) { Needle.draw(cx, cy); },
 };
 TOOLS._spool = { update(area) { Spool.update(area); }, draw(cx, cy) { Spool.draw(cx, cy); } };
+/* the HUD steps back from the Needle's work: the thing, and every tile it could be walked to, as drawn */
+UI.keepClear.push(() => {
+    const s = Needle.st; if (!s || !s.thing || s.thing.area !== G.map) return [];
+    const [ox, oy] = s.off;
+    return [s.path[0]].concat([...Needle.reach(s).keys()].map(k => k.split(',').map(Number))).map(([x, y]) => [(x - ox) * T, (y - oy) * T, (x - ox + 1) * T, (y - oy + 1) * T]);
+});
 
 /* the place built afresh: stitches, and the hatches' other halves */
 {

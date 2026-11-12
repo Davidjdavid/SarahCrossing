@@ -42,26 +42,71 @@ test('the Loomwood: through the north gate, up the road to the Loom', () => {
     noErrors(HW);
 });
 
-test('the Threshold: two offcuts into the pit, one on the other, and across', () => {
+test('the Threshold: every offcut lies across the trench; the Hookline brings one over and it drops into the hole in front of her; the lever by the door drops another across the way; one on the other, and across (the Plan)', () => {
     const HW = game();
     enter(HW, 'th', 9, 9);
-    pushAt(HW, 'th', 5, 8, 'up', 2);
-    assert.ok(!HW.G.map.kind(...at('th', 5, 5)).pit, 'one filled');
-    pushAt(HW, 'th', 13, 7, 'left', 7);
-    pushAt(HW, 'th', 5, 8, 'up', 3);
-    assert.ok(!HW.G.map.kind(...at('th', 5, 4)).pit, 'two filled');
+    const a = HW.G.map, room = a.roomAt(...at('th', 9, 9));
+    assert.ok(!a.ents.some(e => e.isGrid && e.kind === 'block' && !e.removed && a.roomAt(e.tx, e.ty) === room && e.ty > at('th', 0, 5)[1]), 'nothing this side to push');
+    assert.ok(['thOff1', 'thOff2'].every(id => thing(HW, id).weight === 2), "middling: a line brings them, it doesn't take her to them");
+    /* hooked over: it hangs on the line over the trench, and where the line lets go of it, over the hole, it drops in */
+    go(HW, 'th', 4, 6); tool(HW, 'hook', 'up'); HW.step(60);
+    assert.ok(!a.kind(...at('th', 4, 5)).pit, 'it dropped into the hole in front of her');
+    go(HW, 'th', 4, 5); tool(HW, 'hook', 'up'); HW.step(60);
+    assert.ok(a.kind(...at('th', 4, 4)).pit, 'nothing more across in that line');
+    /* the lever by the door: another offcut drops from the chute across the way */
+    go(HW, 'th', 2, 8); HW.face('up'); HW.press('act', 1); HW.step(20); HW.skipTalk();
+    assert.ok(a.at(...at('th', 4, 2)) && !a.at(...at('th', 4, 2)).ret, 'an offcut across the way');
+    go(HW, 'th', 4, 5); tool(HW, 'hook', 'up'); HW.step(60);
+    assert.ok(!a.kind(...at('th', 4, 4)).pit, 'the next one in, from the first');
+    go(HW, 'th', 15, 2); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    assert.ok(HW.Inv.plans.includes('loom'), 'the Plan');
     go(HW, 'th', 9, 1);
     noErrors(HW);
 });
 
-test('the Offcut Yard: three offcuts up one column of pits to the key', () => {
+test('the Empty Peg: an old weight caught on its way home by a strand of silk; whatever falls goes home at once, so pushed round into the hole it pops up on its plate under the peg, and the plate opens the gate to the key (a ring, its empty mark and pulling it about change nothing)', () => {
     const HW = game();
     enter(HW, 'oy', 18, 5);
-    pushAt(HW, 'oy', 7, 6, 'left', 4); pushAt(HW, 'oy', 2, 7, 'up', 1);
-    pushAt(HW, 'oy', 8, 3, 'down', 2); pushAt(HW, 'oy', 9, 6, 'left', 6); pushAt(HW, 'oy', 2, 7, 'up', 2);
-    pushAt(HW, 'oy', 5, 9, 'up', 2); pushAt(HW, 'oy', 6, 6, 'left', 3); pushAt(HW, 'oy', 2, 7, 'up', 3);
-    go(HW, 'oy', 1, 2); HW.face('up'); HW.press('act', 1); HW.skipTalk();
+    const w = thing(HW, 'oyW'), gate = thing(HW, 'oyGate');
+    HW.step(200);
+    assert.deepEqual([w.tx, w.ty], at('oy', 13, 5), 'caught at the silk');
+    assert.ok(w.ret.state === 'returning' && w.ret.strain > 0, 'straining to get by');
+    /* rung, it comes on fast till the silk stops it: caught, it waits like the rest (and can still be moved) */
+    go(HW, 'oy', 15, 7); tool(HW, 'bell'); HW.step(60);
+    assert.ok(!w.ret.snap && w.tx === at('oy', 13, 5)[0], 'caught again');
+    /* its empty mark: the line sets her down on the plate, which doesn't feel a girl; off it, she falls back */
+    go(HW, 'oy', 9, 6); tool(HW, 'hook', 'up'); HW.step(60);
+    assert.deepEqual([HW.player().tx, HW.player().ty], at('oy', 9, 2), 'on the plate');
+    assert.ok(!gate.open, 'the gate stays shut');
+    HW.hold('down'); HW.step(40); HW.release(); HW.step(60); HW.skipTalk();
+    /* pushed off, it only comes back to wait at the silk */
+    go(HW, 'oy', 13, 6); HW.push('up', 1);
+    assert.ok(until(HW, () => w.tx === at('oy', 13, 5)[0] && w.ty === at('oy', 13, 5)[1] && !w.mv && w.ret.state === 'returning', 400), 'back at the silk');
+    /* round to the hole and in: home at once, on its plate */
+    go(HW, 'oy', 13, 6); HW.push('up', 1);
+    go(HW, 'oy', 14, 4); HW.push('left', 2); HW.step(30);
+    assert.deepEqual([w.tx, w.ty], at('oy', 9, 2), 'home');
+    assert.ok(until(HW, () => gate.open, 30), 'the gate opens');
+    go(HW, 'oy', 2, 3); HW.face('up'); HW.press('act', 1); HW.skipTalk();
     assert.equal(HW.Inv.keys('loom'), 1, 'the key');
+    noErrors(HW);
+});
+
+test("the Loom rebuilt: an older save keeps the holes it filled that are holes still and forgets those that are walls now; one that took the Offcut Yard's key finds the Empty Peg done; the Threshold it crossed stays crossed", () => {
+    const HW = game();
+    /* what such a save holds: the old Threshold crossed by two offcuts, the old Offcut Yard's pits filled and its key taken */
+    for (const [k, v] of [['gone:thStray1', true], ['gone:thStray2', true], [`fill:${at('th', 5, 5).join(',')}`, true], [`fill:${at('th', 5, 4).join(',')}`, true],
+        ['gone:oyS1', true], ['gone:oyS2', true], [`fill:${at('oy', 1, 5).join(',')}`, true], [`fill:${at('oy', 1, 4).join(',')}`, true], [`fill:${at('oy', 1, 3).join(',')}`, true], ['chest:oyKey', true]]) HW.Progress.setAreaFlag('loom', k, v);
+    HW.Inv.keyCount.loom = 1;
+    enter(HW, 'oy', 18, 5);
+    const a = HW.G.map;
+    assert.equal(a.kindName(...at('oy', 1, 4)), 'wall', 'a wall now: not carved out of it');
+    assert.ok(!HW.Progress.areaFlag('loom', `fill:${at('oy', 1, 4).join(',')}`), 'forgotten');
+    assert.equal(thing(HW, 'oyW').ret.state, 'home', 'its weight home');
+    HW.step(2);
+    assert.ok(thing(HW, 'oyGate').open, 'the gate open');
+    assert.ok(!a.kind(...at('th', 5, 5)).pit && !a.kind(...at('th', 5, 4)).pit, 'the Threshold still crossed');
+    go(HW, 'th', 5, 2); go(HW, 'th', 5, 7);
     noErrors(HW);
 });
 
@@ -101,19 +146,33 @@ test('the Shuttle Run: an offcut in its lane jams it; knock it while it is jamme
     noErrors(HW);
 });
 
-test('the Weighing Room: cut the old weights free and fill the chasm (key)', () => {
+test('the Weighing Room: the old weights hang over the chasm on their threads; pushed in uncut one only goes home; cut, one drops where it hangs and fills the hole under it; one brought out on to the edge, cut and pushed in, and the two hanging in its row cut from it, each from the last: across (then the Hanging Gallery, the key)', () => {
     const HW = game(true);
     enter(HW, 'wh', 17, 5);
     go(HW, 'wh', 18, 5); HW.face('right'); snip(HW);
-    go(HW, 'wr', 4, 5); HW.face('right'); snip(HW);
-    HW.push('right', 3); HW.step(30);
-    assert.ok(!HW.G.map.kind(...at('wr', 8, 5)).pit, 'one');
-    go(HW, 'wr', 4, 1); HW.face('down'); snip(HW); HW.push('down', 3); HW.step(30);
-    pushAt(HW, 'wr', 3, 5, 'right', 5);
-    assert.ok(!HW.G.map.kind(...at('wr', 9, 5)).pit, 'two');
-    go(HW, 'wr', 4, 9); HW.face('up'); snip(HW); HW.push('up', 3); HW.step(30);
-    pushAt(HW, 'wr', 3, 5, 'right', 6);
-    assert.ok(!HW.G.map.kind(...at('wr', 10, 5)).pit, 'three');
+    const a = HW.G.map, H = n => thing(HW, 'wrH' + n), pit = (x, y) => !!a.kind(...at('wr', x, y)).pit;
+    assert.ok([1, 2, 3, 4, 5].every(n => H(n).ret.state === 'home' && a.kind(H(n).tx, H(n).ty).pit), 'hanging at home over the chasm');
+    assert.ok(!a.ents.some(e => e.look === 'loomweight' && !e.removed && a.roomAt(e.tx, e.ty) === a.roomAt(...at('wr', 4, 5)) && !a.kind(e.tx, e.ty).pit), 'none on the floor to push in');
+    /* pushed in uncut, it falls, and is home at once: hanging where it hung */
+    go(HW, 'wr', 7, 2); HW.push('right', 1); HW.step(30);
+    assert.deepEqual([H(1).tx, H(1).ty], at('wr', 8, 2), 'home again');
+    /* cut where it hangs: it drops, and fills the hole under it */
+    const h1 = H(1);
+    HW.face('right'); snip(HW);
+    assert.ok(h1.removed && !pit(8, 2), 'dropped where it hung');
+    /* the row with two: one more brought out of the chasm on to the edge (the Gloves), a step along, cut, and pushed in */
+    const h2 = H(2);
+    go(HW, 'wr', 7, 6); HW.face('right'); HW.hold('act'); HW.step(4); HW.hold(['act', 'left']);
+    until(HW, () => h2.tx === at('wr', 7, 6)[0], 40); until(HW, () => !h2.mv, 30); HW.release(); HW.step(2);
+    pushAt(HW, 'wr', 7, 5, 'down', 1);
+    go(HW, 'wr', 6, 7); HW.face('right'); snip(HW);
+    assert.ok(!h2.ret, 'cut on the edge');
+    HW.push('right', 1); HW.step(20);
+    assert.ok(!pit(8, 7), 'in');
+    go(HW, 'wr', 8, 7); HW.face('right'); snip(HW); HW.step(10);
+    go(HW, 'wr', 9, 7); HW.face('right'); snip(HW); HW.step(10);
+    assert.ok(!pit(9, 7) && !pit(10, 7), 'each from the last');
+    go(HW, 'wr', 12, 7);
     /* the key's down in the Hanging Gallery now */
     go(HW, 'hg', 16, 2); HW.face('right'); HW.press('act', 1); HW.step(2);
     go(HW, 'hg', 12, 3); HW.face('down'); snip(HW);
@@ -175,6 +234,27 @@ test('the Bridge Room (in from the Warp Walk): the one weight is wedged in its n
     HW.step(600);
     assert.ok(thing(HW, 'brLock').open && thing(HW, 'brWest').open, 'both ways open, for good');
     go(HW, 'wr', 15, 1);
+    noErrors(HW);
+});
+
+test("the Bridge Room's iron through silk, as it looks: the strand parts the moment the weight comes on to it, the weight hangs there in the gap on its thread a moment (said, once) and then goes on to its place; the sign says what silk does under iron", () => {
+    const HW = game(true);
+    HW.Inv.giveTool('needle');
+    enter(HW, 'br', 18, 5);
+    const w = thing(HW, 'brW3'), a = HW.G.map, said = s => HW.global('UI').toasts.some(t => t.s.includes(s));
+    const sign = a.ents.find(e => e.kind === 'sign' && a.roomAt(e.tx, e.ty) === a.roomAt(...at('br', 9, 5)));
+    assert.match(sign.text, /under iron, it parts/, 'the sign');
+    go(HW, 'br', 12, 2); HW.face('left');
+    HW.Inv.equipped = 'needle'; HW.press('tool', 1); HW.step(2);
+    for (let k = 0; k < 3; k++) { HW.hold('right'); HW.step(2); HW.release(); HW.step(8); }
+    HW.press('tool', 1);
+    assert.ok(until(HW, () => thing(HW, 'brNook').gone, 30), 'the strand parts');
+    assert.deepEqual([w.tx, w.ty], at('br', 9, 2), 'as the weight comes on to it');
+    HW.step(4);
+    assert.ok(a.kind(...at('br', 9, 2)).pit && !w.removed && w.ret && [w.tx, w.ty].join() === at('br', 9, 2).join(), 'hanging there over the gap on its thread');
+    assert.ok(said('the silk parts'), 'said what happened');
+    HW.step(40);
+    assert.deepEqual([w.tx, w.ty], at('br', 11, 2), 'then on to its place');
     noErrors(HW);
 });
 

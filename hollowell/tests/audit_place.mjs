@@ -22,6 +22,11 @@ const EXPECTED = {
     'millrace|gBell': 'a bell rope hanging over the race, pulled from beside it',
     'millrace|grindle': 'the boss, who lives in the millpond',
     'millrace|sign@30,31': 'a plaque on the wall, read from the floor below it',
+    'loom|wrH1': 'an old weight hanging at home over the chasm on its thread (cut, it drops where it hangs)',
+    'loom|wrH2': 'an old weight hanging at home over the chasm on its thread (cut, it drops where it hangs)',
+    'loom|wrH3': 'an old weight hanging at home over the chasm on its thread (cut, it drops where it hangs)',
+    'loom|wrH4': 'an old weight hanging at home over the chasm on its thread (cut, it drops where it hangs)',
+    'loom|wrH5': 'an old weight hanging at home over the chasm on its thread (cut, it drops where it hangs)',
 };
 const expected = new Map();
 for (const stage of STAGES) {

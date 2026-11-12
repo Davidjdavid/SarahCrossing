@@ -119,10 +119,10 @@ test('8: the Drafting Hall stairs stay open once both lamps were lit', () => {
 test('new 1/2: a thread cut mid-step lets go of the tile it was leaving; the drum never trips on a thing cut in flight', () => {
     const HW = loadGame(); HW.preset('afterReveal2'); HW.step(10); HW.skipTalk();
     HW.Progress.set('north_gate'); HW.Progress.set('gundry_r2'); HW.Inv.giveTool('shears'); HW.Inv.keyCount.loom = 1;
-    /* (one of the Weighing Room's old weights, pushed round a corner and cut as it steps home round it) */
+    /* (an old weight on the Weighing Room's floor, pushed round a corner and cut as it steps home round it) */
     const at = (x, y) => [40 + x, 22 + y];
     HW.warp('loom', ...at(6, 5)); HW.step(30); HW.skipTalk();
-    const a = HW.G.map, w = a.find('wrW1');
+    const a = HW.G.map, w = a.add(HW.global('SPAWN').loomweight(...at(4, 2), { id: 'tW' }));
     HW.walkTo(...at(4, 1)); HW.push('down', 1); HW.step(5);
     HW.walkTo(...at(5, 3)); HW.push('left', 1); HW.step(5);
     HW.walkTo(...at(3, 2)); HW.push('down', 1); HW.step(5);

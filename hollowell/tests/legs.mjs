@@ -1265,14 +1265,19 @@ export const LEG8 = (HW, chain) => {
     const snip = d => { HW.face(d); HW.Inv.equipped = 'shears'; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
     const strike = d => { HW.face(d); HW.press('atk', 1); HW.step(14); };
     const ltool = (t, d) => { HW.face(d); HW.Inv.equipped = t; HW.press('tool', 1); HW.step(3); HW.skipTalk(); };
-    /* the Threshold: two offcuts into the trench */
-    lpush('th', 5, 8, 'up', 2); lpush('th', 13, 7, 'left', 7); lpush('th', 5, 8, 'up', 3);
-    /* the Offcut Yard: the key */
+    /* (a pull with the Gloves: hold on, step back one tile) */
+    const lpull = (r, x, y, d) => { lgo(r, x, y); HW.face(d); const f = HW.player().front(), o = HW.G.map.at(f.tx, f.ty), back = { up: 'down', down: 'up', left: 'right', right: 'left' }[d]; HW.hold('act'); HW.step(4); HW.hold(['act', back]); until(() => o.tx !== f.tx || o.ty !== f.ty, 40); until(() => !o.mv, 30); HW.release(); HW.step(2); };
+    /* the Threshold: the offcuts all across the trench; one hooked over drops into the hole in front of her; the lever by
+       the door drops another across the way; hooked over from the first: across (the Plan) */
+    lgo('th', 4, 6); ltool('hook', 'up'); HW.step(60);
+    lgo('th', 2, 8); act('up'); HW.step(10);
+    lgo('th', 4, 5); ltool('hook', 'up'); HW.step(60);
+    lgo('th', 15, 2); act('up'); ok(HW.Inv.plans.includes('loom'), 'the Plan');
+    /* the Empty Peg: the old weight caught at the silk across its way home, pushed round and into the hole: whatever falls
+       goes home at once, on to its plate under the peg, and the gate to the key opens */
     lgo('oy', 18, 5);
-    lpush('oy', 7, 6, 'left', 4); lpush('oy', 2, 7, 'up', 1);
-    lpush('oy', 8, 3, 'down', 2); lpush('oy', 9, 6, 'left', 6); lpush('oy', 2, 7, 'up', 2);
-    lpush('oy', 5, 9, 'up', 2); lpush('oy', 6, 6, 'left', 3); lpush('oy', 2, 7, 'up', 3);
-    lgo('oy', 1, 2); act('up'); ok(HW.Inv.keys('loom') === 1, 'a key');
+    lpush('oy', 13, 6, 'up', 1); lpush('oy', 14, 4, 'left', 2);
+    lgo('oy', 2, 3); act('up'); ok(HW.Inv.keys('loom') === 1, 'a key');
     /* the Warp Hall's lock; the Shuttle Run: an offcut jams the Shuttle; two knocks; the Shears */
     lgo('wh', 9, 1); HW.hold('up'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
     HW.G.cheats.god = true;
@@ -1292,13 +1297,13 @@ export const LEG8 = (HW, chain) => {
     HW.step(30); HW.skipTalk(); HW.step(10);
     lgo('sr', 9, 3); act('up'); ok(HW.Inv.has('shears'), 'the Shears');
     HW.G.cheats.god = false;
-    /* the Warp Hall's east silk; the Weighing Room: three old weights cut free into the chasm; the key */
+    /* the Warp Hall's east silk; the Weighing Room: the old weights hang over the chasm; one pulled out on to the edge,
+       along a step, cut and pushed in; the two hanging in its row cut where they hang, each from the last: across */
     lgo('wh', 18, 5); snip('right');
-    lgo('wr', 4, 5); snip('right'); HW.push('right', 3); HW.step(30);
-    lgo('wr', 4, 1); snip('down'); HW.push('down', 3); HW.step(30);
-    lpush('wr', 3, 5, 'right', 5);
-    lgo('wr', 4, 9); snip('up'); HW.push('up', 3); HW.step(30);
-    lpush('wr', 3, 5, 'right', 6);
+    lpull('wr', 7, 6, 'right'); lpush('wr', 7, 5, 'down', 1);
+    lgo('wr', 6, 7); snip('right'); HW.push('right', 1); HW.step(20);
+    lgo('wr', 8, 7); snip('right'); HW.step(10); lgo('wr', 9, 7); snip('right'); HW.step(10);
+    ok(!HW.G.map.kind(...l('wr', 10, 7)).pit, 'the Weighing Room: a row across');
     /* down to the Hanging Gallery: the weights let go, one cut as it hangs over the trench; across to the key */
     lgo('hg', 16, 2); act('right'); lgo('hg', 12, 3); snip('down');
     lgo('hg', 9, 7); act('down'); ok(HW.Inv.keys('loom') === 1, 'the key');

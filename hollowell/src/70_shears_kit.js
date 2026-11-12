@@ -215,3 +215,17 @@ class WarpThread extends Ent {
 }
 SPAWN.warpthread = (x, y, p) => new WarpThread(x, y, p);
 SPAWN.silkbridge = (x, y, p) => new WarpThread(x, y, Object.assign({ bridge: true }, p));
+/* silk strung across a thing's way home catches it there: it waits, straining, like anything held up (rung home, it comes
+   on fast till the silk stops it, and then it's caught like the rest, and waits) */
+{
+    const up0 = Return.update;
+    Return.update = function (e) {
+        /* (iron that the silk parted under hangs over the gap on its thread a moment, swinging, before it goes on) */
+        if (e.hangT > 0 && !e.mv) { e.hangT--; e.z = e.hangT ? -2 - ((e.hangT >> 2) % 2) : 0; return; }
+        up0.call(this, e);
+        const r = e.ret;
+        if (!r || !r.snap || r.state !== 'returning' || !(r.strain > 0) || e.mv || !e.area || r.trace.length < 2) return;
+        const [nx, ny] = r.trace[r.trace.length - 2];
+        if (e.area.blockers.some(b => b.kind === 'warpthread' && b.blocks(nx, ny))) r.snap = false;
+    };
+}

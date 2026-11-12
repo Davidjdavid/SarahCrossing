@@ -601,9 +601,12 @@ const UI = {
                 }
             }
             if (!hit) for (const e of a.walkers || []) { if (e.alive === false || e.hidden) continue; const x = e.x - Cam.x, y = e.y - Cam.y; if (over(x - 8, y - 18, x + 8, y)) { hit = true; break; } }
+            /* (and what a tool in use is showing on the floor: the Needle's reach, say; world pixels, [x0, y0, x1, y1]) */
+            if (!hit) for (const f of this.keepClear) if (f().some(([x0, y0, x1, y1]) => over(x0 - Cam.x, y0 - Cam.y, x1 - Cam.x, y1 - Cam.y))) { hit = true; break; }
         }
         return this._hc = hit;
     },
+    keepClear: [],
     _hud(p) {
         if (G.trial) Trials.draw();
         /* Wren's thread: a little red spool (until it's cut); and her hearts (which, once it's cut, come undone and

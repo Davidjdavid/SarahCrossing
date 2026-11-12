@@ -367,6 +367,7 @@ SPAWN.gateweight = (x, y, p) => {
     b.tick = function () {
         if (this.stitched && !Progress.flag('north_gate')) {
             Progress.set('north_gate'); Stats.count('north_gate');
+            if (typeof LoomGoal !== 'undefined') LoomGoal.check();
             if (!Progress.flag('reveal2')) { Progress.set('s32'); Stats.count('secret:gate'); }
             G.shake = 8; Sfx.play('rumble');
             G.pendingToast = 'Far away north, something huge and stone grinds, and stops, and stays open.';
@@ -411,7 +412,7 @@ CONTENT_INIT.push(initReveal2);
             Inv.items.guildkey = 1; Sfx.play('item');
             yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");
             yield* say('gundry', "The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
-            Progress.setGoal(Progress.flag('north_gate') ? 'Through the north gate, up the Loomwood road to the Loom.' : 'The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
+            Progress.setGoal(Progress.flag('north_gate') ? LOOM_GOALS.road : LOOM_GOALS.gate);
             return;
         }
         yield* say('gundry', cycle('gundry_r2b', ["The Seams, east end. The counterweight. Mind your fingers.", "Past the gate it's the Loomwood. Old. Older than the Houses. Nobody's built anything there; nobody watches from underneath. You'll be on your own.", "If you see Linnet... tell her the Guild still has her name on the bench."]));

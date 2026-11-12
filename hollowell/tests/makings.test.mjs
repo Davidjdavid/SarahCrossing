@@ -394,10 +394,11 @@ function solve8(HW) {
     assert.ok(Wt.ret.state === 'away', 'off its plate');
     assert.ok(until(HW, () => t.tx < 40, 600), 'through the big door');
     assert.ok(until(HW, () => t.state === 'sit', 900));
-    assert.deepEqual([t.tx, t.ty], [21, 5], 'by the way west, shut');
+    /* (where he sits depends on where the nibbler's pottering: tied up, it's nowhere near him, and he's by the way west) */
     const N = a.find('m8Nib'), W = a.find('m8W');
     under(HW, 25, 7); tug(HW); HW.step(20); knot(HW);
     assert.ok(N.knotted, 'the nibbler tied up');
+    assert.ok(until(HW, () => t.tx === 21 && t.ty === 5 && t.state === 'sit', 300), `by the way west, shut (at ${t.tx},${t.ty})`);
     under(HW, 26, 5); tug(HW);
     assert.ok(until(HW, () => W.ret.state === 'away' && !W.mv, 500));
     assert.deepEqual([W.tx, W.ty], [27, 5], 'pushed east out of its slot, straight away from him');

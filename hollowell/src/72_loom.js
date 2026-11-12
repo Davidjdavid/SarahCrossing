@@ -25,6 +25,8 @@ WALLS.loomhouse = {
     face: (x, th, v) => { fill(x, '#6a7484'); for (let y = 3; y < 14; y += 5) fill(x, '#5a6070', 0, y, 16, 1); fill(x, '#e4ecf5', (v * 5) % 15, 0, 1, 14); fill(x, '#1a1e26', 0, 15, 16, 1); },
 };
 
+/* a lever that works a chute across the room (its rope runs up into the roof and over): another offcut drops over there */
+const pullChute = id => lv => { const c = lv.area.find(id); if (c) c.interact(); };
 /* the Hanging Gallery's weights: hung out at the trench's west end, home along it, then down the far side to the east */
 /* the Bridge Room's weight, wedged in its nook (and any spare dropped into the nook after it) */
 const BR_WEDGED = { noPull: true, stitchName: 'the wedged weight', pullLine: 'Wedged in its nook, iron to the stone: no hand will get it out.',
@@ -42,7 +44,9 @@ defHouse({
     entry: LOOM_ENTRY, noNudges: true,
     drawOver: (a, cx, cy) => LoomHouse.drawOver(a, cx, cy),
     cells: {
-        /* ---------------- 1 The Threshold: nothing here comes back ---------------- */
+        /* ---------------- 1 The Threshold: nothing here comes back. The offcuts lie on the far side of a trench two deep;
+           a lever by the door works the chute over there. The Hookline brings an offcut over the trench to you, and
+           what it lets go of over a hole drops in and fills it (the Plan) ---------------- */
         '1,3': {
             name: 'The Threshold',
             rows: [
@@ -61,8 +65,12 @@ defHouse({
             ents: [
                 { k: 'deco', x: 3, y: 0, look: 'wallhank', solid: false, baseY: -100 }, { k: 'deco', x: 15, y: 0, look: 'wallbobbins', solid: false, baseY: -100 },
                 { k: 'warp', x: 9, y: 10, to: 'hollow', tx2: LOOM_OUT.x, ty2: LOOM_OUT.y, face: 'down', dir: 'down' },
-                { k: 'stray', x: 5, y: 7, id: 'thStray1' }, { k: 'stray', x: 12, y: 7, id: 'thStray2' },
-                { k: 'chute', x: 15, y: 9, drop: [15, 7], id: 'thChute' },
+                /* (the old offcuts this side, thStray1 and thStray2, and their chute are gone: an older save that pushed one
+                   into the trench keeps the hole it filled. These are middling, as the chutes' are: a line brings them over) */
+                { k: 'stray', x: 4, y: 3, id: 'thOff1', weight: WEIGHT.medium }, { k: 'stray', x: 12, y: 2, id: 'thOff2', weight: WEIGHT.medium },
+                { k: 'chute', x: 4, y: 1, drop: [4, 2], id: 'thChuteN' },
+                { k: 'lever', x: 2, y: 7, onPull: pullChute('thChuteN') },
+                { k: 'chest', x: 15, y: 1, item: 'plan', id: 'thPlan' },
                 { k: 'sign', x: 3, y: 9, text: 'Carved deep, very old: NOTHING HERE COMES BACK. (And under it, newer, small: SO MIND WHERE YOU PUSH IT. -L.)' },
             ],
         },
@@ -88,28 +96,34 @@ defHouse({
                 { k: 'deco', x: 6, y: 4, look: 'loomframe', ox: 0, solid: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]], text: 'A loom, bigger than a house, its warp threads running up into the dark. Half a cloth hangs from it, every colour of the valley, unfinished. The shuttle that should be in it is gone.' },
             ],
         },
-        /* ---------------- 3 The Offcut Yard: strays, pits, and order (key) ---------------- */
+        /* ---------------- 3 The Empty Peg (the Offcut Yard once): an old weight dragged off its peg, across a hole and round
+           a corner, and held there by a strand of silk across its way home: it strains at the silk and can't get by. Its
+           place is the iron plate under the peg, and the plate opens the gate to the key. Whatever falls goes home at
+           once (key) ---------------- */
         '0,2': {
-            name: 'The Offcut Yard',
+            name: 'The Empty Peg',
             rows: [
                 '####################',
-                '#..#........#......#',
-                '#..#........#......#',
-                '#ooo#.......#......#',
-                '#ooo...............#',
-                '#ooo................',
+                '#...#...#.#........#',
+                '#...#...#.#........#',
+                '#...#...#ooo.......#',
+                '##.##...#ooo.......#',
+                '#...................',
                 '#..................#',
-                '#.........######.###',
-                '#.........#........#',
-                '#.........#........#',
+                '#..................#',
+                '#..................#',
+                '#..................#',
                 '####################',
             ],
             ents: [
-                { k: 'deco', x: 12, y: 0, look: 'wallhank', solid: false, baseY: -100 },
-                { k: 'chest', x: 1, y: 1, item: 'key', id: 'oyKey' },
-                { k: 'stray', x: 6, y: 6, id: 'oyS1' }, { k: 'stray', x: 8, y: 4, id: 'oyS2' }, { k: 'stray', x: 5, y: 8, id: 'oyS3' },
-                { k: 'chute', x: 15, y: 9, drop: [14, 8], id: 'oyChute' },
-                { k: 'sign', x: 17, y: 4, text: 'OFFCUTS. (Pull the chute and another drops. There are always more offcuts.)' },
+                { k: 'deco', x: 9, y: 0, look: 'wallpeg', solid: false, baseY: -100 }, { k: 'deco', x: 14, y: 0, look: 'wallhank', solid: false, baseY: -100 },
+                /* (its place: the plate under the peg; where it was dragged to and the way it came are its trace) */
+                { k: 'plate', x: 9, y: 2, sig: 'oyPlate', minWeight: 3 },
+                { k: 'loomweight', x: 9, y: 2, id: 'oyW', stitchName: 'the old weight', startAt: [13, 5], trace: [[9, 2], [9, 3], [9, 4], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5]] },
+                { k: 'warpthread', x: 12, y: 5, len: 1, dir: 'v', id: 'oySilk' },
+                { k: 'door', x: 2, y: 4, type: 'gate', when: 'oyPlate', dir: 'h', keep: true, id: 'oyGate' },
+                { k: 'chest', x: 2, y: 2, item: 'key', id: 'oyKey' },
+                { k: 'sign', x: 17, y: 8, text: "Scratched small on a flagstone: THE WEAVER STRINGS ITS SILK ACROSS THE WAY HOME. WHAT IT CATCHES STAYS CAUGHT. -L." },
             ],
         },
         /* ---------------- 4 The Shuttle Run: the Shuttle (the Shears) ---------------- */
@@ -159,7 +173,10 @@ defHouse({
                 { k: 'sign', x: 3, y: 8, text: 'Scratched into the floor, small: L. CUT HER WAY OUT OF HERE. YOU CAN TOO.' },
             ],
         },
-        /* ---------------- 6 The Weighing Room: the old loom weights, cut free, fill the floor ---------------- */
+        /* ---------------- 6 The Weighing Room: the old loom weights hang over the chasm on their silver threads, each in its
+           own place. Cut, a weight drops where it hangs and fills the hole under it; pushed in uncut it only goes home. One
+           row has two of them; the third is brought (out on to the edge, cut, and pushed in), then the two cut in turn,
+           each from the last ---------------- */
         '2,2': {
             name: 'The Weighing Room',
             rows: [
@@ -177,7 +194,10 @@ defHouse({
             ],
             ents: [
                 { k: 'deco', x: 3, y: 0, look: 'wallbobbins', solid: false, baseY: -100 }, { k: 'deco', x: 11, y: 0, look: 'wallhank', solid: false, baseY: -100 },
-                { k: 'loomweight', x: 4, y: 2, id: 'wrW1' }, { k: 'loomweight', x: 4, y: 8, id: 'wrW2' }, { k: 'loomweight', x: 5, y: 5, id: 'wrW3' },
+                /* (hanging at home over the chasm; the room's old weights on the floor, wrW1 to wrW3, are gone: whatever an
+                   older save did with them, these finish it) */
+                { k: 'loomweight', x: 8, y: 2, id: 'wrH1' }, { k: 'loomweight', x: 8, y: 6, id: 'wrH2' },
+                { k: 'loomweight', x: 9, y: 7, id: 'wrH3' }, { k: 'loomweight', x: 10, y: 7, id: 'wrH4' }, { k: 'loomweight', x: 10, y: 3, id: 'wrH5' },
                 { k: 'chute', x: 1, y: 9, drop: [2, 8], id: 'wrChute', weights: true },
                 { k: 'door', x: 19, y: 5, type: 'lock', dir: 'v', id: 'wrEast' },
                 { k: 'sign', x: 2, y: 9, text: 'The old loom weights, each on its silver thread. They have hung in the same places for longer than anyone remembers.' },
@@ -243,7 +263,7 @@ defHouse({
                 { k: 'chute', x: 13, y: 1, drop: [13, 2], id: 'brOffcuts' },
                 { k: 'plate', x: 12, y: 2, sig: 'brPlate', minWeight: 3 },
                 { k: 'chest', x: 16, y: 2, item: 'pattern', id: 'brPattern', hidden: true, when: 'brPlate' },
-                { k: 'sign', x: 18, y: 4, text: 'Silk will hold a girl. Silk will not hold iron.' },
+                { k: 'sign', x: 18, y: 4, text: 'Silk will hold a girl. Silk will not hold iron: under iron, it parts.' },
             ],
         },
         /* ---------------- 7a The Larder, east of the Weighing Room (the Hanging Gallery's key): the Weaver's. It wraps the
@@ -277,7 +297,7 @@ defHouse({
                 { k: 'deco', x: 2, y: 8, look: 'cocoon', text: 'Something wrapped round and round in grey silk, the size of a sack of flour. Whatever it was, the Weaver meant to keep it.' },
                 { k: 'deco', x: 4, y: 9, look: 'cocoon2', solid: [[0, 0]] }, { k: 'deco', x: 1, y: 3, look: 'cocoon2', solid: [[0, 0]] },
                 { k: 'deco', x: 5, y: 2, look: 'wallhank', solid: false, baseY: -100 }, { k: 'deco', x: 17, y: 0, look: 'wallhank', solid: false, baseY: -100 },
-                { k: 'sign', x: 3, y: 5, text: 'Scratched small on a flagstone: IT WRAPS UP WHAT IT KEEPS AND LAYS IT DOWN TO SLEEP. NOTHING WAKES THEM BUT A BELL. -L.' },
+                { k: 'sign', x: 3, y: 5, text: 'Scratched small on a flagstone: IT WRAPS UP WHAT IT KEEPS AND LAYS IT DOWN TO SLEEP. NOTHING WAKES THEM BUT A BELL, AND WOKEN THEY GO HOME THE WAY THEY WERE DRAGGED, FAST. -L.' },
             ],
         },
         /* ---------------- 7b The Warp Walk, north of the Larder: a ledge along the wall over a drop, the way on at its far end
@@ -358,7 +378,19 @@ class Chute extends GridThing {
 SPAWN.chute = (x, y, p) => new Chute(x, y, p);
 
 /* the Loom's old weights: heavy iron, each on its own silver thread (cut it, and it's an offcut like the rest) */
-SPAWN.loomweight = (x, y, p) => new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }, p));
+SPAWN.loomweight = (x, y, p) => {
+    const b = new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }, p));
+    const draw0 = b.draw;
+    b.draw = function (cx, cy) {
+        /* at home over a hole it hangs there, on its silver thread down from the roof */
+        if (this.ret && this.ret.state === 'home' && !this.mv && !this.pendingHome && this.area && this.area.kind(this.tx, this.ty).pit) {
+            const r = this.area.roomAt(this.tx, this.ty), x = this.tx * T + 7 - cx, y0 = (r ? (r.y + 1) * T - 6 : this.ty * T - 40) - cy, y1 = this.ty * T + 1 - cy;
+            Gfx.line(x + 1, y0, x + 1, y1, Threads.UNDER); Gfx.line(x, y0, x, y1, '#e4ecf5');
+        }
+        return draw0.call(this, cx, cy);
+    };
+    return b;
+};
 /* the Weaver's larder: an old weight wrapped in its silk and laid down asleep where it was dropped (a sleeper: a ring
    wakes it, and home it goes) */
 SPAWN.wrapped = (x, y, p) => {
@@ -430,19 +462,45 @@ class LoomWell extends Ent {
     }
 }
 SPAWN.loomwell = (x, y) => new LoomWell(x, y);
-/* silk won't hold iron: a heavy thing on a silk bridge goes through it */
+/* silk won't hold iron: under a heavy thing a silk bridge parts. Pushed on, the thing goes down through it; on its way to
+   its place (home, or where the Needle put it) it hangs on its thread over the gap a moment, as anything on its way home
+   hangs over a hole, and goes on across */
 {
     const landed0 = GridThing.prototype.landed;
     GridThing.prototype.landed = function (returning) {
         if (this.weight >= WEIGHT.heavy && this.area) {
             const br = this.area.ents.find(e => e.kind === 'warpthread' && e.bridge && !e.gone && e.cutAt(this.tx, this.ty));
-            if (br) { Sfx.play('snip'); br.onCut(); return; }
+            if (br) {
+                Sfx.play('snip'); br.onCut();
+                if (!this.removed && this.ret && this.ret.state === 'returning') {
+                    this.hangT = 14;
+                    if (this.area === G.map && !Progress.flag('silk_parted')) { Progress.set('silk_parted'); UI.toast("Under the iron the silk parts. The weight drops into the gap on its thread, swings there, and goes on to its place.", 220, { focus: this }); }
+                }
+                return;
+            }
         }
         return landed0.call(this, returning);
     };
 }
 
 const LoomHouse = {
+    /* older saves, from before the Loom's first rooms were rebuilt (the Threshold's offcuts across its trench, the Empty Peg
+       where the Offcut Yard was, the Weighing Room's weights hanging over the chasm): a hole one filled where there's no hole
+       now is forgotten (it would only carve floor out of a wall); the holes that are still holes stay filled */
+    migrate() {
+        const af = Progress.areaFlags.loom, rows = AREAS.loom && AREAS.loom.rows; if (!af || !rows) return;
+        for (const k of Object.keys(af)) {
+            const m = /^fill:(\d+),(\d+)$/.exec(k);
+            if (m && (rows[+m[2]] || '')[+m[1]] !== 'o') delete af[k];
+        }
+    },
+    /* (and one that took the Empty Peg's key finds its weight back on its plate, the gate open: done, as it left it) */
+    settle(a) {
+        const w = a.find('oyW');
+        if (!w || !w.ret || w.ret.state === 'home' || !Progress.areaFlag(a.id, 'chest:oyKey') || (a.at(w.ret.mx, w.ret.my) && a.at(w.ret.mx, w.ret.my) !== w)) return;
+        a.unplace(w, w.tx, w.ty); w.tx = w.ret.mx; w.ty = w.ret.my; w.x = w.tx * T; w.y = w.ty * T; a.place(w, w.tx, w.ty);
+        w.ret.trace = [[w.tx, w.ty]]; w.ret.state = 'home'; w.ret.timer = 0;
+    },
     *afterWeaver(w) {
         const a = w.area, r = a.rooms.find(q => q.key === '1,0');
         Music.play('silence');
@@ -460,10 +518,43 @@ const LoomHouse = {
         Save.autosave();
     },
     /* over everything: what's left of the web, drifting down */
-    drawOver(a, cx, cy) { const w = a.ents.find(e => e.kind === 'weaver'); if (w && w.drawSnow) w.drawSnow(cx, cy); },
+    drawOver(a, cx, cy) { const w = a.ents.find(e => e.kind === 'weaver'); if (w && w.drawSnow) w.drawSnow(cx, cy); this.drawWakePaths(a, cx, cy); },
+    /* with the Bell in hand, a sleeper a ring would reach shows the way a ring would send it: beads of light running along
+       its thread from it to its place, over and over (where it'll go, and who's standing in the way) */
+    wakePaths(a) {
+        const p = G.player;
+        if (!p || p.area !== a || Inv.equipped !== 'bell' || p.state !== 'normal' || Script.blocking()) return [];
+        const room = a.roomAt(p.tx, p.ty);
+        return a.ents.filter(e => Return.asleep(e) && !e.removed && e.ret && e.ret.state !== 'home' && !e.hidden && a.roomAt(e.tx, e.ty) === room
+            && Math.hypot(e.tx * T + 8 - p.x, e.ty * T + 8 - (p.y - 4)) <= Bells.REACH * T + 4);
+    },
+    drawWakePaths(a, cx, cy) {
+        for (const e of this.wakePaths(a)) {
+            const pts = e.ret.trace.map(([x, y]) => [x * T + 8 - cx, y * T + 9 - cy]).reverse(), segs = [];
+            let L = 0;
+            for (let i = 0; i + 1 < pts.length; i++) { const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); segs.push(d); L += d; }
+            if (L < 1) continue;
+            for (let k = 0; k < 3; k++) {
+                let d = ((G.t * 1.5 + k * L / 3 + e.uid * 11) % L), i = 0;
+                while (i < segs.length - 1 && d > segs[i]) { d -= segs[i]; i++; }
+                const f = segs[i] ? d / segs[i] : 0, x = Math.round(lerp(pts[i][0], pts[i + 1][0], f)), y = Math.round(lerp(pts[i][1], pts[i + 1][1], f));
+                Gfx.rect(x - 2, y - 1, 5, 3, PAL.ink); Gfx.rect(x - 1, y - 2, 3, 5, PAL.ink);
+                Gfx.rect(x - 1, y, 3, 1, '#f7d64a'); Gfx.rect(x, y - 1, 1, 3, '#f7d64a'); Gfx.rect(x, y, 1, 1, '#fff4c0');
+            }
+        }
+    },
 };
 const LOOM_HEART = [10, 9];     /* (at the foot of the well, in front of the door) */
 HOUSE_AFTER.loom = { flag: 'd8', room: '1,0', heart: LOOM_HEART, heartId: 'loomHeart', noHoop: true };
+{
+    const build0 = World.build;
+    World.build = function (id) {
+        if (id === 'loom') LoomHouse.migrate();
+        const a = build0.call(this, id);
+        if (id === 'loom') LoomHouse.settle(a);
+        return a;
+    };
+}
 
 function initLoom() {
     defSprite('chute', ['....kkkkkkkk....', '....kmmmmmmk....', '....kmkkkkmk....', '....kmk..kmk....', '....kmk..kmk....', '...kkmkkkkmkk...', '...kmmmmmmmmk...', '...kmMMMMMMmk...', '...kkkkkkkkkk...', '.....k....k.....', '....kkk..kkk....', '...kwwwk.kwwk...', '...kkkk..kkkk...', '................', '................', '................'], { m: '#8a94a4', M: '#6a7484', w: '#e4ecf5' });
@@ -474,7 +565,9 @@ function initLoom() {
     /* small things on the Loom's walls, each inside its own wall tile: a hank of silver on a hook; a shelf of bobbins */
     ART.wallhank = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#2a2e38', 7, 1, 2, 2); R('#4a4f5c', 7, 3, 1, 2); R('#e4ecf5', 5, 5, 6, 1); R('#e4ecf5', 4, 6, 1, 6); R('#e4ecf5', 11, 6, 1, 6); R('#c8d0dc', 6, 6, 1, 7); R('#c8d0dc', 9, 6, 1, 7); R('#e4ecf5', 5, 12, 6, 1); R('#a4aebe', 7, 7, 2, 5); });
     ART.wallbobbins = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 11, 14, 2); R('#3a2618', 2, 13, 1, 2); R('#3a2618', 13, 13, 1, 2); for (const [i, c] of [[2, '#d6304e'], [6, '#5ab85a'], [10, '#5a8ad6']]) { R('#c9925a', i, 4, 4, 1); R(c, i, 5, 4, 5); R('#c9925a', i, 10, 4, 1); } });
-    SPR.wallhank = ART.wallhank; SPR.wallbobbins = ART.wallbobbins;
+    /* (and a peg with nothing on it, the stone under it worn pale where something hung a very long time) */
+    ART.wallpeg = paintSprite(16, 16, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#8a94a4', 4, 6, 8, 8); R('#a4aebe', 5, 7, 6, 6); R('#2a2e38', 7, 2, 2, 2); R('#6a4630', 7, 4, 2, 4); R('#a8744c', 7, 4, 1, 4); R('#4a301e', 7, 8, 2, 1); });
+    SPR.wallhank = ART.wallhank; SPR.wallbobbins = ART.wallbobbins; SPR.wallpeg = ART.wallpeg;
     const line = (x, x0, y0, x1, y1, c) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; x.fillStyle = c; for (let i = 0; i <= n; i++) x.fillRect(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), 1, 1); };
     const oval = (x, cx, cy, rx, ry, colFn) => { for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) { if ((i * i) / (rx * rx) + (j * j) / (ry * ry) > 1.05) continue; const c = colFn(i / rx, j / ry, cx + i, cy + j); if (c) { x.fillStyle = c; x.fillRect(cx + i, cy + j, 1, 1); } } };
     /* the First Spinner's loom (the Web): the warp strung from the top beam, the cloth woven only so far, the uprights,
@@ -521,4 +614,4 @@ function initLoom() {
 }
 CONTENT_INIT.push(initLoom);
 ITEM_LINES.shears = () => "You found the {red}Shears{/}: the First Spinner's own. Face something with a thread (or its cord, from below) and press [tool]: snip. It's a stray now, for good. People too. And, at the fog, your own.";
-ITEM_AFTER.shears = function* () { Inv.equipped = 'shears'; };
+ITEM_AFTER.shears = function* () { Inv.equipped = 'shears'; if (Progress.goal === LOOM_GOALS.inside || Progress.goal === LOOM_GOALS.road || Progress.goal === LOOM_GOALS.gate) Progress.setGoal(LOOM_GOALS.shears); };

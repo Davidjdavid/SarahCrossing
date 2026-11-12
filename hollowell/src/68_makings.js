@@ -33,6 +33,7 @@ const TUCK_SAYS = {
     button: ['Ooh! A shiny button under it!', 'A BUTTON! Under there!', 'Ooh! Treasure!'],
     sulk: ['Hmph.', 'Hmph!', "It's not FAIR.", '...Hmph.'],
     scared: ['Eek!', 'Eek! Teeth!', 'Nope!'],
+    peer: ['Ooh... is that something shiny?', 'Ooh. Shiny?', 'Is something glinting?'],
 };
 /* where Wren comes in underneath (a Little House can say otherwise): beside his start, not under it, so the two of them
    aren't drawn one on the other's head */
@@ -134,6 +135,14 @@ class Tuck extends NPC {
         if (this.mv) { this.anim++; return; }
         if (this.state === 'done' || Script.blocking() || this.knotted) return;
         if (this.wait > 0) { this.wait--; return; }
+        /* (the first time he's in a room with something a button's hidden under, he stops and peers at it, the way anybody
+           would at a glint; his rules don't send him to it unless it jumps) */
+        const here = this.area.roomAt(this.tx, this.ty);
+        if (here !== this.peerRoom && !this.cur && !this.knotted) {
+            this.peerRoom = here;
+            const tr = this.area.ents.find(e => e.kind === 'treasure' && !e.found && !e.cap && this.area.roomAt(e.tx, e.ty) === here && this.area.at(e.tx, e.ty));
+            if (tr) { this.dir = dirOf(tr.tx - this.tx, tr.ty - this.ty); this.say(this.line('peer'), 'q'); this.wait = 70; Stats.count('tuck:peer'); return; }
+        }
         const a = this.area, g = Making.goal(a);
         if (!g) return;
         /* at the hoop */
@@ -235,6 +244,17 @@ class Nibbler extends Enemy {
             this.anim++;
             if (d < 9) tk.bump('bitten');
         } else {
+            /* (the boy backed into a corner by it, scared stiff: after a few seconds it loses interest and potters off to
+               the far side of its nest a while, every time, so he can get by) */
+            const pinned = tk && tk.state === 'scared' && Math.max(Math.abs(tk.tx - this.tx), Math.abs(tk.ty - this.ty)) <= 3;
+            if (this.leave > 0) this.leave--;
+            else if (pinned) { if ((this.pin = (this.pin || 0) + 1) > NIB_BORED) { this.pin = 0; this.leave = NIB_AWAY; } }
+            else this.pin = 0;
+            if (this.leave > 0 && tk) {
+                const ax = this.hx - tk.tx, ay = this.hy - tk.ty, ad = Math.hypot(ax, ay) || 1, ex = gx + ax / ad * 2 * T - this.x, ey = gy + ay / ad * 2 * T - this.y, ed = Math.hypot(ex, ey);
+                if (ed > 1) { this.move(ex / ed * sp, ey / ed * sp); this.dir = dirOf(ex, ey); this.anim++; }
+                return;
+            }
             if (this.st % 90 === 0) this.wdir = Math.floor(G.rng() * 5);
             const tx = this.wdir < 4 ? this.x + DX[this.wdir] * sp : this.x, ty = this.wdir < 4 ? this.y + DY[this.wdir] * sp : this.y;
             if (this.wdir < 4 && Math.hypot(tx - gx, ty - gy) < 2.2 * T) { this.move(DX[this.wdir] * sp, DY[this.wdir] * sp); this.dir = this.wdir; this.anim++; }
@@ -250,11 +270,20 @@ class Nibbler extends Enemy {
     }
 }
 SPAWN.nibbler = (x, y, p) => new Nibbler(x, y, p);
+const NIB_BORED = 180, NIB_AWAY = 300;     /* (how long it keeps the boy pinned before it gives up, and how long it keeps off) */
 
 /* a shiny button hidden under something: Tuck finds it if he pushes that thing off it */
 class Treasure extends FloorThing {
-    constructor(tx, ty, p = {}) { super('treasure', tx, ty, p); }
-    draw(cx, cy) { if (!this.area.at(this.tx, this.ty)) Gfx.img(spr('button5'), this.x - cx, this.y - cy); }
+    constructor(tx, ty, p = {}) { super('treasure', tx, ty, p); this.showThrough = true; }
+    draw(cx, cy) {
+        if (!this.area.at(this.tx, this.ty)) { Gfx.img(spr('button5'), this.x - cx, this.y - cy); return; }
+        /* under something, now and then it catches the light at the thing's foot: a glint, seen through the boards */
+        const k = (G.t + this.tx * 37 + this.ty * 23) % 150;
+        if (this.cap || k >= 12) return;
+        const x = this.x - cx + 11, y = this.y - cy + 14, r = k < 4 || k >= 8 ? 1 : 2;
+        Gfx.rect(x - r - 1, y - 1, r * 2 + 3, 3, PAL.ink); Gfx.rect(x - 1, y - r - 1, 3, r * 2 + 3, PAL.ink);
+        Gfx.rect(x - r, y, r * 2 + 1, 1, '#f7d64a'); Gfx.rect(x, y - r, 1, r * 2 + 1, '#f7d64a'); Gfx.rect(x, y, 1, 1, '#fff6c0');
+    }
 }
 SPAWN.treasure = (x, y, p) => new Treasure(x, y, p);
 
@@ -389,6 +418,17 @@ const Making = {
     },
 };
 ITEMS.tuckdrawing = { name: "Tuck's drawing", kind: 'quest', desc: 'A stick figure under a floor, holding a lot of strings, smiling. For the fridge.' };
+/* the Bell rung underneath a Little House: a ring fills the room it's rung in and no further, so the boards overhead stop
+   it (said, the first time: up there nothing moves, and it shouldn't look as if the Bell's broken) */
+{
+    const use0 = TOOLS.bell.use;
+    TOOLS.bell.use = function (p) {
+        const cool = this.cool > 0;
+        use0.call(this, p);
+        const r = !cool && p && p.area && p.area.def.making ? p.area.roomAt(p.tx, p.ty) : null;
+        if (r && r.above && !Progress.flag('bell_below')) { Progress.set('bell_below'); UI.toast('The ring fills the room down here and stops at the boards overhead. Up above, nothing so much as twitches.', 200); }
+    };
+}
 
 /* a Little House: rooms up top for Tuck, the same rooms underneath for you (no way up: it's his Wander). opts: entry
    (where Wren comes in, under the first room), themeAt, and anything else the House wants (noNeedle, afterHoop...) */
@@ -473,7 +513,7 @@ defMaking(3, {
             { k: 'littlehoop', x: 17, y: 5 },
         ],
     },
-    '0,1': Object.assign(BELOW_ROOM('Under the Heavy Door', '0,0', 'e', [{ k: 'sign', x: 2, y: 2, text: "Heavy things he can't shift. A Needle can. -T." }]), { nudge: { solved: () => Making.past(14, true), after: 60 * 60 * 2, at: [10, 5], say: "He'll never shift that one. Somebody with a Needle could give it a new place, though." } }),
+    '0,1': Object.assign(BELOW_ROOM('Under the Heavy Door', '0,0', 'e', [{ k: 'sign', x: 2, y: 2, text: "HEAVY THINGS: he can't shift them, bairn, however hard he pushes. (He'll try. He always tries.) -T." }]), { nudge: { solved: () => Making.past(14, true), after: 60 * 60 * 2, at: [10, 5], say: "He'll never shift that one. Somebody with a Needle could give it a new place, though." } }),
     '1,1': Object.assign(BELOW_ROOM('Under the Guarded Plate', '1,0', 'w'), { nudge: { solved: () => Making.past(35, true), after: 60 * 60 * 2, at: [5, 3], say: "The biter first. Then the block, and something to hold it." } }),
 });
 
@@ -558,6 +598,7 @@ function initMakings() {
     const nb = { b: '#8a6a4e', B: '#5a4030', t: '#fbf6ea', e: '#2a1f2d', r: '#d6304e' };
     const nib = legs => ['................', '................', '................', '................', '................', '.....kkkkk......', '....kbbbbbk.....', '...kbebbbebk....', '...kbbbbbbbk....', '...kbrtrtrbk....', '....kBBBBBk.....', '.....kkkkk......', legs, '................', '................', '................'];
     defSprite('nibbler_0', nib('....k.k.k.k.....'), nb); defSprite('nibbler_1', nib('.....k.k.k.k....'), nb);
+    defSprite('bubble_q', ['.kkkkkkk.', 'kwwrrrwwk', 'kwwwwrwwk', 'kwwwrwwwk', '.kkkrkkk.', '....k....'], {});
     ART.littledoor = paintSprite(16, 20, x => { const R = (c, a, b, w, h) => sq(c, a, b, w, h, x); R('#5a3a26', 1, 2, 14, 18); R('#a8784a', 2, 3, 12, 17); R('#f7d64a', 11, 11, 2, 2); R('#5ab85a', 4, 6, 8, 4); });
     SPR.littledoor = ART.littledoor;
     /* a little door that isn't open yet: a plank nailed across it */
