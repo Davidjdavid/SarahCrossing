@@ -2168,10 +2168,11 @@ const Audio = {
     ctx: null, master: null, music: null, sfx: null, ok: false, muted: false,
     /* the gain staging: the tunes and the effects each have a bus (its gain the Options volume times MUSIC or SFX),
        meeting at the master, which runs through a soft limiter to the speakers. Measured (tests/browser.mjs `audio`):
-       a tune at the default volume plays at about -28 LUFS, an effect a little over it, and everything stays under the
-       limiter's knee (half of full scale) even with both volumes at the top; the limiter is a straight line up to the
-       knee, so it changes nothing there, and past it bends smoothly toward a ceiling it never crosses. It has no memory,
-       so it can't pump: it only rounds off a rare pile-up of sounds that would otherwise clip */
+       at the default volumes a tune plays at about -28 LUFS, each effect over or under it by what it means, and
+       nothing reaches the limiter's knee (half of full scale), not even a fight's busiest moment; with both volumes at
+       the top a tune's loudest beat only just does. The limiter is a straight line up to the knee, so it changes
+       nothing there, and past it bends smoothly toward a ceiling it never crosses; it has no memory, so it can't pump:
+       it only rounds off a rare pile-up of sounds that would otherwise clip */
     MUSIC: 1, SFX: 1, KNEE: 0.5, CEIL: 0.944,
     k: 1,       /* the level of the effect being played (Sfx.play sets it for the moment; tone and hit scale by it) */
     /* all sound off or on (a page hosting the game has a button for it) */
@@ -2335,8 +2336,8 @@ const Sfx = {
 
 /* ---------- music ---------- */
 const SONGS = {};
-/* each tune's level (dB), from measuring them all (filled in by 40e_music_levels.js): every tune at about the same
-   loudness, the few meant to be quiet a little under */
+/* each tune's level (dB), from measuring them all (filled in by 40e_mix.js): every tune at about the same loudness,
+   the few meant to be quiet a little under */
 const SONG_LEVEL = {};
 function songLevel(id) { return Math.pow(10, (SONG_LEVEL[id] || 0) / 20); }
 const Music = {
@@ -4404,6 +4405,8 @@ const Stats = {
         s[k] = 1;
     },
 };
+/* each starts empty, so the title screen (Options) can ask about them before any game has begun */
+Inv.reset(); Progress.reset(); Stats.reset();
 
 /* Where saves and settings are kept: the browser's own storage, and a copy in memory in case the browser won't keep
    anything (a private window); onSet/onRemove let a page that hosts the game keep a copy elsewhere too. */
@@ -5804,6 +5807,9 @@ const PauseMenu = {
             Font.draw(t, x + 4, 15, i === this.tab ? PAL.ink : PAL.grey3);
             x += w + 6;
         });
+        /* which keys turn the tabs (the arrows do too, but not in the Satchel, where they pick things) */
+        const turn = keyLabel('prev') + '/' + keyLabel('next'), tw = Font.width(turn);
+        if (x + tw < 302) Font.draw(turn, 302 - tw, 15, PAL.grey3);
         Gfx.rect(16, 28, 288, 1, '#d8c49a');
         const tab = this.tabs[this.tab];
         if (tab === 'Satchel') this.drawSatchel();
@@ -10190,10 +10196,11 @@ for (const id of ['tidy', 'kilnhouse', 'millrace', 'belfry', 'slumber', 'marione
    in Chromium) and measuring it: a tune's loudness integrated over two passes (BS.1770, LUFS), an effect's over its
    loudest 100 ms. At the default volumes every tune plays at about -28 LUFS. Under that, on purpose: Gran's lullaby,
    the Unfinished House, the Loom and the Slumberhouse 3 dB (tender, still, a music box winding down), Hushwood 2 (half
-   asleep); the Tidyhouse 2 (its minuet is all short notes, so it peaks high for its loudness, and it is kept under the
-   limiter's knee with the volume at the top). Effects stand by what they mean against the tune under them: a find or a
-   Knot 2-4 dB over it, a hit or a door about level, plates, threads and landings a little under, the menus 5-8 under,
-   a letter of talk 14 under. Measured by tests/browser.mjs `audio`, which fails if one drifts out of its place. */
+   asleep); the Tidyhouse 2 (its minuet is all short notes, so it peaks high for its loudness: it is held where its
+   loudest beat only just reaches the limiter's knee with the volume at the top, as the loudest House tunes' do).
+   Effects stand by what they mean against the tune under them: a find or a Knot 2-4 dB over it, a hit or a door about
+   level, plates, threads and landings a little under, the menus 5-8 under, a letter of talk 14 under. Measured by
+   tests/browser.mjs `audio`, which fails if one drifts out of its place. */
 
 Object.assign(SONG_LEVEL, {
     title: -3.2, town: 0.6, home: -3.0, inn: 2.5, shop: 4.3, meadow: 0.9,

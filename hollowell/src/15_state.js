@@ -100,6 +100,8 @@ const Stats = {
         s[k] = 1;
     },
 };
+/* each starts empty, so the title screen (Options) can ask about them before any game has begun */
+Inv.reset(); Progress.reset(); Stats.reset();
 
 /* Where saves and settings are kept: the browser's own storage, and a copy in memory in case the browser won't keep
    anything (a private window); onSet/onRemove let a page that hosts the game keep a copy elsewhere too. */

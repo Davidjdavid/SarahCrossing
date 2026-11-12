@@ -6,10 +6,11 @@ const Audio = {
     ctx: null, master: null, music: null, sfx: null, ok: false, muted: false,
     /* the gain staging: the tunes and the effects each have a bus (its gain the Options volume times MUSIC or SFX),
        meeting at the master, which runs through a soft limiter to the speakers. Measured (tests/browser.mjs `audio`):
-       a tune at the default volume plays at about -28 LUFS, an effect a little over it, and everything stays under the
-       limiter's knee (half of full scale) even with both volumes at the top; the limiter is a straight line up to the
-       knee, so it changes nothing there, and past it bends smoothly toward a ceiling it never crosses. It has no memory,
-       so it can't pump: it only rounds off a rare pile-up of sounds that would otherwise clip */
+       at the default volumes a tune plays at about -28 LUFS, each effect over or under it by what it means, and
+       nothing reaches the limiter's knee (half of full scale), not even a fight's busiest moment; with both volumes at
+       the top a tune's loudest beat only just does. The limiter is a straight line up to the knee, so it changes
+       nothing there, and past it bends smoothly toward a ceiling it never crosses; it has no memory, so it can't pump:
+       it only rounds off a rare pile-up of sounds that would otherwise clip */
     MUSIC: 1, SFX: 1, KNEE: 0.5, CEIL: 0.944,
     k: 1,       /* the level of the effect being played (Sfx.play sets it for the moment; tone and hit scale by it) */
     /* all sound off or on (a page hosting the game has a button for it) */
@@ -173,8 +174,8 @@ const Sfx = {
 
 /* ---------- music ---------- */
 const SONGS = {};
-/* each tune's level (dB), from measuring them all (filled in by 40e_music_levels.js): every tune at about the same
-   loudness, the few meant to be quiet a little under */
+/* each tune's level (dB), from measuring them all (filled in by 40e_mix.js): every tune at about the same loudness,
+   the few meant to be quiet a little under */
 const SONG_LEVEL = {};
 function songLevel(id) { return Math.pow(10, (SONG_LEVEL[id] || 0) / 20); }
 const Music = {

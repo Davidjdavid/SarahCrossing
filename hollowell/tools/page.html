@@ -51,6 +51,14 @@ button.pill:focus-visible, .screen:focus-visible { outline: 2px solid var(--gold
 button.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 button.pill[aria-pressed="true"] .dot { background: var(--ok); }
 button.pill.primary { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.codes { display: grid; gap: 8px; max-width: 900px; }
+.codes[hidden] { display: none; }
+.codes p { margin: 0; color: var(--muted); }
+.codes textarea {
+  width: 100%; box-sizing: border-box; font: 12px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; color: var(--text);
+  background: var(--night-3); border: 1px solid #4a3d5c; border-radius: 10px; padding: 8px 10px; resize: vertical; word-break: break-all;
+}
+.codes textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); gap: 24px; align-items: start; }
 .col { min-width: 0; }
 @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
@@ -113,7 +121,15 @@ kbd {
       <button class="pill" id="sound" type="button" aria-pressed="true"><span class="dot"></span><span id="soundTxt">Sound on</span></button>
       <button class="pill" id="filter" type="button">Screen: <span id="filterTxt">Crisp</span></button>
       <button class="pill" id="full" type="button">Full screen</button>
+      <button class="pill" id="codeBtn" type="button" aria-expanded="false" aria-controls="codes">Save code</button>
     </div>
+    <section class="codes" id="codes" hidden aria-label="Save code">
+      <p class="small">Your place in the game as a line of text: copy it to keep it, carry it to another browser, or send it to someone. To load a code, paste it into the second box.</p>
+      <textarea id="codeOut" readonly rows="3" spellcheck="false" aria-label="This game's save code"></textarea>
+      <div class="bar"><button class="pill" id="codeCopy" type="button">Copy</button><span class="small" id="codeMsg" role="status"></span></div>
+      <textarea id="codeIn" rows="2" spellcheck="false" placeholder="Paste a save code here" aria-label="A save code to load"></textarea>
+      <div class="bar"><button class="pill" id="codeLoad" type="button">Load this code</button></div>
+    </section>
   </header>
 
   <div class="main">
@@ -204,6 +220,31 @@ kbd {
   /* full screen (the browser may say no) */
   $('full').addEventListener('click', () => { const r = screen.requestFullscreen ? screen.requestFullscreen() : null; if (r && r.catch) r.catch(() => { }); focusGame(); });
   document.addEventListener('fullscreenchange', size);
+
+  /* a save code: the game's place as text (where it is now, mid-game), to keep, carry or send; and one pasted in, loaded.
+     (keys typed in the boxes stay in the boxes: the game would otherwise take A, C, Z and the arrows) */
+  const codeNow = () => {
+    const G = HW.G;
+    if (G.scene === 'play' && G.player) { const j = JSON.stringify(HW.Save.snapshot()); return 'HW1:' + btoa(unescape(encodeURIComponent(j))); }
+    return HW.Save.code();
+  };
+  for (const id of ['codeOut', 'codeIn']) for (const t of ['keydown', 'keyup']) $(id).addEventListener(t, e => e.stopPropagation());
+  $('codeBtn').addEventListener('click', () => {
+    const box = $('codes'); box.hidden = !box.hidden; $('codeBtn').setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
+    if (!box.hidden) { $('codeOut').value = codeNow(); $('codeMsg').textContent = ''; }
+  });
+  $('codeCopy').addEventListener('click', async () => {
+    const t = $('codeOut'); t.value = codeNow(); t.focus(); t.select();
+    let ok = false;
+    try { await navigator.clipboard.writeText(t.value); ok = true; } catch { try { ok = document.execCommand('copy'); } catch { } }
+    $('codeMsg').textContent = ok ? 'Copied.' : 'Selected: press Ctrl+C (Cmd+C on a Mac) to copy it.';
+  });
+  $('codeLoad').addEventListener('click', () => {
+    const s = HW.Save.fromCode($('codeIn').value || '');
+    if (!s) { $('codeMsg').textContent = "That isn't a save code this game can read."; return; }
+    HW.global('Game').load(s); $('codeIn').value = ''; $('codeOut').value = codeNow();
+    $('codeMsg').textContent = 'Loaded. The game saves it in its slot the next time it saves.'; focusGame();
+  });
 
   /* the controller line */
   setInterval(() => {

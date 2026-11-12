@@ -258,6 +258,9 @@ const PauseMenu = {
             Font.draw(t, x + 4, 15, i === this.tab ? PAL.ink : PAL.grey3);
             x += w + 6;
         });
+        /* which keys turn the tabs (the arrows do too, but not in the Satchel, where they pick things) */
+        const turn = keyLabel('prev') + '/' + keyLabel('next'), tw = Font.width(turn);
+        if (x + tw < 302) Font.draw(turn, 302 - tw, 15, PAL.grey3);
         Gfx.rect(16, 28, 288, 1, '#d8c49a');
         const tab = this.tabs[this.tab];
         if (tab === 'Satchel') this.drawSatchel();

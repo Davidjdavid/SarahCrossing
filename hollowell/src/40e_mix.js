@@ -2,10 +2,11 @@
    in Chromium) and measuring it: a tune's loudness integrated over two passes (BS.1770, LUFS), an effect's over its
    loudest 100 ms. At the default volumes every tune plays at about -28 LUFS. Under that, on purpose: Gran's lullaby,
    the Unfinished House, the Loom and the Slumberhouse 3 dB (tender, still, a music box winding down), Hushwood 2 (half
-   asleep); the Tidyhouse 2 (its minuet is all short notes, so it peaks high for its loudness, and it is kept under the
-   limiter's knee with the volume at the top). Effects stand by what they mean against the tune under them: a find or a
-   Knot 2-4 dB over it, a hit or a door about level, plates, threads and landings a little under, the menus 5-8 under,
-   a letter of talk 14 under. Measured by tests/browser.mjs `audio`, which fails if one drifts out of its place. */
+   asleep); the Tidyhouse 2 (its minuet is all short notes, so it peaks high for its loudness: it is held where its
+   loudest beat only just reaches the limiter's knee with the volume at the top, as the loudest House tunes' do).
+   Effects stand by what they mean against the tune under them: a find or a Knot 2-4 dB over it, a hit or a door about
+   level, plates, threads and landings a little under, the menus 5-8 under, a letter of talk 14 under. Measured by
+   tests/browser.mjs `audio`, which fails if one drifts out of its place. */
 
 Object.assign(SONG_LEVEL, {
     title: -3.2, town: 0.6, home: -3.0, inn: 2.5, shop: 4.3, meadow: 0.9,

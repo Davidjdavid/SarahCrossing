@@ -190,3 +190,6 @@
 - The last stretch: a shortcut that skipped a room's idea closed (both real ways still work at a relaxed pace); a way
   on that hid behind scenery is in plain sight; holding on shows how far along you are; a promise on a sign is kept.
 - Speed checked on a machine four times slower: play holds 60 frames a second.
+- Fixed: Options on the title screen of a browser that had never started a game showed nothing (found by an outside
+  tester); the menu now shows which keys turn its tabs; the playable page has a Save code box, to copy a save or load
+  one.

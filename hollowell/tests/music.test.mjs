@@ -1,5 +1,5 @@
 // The music (src/09_audio.js, src/40*_music*.js): every song well formed (each voice the song's length or a part of
-// it, every note one the synth can play and in a sensible range, a loop a sensible length), no two voices a semitone
+// it, every note one the synth can play and in a sensible range, a loop long enough not to wear), no two voices a semitone
 // apart in the Makings' and the Unfinished House's tunes, each of those two places playing its own, and a long stay
 // in one room thinning the tune out for a pass, back at a solved step or a new room (never in a fight or a scene).
 import { test } from 'node:test';
@@ -9,7 +9,7 @@ import { loadGame } from './harness.mjs';
 const toks = c => c.n.replace(/\|/g, ' ').trim().split(/\s+/);
 const secs = s => s.len * 60 / s.bpm / (s.div || 4);
 
-test('every song: voices in step, notes in range, a sensible loop', () => {
+test('every song: voices in step, notes in range, a loop long enough not to wear', () => {
     const HW = loadGame();
     const SONGS = HW.global('SONGS'), parseSong = HW.global('parseSong'), noteFreq = HW.global('noteFreq');
     for (const [id, s] of Object.entries(SONGS)) {
@@ -24,7 +24,8 @@ test('every song: voices in step, notes in range, a sensible loop', () => {
             }
             assert.ok(c.vol > 0 && c.vol <= 0.25, `${id} voice ${k}: volume ${c.vol}`);
         });
-        assert.ok(secs(s) >= 20 && secs(s) <= 120, `${id}: a ${secs(s).toFixed(1)} s loop`);
+        /* (an hour in one place is still under eighty passes of anything) */
+        assert.ok(secs(s) >= 45 && secs(s) <= 120, `${id}: a ${secs(s).toFixed(1)} s loop`);
     }
     /* the long stays have room to breathe */
     for (const id of ['makings', 'unfinished']) assert.ok(secs(SONGS[id]) >= 60 && secs(SONGS[id]) <= 110, `${id}: ${secs(SONGS[id]).toFixed(1)} s`);
