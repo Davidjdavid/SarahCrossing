@@ -358,7 +358,9 @@ export const LEG3 = (HW, chain) => {
     const M = { wheel: [20, 33], ferry: [0, 33], backwash: [40, 33], carousel: [20, 22], snap: [40, 22], upstream: [20, 11], twowheels: [40, 11], pond: [20, 0], lock: [40, 0], bells: [60, 0] };
     const m = (r, x, y) => [M[r][0] + x, M[r][1] + y];
     const at = (o, x, y) => o.tx === x && o.ty === y && !o.mv;
-    const board = (raft, [x, y], dir, max = 2000) => { ok(until(() => at(raft, x, y), max), `raft at ${x},${y}`); HW.hold(dir); HW.step(10); HW.release(); HW.step(1); ok(HW.player().tx === x && HW.player().ty === y, 'aboard'); };
+    /* (as a person would: not onto a raft that's just about to set off home again, a step out of reach; wait for the next) */
+    const staying = r => !(r.ret && (r.ret.state === 'returning' || (r.ret.state === 'away' && r.ret.timer < 30)));
+    const board = (raft, [x, y], dir, max = 2000) => { ok(until(() => at(raft, x, y) && staying(raft), max), `raft at ${x},${y}`); HW.hold(dir); HW.step(10); HW.release(); HW.step(1); ok(HW.player().tx === x && HW.player().ty === y, 'aboard'); };
     const off = dir => { HW.hold(dir); HW.step(14); HW.release(); HW.step(2); };
     if (chain) chain('afterD2'); else HW.preset('afterD2'); HW.step(10);
     HW.Inv.maxHp = HW.Inv.hp = 24;
