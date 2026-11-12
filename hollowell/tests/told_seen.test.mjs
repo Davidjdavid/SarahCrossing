@@ -47,15 +47,23 @@ const FOES = {
     tollgrim: ['belfry', e => e.type === 'tollgrim', (HW, e) => { e.x = (e.hx - 1) * T + 8; e.y = (e.hy + 4) * T + 10; e.defeat(); }, (HW, e) => e.ball.showing() && !e.ball.removed],
     sloth: ['slumber', e => e.type === 'mothersloth', (HW, e) => { e.hp = 1; e.setArena(3, true); e.defeat(); }, (HW, e, l) => /^Board by board/.test(l) ? HW.Script.running('slothFloor') && e.far.some(([x, y]) => HW.G.map.kind(x, y).pit) && e.far.some(([x, y]) => !HW.G.map.kind(x, y).pit) : (e.yarnT || 0) < 220],
     tangle: ['spoolworks', e => e.kind === 'tangle', (HW, e) => e.defeat(), (HW, e) => e.runs.showing() && !e.runs.removed],
+    /* (Captain Tin dazed in the left trap; Matron Hush dazed by her bed, her yarn not yet wholly under it) */
+    captain: ['marionette', e => e.type === 'captain', (HW, e) => { e.x = (e.hx - 7) * T + 8; e.y = e.hy * T + 10; e.march = HW.global('LEFT'); e.hp = 1; e.state = 'dazed'; e.flash = 0; e.struck(HW.player(), 1, 0); }, (HW, e) => e.coil.showing() && !e.coil.removed && !e.crack.removed],
+    matron: ['slumber', e => e.type === 'matron', (HW, e) => { e.x = e.hx * T + 8; e.y = e.hy * T + 10; e.hp = 1; e.state = 'dazed'; e.flash = 0; e.struck(HW.player(), 1, 0); }, (HW, e) => !e.heap.removed && !underBed(HW, e)],
 };
-const SAID = { housekeeper: /^The Housekeeper shudders/, monger: /^The Dust Monger bursts/, glazer: /^The Glazer cracks/, kilnwyrm: /^The Kilnwyrm comes apart/, snapjaw: /^The Snapjaw rolls over/, grindle: /^Old Grindle's gears/, clangor: /^Clangor falls to pieces/, tollgrim: /^Tollgrim unravels/, sloth: /^Mother Sloth lets go|^Board by board/, tangle: /^The little knot|^slithers apart/ };
+/* Matron Hush's yarn, wholly under her bed (its picture over the ball, all of it) */
+function underBed(HW, e) {
+    const a = HW.G.map, bed = a.ents.find(q => q.kind === 'prop' && q.im === HW.ART.bed_big && a.roomAt(q.tx, q.ty) === e.arena), [x, y] = e.heap.at(e.heap.bits[0]);
+    return x - 5 >= bed.x && x + 5 <= bed.x + 32 && y - 9 >= bed.y && y + 1 <= bed.y + 32;
+}
+const SAID = { housekeeper: /^The Housekeeper shudders/, monger: /^The Dust Monger bursts/, glazer: /^The Glazer cracks/, kilnwyrm: /^The Kilnwyrm comes apart/, snapjaw: /^The Snapjaw rolls over/, grindle: /^Old Grindle's gears/, clangor: /^Clangor falls to pieces/, tollgrim: /^Tollgrim unravels/, sloth: /^Mother Sloth lets go|^Board by board/, tangle: /^The little knot|^slithers apart/, captain: /^Captain Tin salutes/, matron: /^Matron Hush sighs/ };
 function foeAt(name) {
     const [area, is] = FOES[name];
     const HW = loadGame();
     HW.preset('afterD7'); HW.step(10); HW.skipTalk();
     HW.Inv.maxHp = HW.Inv.hp = 40; HW.G.cheats.god = true;
     for (const t of ['gloves', 'hook', 'paddle', 'bell', 'bedroll', 'crossbar']) HW.Inv.giveTool(t);
-    for (const f of ['tidy_boss', 'kiln_boss', 'millrace_boss', 'belfry_boss', 'slumber_boss', 'spool_boss', 'tidy_monger', 'kiln_glazer', 'millrace_snapjaw', 'belfry_clangor', 'spool_cog']) delete HW.Progress.flags[f];
+    for (const f of ['tidy_boss', 'kiln_boss', 'millrace_boss', 'belfry_boss', 'slumber_boss', 'spool_boss', 'tidy_monger', 'kiln_glazer', 'millrace_snapjaw', 'belfry_clangor', 'spool_cog', 'marionette_tin', 'slumber_matron']) delete HW.Progress.flags[f];
     HW.warp(area, 1, 1);
     let e = [...HW.G.map.ents, ...HW.G.map.walkers].find(is);
     const r = HW.G.map.roomAt(e.hx !== undefined ? e.hx : e.tx, e.hy !== undefined ? e.hy : e.ty);
@@ -63,7 +71,7 @@ function foeAt(name) {
     e = [...HW.G.map.ents, ...HW.G.map.walkers].find(is);
     return [HW, e];
 }
-test('a beaten foe goes while its end is told: teal yarn down a hole, dust bunnies, a crumbling Glazer, pots down a crack, a ball of yarn down the race or under the bell, a sinking fish, pieces of armour, a feather and a floor coming back, thread down the cracks', () => {
+test('a beaten foe goes while its end is told: teal yarn down a hole, dust bunnies, a crumbling Glazer, pots down a crack, a ball of yarn down the race or under the bell, a sinking fish, pieces of armour, a feather and a floor coming back, thread down the cracks, a coil down a crack in the boards, a heap of yarn rolling under a bed', () => {
     for (const name of Object.keys(FOES)) {
         const [HW, e] = foeAt(name), [, , beat, shown] = FOES[name];
         assert.ok(e, name + ' there');
@@ -72,6 +80,20 @@ test('a beaten foe goes while its end is told: teal yarn down a hole, dust bunni
         lines(HW, l => { if (SAID[name].test(l)) seen.push([l.slice(0, 24), !!shown(HW, e, l)]); });
         assert.ok(seen.length, name + ': its end told');
         for (const [l, ok] of seen) assert.ok(ok, `${name}: still to be seen as it's told: "${l}..."`);
+        noErrors(HW);
+    }
+});
+
+test("Captain Tin's coil and Matron Hush's yarn wait for a slow reader, and go as told once the line's read (down the crack; under the bed, to stay)", () => {
+    for (const name of ['captain', 'matron']) {
+        const [HW, e] = foeAt(name), [, , beat, shown] = FOES[name], D = HW.Dialog;
+        beat(HW, e);
+        assert.ok(until(HW, () => D.active && SAID[name].test((D.pages[0] || []).join(' ')) && D.shown >= D.pageLen(), 3000), name + ': its end told');
+        HW.step(900);
+        assert.ok(D.active && shown(HW, e), name + ': still there fifteen seconds on, the line still up');
+        HW.skipTalk(); HW.step(600); HW.skipTalk();
+        if (name === 'captain') assert.ok(e.coil.removed && !e.crack.removed, 'the coil gone down the crack (the crack left)');
+        else assert.ok(!e.heap.removed && underBed(HW, e), 'the yarn under the bed, staying there');
         noErrors(HW);
     }
 });
@@ -241,4 +263,28 @@ test('Gundry, forty years in the Guild, has a touch of grey at the temples, in h
     assert.ok(rows.join('').includes('v') && rows.join('').includes('V'), 'his portrait');
     assert.ok(!HW.global('portraitRows')(HW.global('PEOPLE_DEF').bram.look).join('').includes('v'), "(and nobody else's)");
     noErrors(HW);
+});
+
+test("the way out of the Tidyhouse and the Kiln, told as it opens after the Knot: its doorway (the light on the floor and the frame in the wall under it) and Wren clear of the box", () => {
+    for (const [id, beaten] of [['tidy', 'tidy_boss'], ['kiln', 'kiln_boss']]) {
+        const HW = loadGame();
+        HW.newGame('Test', { area: id, x: 29, y: 42, noAutosave: true });
+        HW.Inv.items.staff = 1; for (const t of ['gloves', 'hook']) HW.Inv.giveTool(t);
+        HW.Inv.maxHp = HW.Inv.hp = 40; HW.G.cheats.god = true; HW.step(5);
+        HW.Progress.set(beaten);
+        const r0 = HW.G.map.rooms.find(r => r.key === '1,0');
+        HW.warp(id, r0.x + 9, r0.y + 8); HW.step(20); HW.skipTalk();
+        /* (the Knot tied as a player ties it: from under the hoop, the box and its lean as they come after the Knot's own line) */
+        const hoop = HW.G.map.ents.find(e => e.kind === 'hoop'), hall = HW.G.map.roomAt(hoop.tx, hoop.ty);
+        HW.walkTo(hoop.tx, hoop.ty + 1); HW.player().dir = HW.global('UP'); HW.step(5);
+        HW.Script.run(HW.global('Knots').tie(hoop));
+        let seen = null;
+        lines(HW, l => {
+            if (!/^A door opens in the corner/.test(l)) return;
+            const a = HW.G.map, d = a.ents.find(e => e.kind === 'warp' && e.to === 'hollow' && !e.removed && a.roomAt(e.tx, e.ty) === hall), p = HW.player();
+            seen = { door: clearOnScreen(HW, [d.tx * T, d.ty * T, d.tx * T + 16, d.ty * T + 32]), wren: clearOnScreen(HW, [p.x - 6, p.y - 13, p.x + 6, p.y + 3]) };
+        });
+        assert.deepEqual(seen, { door: true, wren: true }, id);
+        noErrors(HW);
+    }
 });

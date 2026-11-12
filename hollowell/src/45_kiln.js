@@ -457,6 +457,8 @@ SPAWN.crock = (x, y, p) => {
    one thing that cracks it, if they come at it where its shield isn't. Met head on they clatter off the shield, so the
    fight asks one thing: be off to its side (or behind it) when its shot comes home, and it turns its shield to you and
    its side to its own shot. Standing still in front of it, the shot hits Wren and the pieces hit the shield. */
+/* (its picture is drawn this far over its foot: the bottom of its feet, the picture's fifteenth row, on its shadow) */
+const GLAZER_TOP = 13;
 class Glazer extends Enemy {
     constructor(tx, ty) {
         super(tx, ty, { type: 'glazer', hp: 2 });     /* (two hits: a mini-boss shouldn't outstay its idea) */
@@ -544,10 +546,10 @@ class Glazer extends Enemy {
     }
     struck(by, dmg, dir, shard) {
         if (!this.alive || this.flash > 0) return;
-        if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - 10); return; }   /* the stick bounces off its glaze */
+        if (!shard) { Sfx.play('hitthing'); Fx.ring(this.x, this.y - GLAZER_TOP + 12); return; }   /* the stick bounces off its glaze */
         /* its own shot, met head on (its shield still facing down the line it threw along): off the shield */
         if (by && by.owner === this && this.dir === this.shotDir) {
-            Sfx.play('hitthing'); Fx.ring(this.x + DX[this.dir] * 6, this.y - 12 + DY[this.dir] * 3, '#bff3ee');
+            Sfx.play('hitthing'); Fx.ring(this.x + DX[this.dir] * 6, this.y - GLAZER_TOP + 10 + DY[this.dir] * 3, '#bff3ee');
             Stats.count('boss:glazer:shield');
             if (!Progress.flag('glazer_shield')) { Progress.set('glazer_shield'); UI.toast('The pieces come home and clatter off its glazed shield. It never takes its shield off you.', 200); }
             return;
@@ -555,7 +557,7 @@ class Glazer extends Enemy {
         this.hp--; this.flash = 30; Sfx.play('enemyhit'); G.hitstop = 6; this.setState('hurt'); calmBlows(this);
         Stats.count('boss:glazer:shards');
         if (this.hp <= 0) {
-            this.alive = false; Sfx.play('shatter'); Fx.burst(this.x, this.y - 10, '#c4623a'); Fx.burst(this.x, this.y - 4, '#5ad1c5');
+            this.alive = false; Sfx.play('shatter'); Fx.burst(this.x, this.y - GLAZER_TOP + 12, '#c4623a'); Fx.burst(this.x, this.y - GLAZER_TOP + 18, '#5ad1c5');
             Progress.set('kiln_glazer');
             for (const s of this.area.ents) if (s.kind === 'door' && s.group === 'glazer') s.shut = false;
             Music.play('kilnhouse');
@@ -575,18 +577,18 @@ class Glazer extends Enemy {
             if (k > 0.6) { Gfx.rect(x - 4, y - 2, 2, 1, '#5ad1c5'); Gfx.rect(x + 3, y - 1, 2, 1, '#2e9a96'); Gfx.rect(x - 1, y - 4, 1, 1, '#bff3ee'); }
         }
         if (k >= 1 || !im) return;
-        const cut = Math.round(k * (im.height - 4)), sh = t < 50 ? ((t >> 1) % 2) : 0, top = y - 22;
+        const cut = Math.round(k * (im.height - 4)), sh = t < 50 ? ((t >> 1) % 2) : 0, top = y - GLAZER_TOP;
         if (t < 50) this.drawShield(cx, cy, sh, 0);
         Gfx.sub(im, 0, cut, im.width, im.height - cut, x - 8 + sh, top + cut);
         /* the crack, head to foot */
-        for (let j = Math.max(cut, 1); j < im.height - 2; j++) Gfx.rect(x - 1 + sh + ((j * 5) >> 2) % 3 - 1, top + j, 1, 1, PAL.ink);
+        for (let j = Math.max(cut, 1); j <= GLAZER_TOP; j++) Gfx.rect(x - 1 + sh + ((j * 5) >> 2) % 3 - 1, top + j, 1, 1, PAL.ink);
         /* dust sifting down off the crumbling top */
-        if (t >= 50) for (let i = 0; i < 5; i++) { const f = Math.floor(t * 0.6 + i * 7) % 16; Gfx.rect(x - 7 + i * 3 + sh, top + cut + f, 1, 1, i % 2 ? '#e8c8a8' : '#c4623a'); }
+        if (t >= 50) for (let i = 0; i < 5; i++) { const f = Math.floor(t * 0.6 + i * 7) % Math.max(2, GLAZER_TOP + 1 - cut); Gfx.rect(x - 7 + i * 3 + sh, top + cut + f, 1, 1, i % 2 ? '#e8c8a8' : '#c4623a'); }
     }
     /* its glazed shield, held on whichever side it faces (big, braced, before a barge) */
     drawShield(cx, cy, sh, low) {
         const big = this.state === 'brace', d = this.dir, w = big ? 10 : 8, h = big ? 11 : 10;
-        const sx = Math.round(this.x - cx + DX[d] * (big ? 5 : 7)) + sh, sy = Math.round(this.y - cy) - (big ? 17 : 16) + low + (d === UP ? -3 : d === DOWN ? 2 : 0);
+        const sx = Math.round(this.x - cx + DX[d] * (big ? 5 : 7)) + sh, sy = Math.round(this.y - cy) - GLAZER_TOP + (big ? 5 : 6) + low + (d === UP ? -3 : d === DOWN ? 2 : 0);
         Gfx.rect(sx - w / 2, sy, w, h, PAL.ink); Gfx.rect(sx - w / 2 + 1, sy + 1, w - 2, h - 2, '#5ad1c5'); Gfx.rect(sx - w / 2 + 1, sy + 1, w - 2, 1, '#bff3ee'); Gfx.rect(sx - w / 2 + 1, sy + h - 2, w - 2, 1, '#2e9a96');
         Gfx.rect(sx - 2, sy + h, 4, 1, PAL.ink); Gfx.rect(sx - 1, sy + 3, 2, h - 7, '#e8a070');
     }
@@ -599,9 +601,9 @@ class Glazer extends Enemy {
         const sh = this.state === 'brace' ? ((this.st >> 1) % 2 ? 1 : -1) : 0, low = this.state === 'brace' ? 2 : 0;
         /* (its shield always towards her: behind it when it faces away up the room, in front of it otherwise) */
         if (this.dir === UP) this.drawShield(cx, cy, sh, low);
-        Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - 22 + low, this.dir === LEFT);
+        Gfx.img(img, this.x - cx - 8 + sh, this.y - cy - GLAZER_TOP + low, this.dir === LEFT);
         if (this.dir !== UP) this.drawShield(cx, cy, sh, low);
-        if (this.state === 'brace') Tells.bang(this.x - cx, this.y - cy - 36);
+        if (this.state === 'brace') Tells.bang(this.x - cx, this.y - cy - GLAZER_TOP - 14);
     }
 }
 SPAWN.glazer = (x, y) => Progress.flag('kiln_glazer') ? new Ent('none') : new Glazer(x, y);

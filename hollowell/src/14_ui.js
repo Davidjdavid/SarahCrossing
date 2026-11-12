@@ -184,10 +184,10 @@ const Dialog = {
         const p = G.player, a = G.map, out = [];
         if (!p || !a) return out;
         const room = Cam.room, multi = a.rooms.length > 1, seen = new Set();
-        const add = (e, w, piece) => {
+        const add = (e, w, piece, focus) => {
             const b = viewBox(e);
             if (!b || (multi && room && a.roomAt(tileOf((b[0] + b[2]) / 2), tileOf(b[3] - 1)) !== room)) return;
-            const it = [b[0], b[1], b[2], b[3], w]; if (piece) it.piece = true; out.push(it);
+            const it = [b[0], b[1], b[2], b[3], w]; if (piece) it.piece = true; if (focus) it.focus = true; out.push(it);
         };
         const talk = this.active, prev = talk && this.prevWho !== this.who && G.t - (this.closedAt || -999) <= 120 ? this.prevWho : null;
         if (!G.hideWren && !p.hidden) { add(p, talk && this.who === 'wren' ? 2 : prev === 'wren' ? 1.5 : 1); if (out.length) out[0].wren = true; }
@@ -207,7 +207,7 @@ const Dialog = {
             else if (e.isGrid && e.ret) add(e, 0.1, true);
         }
         const f = opts.focus;
-        for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
+        for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3, false, true);
         return out;
     },
     /* the panels the box makes at the top or the bottom: the box, and the speaker's name tag over it */
@@ -532,6 +532,10 @@ const UI = {
             const lo = this.noticeCost(t, true, main), hi = this.noticeCost(t, false, main);
             low = Math.abs(lo - hi) > 0.03 ? lo < hi : this.noticeCost(t, true, items) < this.noticeCost(t, false, items);
             if (t.wait && Math.min(lo, hi) > NOTICE_CROWDED && this.toasts.some(q => q !== t && !q.wait) && (t.crowd = (t.crowd || 0) + 1) < 150) return false;
+            /* (and one that would hide Wren or what it's about wherever it went: the camera leans for it while it's up, as
+               it does for the box) */
+            t.lean = 0;
+            if (this.boxedIn(t, items)) { const at = this.noticeLean(t, items); low = at.low; t.lean = at.lean; t.leanAt = [G.map, Cam.room]; }
         }
         const b = this.banner && !this.banner.wait ? this.banner : null;
         if (b && !!b.low === low && b.t < 90) { b.until = 90; return false; }
@@ -543,6 +547,39 @@ const UI = {
         /* (never one under the place's name on a side: the name gives way) */
         if (this.banner && !this.banner.wait && !!this.banner.low === low) this.banner = null;
     },
+    /* would a notice, the only one up, hide Wren or what it's about (more than the sliver the box may) on either side, the
+       camera where it stands but for a lean? (Not while the camera's busy or looking elsewhere, nor with another notice or
+       the place's name up: then it waits or stacks as it always has) */
+    boxedIn(t, items) {
+        const p = G.player, cy = this.camBaseY(), lk = Cam.look && Cam.look.free;
+        if (!p || G.hideWren || p.hidden || lk || Cam.busy || this.fade || this.fadeA || G.credits || p.pinned === 'needle') return false;
+        if (this.toasts.some(q => q !== t && !q.wait) || (this.banner && !this.banner.wait)) return false;
+        const focus = items.filter(i => i.focus).map(i => [i[0], i[1], i[2], i[3], 1]);
+        const hides = low => { const r = this.noticeRect(t, low); return this.overWren(r, cy) || focus.some(i => hiddenBy([i], [r], Cam.x, cy, true) > WREN_SHOWN); };
+        return hides(true) && hides(false);
+    },
+    /* the side and the camera's lean that hide least (Dialog.place's way): past the room's edge only at its foot, under a
+       notice there wide enough to cover most of the dark, and only as far as it reaches */
+    noticeLean(t, items) {
+        const base = this.camBaseY(), r = Cam.room;
+        let best = null;
+        for (const low of [true, false]) {
+            const rect = this.noticeRect(t, low);
+            let lo = 0, hi = 0;
+            if (r) {
+                const ry0 = r.y * T, ry1 = (r.y + r.h) * T, up0 = Math.max(2, ry0 - base), dn0 = Math.max(2, base + H - ry1);
+                lo = Math.min(0, Math.ceil(Math.max(-48, ry0 - base - up0) / 2) * 2);
+                hi = Math.max(0, Math.floor(Math.min(48, ry1 - base - H + Math.max(dn0, low && t.w >= W * 3 / 4 ? H - rect[1] : 0)) / 2) * 2);
+            }
+            for (let dy = lo; dy <= hi; dy += 2) {
+                const cy = base + dy, c = hiddenBy(items, [rect], Cam.x, cy) + (this.overWren(rect, cy) ? 5 : 0) + 0.004 * Math.abs(dy) + (low ? 0.02 : 0);
+                if (!best || c < best.c - 1e-9) best = { c, low, lean: dy };
+            }
+        }
+        return best;
+    },
+    /* the notice the camera's leaning for, if it's up, in the room it leaned in */
+    noticeLeaning() { return this.toasts.find(q => !q.wait && q.lean && q.leanAt && q.leanAt[0] === G.map && q.leanAt[1] === Cam.room) || null; },
     /* every few frames: a notice Wren has walked in under moves to the other side, when that side's clearly better; the
        place's name, once it's been up a moment, just goes (it's been read), or else moves the same way */
     recheck() {
@@ -550,8 +587,12 @@ const UI = {
         if (G.t % 3 || !p || !G.map || G.scene !== 'play' || G.hideWren || p.hidden) return;
         const under = r => this.overWren(r, Cam.y);
         for (const t of this.toasts) {
-            if (t.wait || !under(this.noticeRect(t, !!t.low))) continue;
+            /* (one the camera leans for is looked at where the camera's going) */
+            if (t.wait || !this.overWren(this.noticeRect(t, !!t.low), t.lean ? this.camPlanY() : Cam.y)) continue;
             const items = Dialog.items({ focus: t.focus }, true);
+            /* (wherever it went it would hide her or what it's about: placed afresh, the camera leaning for it) */
+            if (this.boxedIn(t, items)) { const at = this.noticeLean(t, items), was = !!t.low; this.setSide(t, at.low); t.lean = at.lean; t.leanAt = [G.map, Cam.room]; if (was !== at.low) t.back = 6; continue; }
+            t.lean = 0;
             if (this.noticeCost(t, !t.low, items) + 0.3 < this.noticeCost(t, !!t.low, items)) { this.setSide(t, !t.low); t.back = 6; }
         }
         const b = this.banner;
@@ -640,8 +681,10 @@ const UI = {
     leanWanted() {
         const p = G.player;
         if (p && p.pinned === 'needle' && !Script.blocking()) return this.needleLean(p);
-        if ((Cam.look && Cam.look.free) || !(Dialog.active || Script.blocking()) || !Dialog.leanHere()) return 0;
-        return Dialog.lean || 0;
+        if (Cam.look && Cam.look.free) return 0;
+        if (Dialog.active || Script.blocking()) return Dialog.leanHere() ? Dialog.lean || 0 : 0;
+        const t = this.noticeLeaning();
+        return t ? t.lean : 0;
     },
     needleLean(p) {
         const base = this.camBaseY(), head = p.y - 24 - base, feet = p.y + 3 - base;

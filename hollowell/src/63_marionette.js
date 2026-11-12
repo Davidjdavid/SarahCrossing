@@ -403,7 +403,8 @@ const MarionetteHall = {
         if (Signals.get(a, 'rhSet') && !Progress.flag('s13')) {
             Progress.set('s13'); Stats.count('secret:wrenpuppet');
             Sfx.play('appear');
-            G.pendingToast = 'The little wooden you takes a bow on the miniature foyer. From somewhere above, very faintly, one pair of hands claps.';
+            const pu = a.find('wrenPuppet'), ch = a.find('rhPatch');
+            G.pendingToast = { s: 'The little wooden you takes a bow on the miniature foyer. From somewhere above, very faintly, one pair of hands claps.', focus: [pu, ch && [ch.tx, ch.ty, 16]].filter(Boolean) };
         }
     },
     /* the Great Stage's nudge, for whichever act it's in */

@@ -153,7 +153,8 @@ const TownLooks = {
     inn(a) {
         if (!Progress.flag('reveal1') || Progress.flag('inn_staffSeen') || Progress.flag('great_pull')) return;
         Progress.set('inn_staffSeen');
-        UI.toast('At the back of the Inn, the door marked STAFF ONLY stands ajar. Lamplight, and a hum, come up from below.', 220);
+        const d = a.ents.find(e => e.kind === 'prop' && e.im === ART.staffdoor);
+        UI.toast({ s: 'At the back of the Inn, the door marked STAFF ONLY stands ajar. Lamplight, and a hum, come up from below.', focus: d && [d.tx, d.ty, 32] }, 220);
     },
     enter(a, o) { this.pending = !!(o && o.from) && Progress.flag('north_gate') && !Progress.flag('north_gate_seen') && !Progress.flag('great_pull'); },
     tick(a) {

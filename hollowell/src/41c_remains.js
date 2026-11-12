@@ -6,14 +6,16 @@ class Remains extends Ent {
     /* bits: { from: [x, y], to: [x, y] (world pixels, at the bit's foot), delay (frames before it sets off), speed (pixels
        a frame), hop (pixels between hops, 0 for none) and lift (their height), rattle (jitters along), end: 'gone' (drawn
        till it gets there, and linger frames more), 'lie' (left lying there) or 'fade' (fades where it ends, over fade
-       frames), look(x, y, bit, k) (draws it at that spot on the screen; k: how far along, 0 to 1), shadow }.
+       frames), look(x, y, bit, k, after) (draws it at that spot on the screen; k: how far along, 0 to 1; after: frames
+       since it got there), shadow }.
        opts: x, y (where it is, for what's on screen), floor (lying on the floor, under everyone), top (over everything
-       standing: a ball of yarn bobbing down a race among the crates) */
+       standing: a ball of yarn bobbing down a race among the crates), holdAt and hold (its clock stops at that frame, once,
+       for as long as hold() says: the line telling of it still up, however slowly it's read) */
     constructor(bits, opts = {}) {
         super('remains', { x: opts.x || 0, y: opts.y || 0, floor: !!opts.floor, top: !!opts.top });
         this.bits = bits.map(b => Object.assign({ delay: 0, speed: 1, hop: 0, lift: 0, end: 'gone', linger: 0, fade: 20 }, b));
         for (const b of this.bits) b.len = Math.hypot(b.to[0] - b.from[0], b.to[1] - b.from[1]);
-        this.t = 0;
+        this.t = 0; this.hold = opts.hold || null; this.holdAt = opts.holdAt || 0;
     }
     get sortY() { return this.floor ? -1000 : this.top ? 1e6 : this.y + 4; }
     /* how long a bit takes from the start to be done with (Infinity: left lying) */
@@ -36,7 +38,7 @@ class Remains extends Ent {
     get x1() { return this.box()[2]; }
     get y1() { return this.box()[3]; }
     update() {
-        this.t++;
+        if (!(this.hold && this.t === this.holdAt && this.hold())) this.t++;
         if (this.done) { this.area.remove(this); return; }
         /* (all that's left of it come to rest, lying on the floor: under anyone walking over it) */
         if (!this.floor && this.bits.every(b => this.t >= this.endOf(b) || (b.end === 'lie' && this.t - b.delay >= b.len / b.speed))) this.floor = true;
@@ -57,7 +59,7 @@ class Remains extends Ent {
             if (a <= 0) continue;
             if (b.shadow !== false && z > 0.5) { Gfx.alpha(0.25 * a); Gfx.rect(Math.round(x - cx) - 3, Math.round(y - cy), 7, 2, PAL.ink); }
             Gfx.alpha(a);
-            b.look(Math.round(x - cx), Math.round(y - cy - z), b, k);
+            b.look(Math.round(x - cx), Math.round(y - cy - z), b, k, Math.max(0, this.t - b.delay - b.len / b.speed));
             Gfx.alpha(1);
         }
     }
@@ -79,10 +81,31 @@ const RemainsKit = {
             Gfx.rect(x - r + 1, y - r - 1 + s - 1, r * 2 - 1, 1, shade(col, 0.4)); Gfx.rect(x - r + 1, y - r + 1 + s - 1, r * 2 - 1, 1, shade(col, -0.3));
         };
     },
+    /* a coil of yarn lying flat on the boards, turn inside turn, unwinding into a crack beside it (to: where it goes in,
+       [dx, dy] from the coil's foot; drain: the frames it takes, once lying there, to wind down to its last turn, which
+       goes as it ends) */
+    coil(col, [dx, dy], drain) {
+        const oval = (x, y, rx, ry, c) => { for (let j = -ry; j <= ry; j++) { const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (j * j) / (ry * ry || 1)))); Gfx.rect(x - w, y + j, w * 2 + 1, 1, c); } };
+        return (x, y, b, k, after) => {
+            const f = k < 1 ? 0 : Math.min(1, after / drain), r = Math.max(1, Math.round(6 - 5 * f)), cy = y - 2, dk = shade(col, -0.35);
+            if (k >= 1) Threads.stroke(x, cy, x + dx, y + dy, col);
+            oval(x, cy, r + 1, Math.round(r * 0.6) + 1, PAL.ink);
+            for (let q = r; q > 0; q--) oval(x, cy, q, Math.round(q * 0.6), (r - q) % 2 ? dk : col);
+            if (r > 1) Gfx.rect(x - r + 1, cy - Math.round(r * 0.6), 2, 1, shade(col, 0.45));
+        };
+    },
+    /* a crack between two boards, its mouth at the foot (x, y on the screen): a dark jagged split with a pale lip */
+    crack(len = 9) {
+        return (x, y) => {
+            for (let j = 0; j < len; j++) { const o = ((j * 3) >> 2) % 2, wide = j > 2 && j < len - 3 ? 2 : 1; Gfx.rect(x + o - (wide - 1), y - len + 1 + j, wide, 1, '#1a1018'); }
+            Gfx.rect(x + 2, y - len + 3, 1, 3, '#f0dcb0'); Gfx.rect(x - 2, y - 5, 1, 3, '#f0dcb0');
+        };
+    },
     /* where a thing tossed toward x, y (world pixels, its foot) comes down: there, or on the nearest open floor round it
        (not on a bust, a crate or a wall) */
+    open(area, tx, ty) { const k = area.kind(tx, ty); return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty)); },
     landing(area, x, y) {
-        const open = (tx, ty) => { const k = area.kind(tx, ty); return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty)); };
+        const open = (tx, ty) => this.open(area, tx, ty);
         const tx = tileOf(x), ty = tileOf(y - 1);
         if (open(tx, ty)) return [x, y];
         for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {

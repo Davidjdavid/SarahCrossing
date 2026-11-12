@@ -578,7 +578,8 @@ class MillSluice extends Ent {
         this.open = true; this.drain = 0;
         Progress.setAreaFlag('drift', 'millpond'); Stats.count('secret:millpond');
         Sfx.play('unlock'); Sfx.play('splash'); G.shake = 10;
-        G.pendingToast = 'Clank: the sluice\'s catch drops into its last notch and holds, and the mill pond starts to run out through it.';
+        const [x0, y0, w, h] = MILL.pond;
+        G.pendingToast = { s: 'Clank: the sluice\'s catch drops into its last notch and holds, and the mill pond starts to run out through it.', focus: [[this.tx, this.ty, 24], { x0: x0 * T, y0: y0 * T, x1: (x0 + w) * T, y1: (y0 + h) * T }] };
     }
     /* the pond runs out from the sluice outward */
     drainStep(a) {

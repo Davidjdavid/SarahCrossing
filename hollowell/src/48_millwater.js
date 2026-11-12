@@ -465,7 +465,7 @@ ITEMS.mwring = { name: 'A little brass ring', kind: 'quest', desc: 'Plain brass,
 OW.blocks['2,2'].tick = a => {
     if (!Progress.flag('mw_ducksHome') && ['mwDuckA', 'mwDuckB', 'mwDuckC'].every(s => Signals.get(a, s))) {
         Progress.set('mw_ducksHome'); Stats.count('secret:ducks'); Sfx.play('appear');
-        G.pendingToast = 'Three ducks, three duck houses, and all three flags up at once. Over on the pier, somebody whoops.';
+        G.pendingToast = { s: 'Three ducks, three duck houses, and all three flags up at once. Over on the pier, somebody whoops.', focus: a.ents.filter(e => e.kind === 'duckhouse' && /^mwDuck[ABC]$/.test(e.sig)).map(e => [e.tx, e.ty, 32]) };
     }
 };
 

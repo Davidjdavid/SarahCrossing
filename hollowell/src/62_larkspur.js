@@ -203,7 +203,7 @@ SPAWN.lift = (x, y, p) => {
 /* the winch for the lift: a stagehand (a puppet) on it winds it */
 class Crank extends FloorThing {
     constructor(tx, ty, p = {}) { super('crank', tx, ty, p); }
-    update() { if (!Progress.flag('fair_lift') && this.weighed()) { Progress.set('fair_lift'); Sfx.play('door'); G.shake = 4; G.pendingToast = 'The stagehand leans on the winch. Far below, the lift cage rattles down to the fair.'; } }
+    update() { if (!Progress.flag('fair_lift') && this.weighed()) { Progress.set('fair_lift'); Sfx.play('door'); G.shake = 4; G.pendingToast = { s: 'The stagehand leans on the winch. Far below, the lift cage rattles down to the fair.', focus: [this.tx, this.ty, 32] }; } }
     draw(cx, cy) { Gfx.img(ART.crank, this.x - cx, this.y - cy); }
 }
 SPAWN.crank = (x, y, p) => new Crank(x, y, p);

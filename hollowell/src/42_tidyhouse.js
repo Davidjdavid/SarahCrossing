@@ -419,7 +419,9 @@ const TidyLogic = {
             const ball = a.ents.filter(e => e.group === 'ball');
             if (ball.length && ball.every(b => Return.isHome(b) && !b.tiedOff)) {
                 Progress.set('tidy_ballDone'); Sfx.play('appear'); G.shake = 4;
-                G.pendingToast = 'Both busts home, and the ballroom tidy at last. Something clicks, and a big chest stands where nothing stood before.';
+                /* (said over the chest and the busts, not on them: it once sat right over the chest it told of) */
+                const ch = a.find('pattern');
+                G.pendingToast = { s: 'Both busts home. Something clicks, and a big chest stands where nothing stood before.', focus: [ch && [ch.tx, ch.ty, 16], ...ball.map(b => [b.tx, b.ty, 24])].filter(Boolean) };
             }
         }
         const sc = a.find('shortcut');

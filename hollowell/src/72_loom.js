@@ -369,7 +369,7 @@ class Chute extends GridThing {
         /* offcuts are middling things (silk holds them; an iron plate doesn't notice them); some chutes drop spare weights */
         const b = a.add(this.weights ? new Block(x, y, Object.assign({ weight: WEIGHT.heavy, look: 'loomweight', thread: THREAD.loom, patience: 150 }, this.spare || {})) : new Block(x, y, { marked: false, weight: WEIGHT.medium }));
         b.skey = 'chute:' + G.t;
-        if (this.weights && !Progress.flag('spare_weight')) { Progress.set('spare_weight'); G.pendingToast = 'A spare weight clanks down, on its own silver thread.'; }
+        if (this.weights && !Progress.flag('spare_weight')) { Progress.set('spare_weight'); G.pendingToast = { s: 'A spare weight clanks down, on its own silver thread.', focus: [x, y, 20] }; }
         Fx.poof(x * T + 8, y * T + 4); Sfx.play('land'); G.shake = 3; Stats.count('offcuts');
         return true;
     }

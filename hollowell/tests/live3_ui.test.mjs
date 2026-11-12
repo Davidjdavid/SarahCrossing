@@ -159,6 +159,32 @@ test('the Laundry: "Bolted, from the other side." with Wren at the top of the sc
     assert.equal(ov(wrenOnScreen(HW), UI.noticeRect(t, true)), 0);
 });
 
+test("the Ballroom's payoff keeps off the chest it tells of, both busts and Wren: with her low on the screen the camera leans for it, and back once it's gone", () => {
+    for (const [lx, ly, leans] of [[7, 8, false], [5, 9, true], [12, 9, true]]) {
+        const HW = start(null);
+        HW.warp('tidy', 29, 42); HW.step(5); HW.skipTalk();
+        const r = HW.G.map.rooms.find(q => q.key === '1,1');
+        HW.warp('tidy', r.x + lx, r.y + ly); HW.step(30); HW.skipTalk(); HW.step(10);
+        const UI = HW.global('UI'), Cam = HW.global('Cam'), Return = HW.global('Return'), a = HW.G.map; UI.toasts = []; UI.banner = null;
+        for (const b of a.ents.filter(e => e.group === 'ball')) { b.tiedOff = false; Return.sendHome(b); }
+        let t = null;
+        for (let i = 0; i < 60 && !(t = UI.toasts.find(q => /^Both busts home/.test(q.s) && !q.wait)); i++) HW.step(1);
+        assert.ok(t, 'said');
+        HW.step(20);
+        const rect = UI.noticeRect(t, !!t.low), onScreen = q => Math.max(0, Math.min(q[2], W) - Math.max(q[0], 0)) * Math.max(0, Math.min(q[3], H) - Math.max(q[1], 0));
+        const ch = a.find('pattern'), things = [[ch.tx, ch.ty, 16], ...a.ents.filter(e => e.group === 'ball').map(b => [b.tx, b.ty, 24])];
+        for (const [x, y, tall] of things) {
+            const q = [x * 16 - Cam.x, y * 16 + 16 - tall - Cam.y, x * 16 + 16 - Cam.x, y * 16 + 16 - Cam.y], area = 16 * tall;
+            assert.ok(onScreen(q) - ov(q, rect) >= area * 0.9, `${lx},${ly}: the thing at ${x},${y} shown (${q} under ${rect})`);
+        }
+        assert.ok(ov(wrenOnScreen(HW), rect) <= 12 * 16 * 0.15, `${lx},${ly}: Wren clear`);
+        assert.equal(!!t.lean, leans, `${lx},${ly}: a lean`);
+        for (let i = 0; i < 400 && UI.toasts.length; i++) HW.step(1);
+        HW.step(30);
+        assert.equal(Cam.y, HW.global('Cam').base(HW.player()).y, 'the camera back');
+    }
+});
+
 /* ---------- 3. banners ---------- */
 test('a new game: the first room\'s name waits for the room to come up out of the dark (none left up from a game before)', () => {
     for (const before of [false, true]) {

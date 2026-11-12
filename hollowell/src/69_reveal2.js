@@ -250,7 +250,7 @@ const Reveal2 = {
         yield* walkTo(down, 3, 5);
         down.dir = RIGHT;
         yield 20;
-        yield* say(null, "Gran's chair is empty. On the kitchen table, a cup of tea gone cold. And the door to the well cellar, which is never locked, is locked.", { focus: [5, 4] });
+        yield* say(null, "Gran's chair is empty. On the kitchen table, a cup of tea gone cold. And the door to the well cellar is locked from the inside.", { focus: [5, 4] });
         down.dir = DOWN;
         Reveal2.ownSeen = true;
         yield 30;

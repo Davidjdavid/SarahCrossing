@@ -78,10 +78,24 @@ class Captain extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 10, THREAD.jory);
         Progress.set('marionette_tin');
+        /* over backwards he goes, out of the trap: a coil of crimson yarn on the boards behind him (not under Wren), and it
+           unwinds down a crack between them, held at its last few turns while the line tells of it (staged under the
+           words: MarionetteFoes.tinDown) */
+        const a = this.area, p = G.player, back = -DX[this.march] || 1, drain = 240;
+        const [sx, sy] = [[back, 0], [-back, 0], [0, -1], [0, 1]].map(([dx, dy]) => [this.tx + dx, this.ty + dy]).find(([x, y]) => RemainsKit.open(a, x, y) && !(p && p.onTile(x, y))) || [this.tx, this.ty];
+        const to = [sx * T + 8, sy * T + 10], len = Math.hypot(to[0] - this.x, to[1] - this.y), arrive = 4 + len / 0.9;
+        /* (the crack along a seam just under the coil, or over it, or beside it: wherever there's floor; and where the yarn
+           goes in, at its near end) */
+        const floor = (x, y) => { const k = a.kind(tileOf(x), tileOf(y)); return !k.solid && !k.pit && !k.water; };
+        const [crack, mouth] = [[[1, 16], [1, 5]], [[1, -6], [1, -6]], [[back * 11, 6], [back * 10, 0]], [[-back * 11, 6], [-back * 10, 0]]]
+            .map(([c, m]) => [[to[0] + c[0], to[1] + c[1]], [m[0], m[1]]]).find(([c]) => floor(c[0], c[1]) && floor(c[0], c[1] - 11)) || [[to[0] + 1, to[1] + 16], [1, 5]];
+        this.crack = a.add(new Remains([{ from: crack, to: crack, end: 'lie', look: RemainsKit.crack(12) }], { x: crack[0], y: crack[1], floor: true }));
+        this.coil = a.add(new Remains([{ from: [this.x, this.y], to, delay: 4, speed: 0.9, hop: Math.max(8, len), lift: 10, end: 'gone', linger: drain + 20, look: RemainsKit.coil(THREAD.jory, mouth, drain) }],
+            { x: to[0], y: to[1], floor: true, holdAt: Math.ceil(arrive + drain * 0.3), hold: () => Script.blocking() }));
         Script.run(MarionetteFoes.tinDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) { if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(9 * k), THREAD.jory); } return; }
+        if (!this.alive) return;
         const x = this.x - cx, y = this.y - cy;
         if (this.state === 'dazed' || this.state === 'fall') {
             const im = spr('captain_trap'); if (im) Gfx.img(this.flash > 0 && (this.flash >> 1) % 2 ? tinted(im, '#ffffff') : im, x - 10, y - 14);
@@ -636,7 +650,7 @@ const MarionetteFoes = {
     *tinDown(c) {
         Music.play('silence');
         yield 30;
-        yield* say(null, 'Captain Tin salutes, very stiffly, falls over backwards, and unravels into a coil of crimson yarn that drains away through a crack in the boards.');
+        yield* say(null, 'Captain Tin salutes, very stiffly, falls over backwards, and unravels into a coil of crimson yarn that drains away through a crack in the boards.', { focus: [c.coil, c.crack] });
         c.shutters(false); Sfx.play('appear'); Music.play('marionette');
     },
     *gmIntro(g) {

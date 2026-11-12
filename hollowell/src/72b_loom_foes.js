@@ -212,7 +212,7 @@ class Anchor extends GridThing {
         if (!this.sleeping || this.cut || Math.hypot(this.tx * T + 8 - x, this.ty * T + 8 - y) > Bells.REACH * T + 4) return;
         this.sleeping = false; this.unwind = 36;
         Sfx.play('twang'); Fx.poof(this.top[0], this.top[1] + 2); Stats.count('boss:weaver:woke');
-        if (!Progress.flag('weaver_cocoon')) { Progress.set('weaver_cocoon'); G.pendingToast = 'At the bell the cocoon stirs, and its silk unwinds back up into the web. Under it, a knot.'; }
+        if (!Progress.flag('weaver_cocoon')) { Progress.set('weaver_cocoon'); G.pendingToast = { s: 'At the bell the cocoon stirs, and its silk unwinds back up into the web. Under it, a knot.', focus: [this.tx, this.ty, 48] }; }
     }
     /* the stick on its cocoon: asleep, and nothing moves it but a bell */
     onStruck() { Sfx.play('hitthing'); Fx.dust(this.tx * T + 8, this.ty * T + 8); if (this.sleeping) UI.toast(Return.sleepLine(this)); }

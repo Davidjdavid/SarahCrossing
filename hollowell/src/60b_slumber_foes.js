@@ -100,10 +100,19 @@ class Matron extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.hx, this.hy]];
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 10, THREAD.mallow);
         Progress.set('slumber_matron');
+        /* a heap of lavender yarn, rolling off under her own bed: half under it while the line tells of it, then the rest of
+           the way, and there it stays (SlumberFoes.matronDown) */
+        const a = this.area, bed = a.ents.find(e => e.kind === 'prop' && e.im === ART.bed_big && a.roomAt(e.tx, e.ty) === this.arena), speed = 0.1;
+        const to = bed ? [clamp(this.x, bed.x + 10, bed.x + 22), clamp(this.y, bed.y + 12, bed.y + 28)] : [this.x - 24, this.y], len = Math.hypot(to[0] - this.x, to[1] - this.y);
+        /* (how far it rolls before it's half under the bed's edge) */
+        const under = s => { const x = lerp(this.x, to[0], s / (len || 1)), y = lerp(this.y, to[1], s / (len || 1)) - 4; return !!bed && x >= bed.x && x < bed.x + 32 && y >= bed.y && y < bed.y + 32; };
+        const half = [...Array(Math.ceil(len) + 1).keys()].find(under);
+        this.heap = a.add(new Remains([{ from: [this.x, this.y], to, delay: 30, speed, end: 'lie', look: RemainsKit.yarn(THREAD.mallow, 4) }],
+            { x: this.x, y: this.y, holdAt: Math.ceil(30 + (half === undefined ? len / 2 : half) / speed), hold: () => Script.blocking() }));
         Script.run(SlumberFoes.matronDown(this));
     }
     draw(cx, cy) {
-        if (!this.alive) { if ((this.yarnT || 0) < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.mallow); } return; }
+        if (!this.alive) return;
         const x = this.x - cx, y = this.y - cy;
         if (this.state === 'fall') {
             const k = 1 - this.st / 30, im = spr('matron_0');
@@ -463,13 +472,13 @@ const SlumberFoes = {
         if (Progress.flag('matron_met')) { yield* say(null, '"LIGHTS OUT," says Matron Hush, bolt upright again. "I SAID. BACK. TO. BED."'); return; }
         Progress.set('matron_met');
         yield* say(null, 'Beside the starched bed by the wall, somebody stands bolt upright: a tall nurse in a cap, her eyes tight shut. "LIGHTS OUT," she says. "Back to bed. NOW."');
-        yield* say(null, 'She gets up, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
+        yield* say(null, 'She sets off, still asleep, and comes after you, putting her feet exactly where you put yours. The doors swing shut.');
     },
     *matronDown(m) {
         const a = m.area;
         Music.play('silence');
         yield 40;
-        yield* say(null, 'Matron Hush sighs, "Lights... out...", and unravels into a heap of lavender yarn that rolls under her own bed and stays there.');
+        yield* say(null, 'Matron Hush sighs, "Lights... out...", and unravels into a heap of lavender yarn that rolls under her own bed and stays there.', { focus: m.heap });
         m.shutters(false);
         Sfx.play('appear');
         Music.play('slumber');

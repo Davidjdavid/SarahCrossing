@@ -157,3 +157,24 @@ test("the Well with its cap off from the Great Pull on; the Staff door ajar once
     const door = HW.G.map.ents.find(e => e.im === HW.ART.staffdoor || e.im === HW.ART.staffdoor_ajar);
     door.draw(0, 0); assert.equal(door.im, HW.Progress.flag('reveal1') ? HW.ART.staffdoor_ajar : HW.ART.staffdoor);
 });
+
+test('the Glazer stands on its shadow, facing any way and braced: the bottom of its feet on the shadow, not hovering over the floor', () => {
+    const HW = loadGame();
+    HW.preset('afterD1'); HW.step(5); HW.skipTalk();
+    delete HW.Progress.flags.kiln_glazer;
+    HW.warp('kiln', 20 + 9, 11 + 8); HW.step(5);
+    const g = HW.G.map.ents.find(e => e.type === 'glazer'), Gfx = HW.global('Gfx'), SPR = HW.global('SPR');
+    assert.ok(g, 'the Glazer');
+    /* (the lowest row of its picture with anything in it: its feet) */
+    const rows = HW.global('SPR_SRC').glazer.rows, feet = Math.max(...rows.map((r, i) => /[^.]/.test(r) ? i : -1));
+    const img0 = Gfx.img, rect0 = Gfx.rect;
+    for (const [dir, state] of [['DOWN', 'walk'], ['UP', 'walk'], ['LEFT', 'walk'], ['RIGHT', 'walk'], ['DOWN', 'brace']]) {
+        let at = null, shadow = null;
+        Gfx.img = function (im, x, y) { if (im === SPR.glazer) at = y; return img0.apply(this, arguments); };
+        Gfx.rect = function (x, y, w, h) { if (shadow === null && w === 14 && h === 3) shadow = y; return rect0.apply(this, arguments); };
+        try { g.dir = HW.global(dir); g.state = state; g.flash = 0; g.draw(0, 0); } finally { Gfx.img = img0; Gfx.rect = rect0; }
+        assert.ok(at !== null && shadow !== null, `${dir} ${state}: drawn`);
+        const low = state === 'brace' ? 2 : 0;
+        assert.ok(at + feet - low >= shadow - 1 && at + feet - low <= shadow + 1, `${dir} ${state}: its feet at ${at + feet}, its shadow from ${shadow}`);
+    }
+});
