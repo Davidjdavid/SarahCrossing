@@ -570,7 +570,7 @@ UI.keepClear.push(() => {
     };
     const hud0 = UI.drawHUD;
     /* (under a notice, a banner or words at the top the little stitches would sit under the panel: left out then) */
-    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.topBusy()) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
+    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.topBusy()) { Gfx.alpha(this.hudAR === undefined ? 1 : this.hudAR); Needle.drawHud(); Gfx.alpha(1); } };
 }
 
 function initSpoolKit() {

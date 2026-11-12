@@ -62,7 +62,7 @@ test('the HUD steps back from the Needle\'s reach (the counterweight in the Seam
     noErrors(HW);
 });
 
-test('the HUD steps back, faded right down, from anything that matters under it, wherever it is: the Parlour\'s far gate, the Sun, Moon, Star gate, the Reach\'s top sleeper, the Bell Frame\'s gate (blind solver E)', () => {
+test('the HUD steps back, the corner over it faded right down, from anything that matters under it, wherever it is: the Parlour\'s far gate, the Sun, Moon, Star gate, the Reach\'s top sleeper, the Bell Frame\'s gate (blind solver E)', () => {
     const spots = [
         ['afterD1', 'tidy', [40 + 2, 22 + 5], 'pN'],
         ['afterD2', 'kiln', [40 + 0, 22 + 5], 'smsN'],
@@ -83,9 +83,10 @@ test('the HUD steps back, faded right down, from anything that matters under it,
         assert.ok(UI.hudCovers(), `${house} ${id}: the HUD steps back`);
         HW.G.onScreen = [HW.player()]; UI._hc = undefined;
         assert.ok(!UI.hudCovers(), `${house} ${id}: (nothing else here moves it)`);
-        /* and in play it fades right down */
+        /* and in play that corner fades right down; the hearts' corner stays as it was */
         for (let i = 0; i < 30; i++) { HW.step(1); Game.render(); }
-        assert.ok(UI.hudA <= HW.global('HUD_BACK') + 0.01, `${house} ${id}: faded to ${UI.hudA}`);
+        assert.ok(UI.hudAR <= HW.global('HUD_BACK') + 0.01, `${house} ${id}: faded to ${UI.hudAR}`);
+        assert.ok(UI._hcSide[0] || UI.hudAL >= 0.99, `${house} ${id}: the hearts as they were, with nothing under them (${UI.hudAL})`);
         noErrors(HW);
     }
 });

@@ -4151,10 +4151,15 @@ const UI = {
         this.drawCurtain();
         if (G.hideHud) return;
         const p = G.player;
-        /* when Wren, or anything that matters, is up under the HUD, it steps back: faded right down, so what's under it
-           reads as plainly as anywhere else */
-        const under = (p && (p.y - Cam.y) < 46) || (Dialog.active && Dialog.top) || this.hudCovers();
-        this.hudA = approach(this.hudA === undefined ? 1 : this.hudA, under ? HUD_BACK : 1, 0.08);
+        /* when Wren, or anything that matters, is up under one of the HUD's corners, that corner steps back: faded right
+           down, so what's under it reads as plainly as anywhere else (the other corner stays as it was: the hearts don't
+           go faint for a gate under the tool) */
+        const side = this.hudCovers() ? this._hcSide : [false, false], top = Dialog.active && Dialog.top, [lb, rb] = this.hudBoxes();
+        const wy = p && (p.y - Cam.y) < 46, wx = p ? p.x - Cam.x : 0;
+        const underL = top || side[0] || (wy && wx < lb[2] + 24), underR = top || side[1] || (wy && wx > rb[0] - 24);
+        this.hudAL = approach(this.hudAL === undefined ? 1 : this.hudAL, underL ? HUD_BACK : 1, 0.08);
+        this.hudAR = approach(this.hudAR === undefined ? 1 : this.hudAR, underR ? HUD_BACK : 1, 0.08);
+        this.hudA = Math.min(this.hudAL, this.hudAR);
         Gfx.alpha(this.hudA);
         this._hud(p);
         Gfx.alpha(1);
@@ -4173,8 +4178,9 @@ const UI = {
         let hit = false;
         const a = G.map;
         if (a && G.scene === 'play' && G.onScreen) {
-            const boxes = this.hudBoxes();
-            const over = (x0, y0, x1, y1) => boxes.some(b => x1 > b[0] + 1 && x0 < b[2] - 1 && y1 > b[1] + 1 && y0 < b[3] - 1);
+            const boxes = this.hudBoxes(), side = [false, false];
+            /* (which corner it's under, both looked at: each corner steps back on its own) */
+            const over = (x0, y0, x1, y1) => { let h = false; boxes.forEach((b, i) => { if (x1 > b[0] + 1 && x0 < b[2] - 1 && y1 > b[1] + 1 && y0 < b[3] - 1) side[i] = h = true; }); return h && side[0] && side[1]; };
             const tile = (tx, ty, up = 0) => { const x = tx * T - Cam.x, y = ty * T - Cam.y; return over(x, y - up, x + T, y + T); };
             for (const e of G.onScreen) {
                 if (e === G.player || e.hidden) continue;
@@ -4196,6 +4202,7 @@ const UI = {
             if (!hit) for (const e of a.walkers || []) { if (e.alive === false || e.hidden) continue; const x = e.x - Cam.x, y = e.y - Cam.y; if (over(x - 8, y - 18, x + 8, y)) { hit = true; break; } }
             /* (and what a tool in use is showing on the floor: the Needle's reach, say; world pixels, [x0, y0, x1, y1]) */
             if (!hit) for (const f of this.keepClear) if (f().some(([x0, y0, x1, y1]) => over(x0 - Cam.x, y0 - Cam.y, x1 - Cam.x, y1 - Cam.y))) { hit = true; break; }
+            hit = side[0] || side[1]; this._hcSide = side;
         }
         return this._hc = hit;
     },
@@ -4205,6 +4212,7 @@ const UI = {
         /* Wren's thread: a little red spool (until it's cut); and her hearts (which, once it's cut, come undone and
            drift away while she's told so) */
         const leaving = G.heartsLeaving > 0 ? G.heartsLeaving : 0;
+        Gfx.alpha(this.hudAL === undefined ? 1 : this.hudAL);
         if (!Progress.flag('cut_self') || G.keepHearts) {
             const k = leaving ? leaving / 120 : 1, a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
             if (leaving) Gfx.alpha(a0 * k);
@@ -4220,6 +4228,7 @@ const UI = {
             if (leaving) Gfx.alpha(a0);
         }
         /* buttons */
+        Gfx.alpha(this.hudAR === undefined ? 1 : this.hudAR);
         /* (the count right-aligned to the edge, however many) */
         const bs = String(Inv.buttons), bx = W - 5 - Font.width(bs);
         Gfx.img(spr('hud_button'), bx - 10, 4);
@@ -4283,10 +4292,10 @@ const UI = {
 
 /* a few words on the HUD over a soft dark backing, so they read on any floor (sand, snow, water, a bed) */
 function hudText(s, x, y) {
-    const w = Font.width(s);
-    Gfx.alpha(Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha * 0.55 : 0.55);
+    const w = Font.width(s), a0 = Gfx.ctx && Gfx.ctx.globalAlpha !== undefined ? Gfx.ctx.globalAlpha : 1;
+    Gfx.alpha(a0 * 0.55);
     Gfx.rect(x - 2, y - 1, w + 4, 10, PAL.ink); Gfx.rect(x - 3, y, w + 6, 8, PAL.ink);
-    Gfx.alpha(UI.hudA === undefined ? 1 : UI.hudA);
+    Gfx.alpha(a0);      /* (as faded as the corner it's in) */
     Font.draw(s, x, y, PAL.white, Infinity, PAL.ink);
 }
 function initUISprites() {
@@ -25388,7 +25397,7 @@ UI.keepClear.push(() => {
     };
     const hud0 = UI.drawHUD;
     /* (under a notice, a banner or words at the top the little stitches would sit under the panel: left out then) */
-    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.topBusy()) { Gfx.alpha(this.hudA === undefined ? 1 : this.hudA); Needle.drawHud(); Gfx.alpha(1); } };
+    UI.drawHUD = function () { hud0.call(this); if (G.scene === 'play' && !G.hideHud && !(Dialog.active && Dialog.top) && !this.topBusy()) { Gfx.alpha(this.hudAR === undefined ? 1 : this.hudAR); Needle.drawHud(); Gfx.alpha(1); } };
 }
 
 function initSpoolKit() {
