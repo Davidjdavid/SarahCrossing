@@ -40,12 +40,12 @@ each House's section. The goal lines below were checked against a recorded game 
 
 ### 2. The story by stage (what a correct state looks like)
 
-**Prologue** (S01-S02). Wren wakes on the morning of her Wander; Gran (the Warden of the Well) is downstairs, then at the
+**Prologue** (T01-T02). Wren wakes on the morning of her Wander; Gran (the Warden of the Well) is downstairs, then at the
 Well for the ceremony, where the Wanderstaff is given and Miss Quill reads the Rules of the Return. Gran stands by the Well
 from then until the second reveal. Before the first Knot the children play tag, Fisher Hob walks the bank, Pudding chases
 a ball, Biscuit the cat wanders. The valley map is drawn whole (faint); the fog turns Wren back at every edge.
 
-**Act I, the Wander** (Houses 1-4; S03-S23). A House at a time, each with its Maker's thread colour; after each Knot a
+**Act I, the Wander** (Houses 1-4; T03-T23). A House at a time, each with its Maker's thread colour; after each Knot a
 wordless shot of the Well's winch turning a notch by itself. The town grows stiller as Knots are tied: after the first,
 the Inn's attic (the Tidiness Trials) and the children's Housekeeper game; after the second the children stop playing tag
 (`tagStopped`); after the third Hob stops walking his round; after the fourth, the Knotting Festival (bunting, the Makers
@@ -53,28 +53,28 @@ of Houses 1-4 arriving late from four directions with their House's dust on them
 ball and stops chasing it (until the Unwinding). After each House Gran has new lines naming the next place (the "visit
 home" the goal line suggests).
 
-**Act II, the Seams** (Houses 5-6; S24-S33). The giant woken and gone home; Hushwood; the Slumberhouse (Wren's own mark).
+**Act II, the Seams** (Houses 5-6; T24-T33). The giant woken and gone home; Hushwood; the Slumberhouse (Wren's own mark).
 Then Larkspur Fair, reached by jumping off Kilnridge's high mesa (only with the Bedroll laid up top), and the Marionette
 Hall: its boss falls and the toymaker Jory is caught at its controls: **the first reveal** (`reveal1`): the Houses are made
 and run by the townsfolk, the Makers. From here: the Options' "Hints" are "Makers' nudges"; the Inn's Staff door stands
 ajar; the Makers own up when talked to; the Well's motto has a scratched note under it.
 
-**Act III, below** (House 7, the Makings, the second reveal; S34-S44). The Underside under the town (the Guild Hall,
+**Act III, below** (House 7, the Makings, the second reveal; T34-T44). The Underside under the town (the Guild Hall,
 Gundry, the Seams, the workshops); the Spoolworks (the Needle). Wren is made an apprentice and runs Tuck's Little Wander
 from below (eight Little Houses the Makers built, then one she sets out herself). The Way Down: the deep store and the
 Hall of Names, a spool for everyone in the valley; Gran's ledger; Gran comes down and pulls Wren's thread: Wren wakes in
 bed (**the second reveal**, `reveal2`). From here: Gran has shut herself in the well cellar (`well_locked`; she is no
 longer by the Well); everyone's thread is drawn; the town's lines are uneasy; fainting now wakes Wren with Gran's hand
-felt on the thread (S33); the quilt's count is taken (`quiltR2`, a number).
+felt on the thread (secret S33); the quilt's count is taken (`quiltR2`, a number).
 
-**Act IV, loose ends** (the north gate, House 8, cutting free, the Drift, the Pull, the Great Spool; S45-S57). The north
+**Act IV, loose ends** (the north gate, House 8, cutting free, the Drift, the Pull, the Great Spool; T45-T57). The north
 gate open (Constable Burr: "Go on, then."), the Loomwood, the Loom (no nudges; the Shears). People cut free walk a round
 of their own with new lines; the uncut talk about the Shears. Wren cuts her own thread at the Frayed Edge (no more hearts
 on screen), crosses into the Drift, finds Aunt Linnet; Gran feels it and begins the Great Pull: in town, everyone with a
 thread is dragged in an arc round the Well; indoors and below are empty of them; the Well's cap is off. Down the Well,
 the Great Spool; at its top Gran at the drum.
 
-**Epilogue and after** (S58). Every thread slack; everyone free on a round of their own with new lines; the Makers keep
+**Epilogue and after** (T58). Every thread slack; everyone free on a round of their own with new lines; the Makers keep
 their Houses' threads by choice; Gran and Linnet on the bench by Gran's gate; Linnet gone from the Drift; the Well
 re-carved (one new word); the cellar open; the title changed ("Carry on").
 
@@ -85,18 +85,18 @@ on screen after `cut_self`; a goal line naming a place already done.
 
 ### 3. Optional content, and when each part opens (details: the optional-content section)
 
-- From the start: S01 pushing townsfolk (all 24 for Arlo's scarf); S02 the turned portrait (the Gloves) and Linnet's
-  Trail from it; S03 Biscuit's route; Heart Patches lying about (38 in all); the Well's motto (S35, read in every act).
-- After Knot 1: the Tidiness Trials (S28), the children's Housekeeper game (S12), the town's favours begin (the Guild's
+- From the start: secret S01 pushing townsfolk (all 24 for Arlo's scarf); secret S02 the turned portrait (the Gloves) and Linnet's
+  Trail from it; secret S03 Biscuit's route; Heart Patches lying about (38 in all); the Well's motto (secret S35, read in every act).
+- After Knot 1: the Tidiness Trials (secret S28), the children's Housekeeper game (secret S12), the town's favours begin (the Guild's
   crates, then the kite after Knot 2, Tuck's marble, Mabel's tin after Knot 4, Jory's back room after the first reveal,
-  Rosa's saucer with the Needle), each House's Maker's signature room (S06) and secrets inside Houses.
-- After Knot 4: Returnball (S29). Each region's own finds open with the tools (the Old Fold, the ringers' bell, the Crags,
+  Rosa's saucer with the Needle), each House's Maker's signature room (secret S06) and secrets inside Houses.
+- After Knot 4: Returnball (secret S29). Each region's own finds open with the tools (the Old Fold, the ringers' bell, the Crags,
   Kilnridge's vents, Heron Rock, Lantern Pond, the nursery, the parade gate, Millwater's later places...).
-- After each boss: revisit the arena to pet the boss asleep (S14, all seven).
-- Act III: the logbooks (S22), the peepholes (S23), Tuck's Ahas (S30, three in every Making), the north gate early (S32),
-  the Unfinished House with the Guild pin (S26; or after the Loom).
-- Act IV: cutting people free (S24 Arlo's walk), the fog-silk hollows, the Stray House (S27, with Linnet's eight notes),
-  the balloon, the Drift's mill, the seed (S11).
+- After each boss: revisit the arena to pet the boss asleep (secret S14, all seven).
+- Act III: the logbooks (secret S22), the peepholes (secret S23), Tuck's Ahas (secret S30, three in every Making), the north gate early (secret S32),
+  the Unfinished House with the Guild pin (secret S26; or after the Loom).
+- Act IV: cutting people free (secret S24, Arlo's walk), the fog-silk hollows, the Stray House (secret S27, with Linnet's eight notes),
+  the balloon, the Drift's mill, the seed (secret S11).
 - Can be skipped entirely: all of the above. The Makings can't (they open the Way Down).
 
 ### 4. Order, late visits and points of no return
@@ -105,19 +105,20 @@ on screen after `cut_self`; a goal line naming a place already done.
 - The Houses are a fixed chain (each needs the last one's tool to reach), and Knot order is fixed except inside the Great
   Spool, where the six Knot rooms can be untied in any order (the goal counts them).
 - The visit home the goal line suggests after a House can be done late or never: Gran's lines are said whenever Wren next
-  talks to her (the catalogue's route skips them, so S08-S12, S14-S17 and S29-S32 still show the "go back and tell Gran"
-  goal while Wren is already further on; that is a valid path, not a stale state).
+  talks to her (the catalogue's route skips them, so T08-T12, T14-T17 and T29-T32 still show a goal suggesting that visit,
+  "Go back to Hollowell and tell Gran..." or "Home to Hollowell...", while Wren is already further on; that is a valid
+  path, not a stale state).
 - Townsfolk can be cut free before or after Wren's own thread, during the Pull, or never (the Unwinding frees everyone).
-- The north gate's counterweight can be re-threaded before the second reveal (S32).
+- The north gate's counterweight can be re-threaded before the second reveal (secret S32).
 
 **4.2 A goal line that doesn't move** (worth a look). After House 5 the goal reads "Home to Hollowell. (Somebody at the
-clinic will want to hear all about it.)" and stays so until the first reveal. Checked from S28: visiting the clinic
+clinic will want to hear all about it.)" and stays so until the first reveal. Checked from T28: visiting the clinic
 (Doctor Mallow) and talking to Gran (who names Larkspur Fair, below the high mesa in Kilnridge) leave it unchanged, and the
 map's flag stays on the clinic. Elsewhere the goal line names the next place.
 
 **4.3 Points of no return and missables**
-- Cutting Wren's own thread: no more fainting (S33 no longer possible), no hearts, the tally stops; the fog no longer
-  pulls (S11's fog way gone; the seed is still at Linnet's gate).
+- Cutting Wren's own thread: no more fainting (secret S33 no longer possible), no hearts, the tally stops; the fog no longer
+  pulls (secret S11's fog way gone; the seed is still at Linnet's gate).
 - The Great Pull: until the Unwinding, the town is in the Pull (people dragged, interiors empty of the uncut). Everything
   else in the valley stays open meanwhile.
 - The Unwinding: everyone is freed at once (the moment of cutting someone free and its line can't be had after it); the
@@ -133,7 +134,7 @@ sets is in brackets.)
 
 - **Prologue**: `talkedGran` (spoke to Gran on the first morning), `ceremony` (the Wanderstaff given).
 - **House 1**: `told:key`, `told:plan`, `told:pattern` (first-time explanations of a key, a Plan, a Pattern), `pie` (the
-  warm pie, S05), `tidy_monger` (the mini-boss), `gotGloves`, `tidy_ballDone`, `tidy_boss`, `tidy_knot`, `d1`.
+  warm pie, secret S05), `tidy_monger` (the mini-boss), `gotGloves`, `tidy_ballDone`, `tidy_boss`, `tidy_knot`, `d1`.
 - **House 2**: `kilnPass` (through the canyon pass), `kiln_glazer` (mini-boss), `kiln_boss`, `kiln_knot`, `d2`,
   `tagStopped` (the children stop playing tag).
 - **House 3**: `millrace_snapjaw` (mini-boss), `millrace_twoWheels`, `millrace_boss`, `mill_knot`, `d3`; leaving it with a

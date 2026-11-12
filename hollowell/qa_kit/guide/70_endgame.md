@@ -11,10 +11,10 @@ src/74_drift.js, 75_greatspool.js (+ 75b_spool_art.js), 76_ending.js, 80b_tally.
 the Shears in 70_shears_kit.js. Tests: tests/ending.test.mjs, greatspool.test.mjs, spooltop.test.mjs, drift.test.mjs,
 review_end.test.mjs, the leg `LEG9` in tests/legs.mjs (with `spoolTop`, `holdGransHand`), afterword.test.mjs.
 
-**Save states**: S49 (outside the Loom), S50 (the Frayed Edge, just before the cut), S51 (the Drift, first steps), S52
-(Linnet met, the Pull begun), S53 (home in the Pull), S54 (the seed planted, the Well next), S55 (the Foot of the Well),
-S56 (the Climb, 4 of 6 untied), S57 (just before the Top; loads beside the Bedroll on the Night Ferry raft), S58 (after
-the ending). From S51 on there are no hearts on screen (intended, see below).
+**Save states**: T49 (outside the Loom), T50 (the Frayed Edge, just before the cut), T51 (the Drift, first steps), T52
+(Linnet met, the Pull begun), T53 (home in the Pull), T54 (the seed planted, the Well next), T55 (the Foot of the Well),
+T56 (the Climb, 4 of 6 untied), T57 (just before the Top; loads beside the Bedroll on the Night Ferry raft), T58 (after
+the ending). From T51 on there are no hearts on screen (intended, see below).
 
 ### 1. The Frayed Edge: cutting Wren's own thread
 
@@ -34,7 +34,7 @@ the ending). From S51 on there are no hearts on screen (intended, see below).
   - nothing more is added to the tally of times brought home (src/80b_tally.js).
 - **QA notes**: cut before or after cutting townsfolk; the number cut before is kept (`aft:cutsAtSelf`). Try the Shears
   at fog away from the Frayed Edge (the south of Meadowfold, Kilnridge, Millwater): the offer and the fog pass should work
-  the same. After the cut, a deliberate faint (S33's kind) is no longer possible: expected.
+  the same. After the cut, a deliberate faint (secret S33's kind) is no longer possible: expected.
 
 ### 2. The Drift (area `drift`, src/74_drift.js, tests/drift.test.mjs)
 
@@ -49,7 +49,7 @@ the ending). From S51 on there are no hearts on screen (intended, see below).
   her story briefly; a rumble; the Great Pull begins: `met_linnet`, `great_pull`; goal "Back to Hollowell, on foot. Gran
   is pulling the whole valley down the Well."; music `pull`; autosave. Talked to again she says one of a few short lines,
   or remarks on the old mill (`linnet_mill`) or a balloon (`linnet_balloon`) if those were done.
-- **The Drift-bloom seed** (S11): the tall flower by her gate (13,22): Act takes a seed (`s11`, item `driftseed`), unless
+- **The Drift-bloom seed** (secret S11): the tall flower by her gate (13,22): Act takes a seed (`s11`, item `driftseed`), unless
   one was already got the other way (the Bedroll at the fog, before the cut) or planted.
 - **Optional here**: the old mill up the stream (its wheel lifts the mill pond's sluice only while something floats past
   on its own; a barrel given a place by the wheel with the Needle keeps coming back, or the race dammed with the stray
@@ -74,8 +74,8 @@ the ending). From S51 on there are no hearts on screen (intended, see below).
   Great Spool." (`pull_seen`).
 - **The Well**: Act: "Down the Well / Read the stones / Not yet". "Read the stones" reads the motto as it is in this act
   (`motto:act3`).
-- **The seed** (optional, S11): Gran's garden plot by her gate (hub 73,51, Act from 74,51 facing west): "Plant it / Not
-  yet" → `seed_planted` (S54 is just after). A shoot shows until the end; the flower blooms in the epilogue and after.
+- **The seed** (optional, secret S11): Gran's garden plot by her gate (hub 73,51, Act from 74,51 facing west): "Plant it / Not
+  yet" → `seed_planted` (T54 is just after). A shoot shows until the end; the flower blooms in the epilogue and after.
   Without a seed: a line about a bare patch.
 - **Accepted**: the Pull's scene with dozens of threads ran at 45-50 frames a second in a software-rendered browser (no
   play during it).
@@ -232,7 +232,7 @@ every door: finding 60); doors west, east and north.
 - **Blocked**: paddling under the arch is refused; riding under without the Bedroll scrapes her off and she climbs out on
   the near side; sent under with no Bedroll aboard, the raft is stranded in the bedroom: use the brake.
 - **Loads**: a save in the bedroom west of the channel (where only the ferry reaches) starts east of the channel by the
-  lever; one saved with the Bedroll on the ferry starts on the ferry, back at its landing (S57 does exactly this).
+  lever; one saved with the Bedroll on the ferry starts on the ferry, back at its landing (T57 does exactly this).
 - **Nudge** after 150 s under the arch.
 
 #### The Prompt Box (2,1), the Marionette Hall's Knot
@@ -294,7 +294,7 @@ every door: finding 60); doors west, east and north.
   between the last cut and the Unwinding picks the end up again on entering the top room (Linnet comes in again).
 - **QA notes**:
   - With the Bedroll laid anywhere in the Great Spool, a step into the dark flies Wren back along her trace to the Bedroll,
-    unhurt, which may be far below (checked headless from S57: back to the Night Ferry). That is the Pull's stated rule ("a
+    unhurt, which may be far below (checked headless from T57: back to the Night Ferry). That is the Pull's stated rule ("a
     fall takes her to it"), not a defect; roll the Bedroll up or lay it at the top to avoid the walk back up the Climb.
   - Gran and Linnet don't budge when leant on; Gran can't be cut ("Her own isn't one the Shears can reach."); Linnet can't
     ("Nothing to cut."); puppets' strings can't (review_end 2/5).
@@ -310,7 +310,7 @@ birds flying off over the edge of the valley and, a long while later, back; ever
 to the river, Hob is out in a boat); Mother Ives's line for the Makers; the road north through what's left of the fog (with
 `bracelet_top`: Gran and Linnet walking up it, the bracelet given); Gran and Linnet on the bench by her gate with Biscuit
 between them; the bloom by the gate if `seed_planted`; if the bracelet is still in the satchel, Wren gives it to Linnet,
-who gives it to Gran (`bracelet_given`); with S30's drawing (`s30`), Tuck's drawing on Gran's dresser; a week later, the
+who gives it to Gran (`bracelet_given`); with secret S30's drawing (`s30`), Tuck's drawing on Gran's dresser; a week later, the
 Well re-carved; Wren walking up the new road; fade.
 
 **Credits**: six pages, about 4 s each (Act or the stick moves on after the first 2/3 s): the title; "Made by the Makers
@@ -323,13 +323,13 @@ a road out over the hills with three people walking it, birds, the subtitle "a W
 "Carry on". Erase or overwrite every finished slot and the title is as before (expected). (SPOILERS.md mentions a
 storage key `hollowell-ended`; the code reads the slots, not that key.)
 
-### 6. The free valley, after the ending (src/76_ending.js, 73_freed.js, 80d_after.js; S58)
+### 6. The free valley, after the ending (src/76_ending.js, 73_freed.js, 80d_after.js; T58)
 
 - **Everyone free**: every townsperson walks a small round of their own near their old spot (no thread, never dragged)
   and has new lines (`AFTER_LINES`), indoors too (tests/ending.test.mjs, review_end 11). Gran and Linnet sit on the bench
   by Gran's gate (hub 78,53 and 80,53). Linnet is gone from the Drift (her sign: gone home). Pudding the dog runs
   about again (he lay by his ball from the festival till now). The fog is still there, drawn slack; with Wren's thread cut it still leads into the Drift.
-- **The Well**: Act reads the last motto (`motto:act4`; reading all four acts' mottos is S35, `s35`). There's no way down
+- **The Well**: Act reads the last motto (`motto:act4`; reading all four acts' mottos is secret S35, `s35`). There's no way down
   any more.
 - **The bench**: after Gran's or Linnet's own after-line, "Between them, the middle of the bench is free." Sit down / Not
   now (Not now keeps it for later). Sat (`aft:sat`, once): Gran mentions a thing or two she felt during the Wander, Linnet
@@ -342,7 +342,7 @@ storage key `hollowell-ended`; the code reads the slots, not that key.)
   down / Leave it" → her ledger (`aft:ledger`): a few lines written at the time, in the order they happened, a line about
   the fog, an empty page, and one line at the bottom with the same count Gran gave at the Spool.
 - **What the player can still do**: everything optional that's left; the Drift (through any fog). The Bedroll still works:
-  Homeward flies to wherever it was last laid, even down into the Great Spool (checked headless from S58: it lands on the
+  Homeward flies to wherever it was last laid, even down into the Great Spool (checked headless from T58: it lands on the
   Night Ferry's raft; the Pull is off there now, Gran isn't at the top, and the Foot's stairs lead back up to the square
   with no errors). That's the only way into the Great Spool after the end.
 - **Expected flags**: `unwound`, `aft:snap`, `cut:<everyone>`, the goal "The valley is yours. Carry on."; `aft:sat` and

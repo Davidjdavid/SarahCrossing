@@ -11,7 +11,7 @@
 - **Townsfolk are marked** to their spots: push one and they shuffle off, then back ("budging"; each has a line the first time: secret S01).
 
 ### Save states for this part
-S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfold, before House 1), S08 (Meadowfold after Knot 1), S09 (Kilnridge, through the pass), S13 (Kilnridge after Knot 2), S14 (Millrace Falls, outside House 3), S18 (Millrace Falls after Knot 3), S19 (Belfry Heights, top of the Cliff Stair), S23 (Hollowell after Knot 4, festival about to start). The catalogue's route goes straight from each House to the next: in S08-S12 and S14-S17 the goal line still says "go back to Hollowell" (a visit home that the route skipped; playing it late is valid).
+T01 (Wren's room, new game), T02 (the square after the ceremony), T03 (Meadowfold, before House 1), T08 (Meadowfold after Knot 1), T09 (Kilnridge, through the pass), T13 (Kilnridge after Knot 2), T14 (Millrace Falls, outside House 3), T18 (Millrace Falls after Knot 3), T19 (Belfry Heights, top of the Cliff Stair), T23 (outside the Belfry just after Knot 4; the goal line says home for the festival, so the walk home comes first). The catalogue's route goes straight from each House to the next: in T08-T12 and T14-T17 the goal line still says "go back to Hollowell" (a visit home that the route skipped; playing it late is valid). No test save starts in the square at the festival: from T23 walk home and step into the square.
 
 ---
 
@@ -30,24 +30,24 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 
 **Who's where and what matters (by stage).** Townsfolk say something new once after each Knot (`TOWN_LINES`, only the newest stage's lines, said once each, then their usual lines; town.test checks this).
 
-- **Before Knot 1 (S02):**
+- **Before Knot 1 (T02):**
   - Gran at the Well: Act I lines ("The Tidyhouse is down in Meadowfold, past the sheep...", "If you get stuck, stand still a while and look at what goes back where. It nearly always tells you.").
   - Miss Quill (by the school): a quiz on the Return (right answer "Goes back the way it came": 5 buttons, `quiz1`); her blackboard has rules 1-3 only.
   - The children Nell, Otto and Bea play tag in the square (they move); Fisher Hob walks the river bank; Pudding the dog chases a ball; Biscuit the cat wanders.
   - The Inn's attic stairs are roped off (hub.test).
   - Seen in passing, nothing to do yet: two Guild crates jammed in the lane by Thimble's, a kite up the tree by the Inn, a sewing tin asleep among Mabel's strays, a crimson thread from Jory's shut toy shop to Tuck's door, Rosa's saucer on the bakery's sill (favours: 50_optional.md).
-- **After Knot 1 (S08 goal: "Go back to Hollowell and tell Gran. Next, the Kiln in Kilnridge: the canyon road west of Meadowfold."):**
+- **After Knot 1 (T08's goal: "Go back to Hollowell and tell Gran. Next, the Kiln in Kilnridge: the canyon road west of Meadowfold."):**
   - Gran's lines change: "Your first Knot! Did you feel it?...", "Next is the Kiln, out west in Kilnridge. The road's blocked by that old boulder, but you're a clever thing."
   - New once-lines: Quill ("Rule four's up on the board now: heavier shoves lighter. It always goes up the morning after a Wanderer's first Knot."), Gundry (the winch turned by itself), Rosa, Arlo (felt it in his knees), Mabel.
-  - Mother Ives tells of the **Tidiness Trials** in the Inn's attic (stairs now open). The children play "Housekeeper" round Otto's chalk X (S12). Both optional.
+  - Mother Ives tells of the **Tidiness Trials** in the Inn's attic (stairs now open). The children play "Housekeeper" round Otto's chalk X (secret S12). Both optional.
   - Pip in Meadowfold now says "There's a big boulder in the canyon, west of the pen... Somebody with a good grip could shift it."
 - **After Knot 2 (goal: "Back to Hollowell. Then east: the broken bridge in Meadowfold, and Millwater beyond it. Your Hookline should get you over."):**
   - `tagStopped`: the children stop playing tag ("don't feel like running"). Thimble sells the Hook pouch. New lines: Bram ("Did his tail stick? It's always the tail. ...So I'd imagine."), Seam (an order of glazed scales), Quill (rule five), Burr (fog thicker), Mallow. Gran still uses her after-Knot-1 lines. The kite favour becomes possible (Hookline).
 - **After Knot 3 (goal: "Next, Belfry Heights: across the lake from Millwater, up the cliff stair. (The Paddle will get you over.)"):**
   - Hob stops walking the bank and only stands (`d3`; town.test "the town gets stiller"). New lines: Rosa (Dad came in wet to the knees, and winked), Ives ("I've been here all week. Tidying."), Gundry, Arlo (Hob's taken root), Thimble (four miles of string).
-- **After Knot 4 (S23; goal: "Home to Hollowell: it is the Knotting Festival."):** the square in bunting and lanterns, Returnball set up east of the south road, the town gathered round the Well (`Festival.gather` on building the town while `d4 & !festival`).
+- **After Knot 4 (goal: "Home to Hollowell: it is the Knotting Festival."; start from T23, outside the Belfry, and walk home first: the Cliff Stair, the lake by raft, Millwater, the ferry or the bridge, Meadowfold, the south road):** the square in bunting and lanterns, Returnball set up east of the south road, the town gathered round the Well (`Festival.gather` on building the town while `d4 & !festival`).
   - **The festival scene** fires once (`festival`) when Wren steps into the square (x 85-106, y 53-66). Gran: "Four Knots! Only two to go, love." Four people arrive late, out of breath, from four directions: Bram (clay to the elbows), Dad (soaked), Mum (brass dust in her hair), Ives (a feather duster in her apron pocket): "Sorry! Busy day." / "Very busy." / "Pots don't make themselves! HA!" / "...Tidying." Music; everyone dances on the spot. Gran points Wren at the east road: goal "The east road out of town: the sleeping giant. Ring the Recall Bell at it." Pip announces Returnball; the camera looks at it and back.
-  - Afterwards: Pudding stops chasing and lies by his ball; new lines (Ives and Bram late, "several somethings"; Quill, a sixth rule chalked and rubbed out; Hob; Tuck held the bunting). Returnball stays up (S29, optional). Mabel's tin can be woken.
+  - Afterwards: Pudding stops chasing and lies by his ball; new lines (Ives and Bram late, "several somethings"; Quill, a sixth rule chalked and rubbed out; Hob; Tuck held the bunting). Returnball stays up (secret S29, optional). Mabel's tin can be woken.
   - These are the first strong clues to the first big reveal (the Makers): intended, not continuity errors.
 - **QA notes:** town.test checks that only the newest turn's lines are said (a line from three Houses back is never said late), that each new line fits the box in three pages or fewer, and the stillness steps (Hob at 3, Pudding at 4). The pin for "Home to Hollowell: it is the Knotting Festival." points at the town (96,60) (polish2).
 
@@ -55,7 +55,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 
 ### Meadowfold (block 1,2; src/43_meadowfold.js; tests/meadowfold.test.mjs; legs.mjs LEG1-LEG3)
 
-**Overview.** Fields south of town: Pip's pen and her three sheep, the windmill, the Old Fold, the Tidyhouse on a rise (door 108,92), the canyon road west to Kilnridge (blocked by a boulder), the river and the broken bridge east to Millwater. Nibblers wander (1 HP). Signs: "MEADOWFOLD. Mind the sheep. The sheep mind you."; "East: the Tidyhouse. (Please wipe your feet.) Further east: the old bridge to Millwater."; "West: Canyon Road, to Kilnridge."; "BRIDGE OUT. Hook on, if you have a hook." Rest spot at (102,95). Save states S03, S08.
+**Overview.** Fields south of town: Pip's pen and her three sheep, the windmill, the Old Fold, the Tidyhouse on a rise (door 108,92), the canyon road west to Kilnridge (blocked by a boulder), the river and the broken bridge east to Millwater. Nibblers wander (1 HP). Signs: "MEADOWFOLD. Mind the sheep. The sheep mind you."; "East: the Tidyhouse. (Please wipe your feet.) Further east: the old bridge to Millwater."; "West: Canyon Road, to Kilnridge."; "BRIDGE OUT. Hook on, if you have a hook." Rest spot at (102,95). Save states T03, T08.
 
 - **To the Tidyhouse (before Knot 1):** south road from town (LEG1 walks to (95,98)), east to the door (108,93), up into it. No gate.
 - **Sheep** (Pip's flock): marked to their spots; walking up on one drives it on ahead a step at a time; left alone it ambles home the way it went (meadowfold.test). Pip (77,106): "Same three spots, every day, forever."
@@ -85,7 +85,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 
 ### Kilnridge and the canyon road (block 0,2; src/46_kilnridge.js; tests/kilnridge.test.mjs; LEG2)
 
-**Overview.** Red clay canyons and mesas west of Meadowfold. Vents (a vent fires whatever sits in its mouth along its line; their wet clay mouths hold what lands in them whole); wet clay holds what's thrown into it; Crocks (walking pots) wander. The Kiln is in the Kiln Mesa; its door (22,93) is behind a forecourt gate. Save states S09 (through the pass), S13 (after Knot 2).
+**Overview.** Red clay canyons and mesas west of Meadowfold. Vents (a vent fires whatever sits in its mouth along its line; their wet clay mouths hold what lands in them whole); wet clay holds what's thrown into it; Crocks (walking pots) wander. The Kiln is in the Kiln Mesa; its door (22,93) is behind a forecourt gate. Save states T09 (through the pass), T13 (after Knot 2).
 
 #### The two old vents on the road in (a demonstration, no reward)
 - Two vents four steps apart (40,101) and (44,101) throw a pot back and forth: it comes down whole in the other's wet mouth each time and is held there (kilnridge.test: "40,21 -> 44,21 -> 40,21"). This shows, without telling, that a pot can land in a vent's mouth and be fired on (finding 40: the blind solver's round B asked for it to be shown).
@@ -104,7 +104,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 - The Firing Ground (pit 11-28, 108-114): a Heart Patch; Bram's first pot.
 - The sleeping vent (14,94) and the Kiln Mesa's chimney: the Recall Bell; 50 buttons.
 - The clay dam in the slot (60,96): the Needle; a Heart Patch.
-- S20, the hawk's nest: a pot carried down past it and broken at the bottom; a Heart Patch.
+- Secret S20, the hawk's nest: a pot carried down past it and broken at the bottom; a Heart Patch.
 - Linnet's urn at the end of the crevice: knocked from afar; note 3.
 - The high mesa overlooking Larkspur (a later, one-way drop).
 
@@ -112,7 +112,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 
 ### Millwater (block 2,2; src/48_millwater.js, src/47_water_kit.js; tests/millwater.test.mjs, heights.test.mjs; LEG3-LEG4)
 
-**Overview.** The Reaches: a big lake in the north half, Dad's mill on its south shore, reeds, piers, the outlet river running south over the falls, and the far bank (Millrace Falls, reached only by water) with the Millrace door (175,105). People: Dad (Ambrose) by his mill (157,102), Fen cutting reeds, Wick at his pier (145,97). Sign at the road in: "MILLWATER. The Reaches. (East: the falls, and the Millrace above them. Ferry at the end of the road.)" Rest spots (137,104) and (181,107). Save states S14 (Millrace Falls, outside), S18 (after Knot 3).
+**Overview.** The Reaches: a big lake in the north half, Dad's mill on its south shore, reeds, piers, the outlet river running south over the falls, and the far bank (Millrace Falls, reached only by water) with the Millrace door (175,105). People: Dad (Ambrose) by his mill (157,102), Fen cutting reeds, Wick at his pier (145,97). Sign at the road in: "MILLWATER. The Reaches. (East: the falls, and the Millrace above them. Ferry at the end of the road.)" Rest spots (137,104) and (181,107). Save states T14 (Millrace Falls, outside), T18 (after Knot 3).
 
 - **Dad (main-path lines):** the first time: "Two Knots already!... The Millrace is over the river, above the falls. The ferry'll take you; it goes over and comes back on its own, like everything else round here." Then hints in his way ("Things in the water drift off, and come back the long way, slower against the current.", "I'm not allowed to help, you know. Wander rules. But if I WERE allowed, I'd say: ride it there, ride it back."). After Knot 3 he is proud ("The mill's been grinding sweeter since you came out of the Millrace.").
 
@@ -130,7 +130,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 - **QA notes:** no raft gets alongside the far isle (review_opt "new 3"). The shallows round the lake run in bands, never an isolated square (millwater.test).
 
 #### Optional things in Millwater (details in 50_optional.md)
-- S19 behind the falls (171,110): ride a float down the east side of the river (Paddle) into a hidden pool; a chest opened from the float.
+- Secret S19, behind the falls (171,110): ride a float down the east side of the river (Paddle) into a hidden pool; a chest opened from the float.
 - The basin below the falls (172,114): ride over the falls; 50 buttons and Linnet's bottle.
 - Heron Rock (177-181, 91-95): reel a barrel ashore, set it out of the line, hook its empty mark; a Heart Patch; back by the post (178,99).
 - Wick's ducks (Crossbar), the old mill pond (Bedroll), the Gulls' Rock (Needle): later tools.
@@ -139,7 +139,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 
 ### The North Shore, the Cliff Stair and Belfry Heights (src/55_heights.js; tests/heights.test.mjs, heights_crags.test.mjs; LEG4)
 
-**Overview.** From the lake's north shore (166-172, 80-82; sign at (172,82): "THE CLIFF STAIR. Up to Belfry Heights.") a ravine climbs north up the east side of the Hushwood block (168-174, 40-79), walled off from Hushwood. At its top (171,38) Belfry Heights: windswept cliffs in terraces, each a level higher: terrace 1 (around y 30-37), the Bluster ledge (y 20-27), terrace 3 with a chasm (around y 11-17), the Belfry on top (door 158,7). Sign: "BELFRY HEIGHTS. Mind the wind. Mind the drop. Mind your mother." People: Brindle the goatherd on terrace 1, Mum (Tess) by the Belfry door (161,8). Rest spots (174,33), (161,13). Save state S19 (top of the Cliff Stair).
+**Overview.** From the lake's north shore (166-172, 80-82; sign at (172,82): "THE CLIFF STAIR. Up to Belfry Heights.") a ravine climbs north up the east side of the Hushwood block (168-174, 40-79), walled off from Hushwood. At its top (171,38) Belfry Heights: windswept cliffs in terraces, each a level higher: terrace 1 (around y 30-37), the Bluster ledge (y 20-27), terrace 3 with a chasm (around y 11-17), the Belfry on top (door 158,7). Sign: "BELFRY HEIGHTS. Mind the wind. Mind the drop. Mind your mother." People: Brindle the goatherd on terrace 1, Mum (Tess) by the Belfry door (161,8). Rest spots (174,33), (161,13). Save states T19 (top of the Cliff Stair), T23 (outside the Belfry after Knot 4).
 
 #### The shrine boulder on the first stair
 - **Idea:** a sleeper goes home at a ring; a shrine bell rings like any bell.
@@ -160,7 +160,7 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 - **Mum:** by the door. Her lines are in her own manner (a "bairn" here and there).
 
 #### After Knot 4
-- The Belfry's exit lets Wren out on the Heights; the goal is "Home to Hollowell: it is the Knotting Festival." The way home is the way up (the Cliff Stair, the lake by raft, Millwater, the ferry or bridge, Meadowfold, the south road) unless a later shortcut is open. S23 is saved back in Hollowell.
+- The Belfry's exit lets Wren out on the Heights; the goal is "Home to Hollowell: it is the Knotting Festival." The way home is the way up (the Cliff Stair, the lake by raft, Millwater, the ferry or bridge, Meadowfold, the south road) unless a later shortcut is open. T23 is saved here, just outside the Belfry, with that goal: the walk home comes before the festival.
 
 #### Optional things on the Heights (details in 50_optional.md)
 - The little cave on terrace 1 (157,28): a boulder asleep in its mouth, out of the shrine bell's reach: the Recall Bell (after the Belfry); a Heart Patch.
@@ -188,13 +188,13 @@ S01 (Wren's room, new game), S02 (the square after the ceremony), S03 (Meadowfol
 
 ### Optional activities passed on the way (one line each; details in 50_optional.md)
 - Miss Quill's quiz (school): 5 buttons, `quiz1`.
-- Budging every townsperson (S01).
+- Budging every townsperson (secret S01).
 - The turned portrait at Gran's (Linnet's note 1; the Gloves).
-- The kids' Housekeeper game round Otto's chalk X (S12; after Knot 1; the playground badge).
-- The Tidiness Trials in the Inn's attic (S28; after Knot 1): three timed rooms, buttons, a Heart Patch, Ives's teal scarf.
+- The kids' Housekeeper game round Otto's chalk X (secret S12; after Knot 1; the playground badge).
+- The Tidiness Trials in the Inn's attic (secret S28; after Knot 1): three timed rooms, buttons, a Heart Patch, Ives's teal scarf.
 - The town's favours (the Guild's crates after Knot 1; the kite after Knot 2; Mabel's tin after the Bell; Jory's back room and Rosa's saucer later).
 - Thimble's Heart Patch (120 buttons) and the Hook pouch (after Knot 2).
-- Returnball (S29; after Knot 4): carry the ball through all five rings, let it go; five on its way home wins Pip's Heart Patch. A throw cut short by leaving town scores nothing next time (review_d4).
+- Returnball (secret S29; after Knot 4): carry the ball through all five rings, let it go; five on its way home wins Pip's Heart Patch. A throw cut short by leaving town scores nothing next time (review_d4).
 - Every Heart Patch and Linnet note listed above under its region.
 
 ### Known accepted behaviour in these regions

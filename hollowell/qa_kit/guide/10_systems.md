@@ -168,7 +168,7 @@ home along its trail and is a creature again the next time the place is built.
 - **Hearts**: Wren starts with 3. +1 for each boss's Heartstitch, +1 for every 4 Heart Patches (the optional-content
   chapter lists every patch). Shown in half hearts, up to 10 a row. Expected count at any point = 3 + Heartstitches
   taken + patches / 4. (The catalogue's main saves hold exactly that: the run that made them took each beaten boss's
-  Heartstitch and no Heart Patches, so S01-S58 have 3 + bosses beaten, 11 at the end; it took no damage, so their
+  Heartstitch and no Heart Patches, so T01-T58 have 3 + bosses beaten, 11 at the end; it took no damage, so their
   hearts are full.)
 - **Buttons**: money (shops, favours).
 - **Sleepers**: things "tied off where they lie": they can't be pushed, gripped, lifted, hooked or stitched (each says it
@@ -221,7 +221,7 @@ since (straight to it if a bed had been her mark meanwhile). From another area: 
 the way") and where an area forbids it. Falls home onto her own Bedroll or bed don't hurt, so falls become travel. Laid
 on a float, it goes where the float goes; if the float sinks or a board gives way under it, it turns up rolled in her pack.
 Snorelings count it as a bed. The Bedroll stays where it was last laid, across areas and acts (in the catalogue it lies
-in the Marionette Hall from S31 to S56, then on the Great Spool's Night Ferry raft).
+in the Marionette Hall from T31 to T56, then on the Great Spool's Night Ferry raft).
 
 **4.6 Crossbar** (House 6, the Marionette Hall). Press the tool at a puppet in sight (within 8 tiles; indoors in the same
 room with a clear line, little holes in walls allowed; outdoors any line) to take its strings. Wren stands still; the
@@ -283,7 +283,7 @@ wheel, the Drift's mill); the Shears and the Pull (the Spool's top).
 **HUD** (hidden during scenes):
 - Top left: a little red spool (Wren's thread; it spins during a flight home) and the hearts, on a soft dark backing.
   After her thread is cut (`cut_self`), the spool and the hearts come undone and drift away while she's told so, and are
-  never shown again: from S51 on, and after the ending, there are no hearts on screen. Intended, not a defect.
+  never shown again: from T51 on, and after the ending, there are no hearts on screen. Intended, not a defect.
 - Top right: the buttons; the tool in hand in a box with its key under it; in a House with keys or locks, the key count
   (and the Pattern's icon once owned). With the Needle, its three stitch slots.
 - Each corner fades when Wren or anything that matters (a thing, a chest, a creature) is under it.
@@ -371,7 +371,7 @@ was dragged in the Pull), the Needle's stitches, the Knots untied and great thre
 - Outdoors and in buildings: exactly where it was saved.
 - In a House: at Wren's mark, i.e. the doorway she came into that room by, nudged out of anything standing there. If her
   mark was a bed she lay down in, at the bed. If the Bedroll lay in that House as her mark, beside the Bedroll, which may
-  be another room (the catalogue says so: S26, S27, S31, S32, S57). A Bedroll laid on a float goes back with the float to
+  be another room (the catalogue says so: T26, T27, T31, T32, T57). A Bedroll laid on a float goes back with the float to
   the float's home when the place is rebuilt: the load starts on the float there, not where it was when saved
   (src/58_bedroll_kit.js). The Great Spool's Night Ferry: a save in the bedroom west of the channel (where only the ferry
   reaches) starts east of the channel by the lever (src/75_greatspool.js).
