@@ -272,7 +272,7 @@ test("the Needle: its first notice keeps clear of the thing and where it could g
     assert.ok(pot && N.able(pot), 'the weight below the door');
     HW.press('tool', 1); HW.step(2);
     assert.ok(N.st, 'choosing');
-    const t = UI.toasts.find(q => /Arrows walk the needle/.test(q.s));
+    const t = UI.toasts.find(q => /Arrows walk the Needle/.test(q.s));
     assert.ok(t && !t.wait, 'the first notice');
     HW.step(40);
     const r = panelsUp(HW).find(q => q);

@@ -51,7 +51,7 @@ const Bedroll = {
         Sfx.play('lay'); Fx.poof(tx * T + 8, ty * T + 10);
         Stats.count('bedroll:lay');
         if (!Progress.flag('bedroll_laid')) { Progress.set('bedroll_laid'); UI.toast('Bedroll laid. This is home now. (Hold [tool] to come back to it.)', 200); }
-        else if (moved) UI.toast('Bedroll laid here.', 70);
+        else if (moved && Stats.c['bedroll:lay'] <= 4) UI.toast('Bedroll laid here.', 70);     /* (then quiet: it's there to see) */
     },
     rollUp(p) {
         if (this.sleeper) { UI.toast("Somebody's fast asleep on your Bedroll."); return; }
@@ -61,7 +61,8 @@ const Bedroll = {
            walk here from there: like any thread that jumps, a flight home along it goes straight over whatever's between):
            shown a moment, so a fall that flies her through a wall to the door is plainly the thread, not a slip */
         this.snapT = 110;
-        Sfx.play('lift'); Sfx.play('twang', 0.5); UI.toast('Bedroll rolled up.', 60);
+        Sfx.play('lift'); Sfx.play('twang', 0.5);
+        Stats.count('bedroll:roll'); if (Stats.c['bedroll:roll'] <= 3) UI.toast('Bedroll rolled up.', 60);     /* (then quiet: it's gone from the floor) */
     },
     /* it's gone somewhere it can't stay (a board gave way under it, its float sank): back in Wren's pack */
     lost(why) {
@@ -291,7 +292,7 @@ SPAWN.bed = (tx, ty, p = {}) => {
             pl.trace = [[pl.tx, pl.ty]];
             Fx.text(pl.x, pl.y - 20, 'z z z', '#d8c8f8');
             Stats.count('beds');
-            UI.toast('This bed is your mark now.', 90);
+            UI.toast(firstTime('bedmark') ? 'This bed is your mark now.' : 'Your mark now.', 90);
         });
         return true;
     };

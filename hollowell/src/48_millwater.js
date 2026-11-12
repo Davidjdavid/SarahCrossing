@@ -485,7 +485,7 @@ const MILL_OWED = {
         };
         if (Inv.items.mwring && !Progress.flag('mw_ringHome')) return function* () {
             Progress.set('mw_ringHome'); delete Inv.items.mwring;
-            yield* say('ambrose', "{surprised}Where did you... Oh. Oh, that's the ring. I rowed your mum out to the middle of the lake to ask her, and I was shaking so hard I dropped it over the side. A gull had it before it ever touched the water.");
+            yield* say('ambrose', "{surprised}Oh. Oh, that's the ring. I rowed your mum out on the lake to ask her, and I was shaking so hard I dropped it over the side.");
             yield* say('ambrose', "{happy}She said yes anyway. Said a ring's only a thing, and things come home. ...Took its time, didn't it?");
             yield* say('ambrose', "I'll give it back to her tonight. Thank you, love. Don't tell her I cried.");
         };

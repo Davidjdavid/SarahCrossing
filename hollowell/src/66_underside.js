@@ -213,7 +213,7 @@ const Logbook = {
             bram: `${f.room}: ${f.roomMins} min! HA! Took me longer to build. Not by much.`,
             ambrose: `Spent ${f.roomMins} min in ${f.room}. Kept dry, mostly. Proud of you, love.`,
             tess: `${f.room}: ${f.roomMins} min. Rang true in the end. They always do, the good ones.`,
-            mallow: `${f.room}: ${f.roomMins} min. Patient. Didn't fall asleep once. *I* did.`,
+            mallow: `${f.room}: ${f.roomMins} min. Patient. Didn't fall asleep once. I did.`,
             jory: `${f.room}: ${f.roomMins} min! Applause from the wings (mine). Encore.`,
         })[who]);
         if (!Settings.hints && f.nudges === 0) out.push('The Wanderer asked us not to help. We respected that. (We were proud.)');
@@ -243,11 +243,9 @@ UNDER_TALK.gundry = function* () {
     }
     if (!Progress.flag('met_gundry_below')) {
         Progress.set('met_gundry_below');
-        yield* say('gundry', "So. You found the stairs. Gundry. You know me: I keep the Well, up top. Oil the winch. Down here I keep the Guild. The Well's the easy part.");
-        yield* say('gundry', "Every Maker you've met learnt the trade down here, in the Spoolworks, where every thread in the valley's wound and weighted. A House is PLAYED from up top. It's WORKED from down here.");
-        yield* say('gundry', "Trouble is, the Spoolworks has got itself in a tangle. A proper one. Forty years I've been meaning to sort it.");
-        yield* say('gundry', "You want to learn to make, Wanderer? Learn how it works first. Through the big door. Every mark up top has its cord down below: tug one, tie one off, see what happens.");
-        yield* say('gundry', "And mind the hound. He was a good dog, once. Then somebody wound him too tight.");
+        yield* say('gundry', "So. You found the stairs. Up top I keep the Well; down here, the Guild. Every Maker you've met learnt the trade here, in the Spoolworks.");
+        yield* say('gundry', "A House is PLAYED from up top. It's WORKED from down here: every mark up there has its cord below. Tug one, tie one off, see what happens.");
+        yield* say('gundry', "Through the big door. It's got itself in a tangle. And mind the hound: he was a good dog once, till somebody wound him too tight.");
         Progress.setGoal('The Spoolworks: through the big door in the Guild Hall, under the Inn.');
         return;
     }
@@ -257,8 +255,8 @@ const MAKER_LINES = {
     ives: ["Welcome to the workshop, love. Shoes OFF. ...No, I'm joking. Mostly.", "Every crate in the Tidyhouse has a little brass ring under it, and every ring a thread, and I know every one by name.", "Read the log, if you like. I wrote it neat."],
     bram: ["HA! The Wanderer, in the workshop! Mind the clay, it's everywhere. It's ALWAYS everywhere.", "The Kilnwyrm's in bits over there. Took three winters. Tail still sticks.", "My log's honest. Brutally honest. Read it and weep! Or laugh. Laugh's better."],
     ambrose: ["There you are. Hello, love. Mind the puddle, that's mine.", "Grindle's in the millpond still. I go and give him a polish now and then.", "Your mum and I took turns at the sluices, every time you went near the Millrace. Best summer we've had."],
-    tess: ["Hello, my darling. Brass dust on everything. Sorry.", "Every bell in the Belfry I tuned myself. The Tollgrim's voice was your dad's idea. He does a good gargoyle.", "Up top, you rang the bells. Down here, we were pulling the ropes. Teamwork!"],
-    mallow: ["Yaaawn. Hello. Is it morning? It's always morning somewhere. Or night.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
+    tess: ["Hello, my darling. Brass dust on everything. Sorry.", "Every bell in the Belfry I tuned myself. Tollgrim's voice was your dad's idea. He does a good gargoyle.", "Up top, you rang the bells. Down here, we were pulling the ropes. Teamwork!"],
+    mallow: ["Yaaawn. Hello. Is it morning? Down here I can never tell.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
     jory: ["Welcome backstage! Well. Underneath-stage.", "Captain Tin's having a lie down. He's earned it.", "Have a look at my log! I've drawn the bits I liked. Mostly you falling over. Lovingly!"],
 };
 for (const who of Object.keys(MAKER_LINES)) UNDER_TALK[who] = function* () { yield* say(who, cycle('under_' + who, MAKER_LINES[who])); };

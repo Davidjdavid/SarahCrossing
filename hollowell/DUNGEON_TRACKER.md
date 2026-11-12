@@ -448,7 +448,9 @@ in tells you where it went). Every thread in the valley runs up to the drum, and
   the way the threads on the floor run, a tile at a time, into the wall of thread at the head of the room (the drum's
   face); the drum drops it back onto its own place the moment that's clear (while Wren or anything else is on it, it
   hangs over it, waiting: every kind of thing, and the crates the top room's drum spits back onto their shelves too; as
-  anywhere, nothing that pops home lands on Wren). Wound across its own place on the way, it catches there.
+  anywhere, nothing that pops home lands on Wren, nor walls her in: landing, it would leave her nowhere to step or shut
+  her off from every way out of the room she can walk to now, so it waits till she's out). Wound across its own place on
+  the way, it catches there.
 - The rest is the Return's: held things wait (carried, gripped, paddled, on the Crossbar); on the way it shoves lighter
   things a tile on, waits behind anything as heavy or fixed (a pillar, a post, a sleeper; Wren, unless it's heavy, which
   shoves her); it presses plates in passing; it hangs on its thread over holes and water; a float carries whoever's

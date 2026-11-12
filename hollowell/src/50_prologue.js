@@ -33,7 +33,7 @@ TALK.gran = function* (npc) {
         if (!Progress.flag('talkedGran')) {
             yield* say('gran', [
                 "{happy}There you are. Let me look at you. Scarf on straight, good. Boots? Good.",
-                "Every Wanderer before you walked out of a house just like this one, on a morning just like this one. And every one of them came home. The Way always brings you home.",
+                "Every Wanderer before you walked out of a house just like this one, on a morning just like this one. And every one of them came home.",
                 "{happy}Now off to the Well with you. I'll be right behind.",
             ]);
             Progress.set('talkedGran');

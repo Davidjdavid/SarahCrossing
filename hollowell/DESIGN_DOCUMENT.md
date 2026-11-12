@@ -86,7 +86,8 @@ comes and none can stop it." Town motto, carved on the Well: **EVERYTHING IN ITS
    townsfolk, most enemies), heavy (stone blocks, boulders, statues), fixed. A heavy returning block shoves
    the player, including into a pit.
 5. **Falls and sinks go home at once.** A marked thing that drops into a pit or sinks in deep water is
-   snapped straight home (it reappears at its mark with a pop). So marked blocks can't fill pits.
+   snapped straight home (it reappears at its mark with a pop). So marked blocks can't fill pits. (It never pops down on
+   Wren, nor so as to wall her in where she couldn't get out: it waits over its mark, glinting, till she's clear.)
 6. **Breaking doesn't stop it.** A marked thing that breaks flies home in pieces along its trace, the pieces
    striking whatever they meet at head height, and reassembles at its mark.
 7. **Strays stay put.** Unmarked things (rare early on) never return: they fill pits for good, stay

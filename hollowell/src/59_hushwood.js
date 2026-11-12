@@ -159,8 +159,8 @@ PEOPLE_DEF.hettie = { name: 'Hettie', col: '#c8a868', look: { body: 'adult', hai
 TALK.hettie = function* () {
     if (!Progress.flag('met:hettie')) {
         Progress.set('met:hettie');
-        yield* say('hettie', "Well! A person! Awake! You'll be the Wanderer. Hettie. I pick mushrooms. Or I did, until that great lump fell asleep across the road and I couldn't get home.");
-        yield* say('hettie', "That was... oh, a while ago now. I made the best of it. Pitched my tent. It's very quiet here. Everything sleeps. You get used to it. You get very used to it.");
+        yield* say('hettie', "Well! A person! Awake! Hettie. I pick mushrooms. Or I did, till that great lump fell asleep across the road and I couldn't get home.");
+        yield* say('hettie', "That was... oh, a while ago now. Pitched my tent. It's very quiet here. Everything sleeps. You get used to it. You get very used to it.");
         return;
     }
     yield* say('hettie', cycle('hettie', [
@@ -200,7 +200,7 @@ class Giant extends Ent {
                 if (!Progress.flag('giant_seen')) { Progress.set('giant_seen'); yield* say(null, 'A giant, fast asleep across the road. He is covered in moss, and ferns, and a few small mushrooms. Each snore lifts the moss on his back like a tide.'); }
                 yield* say(null, cycle('giantpush', ["You push. You might as well push a hill.", "You shout HELLO right in his ear. He smiles in his sleep.", "You tickle his nose with a fern. He sneezes, and a bird you hadn't seen flies out of his beard."]));
                 if (Inv.has('bell')) yield* say(null, '(You have the Recall Bell. A ring wakes anything.)');
-            } else yield* say(null, cycle('giantbed', ['"Mm. Is it morning? ...No. Good."', '"Thank you for waking me, little Wanderer. I was in the way. I\'m always in the way. Mm."', '"Zzzzz."', '"I dreamed I was a mountain. Then I dreamed I was a road. Then you rang."']));
+            } else yield* say(null, cycle('giantbed', ['"Mm. Is it morning? ...No. Good."', '"Thank you for waking me, little Wanderer. I was in the way. I\'m always in the way. Mm."', '"Zzzzz."', '"I dreamt I was a mountain. Then I dreamt I was a road. Then you rang."']));
         });
         return true;
     }

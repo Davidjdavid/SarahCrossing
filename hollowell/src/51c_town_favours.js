@@ -39,7 +39,7 @@ OW.blocks['1,1'].ents.push(
 FAVOUR_TALK.thimble = function* () {
     if (Progress.flag('fav_cratesHome') && !Progress.flag('fav_crates')) {
         Progress.set('fav_crates'); Stats.count('favour:crates');
-        yield* say('thimble', "My crates! Both home, and the lane clear as a whistle! How ever did you- no, don't tell me, I'd only fret. Here, thirty buttons for your trouble.");
+        yield* say('thimble', "My crates! Both home, and the lane clear as a whistle! How ever did you— no, don't tell me, I'd only fret. Here, thirty buttons for your trouble.");
         Favours.buttons(30);
         yield* say('thimble', "And a ball of string. The good stuff: the very same the Guild buys by the mile. Nobody's ever managed to snap it, and I've watched people try.");
         yield* Story.getItem('string')();
@@ -193,7 +193,7 @@ SPAWN.tuckmarble = (tx, ty) => {
     pr.interact = () => {
         Script.run(function* () {
             yield* say(null, Progress.flag('great_pull') && !Progress.flag('unwound')
-                ? "Tuck's marble, where he left it by the Well. Every marked thing in the square is straining toward the Well's mouth; the marble just sits. Nothing's pulling it. Nothing ever did."
+                ? "Tuck's marble, where he left it by the Well. Every marked thing in the square is straining towards the Well's mouth; the marble just sits. Nothing's pulling it. Nothing ever did."
                 : Progress.flag('reveal2') ? "Tuck's marble, by the Well. Everybody in town has a thread now, if you look. The marble hasn't. It's only where Tuck put it."
                     : "Tuck's odd marble, exactly where he left it this time. Nothing tidies it away. Nothing pulls it home.");
         });
@@ -352,7 +352,7 @@ FAVOUR_TALK.rosa = function* () {
     }
     if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
         Inv.hp = Inv.maxHp; Sfx.play('heart');
-        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
+        yield* say('rosa', saucerPlaced() ? cycle('rosa_bun', ["Bun, love. On the house. Always.", "Here. Still warm. Mind your fingers.", "Another? Course, love. Sit and eat it."]) : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
         return true;
     }
     if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {

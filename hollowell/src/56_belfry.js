@@ -444,7 +444,7 @@ defHouse({
                 { k: 'lever', x: 2, y: 9, id: 'csLever', once: true, onPull() { Belfry.bridge(this.area, true); } },
                 { k: 'drawbridge', x: 6, y: 9 },
                 { k: 'downpipe', x: 12, y: 0 },
-                { k: 'sign', x: 18, y: 7, text: "THE CISTERN. The roof lets the rain in and the floor let the cistern out. The draught down the old bell shaft never stops." },
+                { k: 'sign', x: 18, y: 7, text: "THE CISTERN. The roof lets the rain in and the floor lets the cistern out. The draught down the old bell shaft never stops." },
                 { k: 'pot', x: 18, y: 9, id: 'csPot' },
             ],
             nudge: { solved: () => Progress.areaFlag('belfry', 'cs:over') || Progress.areaFlag('belfry', 'door:brBig'), after: 60 * 60 * 3, thing: 'csRaft', say: 'The raft keeps trying to go home, and the gale keeps blowing it back. Its home is just where you want to be.' },

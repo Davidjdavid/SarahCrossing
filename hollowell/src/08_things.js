@@ -272,7 +272,7 @@ class Door extends Ent {
                 Inv.useKey(this.area.def.house);
                 this.openDoor(); return true;
             }
-            UI.toast('Locked. A small key would fit.'); return false;
+            UI.often('Locked. A small key would fit.', 'Locked.'); return false;
         }
         if (this.type === 'big') {
             if (Inv.hasPattern(this.area.def.house)) { this.openDoor(); return true; }

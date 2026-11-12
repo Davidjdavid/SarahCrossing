@@ -75,6 +75,8 @@ const Return = {
     /* a sleeper tied off where it lies: nothing moves it but a ring */
     asleep(e) { return !!(e && e.sleeper && e.tiedOff); },
     sleepLine(e) { return (e && e.pushLine) || "It's fast asleep. It won't budge for anything but a bell."; },
+    /* said when pushed, gripped or lifted: a thing's own words each time; the plain line in full twice, then short */
+    sleepSay(e) { if (e && e.pushLine) UI.toast(e.pushLine); else UI.often(this.sleepLine(e), "It's fast asleep."); },
     held(e) {
         return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
@@ -84,14 +86,45 @@ const Return = {
         if (!p || p.area !== a || p.dead) return false;
         return p.onTile(x, y) || !!(p.state === 'hop' && p.hop && tileOf(p.hop.tx) === x && tileOf(p.hop.ty) === y);
     },
+    /* would it wall Wren in, coming down on its place: leave her nowhere to step, or shut her off from every way out of
+       her room (a doorway in its walls, stairs, a hatch) that she could walk to with its place still clear? Then it
+       waits over its place, as it does while she stands on it, till she's out (a thing at home can block a way; it
+       never shuts her in a dead end) */
+    wallsIn(e) {
+        const a = e.area, p = G.player;
+        if (!p || p.area !== a || p.dead || p.state !== 'normal' || p.ride) return false;
+        const r = a.roomAt(p.tx, p.ty);
+        if (!r || a.roomAt(e.tx, e.ty) !== r) return false;
+        const warps = new Set(a.ents.filter(w => w.kind === 'warp').map(w => key2(w.tx, w.ty)));
+        /* (how many tiles she can walk to, and whether one's a way out: done as soon as one is) */
+        const reach = shut => {
+            const seen = new Set([key2(p.tx, p.ty)]), q = [[p.tx, p.ty]];
+            for (let i = 0; i < q.length && i < 4000; i++) {
+                const [x, y] = q[i];
+                if (x === r.x || y === r.y || x === r.x + r.w - 1 || y === r.y + r.h - 1 || warps.has(key2(x, y))) return { n: seen.size, out: true };
+                for (const d of [UP, RIGHT, DOWN, LEFT]) {
+                    const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                    if (seen.has(k) || a.roomAt(nx, ny) !== r) continue;
+                    const o = a.at(nx, ny); if (o && o.kind === 'hatch') return { n: seen.size, out: true };
+                    if ((shut && nx === e.tx && ny === e.ty) || p.solidAt(nx, ny) || a.kind(nx, ny).pit) continue;
+                    seen.add(k); q.push([nx, ny]);
+                }
+            }
+            return { n: seen.size, out: false };
+        };
+        const then = reach(true);
+        if (then.out) return false;
+        const now = reach(false);
+        return now.out || (then.n === 1 && now.n > 1);
+    },
 
     /* one step for a grid thing */
     update(e) {
         const r = e.ret; if (!r || e.removed) return;
         if (e.pendingHome) {
             /* nothing pops home onto Wren, whatever it is (a float too: she isn't riding it): while she's on its place it
-               waits over it, and comes down the moment she steps off */
-            if (!this.wrenOn(e.area, e.tx, e.ty) && (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e)) {
+               waits over it, and comes down the moment she steps off; nor so as to wall her in (wallsIn) */
+            if (!this.wrenOn(e.area, e.tx, e.ty) && (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e) && !this.wallsIn(e)) {
                 e.pendingHome = false; e.area.place(e, e.tx, e.ty);
                 Fx.poof(e.tx * T + 8, e.ty * T + 8); if (e.area === G.map) Sfx.play('pop');
                 if (e.onHome) e.onHome();

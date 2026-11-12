@@ -272,7 +272,9 @@ const Capstone = {
         Script.run(function* () {
             yield 30;
             if (how === 'hoop') Sfx.play('knot');
-            yield* say('tuck', how === 'stuck' ? "This one doesn't GO anywhere. I'm going OUT." : how === 'called' ? 'Is it tea? Is it CAKE?' : f.n === 3 ? 'I DID IT! That was the BEST one. Who made it?' : 'I DID IT! Did you see? ALL by MYSELF!');
+            /* (it can be played over and over: what he says at the hoop goes round a few ways) */
+            const k = Stats.c['cap:hoop'] || 0, hoop = f.n === 3 ? ['I DID IT! That was the BEST one. Who made it?', 'The BEST one AGAIN! Who MAKES these?'] : ['I DID IT! Did you see? ALL by MYSELF!', 'AGAIN! I did it AGAIN!', 'Easy. I could do that one with my EYES shut.'];
+            yield* say('tuck', how === 'stuck' ? "This one doesn't GO anywhere. I'm going OUT." : how === 'called' ? 'Is it tea? Is it CAKE?' : hoop[k % hoop.length]);
             const first = !Progress.flag(CAP_ID);
             Progress.set(CAP_ID);
             const best = CAP_ID + '_ahas';

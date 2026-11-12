@@ -78,7 +78,7 @@ defHouse({
                 { k: 'door', x: 19, y: 5, type: 'lock', id: 'shEastLock' },
                 { k: 'chest', x: 13, y: 1, item: 'heartpatch', id: 'shPatch' },
                 { k: 'stray', x: 6, y: 7, id: 'shS1' }, { k: 'stray', x: 15, y: 7, id: 'shS2' },
-                { k: 'sign', x: 9, y: 8, text: 'Up the stairs: THE PILE. (Two lamps to light first, one each side of the house. Then it\'s all yours. -L.)' },
+                { k: 'sign', x: 9, y: 8, text: 'Up the stairs: THE PILE. (Two lamps to light first, one each side of the House. Then it\'s all yours. -L.)' },
                 { k: 'lamp', x: 4, y: 1, sig: 'shWash', look: 'lantern' }, { k: 'lamp', x: 17, y: 1, sig: 'shMend', look: 'lantern' },
             ],
         },
@@ -140,7 +140,7 @@ ITEM_LINES.bracelet = () => "You found {blue}Linnet's bracelet{/}! Plaited from 
 SPAWN.lamp = (tx, ty, p) => {
     const pr = new Prop(tx, ty, { im: ART.lamp_off, solid: [[0, 0]], oy: -8 });
     pr.draw = (cx, cy) => { const on = Signals.eval(pr.area, p.sig); Gfx.img(on ? ART.lamp_on : ART.lamp_off, tx * T - cx, ty * T - cy - 8); if (on && (G.t >> 4) % 2) Gfx.rect(tx * T - cx + 7, ty * T - cy - 6, 2, 2, '#fff6c0'); };
-    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.eval(pr.area, p.sig) ? 'A lantern, lit from somewhere else in the House.' : 'A lantern, cold. Its wick runs down into the floor, toward one side of the House.'); }); return true; };
+    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.eval(pr.area, p.sig) ? 'A lantern, lit from somewhere else in the House.' : 'A lantern, cold. Its wick runs down into the floor, towards one side of the House.'); }); return true; };
     pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
     return pr;
 };
@@ -265,7 +265,7 @@ const StrayHouse = {
     *pileIntro(pile) {
         yield 20;
         yield* say(null, "In the middle of the room, a heap of things: a pram wheel, a kettle, a coat stand, a scarecrow's hat, a hundred odd shoes. Two eyes open in it.");
-        yield* say(null, "Everything nobody missed. It shuffles toward you, the whole heap of it, as if it wanted very badly to be somebody's.");
+        yield* say(null, "Everything nobody missed. It shuffles towards you, the whole heap of it, as if it wanted very badly to be somebody's.");
         Progress.setGoal('The Pile can\'t be pushed, and it\'s too wide for narrow places. Box it in, all four sides.');
     },
     *pileDown(pile) {

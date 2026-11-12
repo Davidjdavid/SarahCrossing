@@ -11,7 +11,7 @@ const TOWN_LINES = {
         gundry: ["Heard your Knot go, in the night. The old winch gave a turn all on its own. Wind, I expect."],
         rosa: ["One Knot! Tuck's drawn you a twelfth picture. You're holding a cupboard over your head, and the cupboard's crying."],
         arlo: ["One Knot, eh? I felt it in my knees. Like weather coming in. Funny old things, knees."],
-        mabel: ["Back from the Tidyhouse, are you? Nothing in there ever goes missing, they say. Lucky old house."],
+        mabel: ["Back from the Tidyhouse, are you? Nothing in there ever goes missing, they say. Lucky old House."],
     },
     d2: {
         bram: ["The Kiln! HA! Hot, was it? And the big fellow, the serpent? Did his tail stick? It's always the tail. ...So I'd imagine."],

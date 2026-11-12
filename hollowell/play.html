@@ -1406,6 +1406,8 @@ const Return = {
     /* a sleeper tied off where it lies: nothing moves it but a ring */
     asleep(e) { return !!(e && e.sleeper && e.tiedOff); },
     sleepLine(e) { return (e && e.pushLine) || "It's fast asleep. It won't budge for anything but a bell."; },
+    /* said when pushed, gripped or lifted: a thing's own words each time; the plain line in full twice, then short */
+    sleepSay(e) { if (e && e.pushLine) UI.toast(e.pushLine); else UI.often(this.sleepLine(e), "It's fast asleep."); },
     held(e) {
         return !!(e.heldBy || e.carried || e.tiedOff || e.flying || e.shattered || e.paddled || (e.isHeld && e.isHeld()));
     },
@@ -1415,14 +1417,45 @@ const Return = {
         if (!p || p.area !== a || p.dead) return false;
         return p.onTile(x, y) || !!(p.state === 'hop' && p.hop && tileOf(p.hop.tx) === x && tileOf(p.hop.ty) === y);
     },
+    /* would it wall Wren in, coming down on its place: leave her nowhere to step, or shut her off from every way out of
+       her room (a doorway in its walls, stairs, a hatch) that she could walk to with its place still clear? Then it
+       waits over its place, as it does while she stands on it, till she's out (a thing at home can block a way; it
+       never shuts her in a dead end) */
+    wallsIn(e) {
+        const a = e.area, p = G.player;
+        if (!p || p.area !== a || p.dead || p.state !== 'normal' || p.ride) return false;
+        const r = a.roomAt(p.tx, p.ty);
+        if (!r || a.roomAt(e.tx, e.ty) !== r) return false;
+        const warps = new Set(a.ents.filter(w => w.kind === 'warp').map(w => key2(w.tx, w.ty)));
+        /* (how many tiles she can walk to, and whether one's a way out: done as soon as one is) */
+        const reach = shut => {
+            const seen = new Set([key2(p.tx, p.ty)]), q = [[p.tx, p.ty]];
+            for (let i = 0; i < q.length && i < 4000; i++) {
+                const [x, y] = q[i];
+                if (x === r.x || y === r.y || x === r.x + r.w - 1 || y === r.y + r.h - 1 || warps.has(key2(x, y))) return { n: seen.size, out: true };
+                for (const d of [UP, RIGHT, DOWN, LEFT]) {
+                    const nx = x + DX[d], ny = y + DY[d], k = key2(nx, ny);
+                    if (seen.has(k) || a.roomAt(nx, ny) !== r) continue;
+                    const o = a.at(nx, ny); if (o && o.kind === 'hatch') return { n: seen.size, out: true };
+                    if ((shut && nx === e.tx && ny === e.ty) || p.solidAt(nx, ny) || a.kind(nx, ny).pit) continue;
+                    seen.add(k); q.push([nx, ny]);
+                }
+            }
+            return { n: seen.size, out: false };
+        };
+        const then = reach(true);
+        if (then.out) return false;
+        const now = reach(false);
+        return now.out || (then.n === 1 && now.n > 1);
+    },
 
     /* one step for a grid thing */
     update(e) {
         const r = e.ret; if (!r || e.removed) return;
         if (e.pendingHome) {
             /* nothing pops home onto Wren, whatever it is (a float too: she isn't riding it): while she's on its place it
-               waits over it, and comes down the moment she steps off */
-            if (!this.wrenOn(e.area, e.tx, e.ty) && (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e)) {
+               waits over it, and comes down the moment she steps off; nor so as to wall her in (wallsIn) */
+            if (!this.wrenOn(e.area, e.tx, e.ty) && (e.area.freeForThing(e.tx, e.ty, e) || e.area.at(e.tx, e.ty) === e) && !this.wallsIn(e)) {
                 e.pendingHome = false; e.area.place(e, e.tx, e.ty);
                 Fx.poof(e.tx * T + 8, e.ty * T + 8); if (e.area === G.map) Sfx.play('pop');
                 if (e.onHome) e.onHome();
@@ -1976,7 +2009,7 @@ class Door extends Ent {
                 Inv.useKey(this.area.def.house);
                 this.openDoor(); return true;
             }
-            UI.toast('Locked. A small key would fit.'); return false;
+            UI.often('Locked. A small key would fit.', 'Locked.'); return false;
         }
         if (this.type === 'big') {
             if (Inv.hasPattern(this.area.def.house)) { this.openDoor(); return true; }
@@ -2819,7 +2852,7 @@ class Player extends Ent {
         if (this.pushT >= need) {
             this.pushT = 0;
             if (o.onPushed && o.onPushed(this, d) === false) return;
-            if (o.noPush || Return.asleep(o)) { if (o.pushLine || Return.asleep(o)) UI.toast(Return.sleepLine(o)); return; }
+            if (o.noPush || Return.asleep(o)) { if (o.pushLine || Return.asleep(o)) Return.sleepSay(o); return; }
             if (!o.push(d, o.weight >= WEIGHT.heavy ? 20 : 16)) { if (o.ret) Sfx.play('push'); }
             else Stats.count('pushes');
         }
@@ -2829,7 +2862,7 @@ class Player extends Ent {
     tryGrip() {
         const o = this.thingInFront();
         if (!o || o.fixed || o.noGrip) return;
-        if (Return.asleep(o)) { if (Input.pressed('act')) UI.toast(Return.sleepLine(o)); return; }
+        if (Return.asleep(o)) { if (Input.pressed('act')) Return.sleepSay(o); return; }
         this.grip = o; o.heldBy = this;
         Sfx.play('click');
     }
@@ -2876,7 +2909,7 @@ class Player extends Ent {
         for (const e of cand) {
             if (e.interact && e.interact(this) !== false) { Stats.count('interactions'); return; }
         }
-        if (o && Return.asleep(o)) { UI.toast(Return.sleepLine(o)); return; }
+        if (o && Return.asleep(o)) { Return.sleepSay(o); return; }
         if (o && o.liftable && !o.mv) return this.lift(o);
         if (o && Inv.has('gloves')) this.tryGrip();
     }
@@ -3931,6 +3964,14 @@ const UI = {
         s = Story.fill(s); if (this.toasts.some(t => t.s === s)) return;
         this.toasts.push({ s, t: 0, dur, focus: opts.focus || null, area: G.map ? G.map.id : null, born: G.t, wait: true });
         this.showNotices();
+    },
+    /* a refusal that comes up again and again: in full the first few times it's shown, then shorter (counted this
+       session, by its words; never a second copy while one is up) */
+    often(full, short, n = 2, dur) {
+        const k = this.saidN || (this.saidN = {}), f = Story.fill(full), s = Story.fill(short);
+        if (this.toasts.some(t => t.s === f || t.s === s)) return;
+        k[f] = (k[f] || 0) + 1;
+        this.toast(k[f] > n ? short : full, dur);
     },
     /* (a scene's words up, or the rest of that scene still going: notices and the place's name wait) */
     held() { return Dialog.active || (this.sceneHold && Script.blocking()); },
@@ -5440,10 +5481,14 @@ const Story = {
                 /* in a House, you come to at its door */
                 const e = AREAS[G.map.id].entry;
                 World.enter(G.map.id, e.x, e.y, { dir: UP });
+                const again = Progress.flag('fainted_in_house');
                 Progress.set('fainted_in_house');
                 p.state = 'normal';
                 yield* fadeIn(30);
-                yield* say(null, 'You come to by the door of the House, with no idea how you got here.');
+                /* (said in full the first time; after that a notice, with no box to press through: a hard fight can take a
+                   good many tries) */
+                if (again) UI.toast('You come to by the door of the House again.', 150);
+                else yield* say(null, 'You come to by the door of the House, with no idea how you got here.');
             } else {
                 World.enter('gran_room', 6, 3, { dir: DOWN });
                 G.player.state = 'sleep'; G.player.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
@@ -5456,8 +5501,9 @@ const Story = {
     },
     *wakeAfterFaint() {
         const n = (Progress.get('faintHome') || 0) + 1; Progress.set('faintHome', n);
-        const lines = FAINT_LINES[Math.min(n, FAINT_LINES.length) - 1];
-        yield* say(null, lines);
+        /* (past the last of them, a notice: the third was said over and over) */
+        if (n > FAINT_LINES.length) { UI.toast('Your own bed again.', 150); return; }
+        yield* say(null, FAINT_LINES[n - 1]);
     },
     /* the fog: you can't go further, it pulls you back */
     fogPull(p) {
@@ -5465,7 +5511,9 @@ const Story = {
             const n = (Progress.get('fogTries') || 0) + 1; Progress.set('fogTries', n);
             p.flyHome();
             yield () => p.state === 'normal';
-            yield* say(null, FOG_LINES[Math.min(n, FOG_LINES.length) - 1]);
+            /* (past the last of them, a notice: the third was said over and over) */
+            if (n > FOG_LINES.length) UI.toast('The fog turns you round again.', 150);
+            else yield* say(null, FOG_LINES[n - 1]);
         });
     },
     /* small keys fly back into their House */
@@ -5473,13 +5521,16 @@ const Story = {
     leaveHouse(house) {
         const k = Inv.keys(house);
         if (k > 0) {
-            if (!Progress.flag('keys_tug')) G.pendingToast = 'The small key in your pocket tugs back toward the House, like a dog on a lead.';
+            if (!Progress.flag('keys_tug')) G.pendingToast = 'The small key in your pocket tugs back towards the House, like a dog on a lead.';
             Progress.set('keys_tug');
         }
     },
 };
 
 const ITEM_LINES = {};     /* id -> () => the line when found */
+/* true the first time it's asked about a thing, and never again (a flag, so it holds across saves): a line said often
+   can be said in full once and shorter after */
+function firstTime(id) { if (Progress.flag('told:' + id)) return false; Progress.set('told:' + id); return true; }
 const ITEM_AFTER = {};     /* id -> function* after the fanfare */
 const FAINT_LINES = [
     "You wake up in your own bed. There's a cup of warm milk on the stool, and Gran's humming downstairs. You must have walked home in your sleep... somehow.",
@@ -10388,8 +10439,8 @@ const Waiting = {
         const p = G.player;
         G.waiting = { t: 0, room: Cam.room };
         p.state = 'sleep'; p.walking = false;
-        UI.toast('You sit down to wait...', 90);
         Stats.count('waited');
+        if (Stats.c.waited <= 3) UI.toast('You sit down to wait...', 90);     /* (then quiet: she sits, and it all speeds up) */
     },
     /* each step: done when the room's things are all home (or something else needs Wren) */
     tick() {
@@ -10406,7 +10457,7 @@ const Waiting = {
         if (home || stuck || anyKey || w.t > this.MAX || Dialog.active || p.area !== a || Cam.room !== w.room) {
             G.waiting = null;
             if (p.state === 'sleep') p.state = 'normal';
-            if (home) UI.toast('Everything in here is back where it belongs.', 120);
+            if (home) UI.toast(Stats.c.waited <= 3 ? 'Everything in here is back where it belongs.' : 'All home.', 120);
             else if (stuck) UI.toast("Some things in here can't get home: something's in their way.", 150);
         }
     },
@@ -10572,7 +10623,7 @@ defHouse({
         },
         /* ---------------- 6 Parlor ---------------- */
         '2,2': {
-            name: 'Parlor',
+            name: 'Parlour',
             rows: [
                 '################,###',
                 '#,,,,,,,,,,,,,,,,,,#',
@@ -11291,11 +11342,11 @@ function initTidyArt() {
     defSprite('keeper_open', open.map(r => r.slice(0, 32).padEnd(32, '.')), Object.assign({}, KL, { K: '#1e3a3a', m: '#e8463c' }));
 }
 CONTENT_INIT.push(initTidyArt);
-ITEM_LINES.plan = () => `You found the {blue}House plan{/}! Every room of ${G.map && G.map.def.name ? G.map.def.name.replace(/^The /, 'the ') : 'the House'}, drawn in a neat hand. (Open the map with [map].)`;
-ITEM_LINES.pattern = () => `You found the {blue}Pattern{/}! A square of ${(PATTERN_CLOTH[G.map && G.map.def.house] || ['teal'])[0]} cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.`;
+ITEM_LINES.plan = () => `You found the {blue}House plan{/}! Every room of ${G.map && G.map.def.name ? G.map.def.name.replace(/^The /, 'the ') : 'the House'}, drawn in a neat hand.` + (firstTime('plan') ? ' (Open the map with [map].)' : '');
+ITEM_LINES.pattern = () => { const c = (PATTERN_CLOTH[G.map && G.map.def.house] || ['teal'])[0]; return firstTime('pattern') ? `You found the {blue}Pattern{/}! A square of ${c} cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.` : `You found the {blue}Pattern{/}! A square of ${c} cloth, stitched to match this House's big door.`; };
 ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold [act] against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
 ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.';
-ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
+ITEM_LINES.key = () => firstTime('key') ? 'A {blue}small key{/}! It opens one locked door in this House.' : 'A {blue}small key{/}!';
 ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0 ? '' : `(${Inv.patches % 4} of 4.)`);
 ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
 
@@ -11921,7 +11972,7 @@ TALK.pip = function* () {
     if (Progress.flag('d2')) { yield* say('pip', cycle('pip2', ["The sheep came home early today. All three, straight to their spots, before I'd even called. Good sheep.", "Did you go up the canyon? Mum says nobody's been up there in ages. She says it like it's a rule.", "I tried to teach the sheep a new spot. They looked at me like I'd said something rude."].concat(extra))); return; }
     if (Progress.flag('d1')) { yield* say('pip', cycle('pip1', ["You came out of the Tidyhouse! Was it clean? I bet it was clean.", "There's a big boulder in the canyon, west of the pen. Been there since before Grandad. Somebody with a good grip could shift it, maybe.", "A Knot! Can I see it? ...It looks like a knot."].concat(extra))); return; }
     yield* firstThen('pip', "I'm Pip. I mind the sheep. Well, the sheep mind themselves, mostly. Wander off, wander back. Same three spots, every day, forever.",
-        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest house in the Hollow. It's always so clean."].concat(extra));
+        ["See that hay bale under the big tree? It got moved in a storm years ago and it never went back. Gives me the shivers.", "Count them every night: same three sheep. Never one more, never one less. Restful, that.", "The Tidyhouse is just east. My mum says it's the oldest House in the Hollow. It's always so clean."].concat(extra));
 };
 BUDGE.pip = 'Pip: "Baa. Sorry. Habit."';
 CRITTER_TALK.sheep = () => function* () { yield* say(null, ['A sheep. It looks at you, chews, and looks away.', 'Baa.', "The sheep has a little red cross dyed into its fleece. So do all of them."][Math.floor(G.rng() * 3)]); };
@@ -13849,7 +13900,7 @@ defBlock({
         { k: 'claydam', x: 60, y: 16, id: 'clayDam' },
         { k: 'vent', x: 60, y: 20, dir: 'up', dist: 4, period: 180, id: 'damVent' },
         { k: 'chest', x: 60, y: 6, item: 'heartpatch', id: 'slotPatch' },
-        { k: 'deco', x: 59, y: 9, look: 'pot_stack', solid: [[0, 0]], oy: -6, text: "Crocks, a dozen of them, not finished: no legs yet, no faces, set out in the cleft to dry. One of them is very slightly turned toward you. It wasn't, a moment ago." },
+        { k: 'deco', x: 59, y: 9, look: 'pot_stack', solid: [[0, 0]], oy: -6, text: "Crocks, a dozen of them, not finished: no legs yet, no faces, set out in the cleft to dry. One of them is very slightly turned towards you. It wasn't, a moment ago." },
         /* the canyon's dressing: spires, heaps of broken pots, finished ones stacked to sell */
         { k: 'deco', x: 38, y: 13, look: 'hoodoo', solid: [[0, 0]], oy: -28 }, { k: 'deco', x: 44, y: 7, look: 'hoodoo', solid: [[0, 0]], oy: -28 },
         { k: 'deco', x: 6, y: 13, look: 'hoodoo', solid: [[0, 0]], oy: -28 }, { k: 'deco', x: 33, y: 33, look: 'hoodoo', solid: [[0, 0]], oy: -28 },
@@ -14957,7 +15008,7 @@ const MILL_OWED = {
         };
         if (Inv.items.mwring && !Progress.flag('mw_ringHome')) return function* () {
             Progress.set('mw_ringHome'); delete Inv.items.mwring;
-            yield* say('ambrose', "{surprised}Where did you... Oh. Oh, that's the ring. I rowed your mum out to the middle of the lake to ask her, and I was shaking so hard I dropped it over the side. A gull had it before it ever touched the water.");
+            yield* say('ambrose', "{surprised}Oh. Oh, that's the ring. I rowed your mum out on the lake to ask her, and I was shaking so hard I dropped it over the side.");
             yield* say('ambrose', "{happy}She said yes anyway. Said a ring's only a thing, and things come home. ...Took its time, didn't it?");
             yield* say('ambrose', "I'll give it back to her tonight. Thank you, love. Don't tell her I cried.");
         };
@@ -16060,7 +16111,7 @@ TALK.gran = function* (npc) {
         if (!Progress.flag('talkedGran')) {
             yield* say('gran', [
                 "{happy}There you are. Let me look at you. Scarf on straight, good. Boots? Good.",
-                "Every Wanderer before you walked out of a house just like this one, on a morning just like this one. And every one of them came home. The Way always brings you home.",
+                "Every Wanderer before you walked out of a house just like this one, on a morning just like this one. And every one of them came home.",
                 "{happy}Now off to the Well with you. I'll be right behind.",
             ]);
             Progress.set('talkedGran');
@@ -16214,7 +16265,7 @@ TALK.tuck = function* () {
     if ((yield* Favours.talk('tuck')) || (yield* Town.news('tuck'))) return;
     if (Progress.flag('d1')) { yield* say('tuck', cycle('tuck1', ["Was there a monster? Was it HUGE? I bet it was huge.", "When I do my Wander I'm going to do it faster than you. No offence.", "Mum says I'm too little. I'm NOT too little."])); return; }
     yield* firstThen('tuck', "Are you going? Are you going NOW? When I'm big I'm going on a Wander too! I'm going to do ALL the Houses!",
-        ["I'm practising. Watch. *pushes the sand* ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
+        ["I'm practising. Watch me push the sand. ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
 };
 TALK.hob = function* () {
     if (yield* Town.news('hob')) return;
@@ -16227,13 +16278,13 @@ TALK.arlo = function* () {
     if (yield* Town.news('arlo')) return;
     yield* firstThen('arlo', "Sit down, sit down. Ah, the Wander. I remember mine. Long time ago now. Before the posts went up.",
         ["When I was a lad, folk used to walk about. Up the hills, down to the lake, just for the doing of it. Can't think why we stopped.",
-            "Your aunt did her Wander from this very square. Your Gran won't talk of it, so I won't either.",
+            "Your aunt did her Wander from this very square. Your gran won't talk of it, so I won't either.",
             "You know what I like about this bench? It's always here. I'm always here. Ha.",
             "I tried to walk to the lake last spring. Got as far as the bridge and turned round without meaning to. Old legs."]);
 };
 TALK.ives = function* () {
     if (Progress.flag('s28') && !Inv.has('tealscarf')) {
-        yield* say('ives', "All three? ALL three? Oh, that's- that's very tidy of you. Here. I knit them. I always knit them in teal; it's the only colour that sits still.");
+        yield* say('ives', "All three? ALL three? Oh, that's— that's very tidy of you. Here. I knit them. I always knit them in teal; it's the only colour that sits still.");
         yield* Story.getItem('tealscarf')();
         return;
     }
@@ -16243,7 +16294,7 @@ TALK.ives = function* () {
         return;
     }
     if (yield* Town.news('ives')) return;
-    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
+    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "Did you wipe your feet in there? Tell me you wiped your feet.", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
     yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. Everyone does.",
         ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "If you need a lie-down, the beds upstairs are made. They're always made.", "Busy, busy. I'm always busy when there's a Wander on."]);
 };
@@ -16256,7 +16307,7 @@ TALK.bram = function* () {
 TALK.gundry = function* () {
     if (yield* Town.news('gundry')) return;
     yield* firstThen('gundry', "Gundry. I keep the Well. Oil the winch, sweep the step, that sort of thing.",
-        ["This old winch turns by itself some nights. Wind, I expect.", "Don't go dropping things down the Well, Wanderer. They come back up, and they're not happy about it.", "Your Gran's the Warden. I just do the oiling. She does... the rest."]);
+        ["This old winch turns by itself some nights. Wind, I expect.", "Don't go dropping things down the Well, Wanderer. They come back up, and they're not happy about it.", "Your gran's the Warden. I just do the oiling. She does... the rest."]);
 };
 TALK.burr = function* () {
     if (yield* Town.news('burr')) return;
@@ -16270,7 +16321,7 @@ TALK.mallow = function* () {
         yield* say('mallow', "How do I know it's... comfy? Ha. Well. One hears things. A doctor hears everything. Here, let me look at you. Not a scratch. Splendid. Off you go.");
         Inv.hp = Inv.maxHp; return;
     }
-    if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', "Yaaawn. Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can."); return; }
+    if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', cycle('mallow_heal', ["Yaaawn. Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can.", "Hold still. ...There. Good as new. Splendid.", "You again? Yaaawn. All mended. Do try to fall over less."])); return; }
     if (yield* Town.news('mallow')) return;
     yield* firstThen('mallow', "Doctor Mallow. Hurt? Tired? Both? Come and see me, I'll patch you up. Yaaawn. Long night. Very long night.",
         Progress.flag('d5') ? ["Matron Hush? Never heard of her. Strict sort, was she? Hm.", "If you ever need to come home in a hurry, lie down. That's my advice. Lie down, and think of home.", "Sleep is the best medicine. Also the second best."] : ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
@@ -16353,7 +16404,7 @@ Story.sleepInBed = function* () {
     Save.write();
     /* downstairs, Gran hums the old tune */
     Music.play('lullaby');
-    yield* say(null, "From downstairs comes Gran's humming: the old bedtime tune, the one she's hummed for as long as you can remember. Low... high... in between... high... and low again.");
+    yield* say(null, firstTime('bedtune') ? "From downstairs comes Gran's humming: the old bedtime tune, the one she's hummed for as long as you can remember. Low... high... in between... high... and low again." : "Downstairs, Gran hums the old tune. Low... high... in between... high... and low again.");
     yield 30;
     yield* fadeIn(30);
     Music.play(G.map.def.music || 'home');
@@ -16405,7 +16456,7 @@ const TOWN_LINES = {
         gundry: ["Heard your Knot go, in the night. The old winch gave a turn all on its own. Wind, I expect."],
         rosa: ["One Knot! Tuck's drawn you a twelfth picture. You're holding a cupboard over your head, and the cupboard's crying."],
         arlo: ["One Knot, eh? I felt it in my knees. Like weather coming in. Funny old things, knees."],
-        mabel: ["Back from the Tidyhouse, are you? Nothing in there ever goes missing, they say. Lucky old house."],
+        mabel: ["Back from the Tidyhouse, are you? Nothing in there ever goes missing, they say. Lucky old House."],
     },
     d2: {
         bram: ["The Kiln! HA! Hot, was it? And the big fellow, the serpent? Did his tail stick? It's always the tail. ...So I'd imagine."],
@@ -16614,7 +16665,7 @@ OW.blocks['1,1'].ents.push(
 FAVOUR_TALK.thimble = function* () {
     if (Progress.flag('fav_cratesHome') && !Progress.flag('fav_crates')) {
         Progress.set('fav_crates'); Stats.count('favour:crates');
-        yield* say('thimble', "My crates! Both home, and the lane clear as a whistle! How ever did you- no, don't tell me, I'd only fret. Here, thirty buttons for your trouble.");
+        yield* say('thimble', "My crates! Both home, and the lane clear as a whistle! How ever did you— no, don't tell me, I'd only fret. Here, thirty buttons for your trouble.");
         Favours.buttons(30);
         yield* say('thimble', "And a ball of string. The good stuff: the very same the Guild buys by the mile. Nobody's ever managed to snap it, and I've watched people try.");
         yield* Story.getItem('string')();
@@ -16768,7 +16819,7 @@ SPAWN.tuckmarble = (tx, ty) => {
     pr.interact = () => {
         Script.run(function* () {
             yield* say(null, Progress.flag('great_pull') && !Progress.flag('unwound')
-                ? "Tuck's marble, where he left it by the Well. Every marked thing in the square is straining toward the Well's mouth; the marble just sits. Nothing's pulling it. Nothing ever did."
+                ? "Tuck's marble, where he left it by the Well. Every marked thing in the square is straining towards the Well's mouth; the marble just sits. Nothing's pulling it. Nothing ever did."
                 : Progress.flag('reveal2') ? "Tuck's marble, by the Well. Everybody in town has a thread now, if you look. The marble hasn't. It's only where Tuck put it."
                     : "Tuck's odd marble, exactly where he left it this time. Nothing tidies it away. Nothing pulls it home.");
         });
@@ -16927,7 +16978,7 @@ FAVOUR_TALK.rosa = function* () {
     }
     if (Progress.flag('fav_saucer') && Inv.hp < Inv.maxHp) {
         Inv.hp = Inv.maxHp; Sfx.play('heart');
-        yield* say('rosa', saucerPlaced() ? "Bun, love. On the house. Always." : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
+        yield* say('rosa', saucerPlaced() ? cycle('rosa_bun', ["Bun, love. On the house. Always.", "Here. Still warm. Mind your fingers.", "Another? Course, love. Sit and eat it."]) : "Bun, love, on the house. ...The saucer's walked itself round the front again, mind. Biscuit looked ever so put out.");
         return true;
     }
     if (Progress.flag('fav_stick') && !Progress.flag('fav_stickRosa') && Progress.flag('met:rosa')) {
@@ -17141,7 +17192,7 @@ TALK.bea = function* () {
     if (Progress.flag('s12')) { yield* say('bea', 'Look after the badge! It took three goes to draw the duster.'); return; }
     if (Progress.flag('d1')) {
         yield* firstThen('bea', "You beat the real one, didn't you? How? Did you hit it with your stick?",
-            ["Otto always comes at things from his side. From his X. Always. He's very predictable.", "And he won't go round you. If you're in his way he just picks another side.", Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "I'm not playing. I'm the audience."]);
+            ["Otto always comes at things from his side. From his X. Always. He's very predictable.", "And he won't go round you. If you're in his way he just picks another side.", Progress.flag('tagStopped') ? "Feels like my feet like it here. Right here. This exact spot." : "I'm not playing. I'm the audience."]);
         return;
     }
     yield* say('bea', "You can't tag me, I'm on the well-step! The well-step is safe!");
@@ -17753,7 +17804,7 @@ SPAWN.ringstone = (tx, ty) => {
             const i = yield* ask(null, 'Carve your own?', ['Carve it', 'Not now']);
             if (i !== 0) return;
             Progress.set('crags_carved'); Stats.count('secret:crags'); Sfx.play('charm');
-            yield* say(null, 'You scratch a little bell into the stone with the end of your stick, and your initial beside it. The wind blows the dust off it straight away, as if it had been waiting.');
+            yield* say(null, 'You scratch a little bell into the stone with the end of your stick, and your initial beside it. The wind blows the dust off it straight away.');
         });
         return true;
     };
@@ -18389,7 +18440,7 @@ defHouse({
                 { k: 'lever', x: 2, y: 9, id: 'csLever', once: true, onPull() { Belfry.bridge(this.area, true); } },
                 { k: 'drawbridge', x: 6, y: 9 },
                 { k: 'downpipe', x: 12, y: 0 },
-                { k: 'sign', x: 18, y: 7, text: "THE CISTERN. The roof lets the rain in and the floor let the cistern out. The draught down the old bell shaft never stops." },
+                { k: 'sign', x: 18, y: 7, text: "THE CISTERN. The roof lets the rain in and the floor lets the cistern out. The draught down the old bell shaft never stops." },
                 { k: 'pot', x: 18, y: 9, id: 'csPot' },
             ],
             nudge: { solved: () => Progress.areaFlag('belfry', 'cs:over') || Progress.areaFlag('belfry', 'door:brBig'), after: 60 * 60 * 3, thing: 'csRaft', say: 'The raft keeps trying to go home, and the gale keeps blowing it back. Its home is just where you want to be.' },
@@ -19329,7 +19380,7 @@ const Bedroll = {
         Sfx.play('lay'); Fx.poof(tx * T + 8, ty * T + 10);
         Stats.count('bedroll:lay');
         if (!Progress.flag('bedroll_laid')) { Progress.set('bedroll_laid'); UI.toast('Bedroll laid. This is home now. (Hold [tool] to come back to it.)', 200); }
-        else if (moved) UI.toast('Bedroll laid here.', 70);
+        else if (moved && Stats.c['bedroll:lay'] <= 4) UI.toast('Bedroll laid here.', 70);     /* (then quiet: it's there to see) */
     },
     rollUp(p) {
         if (this.sleeper) { UI.toast("Somebody's fast asleep on your Bedroll."); return; }
@@ -19339,7 +19390,8 @@ const Bedroll = {
            walk here from there: like any thread that jumps, a flight home along it goes straight over whatever's between):
            shown a moment, so a fall that flies her through a wall to the door is plainly the thread, not a slip */
         this.snapT = 110;
-        Sfx.play('lift'); Sfx.play('twang', 0.5); UI.toast('Bedroll rolled up.', 60);
+        Sfx.play('lift'); Sfx.play('twang', 0.5);
+        Stats.count('bedroll:roll'); if (Stats.c['bedroll:roll'] <= 3) UI.toast('Bedroll rolled up.', 60);     /* (then quiet: it's gone from the floor) */
     },
     /* it's gone somewhere it can't stay (a board gave way under it, its float sank): back in Wren's pack */
     lost(why) {
@@ -19569,7 +19621,7 @@ SPAWN.bed = (tx, ty, p = {}) => {
             pl.trace = [[pl.tx, pl.ty]];
             Fx.text(pl.x, pl.y - 20, 'z z z', '#d8c8f8');
             Stats.count('beds');
-            UI.toast('This bed is your mark now.', 90);
+            UI.toast(firstTime('bedmark') ? 'This bed is your mark now.' : 'Your mark now.', 90);
         });
         return true;
     };
@@ -20049,8 +20101,8 @@ PEOPLE_DEF.hettie = { name: 'Hettie', col: '#c8a868', look: { body: 'adult', hai
 TALK.hettie = function* () {
     if (!Progress.flag('met:hettie')) {
         Progress.set('met:hettie');
-        yield* say('hettie', "Well! A person! Awake! You'll be the Wanderer. Hettie. I pick mushrooms. Or I did, until that great lump fell asleep across the road and I couldn't get home.");
-        yield* say('hettie', "That was... oh, a while ago now. I made the best of it. Pitched my tent. It's very quiet here. Everything sleeps. You get used to it. You get very used to it.");
+        yield* say('hettie', "Well! A person! Awake! Hettie. I pick mushrooms. Or I did, till that great lump fell asleep across the road and I couldn't get home.");
+        yield* say('hettie', "That was... oh, a while ago now. Pitched my tent. It's very quiet here. Everything sleeps. You get used to it. You get very used to it.");
         return;
     }
     yield* say('hettie', cycle('hettie', [
@@ -20090,7 +20142,7 @@ class Giant extends Ent {
                 if (!Progress.flag('giant_seen')) { Progress.set('giant_seen'); yield* say(null, 'A giant, fast asleep across the road. He is covered in moss, and ferns, and a few small mushrooms. Each snore lifts the moss on his back like a tide.'); }
                 yield* say(null, cycle('giantpush', ["You push. You might as well push a hill.", "You shout HELLO right in his ear. He smiles in his sleep.", "You tickle his nose with a fern. He sneezes, and a bird you hadn't seen flies out of his beard."]));
                 if (Inv.has('bell')) yield* say(null, '(You have the Recall Bell. A ring wakes anything.)');
-            } else yield* say(null, cycle('giantbed', ['"Mm. Is it morning? ...No. Good."', '"Thank you for waking me, little Wanderer. I was in the way. I\'m always in the way. Mm."', '"Zzzzz."', '"I dreamed I was a mountain. Then I dreamed I was a road. Then you rang."']));
+            } else yield* say(null, cycle('giantbed', ['"Mm. Is it morning? ...No. Good."', '"Thank you for waking me, little Wanderer. I was in the way. I\'m always in the way. Mm."', '"Zzzzz."', '"I dreamt I was a mountain. Then I dreamt I was a road. Then you rang."']));
         });
         return true;
     }
@@ -21709,7 +21761,7 @@ class Matron extends Enemy {
                 this.anim++;
                 /* her footing gone: down she goes */
                 if (a.kind(this.tx, this.ty).pit) { this.state = 'fall'; this.st = 0; this.brace = this.lunge = 0; Sfx.play('fall'); Stats.count('boss:matron:fall'); break; }
-                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(lunge ? 2 : 1, this.x, this.y); Fx.text(p.x, p.y - 20, 'tucked in!', '#d8c8f8'); }
+                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(lunge ? 2 : 1, this.x, this.y); Fx.text(p.x, p.y - 20, 'lights out!', '#d8c8f8'); }
                 break;
             }
             case 'fall':
@@ -24811,7 +24863,7 @@ const Spool = {
         if (e.onKnot) e.onKnot();
         if (quiet) return;
         Sfx.play('tie'); Stats.count('knots');
-        if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. (Z on the knot to undo it.)'; }
+        if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. ([act] on the knot to undo it.)'; }
         else UI.toast('Tied off: held fast up above.', 90);     /* (every time after, short: a knot always answers) */
     },
     untie(e) {
@@ -25011,7 +25063,7 @@ const Needle = {
         if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }
-        if (!this.able(e)) { UI.toast(Return.asleep(e) ? "It's asleep; the needle won't take." : "The needle won't go into that."); return; }
+        if (!this.able(e)) { UI.toast(Return.asleep(e) ? "It's asleep; the Needle won't take." : "The Needle won't go into that."); return; }
         const rec = Inv.stitches.find(s => s.area === e.area.id && s.key === this.key(e));
         if (rec) {
             Script.run(function* () {
@@ -25030,7 +25082,7 @@ const Needle = {
         e.heldBy = e.heldBy || { needle: true };
         p.pinned = 'needle';
         Sfx.play('twang');
-        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). [tool]: that\'s its place now. [act]: never mind.', 200, { focus: this.focus(this.st) }); }
+        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the Needle, up to four tiles. [tool]: that\'s its place now. [act]: never mind.', 200, { focus: this.focus(this.st) }); }
     },
     /* what the Needle's first notice keeps clear of: the thing, and the tiles it could go to (a box round them, as drawn) */
     focus(s) {
@@ -25476,7 +25528,7 @@ const Logbook = {
             bram: `${f.room}: ${f.roomMins} min! HA! Took me longer to build. Not by much.`,
             ambrose: `Spent ${f.roomMins} min in ${f.room}. Kept dry, mostly. Proud of you, love.`,
             tess: `${f.room}: ${f.roomMins} min. Rang true in the end. They always do, the good ones.`,
-            mallow: `${f.room}: ${f.roomMins} min. Patient. Didn't fall asleep once. *I* did.`,
+            mallow: `${f.room}: ${f.roomMins} min. Patient. Didn't fall asleep once. I did.`,
             jory: `${f.room}: ${f.roomMins} min! Applause from the wings (mine). Encore.`,
         })[who]);
         if (!Settings.hints && f.nudges === 0) out.push('The Wanderer asked us not to help. We respected that. (We were proud.)');
@@ -25506,11 +25558,9 @@ UNDER_TALK.gundry = function* () {
     }
     if (!Progress.flag('met_gundry_below')) {
         Progress.set('met_gundry_below');
-        yield* say('gundry', "So. You found the stairs. Gundry. You know me: I keep the Well, up top. Oil the winch. Down here I keep the Guild. The Well's the easy part.");
-        yield* say('gundry', "Every Maker you've met learnt the trade down here, in the Spoolworks, where every thread in the valley's wound and weighted. A House is PLAYED from up top. It's WORKED from down here.");
-        yield* say('gundry', "Trouble is, the Spoolworks has got itself in a tangle. A proper one. Forty years I've been meaning to sort it.");
-        yield* say('gundry', "You want to learn to make, Wanderer? Learn how it works first. Through the big door. Every mark up top has its cord down below: tug one, tie one off, see what happens.");
-        yield* say('gundry', "And mind the hound. He was a good dog, once. Then somebody wound him too tight.");
+        yield* say('gundry', "So. You found the stairs. Up top I keep the Well; down here, the Guild. Every Maker you've met learnt the trade here, in the Spoolworks.");
+        yield* say('gundry', "A House is PLAYED from up top. It's WORKED from down here: every mark up there has its cord below. Tug one, tie one off, see what happens.");
+        yield* say('gundry', "Through the big door. It's got itself in a tangle. And mind the hound: he was a good dog once, till somebody wound him too tight.");
         Progress.setGoal('The Spoolworks: through the big door in the Guild Hall, under the Inn.');
         return;
     }
@@ -25520,8 +25570,8 @@ const MAKER_LINES = {
     ives: ["Welcome to the workshop, love. Shoes OFF. ...No, I'm joking. Mostly.", "Every crate in the Tidyhouse has a little brass ring under it, and every ring a thread, and I know every one by name.", "Read the log, if you like. I wrote it neat."],
     bram: ["HA! The Wanderer, in the workshop! Mind the clay, it's everywhere. It's ALWAYS everywhere.", "The Kilnwyrm's in bits over there. Took three winters. Tail still sticks.", "My log's honest. Brutally honest. Read it and weep! Or laugh. Laugh's better."],
     ambrose: ["There you are. Hello, love. Mind the puddle, that's mine.", "Grindle's in the millpond still. I go and give him a polish now and then.", "Your mum and I took turns at the sluices, every time you went near the Millrace. Best summer we've had."],
-    tess: ["Hello, my darling. Brass dust on everything. Sorry.", "Every bell in the Belfry I tuned myself. The Tollgrim's voice was your dad's idea. He does a good gargoyle.", "Up top, you rang the bells. Down here, we were pulling the ropes. Teamwork!"],
-    mallow: ["Yaaawn. Hello. Is it morning? It's always morning somewhere. Or night.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
+    tess: ["Hello, my darling. Brass dust on everything. Sorry.", "Every bell in the Belfry I tuned myself. Tollgrim's voice was your dad's idea. He does a good gargoyle.", "Up top, you rang the bells. Down here, we were pulling the ropes. Teamwork!"],
+    mallow: ["Yaaawn. Hello. Is it morning? Down here I can never tell.", "Mother Sloth's arms are on pulleys. I pull them. It's very tiring.", "The logbook. Yes. I wrote some of it asleep. It's probably fine."],
     jory: ["Welcome backstage! Well. Underneath-stage.", "Captain Tin's having a lie down. He's earned it.", "Have a look at my log! I've drawn the bits I liked. Mostly you falling over. Lovingly!"],
 };
 for (const who of Object.keys(MAKER_LINES)) UNDER_TALK[who] = function* () { yield* say(who, cycle('under_' + who, MAKER_LINES[who])); };
@@ -27072,6 +27122,14 @@ const MAKINGS = [
 ];
 /* (what Tuck says at the hoop, if his House doesn't say otherwise: the first and the last) */
 const TUCK_DONE = 'I DID IT! Did you see? I did it ALL by MYSELF!';
+/* what he says at the same things over and over, in turn (Tuck.line) */
+const TUCK_SAYS = {
+    n: {},
+    jumped: ['Ooh! It jumped!', 'It JUMPED!', 'Ooh! That one jumped!', 'It moved! I saw it!'],
+    button: ['Ooh! A shiny button under it!', 'A BUTTON! Under there!', 'Ooh! Treasure!'],
+    sulk: ['Hmph.', 'Hmph!', "It's not FAIR.", '...Hmph.'],
+    scared: ['Eek!', 'Eek! Teeth!', 'Nope!'],
+};
 /* where Wren comes in underneath (a Little House can say otherwise): beside his start, not under it, so the two of them
    aren't drawn one on the other's head */
 const MAKING_ENTRY = { x: 5, y: 16 };
@@ -27132,6 +27190,8 @@ class Tuck extends NPC {
         return Math.abs(x - g[0]) + Math.abs(y - g[1]);
     }
     /* (a new line replaces the one still floating, so two never sit on each other) */
+    /* (what he says when it's the same thing again and again: the next of a few, in turn: never the game's dice) */
+    line(kind) { const L = TUCK_SAYS[kind], n = TUCK_SAYS.n[kind] = (TUCK_SAYS.n[kind] || 0) + 1; return L[(n - 1) % L.length]; }
     say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea'); } }
     step(nx, ny) { this.dir = dirOf(nx - this.tx, ny - this.ty); this.startMove(nx, ny, 14); }
     /* a bump: a biter, or a heavy thing on its way home: "Ow!", and back to the start */
@@ -27160,7 +27220,7 @@ class Tuck extends NPC {
         Sfx.play('flight'); this.yank(false); Stats.count('tuck:yanked');
         if (!Progress.flag('tuck_yanked')) { Progress.set('tuck_yanked'); G.pendingToast = "Ives, from somewhere above: \"Not the boy's own thread, love! ...He did like it, mind.\""; }
     }
-    onNoKnot() { this.say('Hey! Let go!', 'bang'); UI.toast("It's his Wander: you can give his thread a tug, but you won't tie him down.", 150); }
+    onNoKnot() { this.say('Hey! Let go!', 'bang'); if (firstTime('tuckKnot')) UI.toast("It's his Wander: you can give his thread a tug, but you won't tie him down.", 150); }
     onUntie() { this.say('Phew.'); }
     canBeShoved(d) { return !this.mv; }
     shove(d, dur, by) { this.bump('shoved'); }
@@ -27180,13 +27240,13 @@ class Tuck extends NPC {
             const opts = [UP, DOWN, LEFT, RIGHT].map(d => [this.tx + DX[d], this.ty + DY[d]]).filter(([x, y]) => this.walkable(x, y));
             const far = ([x, y]) => Math.min(...near.map(n => Math.max(Math.abs(n.tx - x), Math.abs(n.ty - y))));
             opts.sort((m, n) => far(n) - far(m));
-            if (opts.length && far(opts[0]) > Math.min(...near.map(n => Math.max(Math.abs(n.tx - this.tx), Math.abs(n.ty - this.ty))))) { this.step(...opts[0]); if (this.state !== 'scared') this.say('Eek!', 'bang'); this.state = 'scared'; this.cur = null; return; }
+            if (opts.length && far(opts[0]) > Math.min(...near.map(n => Math.max(Math.abs(n.tx - this.tx), Math.abs(n.ty - this.ty))))) { this.step(...opts[0]); if (this.state !== 'scared') this.say(this.line('scared'), 'bang'); this.state = 'scared'; this.cur = null; return; }
             this.state = 'scared'; this.wait = 10; return;
         }
         /* 2: something jumped: go and push it */
         const j = Spool.jolt;
         if (j && j.t > this.seen && G.t - j.t < 240 && !j.e.removed && a.roomAt(j.e.tx, j.e.ty) === a.roomAt(this.tx, this.ty) && Math.max(Math.abs(j.e.tx - this.tx), Math.abs(j.e.ty - this.ty)) <= 8) {
-            this.seen = j.t; this.cur = j.e; this.curT = 0; this.curJolt = true; this.say('Ooh! It jumped!', 'bang');
+            this.seen = j.t; this.cur = j.e; this.curT = 0; this.curJolt = true; this.say(this.line('jumped'), 'bang');
         }
         if (this.cur) {
             const o = this.cur;
@@ -27197,7 +27257,7 @@ class Tuck extends NPC {
                     const d = dirOf(o.tx - this.tx, o.ty - this.ty); this.dir = d;
                     this.cur = null; this.wait = this.curJolt ? 210 : 60; this.curJolt = false;      /* (and then he admires it a moment: a good while, if it jumped) */
                     const tr = a.ents.find(e => e.kind === 'treasure' && !e.found && e.tx === o.tx && e.ty === o.ty);
-                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say('Ooh! A shiny button under it!', 'heart'); Sfx.play('button'); if (!Progress.areaFlag(a.id, 'got:button')) { Progress.setAreaFlag(a.id, 'got:button'); Inv.buttons += 5; } }
+                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say(this.line('button'), 'heart'); Sfx.play('button'); if (!Progress.areaFlag(a.id, 'got:button')) { Progress.setAreaFlag(a.id, 'got:button'); Inv.buttons += 5; } }
                     if (o.weight > WEIGHT.medium || o.fixed || o.mv) { if (!tr) this.say('Hnnngh!', 'dots'); return; }
                     const before = this.reach(g);
                     if (o.push(d, 16)) {
@@ -27220,7 +27280,7 @@ class Tuck extends NPC {
         /* 4: stuck: as near as he can get, then sit and sulk */
         const n = this.route(g[0], g[1], true);
         if (n && n.length) { this.state = 'go'; this.step(...n[0]); return; }
-        if (this.state !== 'sit') { this.state = 'sit'; this.say('Hmph.', 'dots'); Making.note('sat'); }
+        if (this.state !== 'sit') { this.state = 'sit'; this.say(this.line('sulk'), 'dots'); Making.note('sat'); }
         this.wait = 20;
     }
     sprite() {
@@ -27417,7 +27477,7 @@ const Making = {
             yield* Making.fetch(g, p, 'Through the door from the Guild Hall comes Gundry, wiping his hands on a rag, not hurrying.');
         }
         yield* say('gundry', `${['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][MAKING_COUNT] || MAKING_COUNT} Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.`);
-        yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool of their own for the Wander, a new thread. Tuck's is in the deep store, down the Way Down. Go and fetch it.");
+        yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool for the Wander. Tuck's is in the deep store, down the Way Down. Fetch it.");
         yield* say('gundry', "Mind, it's old down there. Older than the Guild. Don't touch the big ones.");
         Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
         /* (and back to his table, in his own time, the rag in his pocket) */
@@ -27570,7 +27630,7 @@ UNDER_TALK.otto = function* () {
 UNDER_TALK.tuck = function* () {
     if (!Progress.flag('making1')) { yield* say('tuck', "{name}! I'm doing a WANDER! A little one! The Makers built it! You're not allowed to help. It's MY Wander."); return; }
     if (!Progress.flag('makings_done')) {
-        const lines = ["Did you see me? Did you SEE? The block just jumped and I pushed it!", "There was a nibbler. I wasn't scared. Much.", "Next one's harder. Bram said. I'm not scared.", "Gundry's one was the hardest. He said I'd sulk. I DIDN'T sulk. Much."];
+        const lines = ["Did you see me? Did you SEE? The block just jumped and I pushed it!", "There was a nibbler. I wasn't scared. Much.", "Next one's harder. Bram said. I'm not scared.", "Gundry's one was the hardest. He said I'd sulk. I DIDN'T sulk. I sat down. That's different."];
         if (Progress.flag('making4')) lines.push("Mother Ives says the next ones are the real Tidyhouse rooms. The ones YOU did. I'm going to do them faster.");
         if (Progress.flag('making5')) lines.push("Otto keeps TIDYING things. I push them and he puts them back. It's very annoying.", "If Otto's in the way I just wait. He always goes off to tidy something in the end.");
         yield* say('tuck', cycle('tuck_mk', lines)); return;
@@ -27581,8 +27641,8 @@ const UNDER_TALK_GUNDRY = UNDER_TALK.gundry;
 UNDER_TALK.gundry = function* (n) {
     if (Progress.flag('d7') && !Progress.flag('making1') && !Progress.flag('gundry_job')) {
         Progress.set('gundry_job');
-        yield* say('gundry', `Right, apprentice. The job. Tuck's been on at everybody for a Wander since he could walk. He's six. So the Makers built him a Little one: ${['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][MAKING_COUNT] || MAKING_COUNT} little Houses, up above the Making Floor.`);
-        yield* say('gundry', "You'll run it. From underneath. He walks, you work. Get him through, don't let him get hurt, and if you're any good, he'll work something out himself and never know you were there.");
+        yield* say('gundry', `Right, apprentice. The job. Tuck's six, and he's wanted a Wander since he could walk. So the Makers built him a Little one: ${['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][MAKING_COUNT] || MAKING_COUNT} Little Houses.`);
+        yield* say('gundry', "You run it from underneath. He walks, you work. Get him through unhurt, and if you're any good he'll work something out himself.");
         yield* say('gundry', "Read his rules on the wall down there. He wrote them himself. Spelling's his own.");
         Progress.setGoal("The Making Floor, east of the Guild Hall: run Tuck's Little Wander from underneath.");
         return;
@@ -27781,6 +27841,9 @@ defMaking(5, {
    He weighs what Tuck weighs, and a thing he yanks home through him bowls him over ("OOF!"), as it did in the square. */
 const KEEP_STEP = 12;           /* frames a tile: he trots */
 const KEEP_DOWN = 360;          /* bowled over, he sits a good while, seeing stars */
+/* (what he says getting up, and tidying: the joke once, then shorter; the tidying in turn, never the game's dice) */
+const OTTO_UP = ['...Tidied. By my own tidying.', 'Tidied AGAIN.', '...Every time.'];
+const OTTO_TIDY = ['Tidy!', 'Tidied!', 'Back you go!', 'There. Tidy.'];
 class Keeper extends NPC {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ who: 'otto', marked: false }, p));
@@ -27847,7 +27910,7 @@ class Keeper extends NPC {
         const [hx, hy] = this.home0;
         switch (this.state) {
             case 'down':
-                if (this.st > KEEP_DOWN) { this.state = 'home'; this.st = 0; this.say('...Tidied. By my own tidying.', 'dots'); this.wait = 30; }
+                if (this.st > KEEP_DOWN) { this.state = 'home'; this.st = 0; this.ups = (this.ups || 0) + 1; this.say(OTTO_UP[this.ups === 1 ? 0 : 1 + this.ups % 2], 'dots'); this.wait = 30; }
                 return;
             case 'home': {
                 const m = this.mess();
@@ -27872,7 +27935,7 @@ class Keeper extends NPC {
                 /* held fast: he stands there and tsks at it */
                 if (Return.held(m)) { if (!this.tsking) { this.tsking = true; this.st = 0; } if (this.st % 70 === 1) this.say(this.st < 2 ? 'Tsk! Tsk!' : ['Tsk.', 'TSK.', 'Tsk tsk tsk.', 'Hmph. Tsk.'][(this.st / 70 | 0) % 4], 'bang'); return; }
                 this.tsking = false;
-                Return.snap(m); Sfx.play('tug'); this.say('Tidy!');
+                Return.snap(m); Sfx.play('tug'); this.tidies = (this.tidies || 0) + 1; this.say(OTTO_TIDY[(this.tidies - 1) % OTTO_TIDY.length]);
                 Stats.count('otto:tidy');
                 this.state = 'watch'; this.st = 0;
                 return;
@@ -27900,7 +27963,7 @@ class Keeper extends NPC {
         this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.tsking = false; this.wait = 30;
         this.say('Hey! I was TIDYING!', 'bang');
     }
-    onNoKnot() { this.say("Housekeepers don't get tied!", 'bang'); UI.toast("He's the Housekeeper: you can give his thread a tug, but you won't tie him down.", 150); }
+    onNoKnot() { this.say("Housekeepers don't get tied!", 'bang'); if (firstTime('ottoKnot')) UI.toast("He's the Housekeeper: you can give his thread a tug, but you won't tie him down.", 150); }
     sprite() {
         if (this.state === 'down' && !this.mv) return personFrame('otto', DOWN, 0);
         return super.sprite();
@@ -28081,7 +28144,7 @@ defMaking(8, {
     talk: {
         ives: function* () { yield* say('ives', "Shh! Look at him. LOOK at him. Oh, I'm going to cry on the boards."); },
         bram: function* () { yield* say('bram', "HA! (Shh.) HA! (Sorry.) He's got it! Course he's got it."); },
-        ambrose: function* () { yield* say('ambrose', "We used to do this for you, love. Every Wander. Lying on our fronts under the floor, not breathing."); },
+        ambrose: function* () { yield* say('ambrose', "We used to do this for you, love. Every House. Lying on our fronts under the floor, not breathing."); },
         tess: function* () { yield* say('tess', "Don't tell him we were here. Don't you dare. It's his."); },
         mallow: function* () { yield* say('mallow', "Yaaawn. I wasn't asleep. I was watching with my eyes closed. It's a technique."); },
         jory: function* () { yield* say('jory', "Places, everyone! ...No, wait, we're already in them. Carry on."); },
@@ -28403,7 +28466,9 @@ const Capstone = {
         Script.run(function* () {
             yield 30;
             if (how === 'hoop') Sfx.play('knot');
-            yield* say('tuck', how === 'stuck' ? "This one doesn't GO anywhere. I'm going OUT." : how === 'called' ? 'Is it tea? Is it CAKE?' : f.n === 3 ? 'I DID IT! That was the BEST one. Who made it?' : 'I DID IT! Did you see? ALL by MYSELF!');
+            /* (it can be played over and over: what he says at the hoop goes round a few ways) */
+            const k = Stats.c['cap:hoop'] || 0, hoop = f.n === 3 ? ['I DID IT! That was the BEST one. Who made it?', 'The BEST one AGAIN! Who MAKES these?'] : ['I DID IT! Did you see? ALL by MYSELF!', 'AGAIN! I did it AGAIN!', 'Easy. I could do that one with my EYES shut.'];
+            yield* say('tuck', how === 'stuck' ? "This one doesn't GO anywhere. I'm going OUT." : how === 'called' ? 'Is it tea? Is it CAKE?' : hoop[k % hoop.length]);
             const first = !Progress.flag(CAP_ID);
             Progress.set(CAP_ID);
             const best = CAP_ID + '_ahas';
@@ -28924,12 +28989,13 @@ CONTENT_INIT.push(initReveal2);
         if (!Progress.flag('reveal2')) return yield* g0(n);
         if (!Progress.flag('gundry_r2')) {
             Progress.set('gundry_r2');
-            yield* say('gundry', "{sad}You've seen the Hall, then. I can tell. You've got the look. I had it too, forty years back, and I went straight back upstairs and oiled the winch and never said a word. I'm not proud of that.");
-            yield* say('gundry', "The Shears. The First Spinner's own, the only blades in the valley that cut a thread for good. They're in the old Loom, in the Loomwood, past the north gate. Linnet went that way.");
-            yield* say('gundry', "Hesper keeps that gate shut with a counterweight, down here in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
-            yield* say('gundry', "And take this. The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
+            yield* say('gundry', "{sad}You've seen the Hall. I saw it too, forty years back, and went back up and oiled the winch and never said a word. Not proud of that.");
+            yield* say('gundry', "The Shears are in the old Loom, in the Loomwood, past the north gate: the only blades in the valley that cut a thread for good. Linnet went that way.");
+            yield* say('gundry', "Hesper keeps that gate shut with a counterweight in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
+            /* (the key handed over first, and then what it is: no fourth page of talk) */
             Inv.items.guildkey = 1; Sfx.play('item');
             yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");
+            yield* say('gundry', "The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
             Progress.setGoal(Progress.flag('north_gate') ? 'Through the north gate, up the Loomwood road to the Loom.' : 'The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
             return;
         }
@@ -30920,7 +30986,7 @@ const CUT_LINES = {
 const FREE_LINES = {
     quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next."],
     arlo: ["Down to the river and back, twice. My knees are furious with me."],
-    bram: ["Fresh clay, from up the north road! It's AWFUL clay. HA!"],
+    bram: ["Fresh clay, from up the North Road! It's AWFUL clay. HA!"],
     hob: ["Up past the bend. My dad's pool. I'm going back tomorrow."],
     gundry: ["Still looking for the sea. I'm told it's further than the fog."],
     burr: ["No post. Feels like a missing tooth."],
@@ -30967,7 +31033,7 @@ const Freed = {
                 Progress.set('s24'); Stats.count('secret:arlo');
                 Script.run(function* () {
                     yield* say('arlo', "Ah. You followed me. Good. I wanted somebody to see.");
-                    yield* say('arlo', "This is where the lake comes down, if you keep on along the bank. I used to walk it every morning, when I was a lad. Then I didn't. I don't remember deciding to stop.");
+                    yield* say('arlo', "This is where the lake comes down. I walked it every morning when I was a lad. Then I didn't. I don't remember deciding to stop.");
                     yield* say('arlo', "Here. Found this in the water years ago and could never walk far enough to give it back. I think it's meant for a Wanderer.");
                     yield* Story.getItem('heartpatch', 'arloPatch')();
                 });
@@ -31136,15 +31202,14 @@ const Drift = {
         yield* say('linnet', "{happy}You've cut your own thread. I can see it: there's nothing on you. Nothing pulling at all.");
         const i = yield* ask('linnet', "How does it feel?", ['Light.', 'Frightening.', 'Come home.']);
         yield* say('linnet', ["{happy}Light. Yes. You'll get used to it. I still lose spoons.", "{worried}It is. Nobody's going to bring you back if you get lost.", "{sad}Home. ...I've thought about it every day for twenty-five years."][i]);
-        yield* say('linnet', "I found the Hall of Names on my Wander, the same as you. I read her ledger. I took the old Shears out of the Loom and cut myself loose and walked out into the fog, and the fog let me go.");
-        yield* say('linnet', "{sad}And I've been cutting from out here ever since. Little threads, at the edge, a few a year. Strays. You'll have seen my L on them.");
+        yield* say('linnet', "{sad}I cut myself loose on my Wander, the same as you. I've been cutting from out here ever since: strays, a few a year. You'll have seen my L.");
         yield* say('linnet', "{sad}I never went back. I was frightened she'd tie me again. She would have.");
         G.shake = 14; Sfx.play('rumble'); Music.play('silence');
         yield 40;
         yield* say(null, "Far off in the east, beyond the fog, something enormous takes up slack. You feel it in your teeth. The fog leans the wrong way: towards the Hollow, not away.");
-        yield* say('linnet', "{surprised}That's her. She's felt you go. She's pulling everything. Every thread in the valley. Everyone.");
-        yield* say('linnet', "{worried}Go, {name}. Walk. She can't pull you, not now; but she'll pull everyone else down the Well with her if she can. The Spool's under the Well. Go.");
-        yield* say('linnet', "{sad}...I'll come. I'll come after you. I just need a moment to find my nerve. I've had twenty-five years and I still need a moment.");
+        yield* say('linnet', "{surprised}That's her. She's felt you go. She's pulling everything: every thread in the valley.");
+        yield* say('linnet', "{worried}Go, {name}. Walk. She can't pull you now. The Spool's under the Well. Go.");
+        yield* say('linnet', "{sad}...I'll come after you. I just need a moment to find my nerve. I've had twenty-five years and I still need a moment.");
         Progress.set('great_pull');
         Progress.setGoal("Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.");
         Music.play('pull');
@@ -33868,7 +33933,7 @@ defHouse({
                 { k: 'door', x: 19, y: 5, type: 'lock', id: 'shEastLock' },
                 { k: 'chest', x: 13, y: 1, item: 'heartpatch', id: 'shPatch' },
                 { k: 'stray', x: 6, y: 7, id: 'shS1' }, { k: 'stray', x: 15, y: 7, id: 'shS2' },
-                { k: 'sign', x: 9, y: 8, text: 'Up the stairs: THE PILE. (Two lamps to light first, one each side of the house. Then it\'s all yours. -L.)' },
+                { k: 'sign', x: 9, y: 8, text: 'Up the stairs: THE PILE. (Two lamps to light first, one each side of the House. Then it\'s all yours. -L.)' },
                 { k: 'lamp', x: 4, y: 1, sig: 'shWash', look: 'lantern' }, { k: 'lamp', x: 17, y: 1, sig: 'shMend', look: 'lantern' },
             ],
         },
@@ -33930,7 +33995,7 @@ ITEM_LINES.bracelet = () => "You found {blue}Linnet's bracelet{/}! Plaited from 
 SPAWN.lamp = (tx, ty, p) => {
     const pr = new Prop(tx, ty, { im: ART.lamp_off, solid: [[0, 0]], oy: -8 });
     pr.draw = (cx, cy) => { const on = Signals.eval(pr.area, p.sig); Gfx.img(on ? ART.lamp_on : ART.lamp_off, tx * T - cx, ty * T - cy - 8); if (on && (G.t >> 4) % 2) Gfx.rect(tx * T - cx + 7, ty * T - cy - 6, 2, 2, '#fff6c0'); };
-    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.eval(pr.area, p.sig) ? 'A lantern, lit from somewhere else in the House.' : 'A lantern, cold. Its wick runs down into the floor, toward one side of the House.'); }); return true; };
+    pr.interact = () => { Script.run(function* () { yield* say(null, Signals.eval(pr.area, p.sig) ? 'A lantern, lit from somewhere else in the House.' : 'A lantern, cold. Its wick runs down into the floor, towards one side of the House.'); }); return true; };
     pr.talkBox = (pl, f) => f.tx === tx && f.ty === ty;
     return pr;
 };
@@ -34055,7 +34120,7 @@ const StrayHouse = {
     *pileIntro(pile) {
         yield 20;
         yield* say(null, "In the middle of the room, a heap of things: a pram wheel, a kettle, a coat stand, a scarecrow's hat, a hundred odd shoes. Two eyes open in it.");
-        yield* say(null, "Everything nobody missed. It shuffles toward you, the whole heap of it, as if it wanted very badly to be somebody's.");
+        yield* say(null, "Everything nobody missed. It shuffles towards you, the whole heap of it, as if it wanted very badly to be somebody's.");
         Progress.setGoal('The Pile can\'t be pushed, and it\'s too wide for narrow places. Box it in, all four sides.');
     },
     *pileDown(pile) {
@@ -34550,7 +34615,7 @@ SPAWN.backwindow = (tx, ty) => {
 };
 
 /* ---------- S08: a House's key tugs back at its door ---------- */
-NOTES.s08 = { title: 'Keys', text: "A small key from a House won't leave it: at the door it tugs back toward the House like a dog on a lead. Everything in the Houses knows where it belongs. Even the keys." };
+NOTES.s08 = { title: 'Keys', text: "A small key from a House won't leave it: at the door it tugs back towards the House like a dog on a lead. Everything in the Houses knows where it belongs. Even the keys." };
 {
     const leave0 = Story.leaveHouse;
     Story.leaveHouse = function (house) {
@@ -34597,10 +34662,10 @@ const BOSS_NAPS = {
     tidy: { flag: 'tidy_boss', name: 'the Grand Housekeeper', col: THREAD.ives, line: "The Grand Housekeeper, wound back together, fast asleep in its corner with its doors shut. You pat its side. Somewhere inside it, a drawer sighs." },
     kiln: { flag: 'kiln_boss', name: 'the Kilnwyrm', col: THREAD.bram, line: "The Kilnwyrm, its segments glued back in a heap, snoring very quietly through its nose. It's warm. You pat it, and it rattles happily." },
     millrace: { flag: 'millrace_boss', name: 'Old Grindle', col: THREAD.ambrose, line: "Old Grindle, beached at the edge of the pond, gears ticking slowly in its sleep. You pat its fin. It goes clank, contentedly." },
-    belfry: { flag: 'belfry_boss', name: 'the Tollgrim', col: THREAD.tess, line: "The Tollgrim, curled up under an upturned bell, purring at the exact pitch of middle C. You pat its stone head." },
+    belfry: { flag: 'belfry_boss', name: 'Tollgrim', col: THREAD.tess, line: "Tollgrim, curled up under an upturned bell, purring at the exact pitch of middle C. You pat his stone head." },
     slumber: { flag: 'slumber_boss', name: 'Mother Sloth', col: THREAD.mallow, line: "Mother Sloth, asleep in her own bed for once, a nightcap over one eye. You tuck her in. She mumbles something about bedtimes." },
     marionette: { flag: 'reveal1', name: 'the Great Marionette', col: THREAD.jory, line: "The Great Marionette, hung up neatly on its hook, strings coiled, dozing. Somebody's chalked a smile on it. You give its foot a little wiggle." },
-    spoolworks: { flag: 'd7', name: 'the Tangle', col: THREAD.guild, line: "The Tangle, wound loosely into a great soft ball, the Cog curled asleep on top of it. You pat the ball. It unwinds a little, comfortably." },
+    spoolworks: { flag: 'd7', name: 'the Tangle', col: THREAD.guild, line: "The Tangle, wound loosely into a great soft ball, Cog curled asleep on top of it. You pat the ball. It unwinds a little, comfortably." },
 };
 SPAWN.bossnap = (tx, ty, p) => {
     const d = BOSS_NAPS[p.house];
@@ -34812,7 +34877,7 @@ const QUILT = [
     ['Hollows in the fog-silk', ['silkMeadow', 'silkKiln', 'silkMill'].map(id => () => Progress.flag('silk:' + id))],
     /* the town's favours, each counted once it's done (src/51c_town_favours.js) */
     ['Good turns done in town', ['crates', 'kite', 'marble', 'tin', 'stick', 'saucer'].map(f => () => Progress.flag('fav_' + f))],
-    ['The two houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
+    ['The two Houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
 ];
 const Quilt = {
     tally() { return QUILT.map(([name, list]) => [name, list.filter(f => f()).length, list.length]); },

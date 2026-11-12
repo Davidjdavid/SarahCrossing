@@ -386,6 +386,14 @@ const UI = {
         this.toasts.push({ s, t: 0, dur, focus: opts.focus || null, area: G.map ? G.map.id : null, born: G.t, wait: true });
         this.showNotices();
     },
+    /* a refusal that comes up again and again: in full the first few times it's shown, then shorter (counted this
+       session, by its words; never a second copy while one is up) */
+    often(full, short, n = 2, dur) {
+        const k = this.saidN || (this.saidN = {}), f = Story.fill(full), s = Story.fill(short);
+        if (this.toasts.some(t => t.s === f || t.s === s)) return;
+        k[f] = (k[f] || 0) + 1;
+        this.toast(k[f] > n ? short : full, dur);
+    },
     /* (a scene's words up, or the rest of that scene still going: notices and the place's name wait) */
     held() { return Dialog.active || (this.sceneHold && Script.blocking()); },
     showNotices() {

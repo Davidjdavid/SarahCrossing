@@ -68,7 +68,7 @@ class Matron extends Enemy {
                 this.anim++;
                 /* her footing gone: down she goes */
                 if (a.kind(this.tx, this.ty).pit) { this.state = 'fall'; this.st = 0; this.brace = this.lunge = 0; Sfx.play('fall'); Stats.count('boss:matron:fall'); break; }
-                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(lunge ? 2 : 1, this.x, this.y); Fx.text(p.x, p.y - 20, 'tucked in!', '#d8c8f8'); }
+                if (p.state === 'normal' && Math.abs(p.x - this.x) < 9 && Math.abs(p.y - this.y) < 8) { p.hurt(lunge ? 2 : 1, this.x, this.y); Fx.text(p.x, p.y - 20, 'lights out!', '#d8c8f8'); }
                 break;
             }
             case 'fall':

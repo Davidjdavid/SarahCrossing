@@ -166,6 +166,9 @@ defMaking(5, {
    He weighs what Tuck weighs, and a thing he yanks home through him bowls him over ("OOF!"), as it did in the square. */
 const KEEP_STEP = 12;           /* frames a tile: he trots */
 const KEEP_DOWN = 360;          /* bowled over, he sits a good while, seeing stars */
+/* (what he says getting up, and tidying: the joke once, then shorter; the tidying in turn, never the game's dice) */
+const OTTO_UP = ['...Tidied. By my own tidying.', 'Tidied AGAIN.', '...Every time.'];
+const OTTO_TIDY = ['Tidy!', 'Tidied!', 'Back you go!', 'There. Tidy.'];
 class Keeper extends NPC {
     constructor(tx, ty, p = {}) {
         super(tx, ty, Object.assign({ who: 'otto', marked: false }, p));
@@ -232,7 +235,7 @@ class Keeper extends NPC {
         const [hx, hy] = this.home0;
         switch (this.state) {
             case 'down':
-                if (this.st > KEEP_DOWN) { this.state = 'home'; this.st = 0; this.say('...Tidied. By my own tidying.', 'dots'); this.wait = 30; }
+                if (this.st > KEEP_DOWN) { this.state = 'home'; this.st = 0; this.ups = (this.ups || 0) + 1; this.say(OTTO_UP[this.ups === 1 ? 0 : 1 + this.ups % 2], 'dots'); this.wait = 30; }
                 return;
             case 'home': {
                 const m = this.mess();
@@ -257,7 +260,7 @@ class Keeper extends NPC {
                 /* held fast: he stands there and tsks at it */
                 if (Return.held(m)) { if (!this.tsking) { this.tsking = true; this.st = 0; } if (this.st % 70 === 1) this.say(this.st < 2 ? 'Tsk! Tsk!' : ['Tsk.', 'TSK.', 'Tsk tsk tsk.', 'Hmph. Tsk.'][(this.st / 70 | 0) % 4], 'bang'); return; }
                 this.tsking = false;
-                Return.snap(m); Sfx.play('tug'); this.say('Tidy!');
+                Return.snap(m); Sfx.play('tug'); this.tidies = (this.tidies || 0) + 1; this.say(OTTO_TIDY[(this.tidies - 1) % OTTO_TIDY.length]);
                 Stats.count('otto:tidy');
                 this.state = 'watch'; this.st = 0;
                 return;
@@ -285,7 +288,7 @@ class Keeper extends NPC {
         this.state = 'home'; this.st = 0; this.target = null; this.seen = null; this.tsking = false; this.wait = 30;
         this.say('Hey! I was TIDYING!', 'bang');
     }
-    onNoKnot() { this.say("Housekeepers don't get tied!", 'bang'); UI.toast("He's the Housekeeper: you can give his thread a tug, but you won't tie him down.", 150); }
+    onNoKnot() { this.say("Housekeepers don't get tied!", 'bang'); if (firstTime('ottoKnot')) UI.toast("He's the Housekeeper: you can give his thread a tug, but you won't tie him down.", 150); }
     sprite() {
         if (this.state === 'down' && !this.mv) return personFrame('otto', DOWN, 0);
         return super.sprite();
@@ -466,7 +469,7 @@ defMaking(8, {
     talk: {
         ives: function* () { yield* say('ives', "Shh! Look at him. LOOK at him. Oh, I'm going to cry on the boards."); },
         bram: function* () { yield* say('bram', "HA! (Shh.) HA! (Sorry.) He's got it! Course he's got it."); },
-        ambrose: function* () { yield* say('ambrose', "We used to do this for you, love. Every Wander. Lying on our fronts under the floor, not breathing."); },
+        ambrose: function* () { yield* say('ambrose', "We used to do this for you, love. Every House. Lying on our fronts under the floor, not breathing."); },
         tess: function* () { yield* say('tess', "Don't tell him we were here. Don't you dare. It's his."); },
         mallow: function* () { yield* say('mallow', "Yaaawn. I wasn't asleep. I was watching with my eyes closed. It's a technique."); },
         jory: function* () { yield* say('jory', "Places, everyone! ...No, wait, we're already in them. Carry on."); },

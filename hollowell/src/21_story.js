@@ -90,10 +90,14 @@ const Story = {
                 /* in a House, you come to at its door */
                 const e = AREAS[G.map.id].entry;
                 World.enter(G.map.id, e.x, e.y, { dir: UP });
+                const again = Progress.flag('fainted_in_house');
                 Progress.set('fainted_in_house');
                 p.state = 'normal';
                 yield* fadeIn(30);
-                yield* say(null, 'You come to by the door of the House, with no idea how you got here.');
+                /* (said in full the first time; after that a notice, with no box to press through: a hard fight can take a
+                   good many tries) */
+                if (again) UI.toast('You come to by the door of the House again.', 150);
+                else yield* say(null, 'You come to by the door of the House, with no idea how you got here.');
             } else {
                 World.enter('gran_room', 6, 3, { dir: DOWN });
                 G.player.state = 'sleep'; G.player.inBed = G.map.ents.find(e => e.skey === 'wrenbed');
@@ -106,8 +110,9 @@ const Story = {
     },
     *wakeAfterFaint() {
         const n = (Progress.get('faintHome') || 0) + 1; Progress.set('faintHome', n);
-        const lines = FAINT_LINES[Math.min(n, FAINT_LINES.length) - 1];
-        yield* say(null, lines);
+        /* (past the last of them, a notice: the third was said over and over) */
+        if (n > FAINT_LINES.length) { UI.toast('Your own bed again.', 150); return; }
+        yield* say(null, FAINT_LINES[n - 1]);
     },
     /* the fog: you can't go further, it pulls you back */
     fogPull(p) {
@@ -115,7 +120,9 @@ const Story = {
             const n = (Progress.get('fogTries') || 0) + 1; Progress.set('fogTries', n);
             p.flyHome();
             yield () => p.state === 'normal';
-            yield* say(null, FOG_LINES[Math.min(n, FOG_LINES.length) - 1]);
+            /* (past the last of them, a notice: the third was said over and over) */
+            if (n > FOG_LINES.length) UI.toast('The fog turns you round again.', 150);
+            else yield* say(null, FOG_LINES[n - 1]);
         });
     },
     /* small keys fly back into their House */
@@ -123,13 +130,16 @@ const Story = {
     leaveHouse(house) {
         const k = Inv.keys(house);
         if (k > 0) {
-            if (!Progress.flag('keys_tug')) G.pendingToast = 'The small key in your pocket tugs back toward the House, like a dog on a lead.';
+            if (!Progress.flag('keys_tug')) G.pendingToast = 'The small key in your pocket tugs back towards the House, like a dog on a lead.';
             Progress.set('keys_tug');
         }
     },
 };
 
 const ITEM_LINES = {};     /* id -> () => the line when found */
+/* true the first time it's asked about a thing, and never again (a flag, so it holds across saves): a line said often
+   can be said in full once and shorter after */
+function firstTime(id) { if (Progress.flag('told:' + id)) return false; Progress.set('told:' + id); return true; }
 const ITEM_AFTER = {};     /* id -> function* after the fanfare */
 const FAINT_LINES = [
     "You wake up in your own bed. There's a cup of warm milk on the stool, and Gran's humming downstairs. You must have walked home in your sleep... somehow.",

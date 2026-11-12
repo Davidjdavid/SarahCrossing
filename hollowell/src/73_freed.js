@@ -27,7 +27,7 @@ const CUT_LINES = {
 const FREE_LINES = {
     quill: ["I took the children up the hill this morning. All of them. We stood at the top and nobody knew what to do next."],
     arlo: ["Down to the river and back, twice. My knees are furious with me."],
-    bram: ["Fresh clay, from up the north road! It's AWFUL clay. HA!"],
+    bram: ["Fresh clay, from up the North Road! It's AWFUL clay. HA!"],
     hob: ["Up past the bend. My dad's pool. I'm going back tomorrow."],
     gundry: ["Still looking for the sea. I'm told it's further than the fog."],
     burr: ["No post. Feels like a missing tooth."],
@@ -74,7 +74,7 @@ const Freed = {
                 Progress.set('s24'); Stats.count('secret:arlo');
                 Script.run(function* () {
                     yield* say('arlo', "Ah. You followed me. Good. I wanted somebody to see.");
-                    yield* say('arlo', "This is where the lake comes down, if you keep on along the bank. I used to walk it every morning, when I was a lad. Then I didn't. I don't remember deciding to stop.");
+                    yield* say('arlo', "This is where the lake comes down. I walked it every morning when I was a lad. Then I didn't. I don't remember deciding to stop.");
                     yield* say('arlo', "Here. Found this in the water years ago and could never walk far enough to give it back. I think it's meant for a Wanderer.");
                     yield* Story.getItem('heartpatch', 'arloPatch')();
                 });

@@ -404,12 +404,13 @@ CONTENT_INIT.push(initReveal2);
         if (!Progress.flag('reveal2')) return yield* g0(n);
         if (!Progress.flag('gundry_r2')) {
             Progress.set('gundry_r2');
-            yield* say('gundry', "{sad}You've seen the Hall, then. I can tell. You've got the look. I had it too, forty years back, and I went straight back upstairs and oiled the winch and never said a word. I'm not proud of that.");
-            yield* say('gundry', "The Shears. The First Spinner's own, the only blades in the valley that cut a thread for good. They're in the old Loom, in the Loomwood, past the north gate. Linnet went that way.");
-            yield* say('gundry', "Hesper keeps that gate shut with a counterweight, down here in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
-            yield* say('gundry', "And take this. The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
+            yield* say('gundry', "{sad}You've seen the Hall. I saw it too, forty years back, and went back up and oiled the winch and never said a word. Not proud of that.");
+            yield* say('gundry', "The Shears are in the old Loom, in the Loomwood, past the north gate: the only blades in the valley that cut a thread for good. Linnet went that way.");
+            yield* say('gundry', "Hesper keeps that gate shut with a counterweight in the Seams, east. Nobody can shift it. But nobody had a Needle before, did they?");
+            /* (the key handed over first, and then what it is: no fourth page of talk) */
             Inv.items.guildkey = 1; Sfx.play('item');
             yield* say(null, "You got the Guild's key: iron, as long as your forearm, with a spool for a bow.");
+            yield* say('gundry', "The Guild's key to the Loom. Four hundred years we've kept it, and never once turned it. Turn it.");
             Progress.setGoal(Progress.flag('north_gate') ? 'Through the north gate, up the Loomwood road to the Loom.' : 'The north gate: its counterweight is in the Seams (east), under the town. Give it a new place.');
             return;
         }

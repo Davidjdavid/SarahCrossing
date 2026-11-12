@@ -88,7 +88,7 @@ const QUILT = [
     ['Hollows in the fog-silk', ['silkMeadow', 'silkKiln', 'silkMill'].map(id => () => Progress.flag('silk:' + id))],
     /* the town's favours, each counted once it's done (src/51c_town_favours.js) */
     ['Good turns done in town', ['crates', 'kite', 'marble', 'tin', 'stick', 'saucer'].map(f => () => Progress.flag('fav_' + f))],
-    ['The two houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
+    ['The two Houses nobody has to visit', [() => Progress.flag('sh_pile'), () => Progress.flag('ives_done')]],
 ];
 const Quilt = {
     tally() { return QUILT.map(([name, list]) => [name, list.filter(f => f()).length, list.length]); },

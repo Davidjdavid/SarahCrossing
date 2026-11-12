@@ -176,7 +176,7 @@ SPAWN.ringstone = (tx, ty) => {
             const i = yield* ask(null, 'Carve your own?', ['Carve it', 'Not now']);
             if (i !== 0) return;
             Progress.set('crags_carved'); Stats.count('secret:crags'); Sfx.play('charm');
-            yield* say(null, 'You scratch a little bell into the stone with the end of your stick, and your initial beside it. The wind blows the dust off it straight away, as if it had been waiting.');
+            yield* say(null, 'You scratch a little bell into the stone with the end of your stick, and your initial beside it. The wind blows the dust off it straight away.');
         });
         return true;
     };

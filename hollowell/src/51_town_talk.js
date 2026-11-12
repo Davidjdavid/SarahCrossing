@@ -31,7 +31,7 @@ TALK.tuck = function* () {
     if ((yield* Favours.talk('tuck')) || (yield* Town.news('tuck'))) return;
     if (Progress.flag('d1')) { yield* say('tuck', cycle('tuck1', ["Was there a monster? Was it HUGE? I bet it was huge.", "When I do my Wander I'm going to do it faster than you. No offence.", "Mum says I'm too little. I'm NOT too little."])); return; }
     yield* firstThen('tuck', "Are you going? Are you going NOW? When I'm big I'm going on a Wander too! I'm going to do ALL the Houses!",
-        ["I'm practising. Watch. *pushes the sand* ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
+        ["I'm practising. Watch me push the sand. ...It came back. It always comes back.", "Bring me something from the Tidyhouse! A spoon or something!", "My mum says the Houses are older than the town. Older than Gran even!"]);
 };
 TALK.hob = function* () {
     if (yield* Town.news('hob')) return;
@@ -44,13 +44,13 @@ TALK.arlo = function* () {
     if (yield* Town.news('arlo')) return;
     yield* firstThen('arlo', "Sit down, sit down. Ah, the Wander. I remember mine. Long time ago now. Before the posts went up.",
         ["When I was a lad, folk used to walk about. Up the hills, down to the lake, just for the doing of it. Can't think why we stopped.",
-            "Your aunt did her Wander from this very square. Your Gran won't talk of it, so I won't either.",
+            "Your aunt did her Wander from this very square. Your gran won't talk of it, so I won't either.",
             "You know what I like about this bench? It's always here. I'm always here. Ha.",
             "I tried to walk to the lake last spring. Got as far as the bridge and turned round without meaning to. Old legs."]);
 };
 TALK.ives = function* () {
     if (Progress.flag('s28') && !Inv.has('tealscarf')) {
-        yield* say('ives', "All three? ALL three? Oh, that's- that's very tidy of you. Here. I knit them. I always knit them in teal; it's the only colour that sits still.");
+        yield* say('ives', "All three? ALL three? Oh, that's— that's very tidy of you. Here. I knit them. I always knit them in teal; it's the only colour that sits still.");
         yield* Story.getItem('tealscarf')();
         return;
     }
@@ -60,7 +60,7 @@ TALK.ives = function* () {
         return;
     }
     if (yield* Town.news('ives')) return;
-    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "You did it! I do hope it was tidy in there. Was it tidy?", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
+    if (Progress.flag('d1')) { yield* say('ives', cycle('ives1', ["Have you tried my Trials? Up the attic stairs. Quick hands, that's the thing.", "Did you wipe your feet in there? Tell me you wiped your feet.", "A Knot! Well. That calls for a good sweep of the step.", "If you need a lie-down, the beds upstairs are made. They're always made."])); return; }
     yield* firstThen('ives', "Welcome to the Spool & Thimble! Wipe your— oh, it's you, {name}! Off to the Tidyhouse? You'll love it. Everyone does.",
         ["A place for everything and everything in its place, that's what I always say. What everybody says, I suppose.", "If you need a lie-down, the beds upstairs are made. They're always made.", "Busy, busy. I'm always busy when there's a Wander on."]);
 };
@@ -73,7 +73,7 @@ TALK.bram = function* () {
 TALK.gundry = function* () {
     if (yield* Town.news('gundry')) return;
     yield* firstThen('gundry', "Gundry. I keep the Well. Oil the winch, sweep the step, that sort of thing.",
-        ["This old winch turns by itself some nights. Wind, I expect.", "Don't go dropping things down the Well, Wanderer. They come back up, and they're not happy about it.", "Your Gran's the Warden. I just do the oiling. She does... the rest."]);
+        ["This old winch turns by itself some nights. Wind, I expect.", "Don't go dropping things down the Well, Wanderer. They come back up, and they're not happy about it.", "Your gran's the Warden. I just do the oiling. She does... the rest."]);
 };
 TALK.burr = function* () {
     if (yield* Town.news('burr')) return;
@@ -87,7 +87,7 @@ TALK.mallow = function* () {
         yield* say('mallow', "How do I know it's... comfy? Ha. Well. One hears things. A doctor hears everything. Here, let me look at you. Not a scratch. Splendid. Off you go.");
         Inv.hp = Inv.maxHp; return;
     }
-    if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', "Yaaawn. Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can."); return; }
+    if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', cycle('mallow_heal', ["Yaaawn. Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can.", "Hold still. ...There. Good as new. Splendid.", "You again? Yaaawn. All mended. Do try to fall over less."])); return; }
     if (yield* Town.news('mallow')) return;
     yield* firstThen('mallow', "Doctor Mallow. Hurt? Tired? Both? Come and see me, I'll patch you up. Yaaawn. Long night. Very long night.",
         Progress.flag('d5') ? ["Matron Hush? Never heard of her. Strict sort, was she? Hm.", "If you ever need to come home in a hurry, lie down. That's my advice. Lie down, and think of home.", "Sleep is the best medicine. Also the second best."] : ["Sleep is the best medicine. Also the second best.", "You look healthy. Disgustingly healthy. Come back when you're not.", "If you ever feel a sort of... tug... behind the ribs? That's normal. Perfectly normal. Everyone has it."]);
@@ -170,7 +170,7 @@ Story.sleepInBed = function* () {
     Save.write();
     /* downstairs, Gran hums the old tune */
     Music.play('lullaby');
-    yield* say(null, "From downstairs comes Gran's humming: the old bedtime tune, the one she's hummed for as long as you can remember. Low... high... in between... high... and low again.");
+    yield* say(null, firstTime('bedtune') ? "From downstairs comes Gran's humming: the old bedtime tune, the one she's hummed for as long as you can remember. Low... high... in between... high... and low again." : "Downstairs, Gran hums the old tune. Low... high... in between... high... and low again.");
     yield 30;
     yield* fadeIn(30);
     Music.play(G.map.def.music || 'home');

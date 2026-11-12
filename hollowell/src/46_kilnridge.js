@@ -106,7 +106,7 @@ defBlock({
         { k: 'claydam', x: 60, y: 16, id: 'clayDam' },
         { k: 'vent', x: 60, y: 20, dir: 'up', dist: 4, period: 180, id: 'damVent' },
         { k: 'chest', x: 60, y: 6, item: 'heartpatch', id: 'slotPatch' },
-        { k: 'deco', x: 59, y: 9, look: 'pot_stack', solid: [[0, 0]], oy: -6, text: "Crocks, a dozen of them, not finished: no legs yet, no faces, set out in the cleft to dry. One of them is very slightly turned toward you. It wasn't, a moment ago." },
+        { k: 'deco', x: 59, y: 9, look: 'pot_stack', solid: [[0, 0]], oy: -6, text: "Crocks, a dozen of them, not finished: no legs yet, no faces, set out in the cleft to dry. One of them is very slightly turned towards you. It wasn't, a moment ago." },
         /* the canyon's dressing: spires, heaps of broken pots, finished ones stacked to sell */
         { k: 'deco', x: 38, y: 13, look: 'hoodoo', solid: [[0, 0]], oy: -28 }, { k: 'deco', x: 44, y: 7, look: 'hoodoo', solid: [[0, 0]], oy: -28 },
         { k: 'deco', x: 6, y: 13, look: 'hoodoo', solid: [[0, 0]], oy: -28 }, { k: 'deco', x: 33, y: 33, look: 'hoodoo', solid: [[0, 0]], oy: -28 },

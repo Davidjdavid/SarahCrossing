@@ -30,6 +30,140 @@ async function shot(name) {
     await page.locator('canvas').screenshot({ path: path.join(SHOTS, name + '.png') });
     if (process.env.SHOT_ERRS) console.log(name, errors.length);
 }
+/* the sound, rendered for real (run in the page): every tune and effect played by the game's own synth into an
+   OfflineAudioContext (its unlock() builds the buses there; the frames run as Game.step runs them, Music.tick every
+   1/60 s, the notes made just in time) and measured. Loudness is BS.1770 (K-weighted, LUFS, one channel): a tune's
+   integrated over a pass, an effect's over its loudest 100 ms; peaks are true peaks (4x oversampled). Every gain the
+   synth moves is written down too: none may jump while a sound runs through it (a jump is a click) */
+async function audioCheck() {
+    const SR = 48000, out = [], VALUE = Object.getOwnPropertyDescriptor(AudioParam.prototype, 'value');
+    const DEF = { music: 0.6, sfx: 0.8 }, MAX = { music: 1, sfx: 1 }, REF = -28;
+    const QUIET = ['lullaby', 'unfinished', 'loom', 'slumber', 'hush', 'tidy'];
+    const db = x => 20 * Math.log10(Math.max(x, 1e-12)), lufs = ms => -0.691 + 10 * Math.log10(Math.max(ms, 1e-20));
+    let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    function begin(seconds, vol) {
+        const off = new OfflineAudioContext(1, Math.ceil(seconds * SR), SR), R = { off, now: 0, gains: [], later: [] };
+        const ctx = new Proxy(off, { get(t, k) {
+            if (k === 'currentTime') return R.now;
+            if (k === 'state') return 'running';
+            if (k === 'createGain') return () => {
+                const g = off.createGain(), p = g.gain, ev = [], c = g.connect.bind(g), r = { g, ev };
+                for (const m of ['setValueAtTime', 'linearRampToValueAtTime', 'exponentialRampToValueAtTime']) { const f = p[m].bind(p); p[m] = (...a) => { ev.push([m, ...a]); return f(...a); }; }
+                Object.defineProperty(p, 'value', { get: () => VALUE.get.call(p), set: v => { ev.push(['value', v]); VALUE.set.call(p, v); } });
+                g.connect = (d, ...x) => { r.to = d; return c(d, ...x); };
+                R.gains.push(r); return g;
+            };
+            const v = Reflect.get(t, k); return typeof v === 'function' ? v.bind(t) : v;
+        } });
+        const AC = window.AudioContext, rand = Math.random, st = window.setTimeout;
+        window.AudioContext = function () { return ctx; }; Math.random = rnd; window.setTimeout = f => { R.later.push(f); return 0; };
+        R.undo = () => { Math.random = rand; window.setTimeout = st; };
+        Audio.ctx = null; Audio.ok = false; Audio.muted = false;
+        try { Audio.unlock(); } finally { window.AudioContext = AC; }
+        Audio.vol.music = vol.music; Audio.vol.sfx = vol.sfx; Audio.setVolumes(true);
+        Object.assign(Music, { playing: null, cur: null, bus: null, step: 0, calm: 0, thin: false, waking: false, where: Cam.room });
+        R.thin = Music.THIN_AFTER; Music.THIN_AFTER = 1e9; Sfx.last = {};
+        return R;
+    }
+    async function render(R, until, events = []) {
+        const run = t => { while (R.now < t) { for (const e of events) if (!e.done && e.t <= R.now) { e.done = true; e.fn(); } if (R.now < until) Music.tick(); R.now += 1 / 60; } };
+        const step = 128 * 40 / SR, total = R.off.length / SR;
+        run(step);
+        for (let k = 1; (k + 1) * step < total; k++) { const t = k * step; R.off.suspend(t).then(() => { run(t + step); R.off.resume(); }); }
+        const buf = await R.off.startRendering();
+        R.undo(); for (const f of R.later) f();
+        Music.cur = null; Music.playing = null; Music.bus = null; Music.THIN_AFTER = R.thin; Audio.ok = false; Audio.ctx = null;
+        /* a click: a note's gain set from one value straight to another while it sounds */
+        for (const r of R.gains) {
+            if (!(r.to === Audio.sfx || (r.to && R.gains.some(q => q.g === r.to && q.to === Audio.music)))) continue;
+            let v = 1, sounding = false;
+            for (const [m, x] of r.ev) { if (m === 'setValueAtTime' && Math.abs(x - v) > 1e-9 && (sounding || v > 1e-9)) R.click = true; if (m !== 'value') sounding = true; v = x; }
+        }
+        return buf.getChannelData(0);
+    }
+    const OS = [1, 2, 3].map(p => { const h = []; let s = 0; for (let k = 0; k < 32; k++) { const x = k - 15 - p / 4, w = 0.42 - 0.5 * Math.cos(2 * Math.PI * (k + p / 4) / 32) + 0.08 * Math.cos(4 * Math.PI * (k + p / 4) / 32); h.push(x ? Math.sin(Math.PI * x * 0.98) / (Math.PI * x * 0.98) * w : w); s += h[k]; } return h.map(v => v / s); });
+    function peak(x, a = 0, b = x.length) {
+        let sp = 0, at = a; for (let i = a; i < b; i++) if (Math.abs(x[i]) > sp) { sp = Math.abs(x[i]); at = i; }
+        let tp = sp;
+        for (let i = Math.max(a, 15); i < Math.min(b, x.length - 17); i++) {
+            if (Math.abs(x[i]) < sp * 0.7) continue;
+            for (const h of OS) { let s = 0; for (let k = 0; k < 32; k++) s += h[k] * x[i - 15 + k]; if (Math.abs(s) > tp) { tp = Math.abs(s); at = i; } }
+        }
+        return { tp: db(tp), at: at / SR };
+    }
+    function kw(x) {
+        const y = new Float32Array(x.length); let s = x;
+        for (const [b0, b1, b2, a1, a2] of [[1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585], [1, -2, 1, -1.99004745483398, 0.99007225036621]]) {
+            let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+            for (let i = 0; i < s.length; i++) { const v = s[i], o = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = v; y2 = y1; y1 = o; y[i] = o; }
+            s = y;
+        }
+        return y;
+    }
+    function integrated(x) {
+        const k = kw(x), hop = SR / 10, n = Math.floor(k.length / hop), c = [];
+        for (let i = 0; i < n; i++) { let s = 0; for (let j = i * hop; j < (i + 1) * hop; j++) s += k[j] * k[j]; c.push(s); }
+        const m = []; for (let i = 3; i < n; i++) m.push((c[i] + c[i - 1] + c[i - 2] + c[i - 3]) / (4 * hop));
+        const a = m.filter(v => lufs(v) > -70), mean = l => l.reduce((p, q) => p + q, 0) / l.length, rel = lufs(mean(a)) - 10;
+        return lufs(mean(a.filter(v => lufs(v) > rel)));
+    }
+    function loudest100(x) {
+        const k = kw(x), w = SR / 10, h = SR / 100; let best = 0;
+        for (let i = 0; i + w <= k.length; i += h) { let s = 0; for (let j = i; j < i + w; j++) s += k[j] * k[j]; best = Math.max(best, s / w); }
+        return lufs(best);
+    }
+    const UP_M = db(1 / DEF.music), UP_S = db(1 / DEF.sfx), song = {};
+    let clicks = 0;
+    /* every tune, a pass of it at the default volumes (below the limiter's knee everything is in proportion, so its
+       peak with the volume at the top is its peak now, times the volume's step up) */
+    for (const id of Object.keys(SONGS)) {
+        if (id === 'silence') continue;
+        const s = SONGS[id]; s._parsed = false; parseSong(s);
+        const loop = s.len * 60 / s.bpm / (s.div || 4), R = begin(loop + 0.6, DEF);
+        Music.play(id);
+        const x = await render(R, loop + 0.12 - 0.16);
+        if (R.click) clicks++, out.push(`${id}: a click (a gain jumps while a note sounds)`);
+        const p = peak(x), I = integrated(x.subarray(Math.round(0.12 * SR), Math.round((loop + 0.12) * SR)));
+        song[id] = { I, tp: p.tp, at: p.at, max: p.tp + UP_M };
+        const quiet = QUIET.includes(id), lo = quiet ? REF - 4 : REF - 1.5, hi = quiet ? REF - 1 : REF + 1.5;
+        if (!(I >= lo && I <= hi)) out.push(`${id}: ${I.toFixed(1)} LUFS (it should be ${lo} to ${hi})`);
+        if (p.tp + UP_M > -4) out.push(`${id}: peaks at ${(p.tp + UP_M).toFixed(1)} dBTP with the music at the top`);
+    }
+    const level = Object.entries(song).filter(([id]) => !QUIET.includes(id)).map(([, v]) => v.I);
+    if (Math.max(...level) - Math.min(...level) > 3) out.push(`the tunes span ${(Math.max(...level) - Math.min(...level)).toFixed(1)} dB (more than 3)`);
+    /* every effect: heard over the music (its loudest 100 ms no more than 15 dB under a tune), never shouting (5 over at
+       most, its peak 6 dB under full scale with the sound at the top) */
+    for (const name of Object.keys(SFX)) {
+        const R = begin(2.6, DEF); R.now = 0.05; Sfx.play(name);
+        const x = await render(R, 0);
+        if (R.click) clicks++, out.push(`effect ${name}: a click`);
+        const F = loudest100(x), p = peak(x);
+        if (!(F >= REF - 15 && F <= REF + 5)) out.push(`effect ${name}: ${F.toFixed(1)} LUFS at its loudest (the tunes are at ${REF})`);
+        if (p.tp + UP_S > -6) out.push(`effect ${name}: peaks at ${(p.tp + UP_S).toFixed(1)} dBTP with the sound at the top`);
+    }
+    /* the worst moments, at the top volumes and at the defaults: a pile-up of effects on a fight's loudest moment and on
+       the loudest tune's; a crossfade between the two loudest; the end of the Pull with its effects */
+    const by = f => Object.keys(song).filter(f).sort((a, b) => song[b].tp - song[a].tp)[0];
+    const fight = by(id => id.startsWith('boss')), loudest = by(() => true), next = by(id => id !== loudest && id.startsWith('boss'));
+    async function scene(id, t, vol, fx, then) {
+        const R = begin(t + 3.4, vol), ev = fx.map(n => ({ t, fn: () => { Sfx.last = {}; Sfx.play(n); } }));
+        if (then) ev.push({ t, fn: () => Music.play(then) });
+        Music.play(id);
+        const x = await render(R, t + 3 - 0.16, ev);
+        if (R.click) clicks++, out.push(`${id} with ${fx.join(' ') || then}: a click`);
+        return peak(x, Math.round((t - 2) * SR), Math.round((t + 3) * SR)).tp;
+    }
+    const PILE = ['hitthing', 'enemyhit', 'boss', 'bell', 'item', 'rumble', 'heart', 'hookhit'], FOUR = ['hitthing', 'bell', 'boss', 'heart'];
+    const checks = [
+        [`${fight}, a hit, a ring, the boss's attack and a pickup at once, at the default volumes`, await scene(fight, song[fight].at, DEF, FOUR), -6],
+        [`${fight} and eight effects at once, everything at the top`, await scene(fight, song[fight].at, MAX, PILE), -0.5],
+        [`${loudest} and eight effects at once, everything at the top`, await scene(loudest, song[loudest].at, MAX, PILE), -0.5],
+        [`${loudest} crossfading into ${next}, at the top`, await scene(loudest, song[loudest].at, MAX, [], next), Math.max(song[loudest].max, song[next].max) + 0.5],
+        ['the Pull and six effects at once, at the top', await scene('pull', song.pull.at, MAX, ['rumble', 'snip', 'knot', 'twang', 'unclick', 'shatter']), -0.5],
+    ];
+    for (const [what, tp, lim] of checks) if (tp > lim) out.push(`${what}: peaks at ${tp.toFixed(2)} dBTP (over ${lim.toFixed(1)})`);
+    return out;
+}
 const SCENARIOS = {
     async kiln() {
         await open();
@@ -476,6 +610,12 @@ const SCENARIOS = {
         });
         errors.push(...bad.map(b => 'portraits: ' + b));
         await shot('portraits_box');
+    },
+    /* the sound (src/09_audio.js, src/40e_mix.js), rendered and measured: see audioCheck */
+    async audio() {
+        await open();
+        const bad = await page.evaluate(audioCheck);
+        errors.push(...bad.map(b => 'audio: ' + b));
     },
     async title() { await open(); await page.evaluate(() => { window.HW._paused = false; }); await page.waitForTimeout(400); await page.evaluate(() => { window.HW._paused = true; }); await shot('title'); },
     async lab() {

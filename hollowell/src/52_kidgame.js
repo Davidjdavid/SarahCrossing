@@ -133,7 +133,7 @@ TALK.bea = function* () {
     if (Progress.flag('s12')) { yield* say('bea', 'Look after the badge! It took three goes to draw the duster.'); return; }
     if (Progress.flag('d1')) {
         yield* firstThen('bea', "You beat the real one, didn't you? How? Did you hit it with your stick?",
-            ["Otto always comes at things from his side. From his X. Always. He's very predictable.", "And he won't go round you. If you're in his way he just picks another side.", Progress.flag('tagStopped') ? "Feels like my feet like it here. Here here. This exact spot." : "I'm not playing. I'm the audience."]);
+            ["Otto always comes at things from his side. From his X. Always. He's very predictable.", "And he won't go round you. If you're in his way he just picks another side.", Progress.flag('tagStopped') ? "Feels like my feet like it here. Right here. This exact spot." : "I'm not playing. I'm the audience."]);
         return;
     }
     yield* say('bea', "You can't tag me, I'm on the well-step! The well-step is safe!");

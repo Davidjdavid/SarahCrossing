@@ -66,7 +66,7 @@ SPAWN.backwindow = (tx, ty) => {
 };
 
 /* ---------- S08: a House's key tugs back at its door ---------- */
-NOTES.s08 = { title: 'Keys', text: "A small key from a House won't leave it: at the door it tugs back toward the House like a dog on a lead. Everything in the Houses knows where it belongs. Even the keys." };
+NOTES.s08 = { title: 'Keys', text: "A small key from a House won't leave it: at the door it tugs back towards the House like a dog on a lead. Everything in the Houses knows where it belongs. Even the keys." };
 {
     const leave0 = Story.leaveHouse;
     Story.leaveHouse = function (house) {
@@ -113,10 +113,10 @@ const BOSS_NAPS = {
     tidy: { flag: 'tidy_boss', name: 'the Grand Housekeeper', col: THREAD.ives, line: "The Grand Housekeeper, wound back together, fast asleep in its corner with its doors shut. You pat its side. Somewhere inside it, a drawer sighs." },
     kiln: { flag: 'kiln_boss', name: 'the Kilnwyrm', col: THREAD.bram, line: "The Kilnwyrm, its segments glued back in a heap, snoring very quietly through its nose. It's warm. You pat it, and it rattles happily." },
     millrace: { flag: 'millrace_boss', name: 'Old Grindle', col: THREAD.ambrose, line: "Old Grindle, beached at the edge of the pond, gears ticking slowly in its sleep. You pat its fin. It goes clank, contentedly." },
-    belfry: { flag: 'belfry_boss', name: 'the Tollgrim', col: THREAD.tess, line: "The Tollgrim, curled up under an upturned bell, purring at the exact pitch of middle C. You pat its stone head." },
+    belfry: { flag: 'belfry_boss', name: 'Tollgrim', col: THREAD.tess, line: "Tollgrim, curled up under an upturned bell, purring at the exact pitch of middle C. You pat his stone head." },
     slumber: { flag: 'slumber_boss', name: 'Mother Sloth', col: THREAD.mallow, line: "Mother Sloth, asleep in her own bed for once, a nightcap over one eye. You tuck her in. She mumbles something about bedtimes." },
     marionette: { flag: 'reveal1', name: 'the Great Marionette', col: THREAD.jory, line: "The Great Marionette, hung up neatly on its hook, strings coiled, dozing. Somebody's chalked a smile on it. You give its foot a little wiggle." },
-    spoolworks: { flag: 'd7', name: 'the Tangle', col: THREAD.guild, line: "The Tangle, wound loosely into a great soft ball, the Cog curled asleep on top of it. You pat the ball. It unwinds a little, comfortably." },
+    spoolworks: { flag: 'd7', name: 'the Tangle', col: THREAD.guild, line: "The Tangle, wound loosely into a great soft ball, Cog curled asleep on top of it. You pat the ball. It unwinds a little, comfortably." },
 };
 SPAWN.bossnap = (tx, ty, p) => {
     const d = BOSS_NAPS[p.house];

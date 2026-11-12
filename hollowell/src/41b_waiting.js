@@ -19,8 +19,8 @@ const Waiting = {
         const p = G.player;
         G.waiting = { t: 0, room: Cam.room };
         p.state = 'sleep'; p.walking = false;
-        UI.toast('You sit down to wait...', 90);
         Stats.count('waited');
+        if (Stats.c.waited <= 3) UI.toast('You sit down to wait...', 90);     /* (then quiet: she sits, and it all speeds up) */
     },
     /* each step: done when the room's things are all home (or something else needs Wren) */
     tick() {
@@ -37,7 +37,7 @@ const Waiting = {
         if (home || stuck || anyKey || w.t > this.MAX || Dialog.active || p.area !== a || Cam.room !== w.room) {
             G.waiting = null;
             if (p.state === 'sleep') p.state = 'normal';
-            if (home) UI.toast('Everything in here is back where it belongs.', 120);
+            if (home) UI.toast(Stats.c.waited <= 3 ? 'Everything in here is back where it belongs.' : 'All home.', 120);
             else if (stuck) UI.toast("Some things in here can't get home: something's in their way.", 150);
         }
     },

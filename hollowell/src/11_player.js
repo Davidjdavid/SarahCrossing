@@ -279,7 +279,7 @@ class Player extends Ent {
         if (this.pushT >= need) {
             this.pushT = 0;
             if (o.onPushed && o.onPushed(this, d) === false) return;
-            if (o.noPush || Return.asleep(o)) { if (o.pushLine || Return.asleep(o)) UI.toast(Return.sleepLine(o)); return; }
+            if (o.noPush || Return.asleep(o)) { if (o.pushLine || Return.asleep(o)) Return.sleepSay(o); return; }
             if (!o.push(d, o.weight >= WEIGHT.heavy ? 20 : 16)) { if (o.ret) Sfx.play('push'); }
             else Stats.count('pushes');
         }
@@ -289,7 +289,7 @@ class Player extends Ent {
     tryGrip() {
         const o = this.thingInFront();
         if (!o || o.fixed || o.noGrip) return;
-        if (Return.asleep(o)) { if (Input.pressed('act')) UI.toast(Return.sleepLine(o)); return; }
+        if (Return.asleep(o)) { if (Input.pressed('act')) Return.sleepSay(o); return; }
         this.grip = o; o.heldBy = this;
         Sfx.play('click');
     }
@@ -336,7 +336,7 @@ class Player extends Ent {
         for (const e of cand) {
             if (e.interact && e.interact(this) !== false) { Stats.count('interactions'); return; }
         }
-        if (o && Return.asleep(o)) { UI.toast(Return.sleepLine(o)); return; }
+        if (o && Return.asleep(o)) { Return.sleepSay(o); return; }
         if (o && o.liftable && !o.mv) return this.lift(o);
         if (o && Inv.has('gloves')) this.tryGrip();
     }

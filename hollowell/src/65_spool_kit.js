@@ -140,7 +140,7 @@ const Spool = {
         if (e.onKnot) e.onKnot();
         if (quiet) return;
         Sfx.play('tie'); Stats.count('knots');
-        if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. (Z on the knot to undo it.)'; }
+        if (!Progress.flag('knot_first')) { Progress.set('knot_first'); G.pendingToast = 'You wind the cord round the cleat and tie it off. Up above, whatever it holds is held fast. ([act] on the knot to undo it.)'; }
         else UI.toast('Tied off: held fast up above.', 90);     /* (every time after, short: a knot always answers) */
     },
     untie(e) {
@@ -340,7 +340,7 @@ const Needle = {
         if (!t) { UI.toast(this.hinted ? 'Nothing to stitch there.' : 'Face a thing (or its cord, from underneath) and press [tool] to give it a new place.'); this.hinted = true; return; }
         const e = t.thing;
         if (e.knotted) { UI.toast("It's tied off underneath. Undo the knot first."); return; }
-        if (!this.able(e)) { UI.toast(Return.asleep(e) ? "It's asleep; the needle won't take." : "The needle won't go into that."); return; }
+        if (!this.able(e)) { UI.toast(Return.asleep(e) ? "It's asleep; the Needle won't take." : "The Needle won't go into that."); return; }
         const rec = Inv.stitches.find(s => s.area === e.area.id && s.key === this.key(e));
         if (rec) {
             Script.run(function* () {
@@ -359,7 +359,7 @@ const Needle = {
         e.heldBy = e.heldBy || { needle: true };
         p.pinned = 'needle';
         Sfx.play('twang');
-        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the needle (up to 4). [tool]: that\'s its place now. [act]: never mind.', 200, { focus: this.focus(this.st) }); }
+        if (!Progress.flag('needle_first')) { Progress.set('needle_first'); UI.toast('Arrows walk the Needle, up to four tiles. [tool]: that\'s its place now. [act]: never mind.', 200, { focus: this.focus(this.st) }); }
     },
     /* what the Needle's first notice keeps clear of: the thing, and the tiles it could go to (a box round them, as drawn) */
     focus(s) {

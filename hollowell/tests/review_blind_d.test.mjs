@@ -404,3 +404,38 @@ test("the Foot's sign promises a seventh place at the top, an empty peg for the 
     assert.equal(got.length, 1, 'still there as she lets go of the Spool, and empty');
     noErrors(HW);
 });
+
+/* ================= a homecoming never walls Wren in (finding 30's rule, carried on) ================= */
+test('the Airing Cupboard: in the slot on its plate, the Bell rung: the mangle waits over the top of the slot (its place) while Wren is in there, and comes down once she is out; she is never walled in', () => {
+    const HW = spool(); inSpool(HW, 'tidy', 17, 5);
+    const B = HW.find('gsTMangle'), p = HW.player();
+    ggo(HW, 'tidy', 14, 7);
+    HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(200);
+    assert.deepEqual(gloc('tidy', p), [14, 7], 'in the slot');
+    assert.ok(B.pendingHome, 'the mangle hangs over its place, waiting');
+    assert.ok(HW.walkTo(...gs('tidy', 14, 4), 300), 'and she can walk out');
+    assert.ok(until(HW, () => !B.pendingHome, 60), 'out: it comes down');
+    assert.deepEqual(gloc('tidy', B), [14, 6], 'on its place, at the top of the slot');
+    noErrors(HW);
+});
+
+test('anywhere: a thing popping home onto the only way out of a dead end Wren is in waits over its place till she is out; with another way out, it comes down at once', () => {
+    for (const second of [false, true]) {
+        const HW = loadGame(); HW.newGame('Wren', { area: 'lab', x: 8, y: 5, noAutosave: true }); HW.step(5);
+        const a = HW.G.map, c = a.ents.find(e => e.kind === 'crate'), pot = a.ents.find(e => e.kind === 'pot');
+        a.remove(pot);
+        /* a dead end two deep north of the crate's place (8,4); a doorway out on the east wall */
+        for (const [x, y] of [[8, 1], [7, 2], [9, 2], [7, 3], [9, 3]]) a.setCell(x, y, '#');
+        a.setCell(19, 8, '.');
+        if (second) a.setCell(9, 2, '.');                 /* (and, the second time, a way out of it to the side) */
+        /* the crate off its place, then Wren up into the dead end, and the crate home as if it had fallen in a hole */
+        a.unplace(c, c.tx, c.ty); c.tx = 12; c.ty = 8; c.x = 12 * 16; c.y = 8 * 16; a.place(c, 12, 8); HW.Return.moved(c, 12, 8);
+        assert.ok(HW.walkTo(8, 2, 300), 'up the dead end');
+        HW.Return.sendHome(c); HW.step(30);
+        if (second) { assert.ok(!c.pendingHome && a.at(8, 4) === c, 'another way out: it comes down at once'); continue; }
+        assert.ok(c.pendingHome, 'it waits over its place: down, it would wall her in');
+        assert.ok(HW.walkTo(8, 5, 300), 'she walks out over its place');
+        assert.ok(until(HW, () => !c.pendingHome, 30) && a.at(8, 4) === c, 'and down it comes');
+        noErrors(HW);
+    }
+});

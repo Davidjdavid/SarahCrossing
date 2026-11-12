@@ -157,7 +157,7 @@ defHouse({
         },
         /* ---------------- 6 Parlor ---------------- */
         '2,2': {
-            name: 'Parlor',
+            name: 'Parlour',
             rows: [
                 '################,###',
                 '#,,,,,,,,,,,,,,,,,,#',
@@ -876,11 +876,11 @@ function initTidyArt() {
     defSprite('keeper_open', open.map(r => r.slice(0, 32).padEnd(32, '.')), Object.assign({}, KL, { K: '#1e3a3a', m: '#e8463c' }));
 }
 CONTENT_INIT.push(initTidyArt);
-ITEM_LINES.plan = () => `You found the {blue}House plan{/}! Every room of ${G.map && G.map.def.name ? G.map.def.name.replace(/^The /, 'the ') : 'the House'}, drawn in a neat hand. (Open the map with [map].)`;
-ITEM_LINES.pattern = () => `You found the {blue}Pattern{/}! A square of ${(PATTERN_CLOTH[G.map && G.map.def.house] || ['teal'])[0]} cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.`;
+ITEM_LINES.plan = () => `You found the {blue}House plan{/}! Every room of ${G.map && G.map.def.name ? G.map.def.name.replace(/^The /, 'the ') : 'the House'}, drawn in a neat hand.` + (firstTime('plan') ? ' (Open the map with [map].)' : '');
+ITEM_LINES.pattern = () => { const c = (PATTERN_CLOTH[G.map && G.map.def.house] || ['teal'])[0]; return firstTime('pattern') ? `You found the {blue}Pattern{/}! A square of ${c} cloth stitched in a pattern like a lock's insides. The big door in this House is stitched to match.` : `You found the {blue}Pattern{/}! A square of ${c} cloth, stitched to match this House's big door.`; };
 ITEM_LINES.gloves = () => 'You found the {red}Gloves{/}! Hold [act] against something to grip it: while you hold on, it stays put. Step back while gripping to pull it.';
 ITEM_LINES.heartstitch = () => 'A {red}Heartstitch{/}! Your hearts grow by one.';
-ITEM_LINES.key = () => 'A {blue}small key{/}! It opens one locked door in this House.';
+ITEM_LINES.key = () => firstTime('key') ? 'A {blue}small key{/}! It opens one locked door in this House.' : 'A {blue}small key{/}!';
 ITEM_LINES.heartpatch = () => 'A {red}Heart Patch{/}! ' + (Inv.patches % 4 === 0 ? '' : `(${Inv.patches % 4} of 4.)`);
 ITEM_AFTER.gloves = function* () { Progress.set('gotGloves'); };
 

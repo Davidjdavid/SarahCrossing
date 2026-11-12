@@ -26,6 +26,14 @@ const MAKINGS = [
 ];
 /* (what Tuck says at the hoop, if his House doesn't say otherwise: the first and the last) */
 const TUCK_DONE = 'I DID IT! Did you see? I did it ALL by MYSELF!';
+/* what he says at the same things over and over, in turn (Tuck.line) */
+const TUCK_SAYS = {
+    n: {},
+    jumped: ['Ooh! It jumped!', 'It JUMPED!', 'Ooh! That one jumped!', 'It moved! I saw it!'],
+    button: ['Ooh! A shiny button under it!', 'A BUTTON! Under there!', 'Ooh! Treasure!'],
+    sulk: ['Hmph.', 'Hmph!', "It's not FAIR.", '...Hmph.'],
+    scared: ['Eek!', 'Eek! Teeth!', 'Nope!'],
+};
 /* where Wren comes in underneath (a Little House can say otherwise): beside his start, not under it, so the two of them
    aren't drawn one on the other's head */
 const MAKING_ENTRY = { x: 5, y: 16 };
@@ -86,6 +94,8 @@ class Tuck extends NPC {
         return Math.abs(x - g[0]) + Math.abs(y - g[1]);
     }
     /* (a new line replaces the one still floating, so two never sit on each other) */
+    /* (what he says when it's the same thing again and again: the next of a few, in turn: never the game's dice) */
+    line(kind) { const L = TUCK_SAYS[kind], n = TUCK_SAYS.n[kind] = (TUCK_SAYS.n[kind] || 0) + 1; return L[(n - 1) % L.length]; }
     say(text, bubble) { if (bubble) { this.bubble = bubble; this.bubbleT = 70; } if (text) { if (this._said) this._said.life = 0; this._said = Fx.text(this.px + 8, this.py - 18, text, '#fbf6ea'); } }
     step(nx, ny) { this.dir = dirOf(nx - this.tx, ny - this.ty); this.startMove(nx, ny, 14); }
     /* a bump: a biter, or a heavy thing on its way home: "Ow!", and back to the start */
@@ -114,7 +124,7 @@ class Tuck extends NPC {
         Sfx.play('flight'); this.yank(false); Stats.count('tuck:yanked');
         if (!Progress.flag('tuck_yanked')) { Progress.set('tuck_yanked'); G.pendingToast = "Ives, from somewhere above: \"Not the boy's own thread, love! ...He did like it, mind.\""; }
     }
-    onNoKnot() { this.say('Hey! Let go!', 'bang'); UI.toast("It's his Wander: you can give his thread a tug, but you won't tie him down.", 150); }
+    onNoKnot() { this.say('Hey! Let go!', 'bang'); if (firstTime('tuckKnot')) UI.toast("It's his Wander: you can give his thread a tug, but you won't tie him down.", 150); }
     onUntie() { this.say('Phew.'); }
     canBeShoved(d) { return !this.mv; }
     shove(d, dur, by) { this.bump('shoved'); }
@@ -134,13 +144,13 @@ class Tuck extends NPC {
             const opts = [UP, DOWN, LEFT, RIGHT].map(d => [this.tx + DX[d], this.ty + DY[d]]).filter(([x, y]) => this.walkable(x, y));
             const far = ([x, y]) => Math.min(...near.map(n => Math.max(Math.abs(n.tx - x), Math.abs(n.ty - y))));
             opts.sort((m, n) => far(n) - far(m));
-            if (opts.length && far(opts[0]) > Math.min(...near.map(n => Math.max(Math.abs(n.tx - this.tx), Math.abs(n.ty - this.ty))))) { this.step(...opts[0]); if (this.state !== 'scared') this.say('Eek!', 'bang'); this.state = 'scared'; this.cur = null; return; }
+            if (opts.length && far(opts[0]) > Math.min(...near.map(n => Math.max(Math.abs(n.tx - this.tx), Math.abs(n.ty - this.ty))))) { this.step(...opts[0]); if (this.state !== 'scared') this.say(this.line('scared'), 'bang'); this.state = 'scared'; this.cur = null; return; }
             this.state = 'scared'; this.wait = 10; return;
         }
         /* 2: something jumped: go and push it */
         const j = Spool.jolt;
         if (j && j.t > this.seen && G.t - j.t < 240 && !j.e.removed && a.roomAt(j.e.tx, j.e.ty) === a.roomAt(this.tx, this.ty) && Math.max(Math.abs(j.e.tx - this.tx), Math.abs(j.e.ty - this.ty)) <= 8) {
-            this.seen = j.t; this.cur = j.e; this.curT = 0; this.curJolt = true; this.say('Ooh! It jumped!', 'bang');
+            this.seen = j.t; this.cur = j.e; this.curT = 0; this.curJolt = true; this.say(this.line('jumped'), 'bang');
         }
         if (this.cur) {
             const o = this.cur;
@@ -151,7 +161,7 @@ class Tuck extends NPC {
                     const d = dirOf(o.tx - this.tx, o.ty - this.ty); this.dir = d;
                     this.cur = null; this.wait = this.curJolt ? 210 : 60; this.curJolt = false;      /* (and then he admires it a moment: a good while, if it jumped) */
                     const tr = a.ents.find(e => e.kind === 'treasure' && !e.found && e.tx === o.tx && e.ty === o.ty);
-                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say('Ooh! A shiny button under it!', 'heart'); Sfx.play('button'); if (!Progress.areaFlag(a.id, 'got:button')) { Progress.setAreaFlag(a.id, 'got:button'); Inv.buttons += 5; } }
+                    if (tr) { tr.found = true; a.remove(tr); Making.aha('found'); this.say(this.line('button'), 'heart'); Sfx.play('button'); if (!Progress.areaFlag(a.id, 'got:button')) { Progress.setAreaFlag(a.id, 'got:button'); Inv.buttons += 5; } }
                     if (o.weight > WEIGHT.medium || o.fixed || o.mv) { if (!tr) this.say('Hnnngh!', 'dots'); return; }
                     const before = this.reach(g);
                     if (o.push(d, 16)) {
@@ -174,7 +184,7 @@ class Tuck extends NPC {
         /* 4: stuck: as near as he can get, then sit and sulk */
         const n = this.route(g[0], g[1], true);
         if (n && n.length) { this.state = 'go'; this.step(...n[0]); return; }
-        if (this.state !== 'sit') { this.state = 'sit'; this.say('Hmph.', 'dots'); Making.note('sat'); }
+        if (this.state !== 'sit') { this.state = 'sit'; this.say(this.line('sulk'), 'dots'); Making.note('sat'); }
         this.wait = 20;
     }
     sprite() {
@@ -371,7 +381,7 @@ const Making = {
             yield* Making.fetch(g, p, 'Through the door from the Guild Hall comes Gundry, wiping his hands on a rag, not hurrying.');
         }
         yield* say('gundry', `${['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][MAKING_COUNT] || MAKING_COUNT} Little Houses, and he never once saw your hands. You're a Maker, apprentice. Near enough.`);
-        yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool of their own for the Wander, a new thread. Tuck's is in the deep store, down the Way Down. Go and fetch it.");
+        yield* say('gundry', "One more job, and it's an honour: every Wanderer gets a fresh spool for the Wander. Tuck's is in the deep store, down the Way Down. Fetch it.");
         yield* say('gundry', "Mind, it's old down there. Older than the Guild. Don't touch the big ones.");
         Progress.setGoal("The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.");
         /* (and back to his table, in his own time, the rag in his pocket) */
@@ -524,7 +534,7 @@ UNDER_TALK.otto = function* () {
 UNDER_TALK.tuck = function* () {
     if (!Progress.flag('making1')) { yield* say('tuck', "{name}! I'm doing a WANDER! A little one! The Makers built it! You're not allowed to help. It's MY Wander."); return; }
     if (!Progress.flag('makings_done')) {
-        const lines = ["Did you see me? Did you SEE? The block just jumped and I pushed it!", "There was a nibbler. I wasn't scared. Much.", "Next one's harder. Bram said. I'm not scared.", "Gundry's one was the hardest. He said I'd sulk. I DIDN'T sulk. Much."];
+        const lines = ["Did you see me? Did you SEE? The block just jumped and I pushed it!", "There was a nibbler. I wasn't scared. Much.", "Next one's harder. Bram said. I'm not scared.", "Gundry's one was the hardest. He said I'd sulk. I DIDN'T sulk. I sat down. That's different."];
         if (Progress.flag('making4')) lines.push("Mother Ives says the next ones are the real Tidyhouse rooms. The ones YOU did. I'm going to do them faster.");
         if (Progress.flag('making5')) lines.push("Otto keeps TIDYING things. I push them and he puts them back. It's very annoying.", "If Otto's in the way I just wait. He always goes off to tidy something in the end.");
         yield* say('tuck', cycle('tuck_mk', lines)); return;
@@ -535,8 +545,8 @@ const UNDER_TALK_GUNDRY = UNDER_TALK.gundry;
 UNDER_TALK.gundry = function* (n) {
     if (Progress.flag('d7') && !Progress.flag('making1') && !Progress.flag('gundry_job')) {
         Progress.set('gundry_job');
-        yield* say('gundry', `Right, apprentice. The job. Tuck's been on at everybody for a Wander since he could walk. He's six. So the Makers built him a Little one: ${['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][MAKING_COUNT] || MAKING_COUNT} little Houses, up above the Making Floor.`);
-        yield* say('gundry', "You'll run it. From underneath. He walks, you work. Get him through, don't let him get hurt, and if you're any good, he'll work something out himself and never know you were there.");
+        yield* say('gundry', `Right, apprentice. The job. Tuck's six, and he's wanted a Wander since he could walk. So the Makers built him a Little one: ${['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][MAKING_COUNT] || MAKING_COUNT} Little Houses.`);
+        yield* say('gundry', "You run it from underneath. He walks, you work. Get him through unhurt, and if you're any good he'll work something out himself.");
         yield* say('gundry', "Read his rules on the wall down there. He wrote them himself. Spelling's his own.");
         Progress.setGoal("The Making Floor, east of the Guild Hall: run Tuck's Little Wander from underneath.");
         return;
