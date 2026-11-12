@@ -37,6 +37,7 @@ const tileBox = ([x, y], tall = 16) => [x * T, y * T + 16 - tall, x * T + 16, y 
 
 /* ---------------- each foe's end, while it's told ---------------- */
 const FOES = {
+    housekeeper: ['tidy', e => e.type === 'housekeeper', (HW, e) => { e.hp = 1; e.state = 'stunned'; e.doors = 1; e.flash = 0; e.struck(HW.player(), 1, 0); }, (HW, e) => e.drain.showing() && !e.drain.removed && e.yarnT < 240],
     monger: ['tidy', e => e.type === 'monger', (HW, e) => e.die(), (HW, e) => HW.G.map.ents.some(q => q.kind === 'remains' && !q.removed && q.showing())],
     glazer: ['kiln', e => e.type === 'glazer', (HW, e) => { e.hp = 1; e.flash = 0; e.struck(null, 1, -1, true); }, (HW, e) => !e.alive && e.deadT < 200],
     kilnwyrm: ['kiln', e => e.type === 'kilnwyrm' || e.kind === 'kilnwyrm', (HW, e) => { e.hp = 1; e.flash = 0; e.struck(null, 1, -1, true); }, (HW, e) => e.pieces.showing() && !e.pieces.removed],
@@ -47,7 +48,7 @@ const FOES = {
     sloth: ['slumber', e => e.type === 'mothersloth', (HW, e) => { e.hp = 1; e.setArena(3, true); e.defeat(); }, (HW, e, l) => /^Board by board/.test(l) ? HW.Script.running('slothFloor') && e.far.some(([x, y]) => HW.G.map.kind(x, y).pit) && e.far.some(([x, y]) => !HW.G.map.kind(x, y).pit) : (e.yarnT || 0) < 220],
     tangle: ['spoolworks', e => e.kind === 'tangle', (HW, e) => e.defeat(), (HW, e) => e.runs.showing() && !e.runs.removed],
 };
-const SAID = { monger: /^The Dust Monger bursts/, glazer: /^The Glazer cracks/, kilnwyrm: /^The Kilnwyrm comes apart/, snapjaw: /^The Snapjaw rolls over/, grindle: /^Old Grindle's gears/, clangor: /^Clangor falls to pieces/, tollgrim: /^Tollgrim unravels/, sloth: /^Mother Sloth lets go|^Board by board/, tangle: /^The little knot|^slithers apart/ };
+const SAID = { housekeeper: /^The Housekeeper shudders/, monger: /^The Dust Monger bursts/, glazer: /^The Glazer cracks/, kilnwyrm: /^The Kilnwyrm comes apart/, snapjaw: /^The Snapjaw rolls over/, grindle: /^Old Grindle's gears/, clangor: /^Clangor falls to pieces/, tollgrim: /^Tollgrim unravels/, sloth: /^Mother Sloth lets go|^Board by board/, tangle: /^The little knot|^slithers apart/ };
 function foeAt(name) {
     const [area, is] = FOES[name];
     const HW = loadGame();
@@ -62,7 +63,7 @@ function foeAt(name) {
     e = [...HW.G.map.ents, ...HW.G.map.walkers].find(is);
     return [HW, e];
 }
-test('a beaten foe goes while its end is told: dust bunnies, a crumbling Glazer, pots down a crack, a ball of yarn down the race or under the bell, a sinking fish, pieces of armour, a feather and a floor coming back, thread down the cracks', () => {
+test('a beaten foe goes while its end is told: teal yarn down a hole, dust bunnies, a crumbling Glazer, pots down a crack, a ball of yarn down the race or under the bell, a sinking fish, pieces of armour, a feather and a floor coming back, thread down the cracks', () => {
     for (const name of Object.keys(FOES)) {
         const [HW, e] = foeAt(name), [, , beat, shown] = FOES[name];
         assert.ok(e, name + ' there');

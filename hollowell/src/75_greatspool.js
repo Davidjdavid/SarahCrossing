@@ -660,7 +660,7 @@ class SpoolDrum extends Ent {
             const [ex, ey] = hit[0].end;
             this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: ex * T + 8, ty: ey * T + 8, thing: e });
             a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
-            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.'; }
+            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = { s: 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.', focus: this }; }
         }
         /* the second pair: she throws at you */
         if (SpoolTop.throwing()) this.throws(a, p, top);
@@ -827,7 +827,7 @@ const GreatSpool = {
         yield* say('wren', "You can't pull me, Gran.");
         yield* say('gran', granCount());
         yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.", { focus: gran });
-        yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.");
+        yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.", { focus: a.ents.filter(e => e.kind === 'crate' && a.roomAt(e.tx, e.ty) === a.roomAt(s.tx, s.ty)) });
         Progress.setGoal(SpoolTop.goal());
     },
     *finale() {

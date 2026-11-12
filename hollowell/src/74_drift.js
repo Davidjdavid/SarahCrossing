@@ -396,6 +396,24 @@ const DriftArt = {
         fill(x, '#3e5a34'); speckle(x, ['#4c6a3e', '#334c2c'], 151 + v, 0.3);
         for (let n = 0; n < 3; n++) { const fx = 2 + Math.floor(hash2(n, v, 153) * 11), fy = 3 + Math.floor(hash2(v, n, 154) * 10); px(x, fx, fy, '#5c7e44'); px(x, fx - 1, fy - 1, '#5c7e44'); px(x, fx + 1, fy - 1, '#5c7e44'); px(x, fx, fy + 1, '#4c6a3e'); }
     },
+    /* the woods' floor at their edge: the meadow comes in from each open side (m: which sides are woods too) as far as a
+       wandering line, in big soft patches and small ragged ones, and the floor's edge darkens a little toward it */
+    forestEdge(x, v, m, cs, tx, ty) {
+        this.forest(x, v);
+        const g = Gfx.makeCanvas(T, T), gx = g.getContext('2d');
+        this.grass(gx, cs, v);
+        const A = x.getImageData(0, 0, T, T), B = gx.getImageData(0, 0, T, T), o = A.data, q = B.data;
+        for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
+            let d = 99;
+            if (!(m & 1)) d = Math.min(d, j); if (!(m & 2)) d = Math.min(d, T - 1 - j);
+            if (!(m & 4)) d = Math.min(d, i); if (!(m & 8)) d = Math.min(d, T - 1 - i);
+            const X = tx * T + i, Y = ty * T + j, n = OWA.n2(X / 7, Y / 7, 57) * 0.7 + OWA.n2(X / 2.5, Y / 2.5, 58) * 0.3;
+            const k = (j * T + i) * 4, lim = 1 + n * 6;
+            if (d < lim) { o[k] = q[k]; o[k + 1] = q[k + 1]; o[k + 2] = q[k + 2]; }
+            else if (d < lim + 1.5) { o[k] = Math.round(o[k] * 0.86); o[k + 1] = Math.round(o[k + 1] * 0.86); o[k + 2] = Math.round(o[k + 2] * 0.86); }
+        }
+        x.putImageData(A, 0, 0);
+    },
     /* a dry-stone wall: rough stones laid without mortar, moss on top; a run north-south or east-west */
     drywall(x, m, cs, v) {
         this.meadow(x, cs, v, 0.5);
@@ -443,7 +461,14 @@ const DriftArt = {
                 return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v8}:${rich}`, x => this.heath(x, m, cs, v8, rich));
             }
             case 'path': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'path'); return tileCanvas(`drift2:track:${m}:${cs[0]}:${v}`, x => this.track(x, m, cs, v)); }
-            case 'forest': return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
+            case 'forest': {
+                /* (where the woods give onto the meadow, their floor frays into it along a wandering line: a stand of trees
+                   or a lone bush out in the grass isn't on a dark square) */
+                const m = this.mask(a, tx, ty, c => c.p === 'forest' || c.k === 'tree' || c.k === 'rock');
+                if (m === 15) return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
+                const cs = this.corners(a, tx, ty);
+                return tileCanvas(`drift2:forestedge:${tx},${ty}:${m}`, x => this.forestEdge(x, v, m, cs, tx, ty));
+            }
             case 'drywall': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'drywall'); return tileCanvas(`drift2:wall:${m}:${cs}:${v}`, x => this.drywall(x, m, cs, v)); }
             case 'racewall': return tileCanvas(`drift2:race:${v}`, x => this.racewall(x, v));
             case 'mud': return tileCanvas(`drift2:mud:${v}`, x => this.mud(x, v));

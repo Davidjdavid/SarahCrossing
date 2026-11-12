@@ -34,6 +34,8 @@ const VIEW_BOX = {
     hoop: e => [e.x, e.y, e.x + 32, e.y + 36],
     /* (Mother Sloth: her bed and her, drawn round her home tile) */
     mothersloth: e => e.hx === undefined ? null : [e.hx * T - 40, e.hy * T - 30, e.hx * T + 56, e.hy * T + 30],
+    /* (the great Spool's drum, in its brass flanges) */
+    greatspool: e => [e.x - 5, e.y - 7, e.x + 69, e.y + 35],
     /* (the great marionette stands on its two feet and rises 74 pixels over them) */
     greatmarionette: e => { const f = e.feet; if (!f || !f.length) return null; const xs = f.map(q => q[0] * T), y = Math.max(...f.map(q => q[1])) * T; return [Math.min(...xs) - 8, y - 76, Math.max(...xs) + 24, y + 16]; },
 };
@@ -199,8 +201,8 @@ const Dialog = {
             if (isBoss(e)) add(e, 2);
             else if (!more || !near(e)) continue;
             else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
-            else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.2, true);
-            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.2, true);
+            else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.1, true);
+            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.1, true);
         }
         const f = opts.focus;
         for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
@@ -509,7 +511,7 @@ const UI = {
         let c = hiddenBy(items, up.concat([r]), Cam.x, cy) - hiddenBy(items, up, Cam.x, cy) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
             + (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
         /* (over Wren, all but a must, as for the box: a third of her under a notice cost less than a pot under the other) */
-        if (p && !G.hideWren && !p.hidden && hiddenBy([wrenBox(p, false).concat(1)], [r], Cam.x, cy, true) > WREN_SHOWN) c += 1;
+        if (p && this.overWren(r, cy)) c += 1;
         return c;
     },
     /* (false: it waits a moment, for the place's name on its side to have been read; or, one with another up already and
@@ -538,7 +540,7 @@ const UI = {
     recheck() {
         const p = G.player;
         if (G.t % 3 || !p || !G.map || G.scene !== 'play' || G.hideWren || p.hidden) return;
-        const wren = [viewBox(p).concat(1)], under = r => hiddenBy(wren, [r], Cam.x, Cam.y, true) > 0.35;
+        const under = r => this.overWren(r, Cam.y);
         for (const t of this.toasts) {
             if (t.wait || !under(this.noticeRect(t, !!t.low))) continue;
             const items = Dialog.items({ focus: t.focus }, true);
@@ -546,11 +548,13 @@ const UI = {
         }
         const b = this.banner;
         if (b && !b.wait && b.t < 170 && under(this.bannerRect(b, !!b.low))) {
-            const items = Dialog.items({}, true), free = !this.toasts.some(t => !t.wait && !!t.low === !b.low);
+            const free = !this.toasts.some(t => !t.wait && !!t.low === !b.low);
             if (b.t > 60 || !free) b.t = 194;
-            else if (hiddenBy(items, [this.bannerRect(b, !b.low)], Cam.x, Cam.y) + 0.3 < hiddenBy(items, [this.bannerRect(b, !!b.low)], Cam.x, Cam.y)) { b.low = !b.low; b.back = 6; }
+            else if (this.bannerCost(b, !b.low, Cam.y) + 0.3 < this.bannerCost(b, !!b.low, Cam.y)) { b.low = !b.low; b.back = 6; }
         }
     },
+    /* does a panel (a notice, the place's name) hide more of Wren than the sliver the box may (WREN_SHOWN), the camera at cy? */
+    overWren(r, cy) { const p = G.player; return !!p && !G.hideWren && !p.hidden && hiddenBy([wrenBox(p, false).concat(1)], [r], Cam.x, cy, true) > WREN_SHOWN; },
     /* is a notice or the place's name up at the top (the Needle's stitches in the HUD sit under them)? and over a spot? */
     topBusy() { return !this.held() && (this.toasts.some(t => !t.wait && !t.low) || !!(this.banner && !this.banner.wait && !this.banner.low)); },
     underTop(r) {
@@ -591,14 +595,19 @@ const UI = {
         if (!b || !b.wait) return;
         /* (not on a black screen: the name comes up as the place does) */
         if (this.fadeA > 0.5 || (this.fade && this.fade.to > 0.5)) return;
-        const sides = [false, true].filter(lo => !this.toasts.some(t => !t.wait && !!t.low === lo));
+        /* (and not over Wren: where every side it could go would sit on her, it waits a little for her to come out from
+           under, and then lets it be) */
+        const play = G.scene === 'play' && G.map && G.player, cy = this.camPlanY();
+        const sides = [false, true].filter(lo => !this.toasts.some(t => !t.wait && !!t.low === lo) && !(play && this.overWren(this.bannerRect(b, lo), cy)));
         if (!sides.length) { if (++b.waited > 120) this.banner = null; return; }
         let low = sides[0];
-        if (sides.length > 1 && G.scene === 'play' && G.map && G.player) {
-            const items = Dialog.items({}, true), cy = this.camPlanY();
-            low = hiddenBy(items, [this.bannerRect(b, true)], Cam.x, cy) + 0.02 < hiddenBy(items, [this.bannerRect(b, false)], Cam.x, cy);
-        }
+        if (sides.length > 1 && play) low = this.bannerCost(b, true, cy) < this.bannerCost(b, false, cy);
         b.low = low; b.wait = false;
+    },
+    /* what the place's name would hide on a side (all else equal, the top) */
+    bannerCost(b, low, cy) {
+        const r = this.bannerRect(b, low);
+        return hiddenBy(Dialog.items({}, true), [r], Cam.x, cy) + (this.overWren(r, cy) ? 1 : 0) + (low ? 0.02 : 0);
     },
     bannerRect(b, low) {
         const w = Math.max(Font.width(b.s), b.sub ? Font.width(b.sub) : 0) + 30, h = b.sub ? 28 : 18, x = Math.round((W - w) / 2), y = low ? H - 24 - h : 30;

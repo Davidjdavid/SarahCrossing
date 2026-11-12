@@ -382,9 +382,10 @@ const StaffStairs = {
         if (!this.on(a, cx, cy)) return;
         if (!this.art) this.art = this.paint();
         const X = this.ox - cx, Y = this.oy - cy;
-        /* (Wren under a beam: the beam and its threads thin to a ghost round her, so she's never lost under them) */
+        /* (Wren under a beam or the threads running out through a doorway: they thin to a ghost round her, so she's never
+           lost under them) */
         const p = G.player, bx0 = p && p.area === a && !p.hidden ? Math.round(p.x - this.ox) - 9 : -99, by0 = p ? Math.round(p.y - this.oy) - 24 : 0;
-        if (bx0 > -18 && bx0 < 320 && this.beams.some(by => by0 < by + 22 && by0 + 28 > by - 2)) {
+        if (bx0 > -18 && bx0 < 320 && by0 > -28 && by0 < 176) {
             const x0 = clamp(bx0, 0, 320), x1 = clamp(bx0 + 18, 0, 320), y0 = clamp(by0, 0, 176), y1 = clamp(by0 + 28, 0, 176), im = this.art;
             const part = (sx, sy, sw, sh) => { if (sw > 0 && sh > 0) Gfx.sub(im, sx, sy, sw, sh, X + sx, Y + sy); };
             part(0, 0, 320, y0); part(0, y1, 320, 176 - y1); part(0, y0, x0, y1 - y0); part(x1, y0, 320 - x1, y1 - y0);

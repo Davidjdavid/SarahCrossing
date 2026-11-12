@@ -206,3 +206,6 @@
   one thing; a fight's hardest stage says its rule; hints (if you've asked for them) reach the fights too; a hard-to-see
   attack is easy to see; the Options say hints wait to be asked for; the Journal keeps a tune you'll want later.
 - Fixed: creatures no longer move or bite while you're reading a line or watching a scene.
+- Scenes show what their words say: doors open before they're mentioned, every beaten foe leaves something on screen
+  while its last line is read, and the big moments are staged towards the people in them; a puzzle's strings read
+  clearly; a few small pieces of art finished.

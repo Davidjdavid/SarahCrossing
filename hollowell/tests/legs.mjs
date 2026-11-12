@@ -199,15 +199,16 @@ export const LEG1 = (HW, chain) => {
     walk(...t('laundry', 13, 4)); HW.face('left'); talk();
     ok(HW.Inv.keys('tidy') === 1, 'laundry key');
     /* the block came home behind you: push it out of the way (once the nibbler's out of the way too); standing about meanwhile
-       with a nibbler at her heels (three hearts, this early) is no part of the route, so nothing bites while she waits */
-    HW.G.cheats.god = true; HW.step(200); HW.G.cheats.god = false;
+       with a nibbler at her heels, and the long walk round to the Ballroom after (three hearts, this early), are no part of
+       the route, so nothing bites till she's there */
+    HW.G.cheats.god = true; HW.step(200);
     for (let i = 0; i < 10 && lb.tx === 60 + 14; i++) {
         for (const e of HW.ents('enemy')) if (e.alive && e.onTile && e.onTile(60 + 15, 11 + 4)) HW.hitEnemy(e);   /* whack whatever's in the way */
         HW.face('right'); HW.push('right', 1); HW.step(20);
     }
     /* ballroom (from the hall's north door): tidy up, the Pattern */
     walk(...t('laundry', 1, 5)); walk(...t('linen', 9, 9)); walk(...t('parlor', 16, 1)); walk(...t('parlor', 1, 5));
-    walk(...t('hall', 3, 1)); walk(...t('ball', 6, 8)); HW.face('down'); HW.press('act', 1);
+    walk(...t('hall', 3, 1)); walk(...t('ball', 6, 8)); HW.G.cheats.god = false; HW.face('down'); HW.press('act', 1);
     walk(...t('ball', 5, 7)); HW.face('left');
     const bB = thing('ballB');
     until(() => bB.tx === 20 + 4 && bB.ty === 11 + 7, 600); HW.hold(['act']); HW.step(2); ok(HW.player().grip === bB, 'holding B');

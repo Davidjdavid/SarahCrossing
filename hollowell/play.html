@@ -2514,34 +2514,41 @@ const Fx = {
     },
     /* where each goes: { p, x, y (the letters' top left), w }. Kept from where it was said, it goes up (or down, at twice
        the cost) or to one side, whichever's least far; and never nearer someone else's face than the face of who said it
-       (pushed up past his bubble to the face of the one standing over him, "Hmph." read as hers) */
+       (pushed up past his bubble to the face of the one standing over him, "Hmph." read as hers). Faces give way first:
+       where every spot near would be on one (a crowd, and a line as long as the crowd is wide), the line goes over a
+       face, never the HUD or a panel */
     textSpots(texts, cx, cy, panels = []) {
-        const at = this.view(cx, cy), heads = this.heads(at), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at), heads), out = [];
+        const at = this.view(cx, cy), heads = this.heads(at), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at)), out = [];
         const mid = r => [(r[0] + r[2]) / 2, (r[1] + r[3]) / 2], far = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
         for (const p of texts) {
             const w = Font.width(p.text), [sx, sy] = at(p.x, p.y);
             const x0 = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
-            const free = (x, y) => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
+            const hit = (x, y) => r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1];
+            const free = (x, y, faces) => y >= 5 && y <= H - 13 && !keep.some(hit(x, y)) && !(faces && heads.some(hit(x, y)));
             /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said) */
             const mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
             const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy).reduce((b, r) => !b || far(mid(r), [sx, sy]) < far(mid(b), [sx, sy]) ? r : b, null);
             let best = null;
-            for (let k = 0; k <= 70 && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
-                const cy0 = dy < 0 ? -dy : 2 * dy;
-                for (let dx = 0; dx <= 64; dx += 2) for (const sd of dx ? [-1, 1] : [1]) {
-                    const x = Math.round(clamp(x0 + sd * dx, 6, W - 6 - w)), y = y0 + dy;
-                    let c = cy0 + Math.abs(x - x0);
-                    if ((best && c >= best.c) || !free(x, y)) continue;
-                    /* (the face it's nearest, if any's near, must be the speaker's) */
-                    const m = [x + w / 2, y + 4], near = heads.reduce((b, r) => { const d = far(mid(r), m); return d < 40 && (!b || d < b.d) ? { r, d } : b; }, null);
-                    if (own && near && near.r !== own) c += 100;
-                    if (!best || c < best.c) best = { x, y, c };
+            for (const faces of [true, false]) {
+                for (let k = 0; k <= H && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
+                    const cy0 = dy < 0 ? -dy : 2 * dy;
+                    if (y0 + dy < 5 || y0 + dy > H - 13) continue;
+                    for (let dx = 0; dx <= 64; dx += 2) for (const sd of dx ? [-1, 1] : [1]) {
+                        const x = Math.round(clamp(x0 + sd * dx, 6, W - 6 - w)), y = y0 + dy;
+                        let c = cy0 + Math.abs(x - x0);
+                        if ((best && c >= best.c) || !free(x, y, faces)) continue;
+                        /* (the face it's nearest, if any's near, must be the speaker's) */
+                        const m = [x + w / 2, y + 4], near = heads.reduce((b, r) => { const d = far(mid(r), m); return d < 40 && (!b || d < b.d) ? { r, d } : b; }, null);
+                        if (own && near && near.r !== own) c += 100;
+                        if (!best || c < best.c) best = { x, y, c };
+                    }
                 }
-            }
-            /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
-            if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
-                const y = Math.round(mid(own)[1] - 4);
-                if (x >= 6 && x <= W - 6 - w && free(x, y) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+                /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
+                if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
+                    const y = Math.round(mid(own)[1] - 4);
+                    if (x >= 6 && x <= W - 6 - w && free(x, y, faces) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+                }
+                if (best) break;
             }
             const sp = best || { x: x0, y: y0 };
             out.push({ p, x: sp.x, y: sp.y, w });
@@ -3720,6 +3727,8 @@ const VIEW_BOX = {
     hoop: e => [e.x, e.y, e.x + 32, e.y + 36],
     /* (Mother Sloth: her bed and her, drawn round her home tile) */
     mothersloth: e => e.hx === undefined ? null : [e.hx * T - 40, e.hy * T - 30, e.hx * T + 56, e.hy * T + 30],
+    /* (the great Spool's drum, in its brass flanges) */
+    greatspool: e => [e.x - 5, e.y - 7, e.x + 69, e.y + 35],
     /* (the great marionette stands on its two feet and rises 74 pixels over them) */
     greatmarionette: e => { const f = e.feet; if (!f || !f.length) return null; const xs = f.map(q => q[0] * T), y = Math.max(...f.map(q => q[1])) * T; return [Math.min(...xs) - 8, y - 76, Math.max(...xs) + 24, y + 16]; },
 };
@@ -3885,8 +3894,8 @@ const Dialog = {
             if (isBoss(e)) add(e, 2);
             else if (!more || !near(e)) continue;
             else if (e.isWalker || (e.kind === 'npc' && e.who)) add(e, 0.5);
-            else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.2, true);
-            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.2, true);
+            else if (e.kind === 'plate') add([e.tx, e.ty, 16], 0.1, true);
+            else if (e.isGrid && (e.ret || (e.kind === 'chest' && !e.opened))) add(e, 0.1, true);
         }
         const f = opts.focus;
         for (const x of !f ? [] : Array.isArray(f) && typeof f[0] !== 'number' ? f : [f]) add(x, 3);
@@ -4195,7 +4204,7 @@ const UI = {
         let c = hiddenBy(items, up.concat([r]), Cam.x, cy) - hiddenBy(items, up, Cam.x, cy) + (b && !!b.low === low ? 0.3 : 0) + (low ? 0.02 : 0)
             + (this.toasts.some(q => q !== t && !q.wait && !!q.low === low) ? 0.03 : 0);
         /* (over Wren, all but a must, as for the box: a third of her under a notice cost less than a pot under the other) */
-        if (p && !G.hideWren && !p.hidden && hiddenBy([wrenBox(p, false).concat(1)], [r], Cam.x, cy, true) > WREN_SHOWN) c += 1;
+        if (p && this.overWren(r, cy)) c += 1;
         return c;
     },
     /* (false: it waits a moment, for the place's name on its side to have been read; or, one with another up already and
@@ -4224,7 +4233,7 @@ const UI = {
     recheck() {
         const p = G.player;
         if (G.t % 3 || !p || !G.map || G.scene !== 'play' || G.hideWren || p.hidden) return;
-        const wren = [viewBox(p).concat(1)], under = r => hiddenBy(wren, [r], Cam.x, Cam.y, true) > 0.35;
+        const under = r => this.overWren(r, Cam.y);
         for (const t of this.toasts) {
             if (t.wait || !under(this.noticeRect(t, !!t.low))) continue;
             const items = Dialog.items({ focus: t.focus }, true);
@@ -4232,11 +4241,13 @@ const UI = {
         }
         const b = this.banner;
         if (b && !b.wait && b.t < 170 && under(this.bannerRect(b, !!b.low))) {
-            const items = Dialog.items({}, true), free = !this.toasts.some(t => !t.wait && !!t.low === !b.low);
+            const free = !this.toasts.some(t => !t.wait && !!t.low === !b.low);
             if (b.t > 60 || !free) b.t = 194;
-            else if (hiddenBy(items, [this.bannerRect(b, !b.low)], Cam.x, Cam.y) + 0.3 < hiddenBy(items, [this.bannerRect(b, !!b.low)], Cam.x, Cam.y)) { b.low = !b.low; b.back = 6; }
+            else if (this.bannerCost(b, !b.low, Cam.y) + 0.3 < this.bannerCost(b, !!b.low, Cam.y)) { b.low = !b.low; b.back = 6; }
         }
     },
+    /* does a panel (a notice, the place's name) hide more of Wren than the sliver the box may (WREN_SHOWN), the camera at cy? */
+    overWren(r, cy) { const p = G.player; return !!p && !G.hideWren && !p.hidden && hiddenBy([wrenBox(p, false).concat(1)], [r], Cam.x, cy, true) > WREN_SHOWN; },
     /* is a notice or the place's name up at the top (the Needle's stitches in the HUD sit under them)? and over a spot? */
     topBusy() { return !this.held() && (this.toasts.some(t => !t.wait && !t.low) || !!(this.banner && !this.banner.wait && !this.banner.low)); },
     underTop(r) {
@@ -4277,14 +4288,19 @@ const UI = {
         if (!b || !b.wait) return;
         /* (not on a black screen: the name comes up as the place does) */
         if (this.fadeA > 0.5 || (this.fade && this.fade.to > 0.5)) return;
-        const sides = [false, true].filter(lo => !this.toasts.some(t => !t.wait && !!t.low === lo));
+        /* (and not over Wren: where every side it could go would sit on her, it waits a little for her to come out from
+           under, and then lets it be) */
+        const play = G.scene === 'play' && G.map && G.player, cy = this.camPlanY();
+        const sides = [false, true].filter(lo => !this.toasts.some(t => !t.wait && !!t.low === lo) && !(play && this.overWren(this.bannerRect(b, lo), cy)));
         if (!sides.length) { if (++b.waited > 120) this.banner = null; return; }
         let low = sides[0];
-        if (sides.length > 1 && G.scene === 'play' && G.map && G.player) {
-            const items = Dialog.items({}, true), cy = this.camPlanY();
-            low = hiddenBy(items, [this.bannerRect(b, true)], Cam.x, cy) + 0.02 < hiddenBy(items, [this.bannerRect(b, false)], Cam.x, cy);
-        }
+        if (sides.length > 1 && play) low = this.bannerCost(b, true, cy) < this.bannerCost(b, false, cy);
         b.low = low; b.wait = false;
+    },
+    /* what the place's name would hide on a side (all else equal, the top) */
+    bannerCost(b, low, cy) {
+        const r = this.bannerRect(b, low);
+        return hiddenBy(Dialog.items({}, true), [r], Cam.x, cy) + (this.overWren(r, cy) ? 1 : 0) + (low ? 0.02 : 0);
     },
     bannerRect(b, low) {
         const w = Math.max(Font.width(b.s), b.sub ? Font.width(b.sub) : 0) + 30, h = b.sub ? 28 : 18, x = Math.round((W - w) / 2), y = low ? H - 24 - h : 30;
@@ -8183,8 +8199,8 @@ CONTENT_INIT.push(() => {
     };
 }
 
-/* Inside a region too (and past the fog, in the Drift): where grass meets the forest floor, a dirt road or sand, the
-   tiles' straight edges and square corners fray along a wandering line instead (both tiles agree where it runs: each boundary's own line, so a stretch of
+/* Inside a region too: where grass meets the forest floor, a dirt road or sand, the tiles' straight edges and square
+   corners fray along a wandering line instead (both tiles agree where it runs: each boundary's own line, so a stretch of
    one ground pushes into the other here and is pushed back there). Paved roads keep their kerbs. Drawing only: every
    tile is what it was. Each frayed tile is made the first time it's drawn, a few a frame (never in one long frame:
    entering the valley paints every tile once), and drawn plain till then. */
@@ -8200,7 +8216,7 @@ const Fray = {
     const capture = (area, tx, ty) => { let got = null; const img = Gfx.img; Gfx.img = c => { got = c; }; try { draw1.call(TileDraw, area, tx, ty, 0, 0); } finally { Gfx.img = img; } return got; };
     const as = (a, tx, ty, L) => { const o = Object.create(a); o.cell = (x, y) => x === tx && y === ty ? L : a.cell(x, y); return o; };
     TileDraw.draw = function (area, tx, ty, sx, sy) {
-        const L = (area.id === 'hollow' || area.id === 'drift') && !HEADLESS && !this.warming ? area.cell(tx, ty) : null, f = L && Fray.FAM[L.p];
+        const L = area.id === 'hollow' && !HEADLESS && !this.warming ? area.cell(tx, ty) : null, f = L && Fray.FAM[L.p];
         if (!f) return draw1.call(this, area, tx, ty, sx, sy);
         /* (what this tile last came to, while it and its neighbours are what they were) */
         const memo = area._fray || (area._fray = new Map()), i = ty * area.w + tx, m = memo.get(i);
@@ -10952,6 +10968,18 @@ const RemainsKit = {
             Gfx.rect(x - r + 1, y - r - 1 + s - 1, r * 2 - 1, 1, shade(col, 0.4)); Gfx.rect(x - r + 1, y - r + 1 + s - 1, r * 2 - 1, 1, shade(col, -0.3));
         };
     },
+    /* where a thing tossed toward x, y (world pixels, its foot) comes down: there, or on the nearest open floor round it
+       (not on a bust, a crate or a wall) */
+    landing(area, x, y) {
+        const open = (tx, ty) => { const k = area.kind(tx, ty); return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty)); };
+        const tx = tileOf(x), ty = tileOf(y - 1);
+        if (open(tx, ty)) return [x, y];
+        for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !open(tx + dx, ty + dy)) continue;
+            return [(tx + dx) * T + 8 + clamp(x - tx * T - 8, -4, 4), (ty + dy) * T + 12];
+        }
+        return [x, y];
+    },
     /* a piece of a picture (sx, sy, w, h of it), stood on its foot, inked round where it broke off */
     part(im, sx, sy, w, h) {
         return (x, y) => {
@@ -11769,12 +11797,14 @@ class Housekeeper extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.tx, this.ty]];
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 16, THREAD.ives); Fx.yarn(this.x, this.y - 8, THREAD.ives);
         Progress.set('tidy_boss');
+        this.drain = Tidy.drain(this);
         Script.run(Tidy.bossDown(this));
     }
     updateYarn() { this.yarnT++; }
     draw(cx, cy) {
         if (!this.alive) {
-            if (this.yarnT < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
+            /* (the heap of yarn, going as it runs away down the hole: Tidy.drain) */
+            if (this.yarnT < 240) { const k = 1 - this.yarnT / 240; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
             return;
         }
         const x = this.x - cx, y = this.y - cy;
@@ -11829,12 +11859,24 @@ const Tidy = {
         yield* say(null, "It stamps back onto a little teal cross in the middle of the floor, its own spot, and glares round the hall: at the busts, all in their places, and at you, who are not.");
         G.boss = k;
     },
+    /* the Housekeeper beaten: three strands of its teal yarn running from the heap across the floor to a little hole at the
+       foot of the north wall (beside it, clear of the busts), and down it */
+    drain(k) {
+        const a = k.area, r = a.roomAt(k.homeX, k.homeY), y = r.y + 1, x0 = tileOf(k.x);
+        const free = x => x > r.x && x < r.x + r.w - 1 && !a.kind(x, y).solid && !a.at(x, y) && !a.staticSolid.has(y * 4096 + x);
+        const hx = [2, -2, 3, -3, 4, -4, 1, -1, 5, -5].map(d => x0 + d).find(free) || x0, hole = [hx * T + 8, y * T + 6];
+        a.add(new Remains([{ from: hole, to: hole, end: 'lie', look: (sx, sy) => { Gfx.rect(sx - 3, sy - 2, 7, 3, '#1a1018'); Gfx.rect(sx - 2, sy - 3, 5, 1, '#1a1018'); Gfx.rect(sx - 2, sy + 1, 5, 1, '#3a2a34'); } }], { x: hole[0], y: hole[1], floor: true }));
+        const c = a.add(new CrackRuns(a, k.x, k.y, 0, 0, [THREAD.ives], 0.5, 120));
+        const dx = hole[0] - k.x, dy = hole[1] - k.y;
+        c.runs = [-2, 0, 2].map((o, i) => { const pts = [[o, -2], [o, Math.round(dy / 2) + o], [dx, Math.round(dy / 2) + o], [dx, dy]]; return { pts, len: pts.reduce((m, q, j) => j ? m + Math.abs(q[0] - pts[j - 1][0]) + Math.abs(q[1] - pts[j - 1][1]) : 0, 0), late: i * 8, col: i === 1 ? shade(THREAD.ives, -0.2) : THREAD.ives }; });
+        return c;
+    },
     *bossDown(k) {
         const a = k.area;
         G.boss = null;
         Music.play('silence');
-        yield 30;
-        yield* say(null, 'The Housekeeper shudders, unravels into a heap of teal yarn, and the yarn runs away across the floor and down a little hole you had not noticed, like water down a drain.');
+        yield 14;
+        yield* say(null, 'The Housekeeper shudders, unravels into a heap of teal yarn, and the yarn runs away across the floor and down a little hole you had not noticed, like water down a drain.', { focus: k.drain });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 9, br.y + 5));
@@ -19360,7 +19402,7 @@ class Clangor extends Enemy {
         const a = this.area, r = a.roomAt(this.hx, this.hy), im = spr('clangor'), x0 = this.x - 12, y0 = this.y - 30;
         const fx = x => clamp(x, (r.x + 1) * T + 6, (r.x + r.w - 1) * T - 6), fy = y => clamp(y, (r.y + 1) * T + 10, (r.y + r.h - 1) * T - 2);
         this.pieces = a.add(new Remains([[1, 0, 22, 15, 26, 10], [5, 14, 14, 12, -4, 8], [1, 14, 6, 11, -26, 2], [17, 14, 6, 11, 18, -12], [5, 25, 7, 7, -16, 20], [12, 25, 7, 7, 8, 24]].map(([sx, sy, w, h, dx, dy], i) => {
-            const from = [x0 + sx + w / 2, y0 + sy + h], to = [fx(this.x + dx), fy(this.y + dy)];
+            const from = [x0 + sx + w / 2, y0 + sy + h], to = RemainsKit.landing(a, fx(this.x + dx), fy(this.y + dy));
             return { from, to, delay: [0, 2, 1, 3, 4, 5][i], speed: 1.1, hop: Math.max(8, Math.hypot(to[0] - from[0], to[1] - from[1])), lift: 10, end: 'lie', tall: h, look: RemainsKit.part(im, sx, sy, w, h) };
         }), { x: this.x, y: this.y }));
         Script.run(BelfryFoes.clangorDown(this));
@@ -25117,6 +25159,7 @@ const MarionetteFoes = {
         g.state = 'march'; g.st = 0; g.march = LEFT;
         for (let i = 0; i < GM.MARCH * 3; i++) { g.st++; g.marchOn(null); yield 1; }
         yield () => !g.mv;
+        for (const [fx, fy] of g.feet) if (p.onTile(fx, fy)) p.unstick();     /* (stepped past her, not on her) */
         yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: [g, g.third()].filter(Boolean) });
         g.st = 0;
     },
@@ -26526,9 +26569,10 @@ const StaffStairs = {
         if (!this.on(a, cx, cy)) return;
         if (!this.art) this.art = this.paint();
         const X = this.ox - cx, Y = this.oy - cy;
-        /* (Wren under a beam: the beam and its threads thin to a ghost round her, so she's never lost under them) */
+        /* (Wren under a beam or the threads running out through a doorway: they thin to a ghost round her, so she's never
+           lost under them) */
         const p = G.player, bx0 = p && p.area === a && !p.hidden ? Math.round(p.x - this.ox) - 9 : -99, by0 = p ? Math.round(p.y - this.oy) - 24 : 0;
-        if (bx0 > -18 && bx0 < 320 && this.beams.some(by => by0 < by + 22 && by0 + 28 > by - 2)) {
+        if (bx0 > -18 && bx0 < 320 && by0 > -28 && by0 < 176) {
             const x0 = clamp(bx0, 0, 320), x1 = clamp(bx0 + 18, 0, 320), y0 = clamp(by0, 0, 176), y1 = clamp(by0 + 28, 0, 176), im = this.art;
             const part = (sx, sy, sw, sh) => { if (sw > 0 && sh > 0) Gfx.sub(im, sx, sy, sw, sh, X + sx, Y + sy); };
             part(0, 0, 320, y0); part(0, y1, 320, 176 - y1); part(0, y0, x0, y1 - y0); part(x1, y0, 320 - x1, y1 - y0);
@@ -32488,6 +32532,24 @@ const DriftArt = {
         fill(x, '#3e5a34'); speckle(x, ['#4c6a3e', '#334c2c'], 151 + v, 0.3);
         for (let n = 0; n < 3; n++) { const fx = 2 + Math.floor(hash2(n, v, 153) * 11), fy = 3 + Math.floor(hash2(v, n, 154) * 10); px(x, fx, fy, '#5c7e44'); px(x, fx - 1, fy - 1, '#5c7e44'); px(x, fx + 1, fy - 1, '#5c7e44'); px(x, fx, fy + 1, '#4c6a3e'); }
     },
+    /* the woods' floor at their edge: the meadow comes in from each open side (m: which sides are woods too) as far as a
+       wandering line, in big soft patches and small ragged ones, and the floor's edge darkens a little toward it */
+    forestEdge(x, v, m, cs, tx, ty) {
+        this.forest(x, v);
+        const g = Gfx.makeCanvas(T, T), gx = g.getContext('2d');
+        this.grass(gx, cs, v);
+        const A = x.getImageData(0, 0, T, T), B = gx.getImageData(0, 0, T, T), o = A.data, q = B.data;
+        for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) {
+            let d = 99;
+            if (!(m & 1)) d = Math.min(d, j); if (!(m & 2)) d = Math.min(d, T - 1 - j);
+            if (!(m & 4)) d = Math.min(d, i); if (!(m & 8)) d = Math.min(d, T - 1 - i);
+            const X = tx * T + i, Y = ty * T + j, n = OWA.n2(X / 7, Y / 7, 57) * 0.7 + OWA.n2(X / 2.5, Y / 2.5, 58) * 0.3;
+            const k = (j * T + i) * 4, lim = 1 + n * 6;
+            if (d < lim) { o[k] = q[k]; o[k + 1] = q[k + 1]; o[k + 2] = q[k + 2]; }
+            else if (d < lim + 1.5) { o[k] = Math.round(o[k] * 0.86); o[k + 1] = Math.round(o[k + 1] * 0.86); o[k + 2] = Math.round(o[k + 2] * 0.86); }
+        }
+        x.putImageData(A, 0, 0);
+    },
     /* a dry-stone wall: rough stones laid without mortar, moss on top; a run north-south or east-west */
     drywall(x, m, cs, v) {
         this.meadow(x, cs, v, 0.5);
@@ -32535,7 +32597,14 @@ const DriftArt = {
                 return tileCanvas(`drift2:heath:${m}:${cs[0]}:${v8}:${rich}`, x => this.heath(x, m, cs, v8, rich));
             }
             case 'path': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'path'); return tileCanvas(`drift2:track:${m}:${cs[0]}:${v}`, x => this.track(x, m, cs, v)); }
-            case 'forest': return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
+            case 'forest': {
+                /* (where the woods give onto the meadow, their floor frays into it along a wandering line: a stand of trees
+                   or a lone bush out in the grass isn't on a dark square) */
+                const m = this.mask(a, tx, ty, c => c.p === 'forest' || c.k === 'tree' || c.k === 'rock');
+                if (m === 15) return tileCanvas(`drift2:forest:${v}`, x => this.forest(x, v));
+                const cs = this.corners(a, tx, ty);
+                return tileCanvas(`drift2:forestedge:${tx},${ty}:${m}`, x => this.forestEdge(x, v, m, cs, tx, ty));
+            }
             case 'drywall': { const cs = this.corners(a, tx, ty), m = this.mask(a, tx, ty, c => c.p === 'drywall'); return tileCanvas(`drift2:wall:${m}:${cs}:${v}`, x => this.drywall(x, m, cs, v)); }
             case 'racewall': return tileCanvas(`drift2:race:${v}`, x => this.racewall(x, v));
             case 'mud': return tileCanvas(`drift2:mud:${v}`, x => this.mud(x, v));
@@ -33439,7 +33508,7 @@ class SpoolDrum extends Ent {
             const [ex, ey] = hit[0].end;
             this.junk.push({ x: e.tx * T + 8, y: e.ty * T + 8, tx: ex * T + 8, ty: ey * T + 8, thing: e });
             a.unplace(e, e.tx, e.ty); e.hiddenYank = true; e.inert = true; e.tx = -10; e.ty = -10; e.x = -160; e.y = -160;
-            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.'; }
+            if (!Progress.flag('slack_seen')) { Progress.set('slack_seen'); G.pendingToast = { s: 'The Pull drags it along the great thread into the drum, and the thread goes slack behind it, sagging. Just for a moment.', focus: this }; }
         }
         /* the second pair: she throws at you */
         if (SpoolTop.throwing()) this.throws(a, p, top);
@@ -33606,7 +33675,7 @@ const GreatSpool = {
         yield* say('wren', "You can't pull me, Gran.");
         yield* say('gran', granCount());
         yield* say(null, "Her hands don't stop. Six great threads hold the Spool to the walls, one to every House. The lowest two run free to the drum; the other four she has wound round her hands.", { focus: gran });
-        yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.");
+        yield* say(null, "The free ones are pulled so taut they ring. The crates on the shelves below them shiver, wanting to be wound in.", { focus: a.ents.filter(e => e.kind === 'crate' && a.roomAt(e.tx, e.ty) === a.roomAt(s.tx, s.ty)) });
         Progress.setGoal(SpoolTop.goal());
     },
     *finale() {

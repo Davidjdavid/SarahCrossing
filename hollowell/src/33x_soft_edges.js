@@ -30,8 +30,8 @@
     };
 }
 
-/* Inside a region too (and past the fog, in the Drift): where grass meets the forest floor, a dirt road or sand, the
-   tiles' straight edges and square corners fray along a wandering line instead (both tiles agree where it runs: each boundary's own line, so a stretch of
+/* Inside a region too: where grass meets the forest floor, a dirt road or sand, the tiles' straight edges and square
+   corners fray along a wandering line instead (both tiles agree where it runs: each boundary's own line, so a stretch of
    one ground pushes into the other here and is pushed back there). Paved roads keep their kerbs. Drawing only: every
    tile is what it was. Each frayed tile is made the first time it's drawn, a few a frame (never in one long frame:
    entering the valley paints every tile once), and drawn plain till then. */
@@ -47,7 +47,7 @@ const Fray = {
     const capture = (area, tx, ty) => { let got = null; const img = Gfx.img; Gfx.img = c => { got = c; }; try { draw1.call(TileDraw, area, tx, ty, 0, 0); } finally { Gfx.img = img; } return got; };
     const as = (a, tx, ty, L) => { const o = Object.create(a); o.cell = (x, y) => x === tx && y === ty ? L : a.cell(x, y); return o; };
     TileDraw.draw = function (area, tx, ty, sx, sy) {
-        const L = (area.id === 'hollow' || area.id === 'drift') && !HEADLESS && !this.warming ? area.cell(tx, ty) : null, f = L && Fray.FAM[L.p];
+        const L = area.id === 'hollow' && !HEADLESS && !this.warming ? area.cell(tx, ty) : null, f = L && Fray.FAM[L.p];
         if (!f) return draw1.call(this, area, tx, ty, sx, sy);
         /* (what this tile last came to, while it and its neighbours are what they were) */
         const memo = area._fray || (area._fray = new Map()), i = ty * area.w + tx, m = memo.get(i);

@@ -53,34 +53,41 @@ const Fx = {
     },
     /* where each goes: { p, x, y (the letters' top left), w }. Kept from where it was said, it goes up (or down, at twice
        the cost) or to one side, whichever's least far; and never nearer someone else's face than the face of who said it
-       (pushed up past his bubble to the face of the one standing over him, "Hmph." read as hers) */
+       (pushed up past his bubble to the face of the one standing over him, "Hmph." read as hers). Faces give way first:
+       where every spot near would be on one (a crowd, and a line as long as the crowd is wide), the line goes over a
+       face, never the HUD or a panel */
     textSpots(texts, cx, cy, panels = []) {
-        const at = this.view(cx, cy), heads = this.heads(at), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at), heads), out = [];
+        const at = this.view(cx, cy), heads = this.heads(at), keep = panels.map(r => r.slice()).concat(this.hudBoxes(), this.bubbles(at)), out = [];
         const mid = r => [(r[0] + r[2]) / 2, (r[1] + r[3]) / 2], far = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
         for (const p of texts) {
             const w = Font.width(p.text), [sx, sy] = at(p.x, p.y);
             const x0 = Math.round(clamp(sx - w / 2, 6, W - 6 - w)), y0 = Math.round(clamp(sy, 5, H - 13));
-            const free = (x, y) => y >= 5 && y <= H - 13 && !keep.some(r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1]);
+            const hit = (x, y) => r => x - 3 < r[2] && x + w + 3 > r[0] && y - 2 < r[3] && y + 10 > r[1];
+            const free = (x, y, faces) => y >= 5 && y <= H - 13 && !keep.some(hit(x, y)) && !(faces && heads.some(hit(x, y)));
             /* (whose face it was said over: the speaker's when it's known, else the nearest one below where it was said) */
             const mine = p.by && p.by.isGrid ? this.headOf(p.by, at) : null;
             const own = mine ? heads.find(r => r[0] === mine[0] && r[1] === mine[1]) || mine : heads.filter(r => r[1] >= sy).reduce((b, r) => !b || far(mid(r), [sx, sy]) < far(mid(b), [sx, sy]) ? r : b, null);
             let best = null;
-            for (let k = 0; k <= 70 && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
-                const cy0 = dy < 0 ? -dy : 2 * dy;
-                for (let dx = 0; dx <= 64; dx += 2) for (const sd of dx ? [-1, 1] : [1]) {
-                    const x = Math.round(clamp(x0 + sd * dx, 6, W - 6 - w)), y = y0 + dy;
-                    let c = cy0 + Math.abs(x - x0);
-                    if ((best && c >= best.c) || !free(x, y)) continue;
-                    /* (the face it's nearest, if any's near, must be the speaker's) */
-                    const m = [x + w / 2, y + 4], near = heads.reduce((b, r) => { const d = far(mid(r), m); return d < 40 && (!b || d < b.d) ? { r, d } : b; }, null);
-                    if (own && near && near.r !== own) c += 100;
-                    if (!best || c < best.c) best = { x, y, c };
+            for (const faces of [true, false]) {
+                for (let k = 0; k <= H && !(best && best.c <= k); k++) for (const dy of k ? [-k, k] : [0]) {
+                    const cy0 = dy < 0 ? -dy : 2 * dy;
+                    if (y0 + dy < 5 || y0 + dy > H - 13) continue;
+                    for (let dx = 0; dx <= 64; dx += 2) for (const sd of dx ? [-1, 1] : [1]) {
+                        const x = Math.round(clamp(x0 + sd * dx, 6, W - 6 - w)), y = y0 + dy;
+                        let c = cy0 + Math.abs(x - x0);
+                        if ((best && c >= best.c) || !free(x, y, faces)) continue;
+                        /* (the face it's nearest, if any's near, must be the speaker's) */
+                        const m = [x + w / 2, y + 4], near = heads.reduce((b, r) => { const d = far(mid(r), m); return d < 40 && (!b || d < b.d) ? { r, d } : b; }, null);
+                        if (own && near && near.r !== own) c += 100;
+                        if (!best || c < best.c) best = { x, y, c };
+                    }
                 }
-            }
-            /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
-            if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
-                const y = Math.round(mid(own)[1] - 4);
-                if (x >= 6 && x <= W - 6 - w && free(x, y) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+                /* (or just beside the speaker's own face, where anything not right over it reads best as theirs) */
+                if (own && own[1] < sy + 24) for (const x of [own[0] - 7 - w, own[2] + 7]) {
+                    const y = Math.round(mid(own)[1] - 4);
+                    if (x >= 6 && x <= W - 6 - w && free(x, y, faces) && (!best || BESIDE < best.c)) best = { x, y, c: BESIDE };
+                }
+                if (best) break;
             }
             const sp = best || { x: x0, y: y0 };
             out.push({ p, x: sp.x, y: sp.y, w });

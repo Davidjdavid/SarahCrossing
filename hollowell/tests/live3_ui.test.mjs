@@ -257,6 +257,23 @@ test("floating words keep off people's faces, and aren't pushed beside someone e
     Fx.list = [];
 });
 
+test('a long line said by somebody off the top of the screen, over a crowd of faces: it goes over a face, never the HUD', () => {
+    const HW = start('afterD7');
+    for (let i = 1; i < 8; i++) HW.Progress.set('making' + i);
+    HW.warp('making8', 13, 17); HW.step(30); HW.skipTalk(); HW.step(5);
+    const Fx = HW.global('Fx'), Cam = HW.global('Cam'), NPC = HW.global('NPC'), a = HW.G.map;
+    /* (the boy under the hoop, with a bubble; the Makers in their rows; as the live run had them) */
+    const t = a.add(new NPC(Math.floor((Cam.x + 224) / 16), Math.floor((Cam.y + 92) / 16), { who: 'tuck' })); t.bubble = 'dots';
+    Fx.list = [{ x: t.px + 8, y: t.py - 18, text: 'Ooh! It jumped!', col: '#ffffff', life: 40, by: t },
+        { x: Cam.x + 408, y: Cam.y - 112, text: '...Tidied. By my own tidying.', col: '#ffffff', life: 40 }];
+    const hud = Fx.hudBoxes();
+    for (const sp of Fx.textSpots(Fx.list, Cam.x, Cam.y, [])) {
+        const r = [sp.x - 3, sp.y - 2, sp.x + sp.w + 3, sp.y + 10];
+        for (const h of hud) assert.equal(ov(r, h), 0, `"${sp.p.text}" over the HUD (${r} on ${h})`);
+    }
+    Fx.list = [];
+});
+
 test('a Little House starts with the boy up above on Wren\'s very spot: she is drawn through him (her outline)', () => {
     const HW = start('afterD7');
     HW.warp('making1', 3, 16); HW.step(30); HW.skipTalk(); HW.step(5);

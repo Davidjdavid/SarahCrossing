@@ -666,6 +666,7 @@ const MarionetteFoes = {
         g.state = 'march'; g.st = 0; g.march = LEFT;
         for (let i = 0; i < GM.MARCH * 3; i++) { g.st++; g.marchOn(null); yield 1; }
         yield () => !g.mv;
+        for (const [fx, fy] of g.feet) if (p.onTile(fx, fy)) p.unstick();     /* (stepped past her, not on her) */
         yield* say(null, "A sandbag drops onto the trap at centre stage and goes straight through. The Great Marionette clambers up and marches off round the stage like a toy soldier, turning at whatever's in its way; and down a string of its own comes a third little Wren.", { focus: [g, g.third()].filter(Boolean) });
         g.st = 0;
     },

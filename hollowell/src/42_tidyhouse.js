@@ -752,12 +752,14 @@ class Housekeeper extends Enemy {
         this.alive = false; this.yarnT = 0; this.trace = [[this.tx, this.ty]];
         Sfx.play('unravel'); Fx.yarn(this.x, this.y - 16, THREAD.ives); Fx.yarn(this.x, this.y - 8, THREAD.ives);
         Progress.set('tidy_boss');
+        this.drain = Tidy.drain(this);
         Script.run(Tidy.bossDown(this));
     }
     updateYarn() { this.yarnT++; }
     draw(cx, cy) {
         if (!this.alive) {
-            if (this.yarnT < 120) { const k = 1 - this.yarnT / 120; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
+            /* (the heap of yarn, going as it runs away down the hole: Tidy.drain) */
+            if (this.yarnT < 240) { const k = 1 - this.yarnT / 240; Gfx.circle(this.x - cx, this.y - cy - 4, Math.round(8 * k), THREAD.ives); Gfx.rect(this.x - cx - 1, this.y - cy, 2, 4, '#1a1018'); }
             return;
         }
         const x = this.x - cx, y = this.y - cy;
@@ -812,12 +814,24 @@ const Tidy = {
         yield* say(null, "It stamps back onto a little teal cross in the middle of the floor, its own spot, and glares round the hall: at the busts, all in their places, and at you, who are not.");
         G.boss = k;
     },
+    /* the Housekeeper beaten: three strands of its teal yarn running from the heap across the floor to a little hole at the
+       foot of the north wall (beside it, clear of the busts), and down it */
+    drain(k) {
+        const a = k.area, r = a.roomAt(k.homeX, k.homeY), y = r.y + 1, x0 = tileOf(k.x);
+        const free = x => x > r.x && x < r.x + r.w - 1 && !a.kind(x, y).solid && !a.at(x, y) && !a.staticSolid.has(y * 4096 + x);
+        const hx = [2, -2, 3, -3, 4, -4, 1, -1, 5, -5].map(d => x0 + d).find(free) || x0, hole = [hx * T + 8, y * T + 6];
+        a.add(new Remains([{ from: hole, to: hole, end: 'lie', look: (sx, sy) => { Gfx.rect(sx - 3, sy - 2, 7, 3, '#1a1018'); Gfx.rect(sx - 2, sy - 3, 5, 1, '#1a1018'); Gfx.rect(sx - 2, sy + 1, 5, 1, '#3a2a34'); } }], { x: hole[0], y: hole[1], floor: true }));
+        const c = a.add(new CrackRuns(a, k.x, k.y, 0, 0, [THREAD.ives], 0.5, 120));
+        const dx = hole[0] - k.x, dy = hole[1] - k.y;
+        c.runs = [-2, 0, 2].map((o, i) => { const pts = [[o, -2], [o, Math.round(dy / 2) + o], [dx, Math.round(dy / 2) + o], [dx, dy]]; return { pts, len: pts.reduce((m, q, j) => j ? m + Math.abs(q[0] - pts[j - 1][0]) + Math.abs(q[1] - pts[j - 1][1]) : 0, 0), late: i * 8, col: i === 1 ? shade(THREAD.ives, -0.2) : THREAD.ives }; });
+        return c;
+    },
     *bossDown(k) {
         const a = k.area;
         G.boss = null;
         Music.play('silence');
-        yield 30;
-        yield* say(null, 'The Housekeeper shudders, unravels into a heap of teal yarn, and the yarn runs away across the floor and down a little hole you had not noticed, like water down a drain.');
+        yield 14;
+        yield* say(null, 'The Housekeeper shudders, unravels into a heap of teal yarn, and the yarn runs away across the floor and down a little hole you had not noticed, like water down a drain.', { focus: k.drain });
         for (const s of a.ents) if (s.kind === 'door' && s.group === 'boss') s.shut = false;
         const br = a.rooms.find(r => r.key === '1,0');
         a.add(new Hoop(br.x + 9, br.y + 5));
