@@ -57,10 +57,10 @@ Conventions in this part:
 ### Map
 ```
  0,0 Pillow Fort      1,0 Mother Sloth (boss)   2,0 Milk Kitchen ===gate(bell)=== 3,0 Dreaming Door
-   | lock C              | big door (Pattern)     | lock D        \ hole (4,10) drops into the Moonwalk
+   | lock                | big door (Pattern)     | lock          \ hole (4,10) drops into the Moonwalk
  0,1 Nursery ==shut== 1,1 Landing (Matron) ==shut== 2,1 Moonwalk
-                         | lock B                   | laundry chute (bolted on the Laundry side;
- 0,2 Linen Cupboard ---- 1,2 Long Ward ---- lock A -- 2,2 Laundry -- grate -- 3,2 Mallow's Study
+                         | lock                     | laundry chute (bolted on the Laundry side;
+ 0,2 Linen Cupboard ---- 1,2 Long Ward ---- lock ---- 2,2 Laundry -- grate -- 3,2 Mallow's Study
                          | gate (lever)                 |                       (no door)
                       1,3 Night Porch (entrance)     2,3 Drying Loft
 ```
@@ -524,8 +524,8 @@ Conventions in this part:
 
 ### Save states
 - S35 (the Gatehouse).
-- S36 (the Needle just got): loads at the Kennel's doorway (9,7)... the catalogue's "doorway Wren came into The Kennel
-  by"; keys 0; the Plan held.
+- S36 (the Needle just got): loads on the Kennel's trapdoor (9,7): the last way she came into the Kennel was up from
+  below (the catalogue's "doorway" is that hatch); keys 0; the Plan held.
 - S37 (before the boss): the Winding Hall, west doorway (1,5); Pattern held, the big door already open.
 - S38 (after): the Guild Hall, Gundry has a job.
 
@@ -575,9 +575,9 @@ Works floor (up top)                                    Under-works (33 rows bel
 - Solution (test): push the weight east twice to (14,5), past the boulder's place; go across the room to (4,2), out of
   the weight's hearing, and ring the Bell: the boulder is home in a flash, in the weight's way home; the weight waits
   behind it; the gate above is open; up and through (it latches once passed: `door:swGateW`).
-- Wrong order (test "rung awake first"): rung first, the boulder lies home beside the weight in nobody's way; the
-  weight can't pass it (one push only to (12,5)... it stays); up and back down, the boulder sleeps again. Once it holds
-  the weight off, it stays awake (`spool_cw`).
+- Wrong order (test "rung awake first"): rung first, the boulder lies home at (13,5) beside the weight, in nobody's
+  way; the weight can't be pushed past it and the boulder can't be shifted; up and back down, the boulder sleeps again.
+  Once it holds the weight off its plate, it stays awake for good (`spool_cw`).
 
 #### The Spool Store (0,1) / Under (0,4): key 1; the Plan
 - Idea: tie off.
@@ -772,13 +772,14 @@ Works floor (up top)                                    Under-works (33 rows bel
 - Old saves (`settle`): one that took the old Offcut Yard's key finds the Snag done (weight on its plate, gate open).
 
 #### The Shuttle Run (1,1), mini-boss: the Shuttle; the Shears
-- Elements: the Shuttle at the west end of its lane (rows 4-6 are its lane); a chute (8,9) beside the south door drops
+- Elements: the Shuttle at the west end of its lane (1,5); a chute (8,9) beside the south door drops
   an offcut at (9,7); shutters south and east; silk across the west door (0,5); the big door north (9,0); the Shears
   chest (9,2) appears when it splits.
-- Fight (test "the Shuttle Run"): it flies its lane through anything soft. Pick up the offcut... (the test presses Action
-  facing down at (8,8) to drop one from the chute, then pushes it up from (9,8) twice into the lane); an offcut in the
-  lane jams it: knock it while it's jammed (stand south of it, strike up). After the first knock it shakes the offcut
-  out of the lane; push it back in. Twice.
+- Fight (test "the Shuttle Run"): it flies its lane (row 5, edged by rows 4 and 6) wall to wall, through anything
+  soft. Work the chute by the south door (Action facing it from (8,8)): an offcut drops at (9,7); push it north twice
+  from (9,8), into the lane at (9,5). An offcut in the lane jams it: knock it while it's jammed (stand right below it on
+  row 6 and strike up). After the first knock it shakes the offcut out of the lane onto row 4 or 6; push it back in.
+  Two knocks (`hp 2`).
 - Its move: waiting at its end, its lane is lit wall to wall (a heart and a half if it finds her in it).
 - Defeat: `loom_shuttle`; the Shears chest. Then cut the silk on the west door: the Spinner's Room.
 

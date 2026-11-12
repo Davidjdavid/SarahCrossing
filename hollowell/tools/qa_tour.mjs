@@ -183,41 +183,48 @@ export function strayHouseRooms(HW) {
     go('sh', 9, 3); HW.step(10);
     ok(HW, thing('shStairs').open, 'the stairs up to the Pile, open');
 }
-/* the Pile: lured into a corner nook, slipped out of by the nook's slit, and boxed in with the stray beside it while it
-   strains after you (three times; the strays fly about when it bursts, so each round takes a nook whose stray is still
-   where it began). God mode for the fight only */
-const PILE_ORDER = [0, 1, 2, 3];
-const NOOKS = [
-    { wait: [1, 1], come: [2, 1], out: [1, 4], into: [1, 1], stray: [3, 4], from: [3, 5], d: 'up' },
-    { wait: [18, 1], come: [16, 1], out: [18, 4], into: [17, 1], stray: [16, 4], from: [16, 5], d: 'up' },
-    { wait: [1, 9], come: [2, 8], out: [1, 6], into: [1, 8], stray: [3, 6], from: [3, 5], d: 'down' },
-    { wait: [18, 9], come: [16, 8], out: [18, 6], into: [17, 8], stray: [16, 6], from: [16, 5], d: 'down' },
-];
-export function thePile(HW, order = PILE_ORDER) {
+/* the Pile (as tests/strayhouse.test.mjs's first round, a person's way): lured up to the north-west corner nook, slipped
+   out of by the nook's slit; while it strains after you in there, a stray pushed up across the nook's open side boxes it
+   in. It bursts where it stands, flinging the strays near it about, and stays in the nook: standing anywhere west of its
+   middle (x 1) it can go neither way it wants and strains again (150 frames; being boxed is checked even then), so each
+   later round is a strain spot first, then the nearest stray pushed straight into the open side (x 3, rows 1-2). God mode
+   for the fight only */
+export function thePile(HW) {
     const a = () => HW.G.map, ox = SR.pl[0], oy = SR.pl[1];
+    const free = (x, y) => { const k = a().kind(ox + x, oy + y), o = a().at(ox + x, oy + y); return !k.solid && !k.pit && !o; };
+    const blk = (x, y) => { const o = a().at(ox + x, oy + y); return o && o.kind === 'block' && !o.removed; };
+    const at = (x, y, max = 3000) => walk(HW, ox + x, oy + y, max);
     HW.G.cheats.god = true;
-    walk(HW, ...sr('pl', 9, 9), 3000); HW.skipTalk(); HW.step(5); HW.skipTalk();
+    at(9, 9); HW.skipTalk(); HW.step(5); HW.skipTalk();
     const pile = a().ents.find(e => e.kind === 'pile');
     ok(HW, pile && pile.state === 'go', 'the Pile awake');
-    const used = new Set();
-    for (let round = 0; round < 3 && pile.alive; round++) {
-        until(HW, () => !pile.mv && pile.state !== 'heave' && pile.state !== 'rest', 300);
-        const free = (x, y) => { const k = a().kind(ox + x, oy + y), o = a().at(ox + x, oy + y); return !k.solid && !k.pit && !o; };
-        const blk = (x, y) => { const o = a().at(ox + x, oy + y); return o && o.kind === 'block'; };
-        const n = order.find(i => !used.has(i) && (q => blk(...q.stray) && free(...q.wait) && free(...q.out) && free(...q.from)
-            && free(q.stray[0], q.stray[1] + (q.d === 'up' ? -1 : 1)) && free(q.stray[0], q.stray[1] + (q.d === 'up' ? -2 : 2))
-            && !(pile.tx - ox <= q.wait[0] && pile.tx - ox + 1 >= q.wait[0] - 1 && Math.abs(pile.ty - oy - q.wait[1]) <= 2))(NOOKS[i]));
-        ok(HW, n !== undefined, 'a nook to lure the Pile into, round ' + (round + 1));
-        const q = NOOKS[n]; used.add(n);
-        if (process.env.TOUR_DEBUG) console.log('round', round + 1, 'nook', n, 'pile', pile.tx - ox, pile.ty - oy, pile.state, 'hp', pile.hp, 'strays', a().ents.filter(e => e.kind === 'block' && !e.removed).map(e => (e.tx - ox) + ',' + (e.ty - oy)).join(' '));
-        walk(HW, ox + q.wait[0], oy + q.wait[1], 3000);
-        ok(HW, until(HW, () => pile.tx === ox + q.come[0] && pile.ty === oy + q.come[1] && !pile.mv, 1500), 'it comes after you, up to the nook');
-        walk(HW, ox + q.out[0], oy + q.out[1], 600);
-        ok(HW, until(HW, () => pile.tx === ox + q.into[0] && pile.ty === oy + q.into[1] && pile.state === 'strain', 300), 'into the nook after you, and stuck');
-        const hp = pile.hp;
-        walk(HW, ox + q.from[0], oy + q.from[1], 600); HW.push(q.d, 2); HW.step(5);
-        ok(HW, until(HW, () => pile.hp < hp || !pile.alive, 300), 'boxed in: it bursts');
-        HW.step(80);
+    /* round 1 */
+    at(1, 1);
+    ok(HW, until(HW, () => pile.tx === ox + 2 && pile.ty === oy + 1 && !pile.mv, 1500), 'it comes after you, up to the nook');
+    at(1, 4, 600);
+    ok(HW, until(HW, () => pile.tx === ox + 1 && pile.ty === oy + 1 && pile.state === 'strain', 300), 'into the nook after you, and stuck');
+    at(3, 5, 600); HW.push('up', 2); HW.step(5);
+    ok(HW, until(HW, () => pile.hp === 2, 300), 'boxed in: it bursts');
+    /* rounds 2 and 3, in the nook where it stands */
+    const strainNow = m => { at(1, 4, 600); ok(HW, until(HW, () => pile.state === 'strain' && pile.st < 10, 600), 'straining after you, ' + m); };
+    for (let round = 2; round <= 3 && pile.alive; round++) {
+        strainNow('round ' + round);
+        /* the stray nearest a straight push into (3,1) or (3,2): up column 3, or left along row 1 or 2 */
+        const plans = [];
+        for (let y = 3; y <= 9; y++) if (blk(3, y)) { let clear = true; for (let k = y - 1; k >= 2; k--) if (!free(3, k)) clear = false; if (clear && free(3, y + 1)) plans.push({ from: [3, y + 1], d: 'up', n: y - 2 }); }
+        for (const row of [1, 2]) for (let x = 4; x <= 17; x++) if (blk(x, row)) { let clear = true; for (let k = x - 1; k >= 3; k--) if (!free(k, row)) clear = false; if (clear && free(x + 1, row)) plans.push({ from: [x + 1, row], d: 'left', n: x - 3 }); break; }
+        const cost = q => Math.abs(q.from[0] - 1) + Math.abs(q.from[1] - 4) + 2 * q.n;
+        plans.sort((u, v) => cost(u) - cost(v));
+        ok(HW, plans.length, 'a stray to box it in with, round ' + round);
+        const q = plans[0], hp = pile.hp;
+        if (process.env.TOUR_DEBUG) console.log('round', round, JSON.stringify(q), 'strays', a().ents.filter(e => e.kind === 'block' && !e.removed && e.tx >= ox && e.tx < ox + 20 && e.ty < 11).map(e => (e.tx - ox) + ',' + (e.ty - oy)).join(' '));
+        /* two pushes a strain at most, back to the strain spot between (or it comes out after you) */
+        for (let done = 0; done < q.n;) {
+            if (done) strainNow('round ' + round + ', again');
+            const k = Math.min(2, q.n - done), [dx, dy] = q.d === 'up' ? [0, -1] : [-1, 0];
+            at(q.from[0] + dx * done, q.from[1] + dy * done, 600); HW.push(q.d, k); HW.step(5); done += k;
+        }
+        ok(HW, until(HW, () => pile.hp < hp || !pile.alive, 300), 'boxed in: it bursts, round ' + round);
     }
     ok(HW, !pile.alive && HW.Progress.flag('sh_pile'), 'the Pile comes apart');
     for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(20); }
@@ -230,6 +237,66 @@ export function thePile(HW, order = PILE_ORDER) {
     /* Linnet's Room, west: her bracelet */
     walk(HW, ...sr('pl', 1, 5), 3000); walk(HW, ...sr('lr', 9, 6), 3000); act(HW, 'down');
     ok(HW, HW.Inv.items.bracelet, "Linnet's bracelet");
+}
+
+/* ---------------- the Unfinished House (src/78_unfinished.js; the steps of tests/unfinished.test.mjs) ---------------- */
+const UR = { fr: [20, 33], ha: [20, 22], lg: [0, 22], fs: [0, 11], lb: [40, 22], ga: [20, 11] };
+const ur = (r, x, y) => [UR[r][0] + x, UR[r][1] + y];
+export function unfinishedRooms(HW) {
+    const go = (r, x, y) => walk(HW, ...ur(r, x, y), 4000);
+    const piece = id => HW.G.map.ents.find(e => e.kind === 'chalk' && e.id === id);
+    /* the Front Room: the chalk plank sewn real, and over */
+    go('fr', 9, 6); sew(HW, 'up'); ok(HW, piece('frBridge').sewn, 'the first plank sewn');
+    go('fr', 9, 2);
+    /* the Long Gap (west of the Drafting Hall): two sewn from the bank, the third from between, the fourth from between
+       (the oldest undone behind you); the lever lights the west lamp */
+    go('lg', 18, 5);
+    go('lg', 14, 5); sew(HW, 'left'); sew(HW, 'left', 1);
+    go('lg', 11, 5); sew(HW, 'left', 1);
+    go('lg', 8, 5); sew(HW, 'left', 1);
+    ok(HW, piece('lgD').sewn && !piece('lgA').sewn, 'the fourth undoes the first');
+    go('lg', 2, 7); act(HW, 'down');
+    ok(HW, HW.G.map.find('lgLever').on, "the Long Gap's lever");
+    /* the Far Shelf (north of it): four planks side by side; stand on the second when the fourth undoes the first; the
+       Heart Patch; back by unpicking the second and sewing it again, so the third is the one that goes, behind you */
+    go('fs', 2, 9);
+    go('fs', 9, 5); sew(HW, 'right'); sew(HW, 'right', 1); sew(HW, 'right', 1);
+    go('fs', 11, 5); sew(HW, 'right', 1);
+    go('fs', 17, 4); act(HW, 'up');
+    ok(HW, HW.Progress.areaFlag('unfinished', 'chest:fsPatch'), "the Far Shelf's Heart Patch");
+    go('fs', 12, 5); sew(HW, 'left', 0); sew(HW, 'left');
+    go('fs', 11, 5); sew(HW, 'left');
+    go('fs', 9, 5);
+    /* back east over the Long Gap: its planks went as others were sewn; sewn again from the west bank the same way */
+    go('lg', 3, 5); sew(HW, 'right'); sew(HW, 'right', 1);
+    go('lg', 6, 5); sew(HW, 'right', 1);
+    go('lg', 9, 5); sew(HW, 'right', 1);
+    go('lg', 18, 5);
+    /* the Loading Bay (east): one gap filled for good with a stray, the other three sewn, the other stray pushed over onto
+       the plate (the east lamp) */
+    go('lb', 1, 5);
+    pushAt(HW, ...ur('lb', 5, 2), 'down', 2); pushAt(HW, ...ur('lb', 4, 5), 'right', 3);
+    ok(HW, !HW.G.map.kind(...ur('lb', 8, 5)).pit, 'one gap filled for good');
+    go('lb', 8, 5); sew(HW, 'right'); sew(HW, 'right', 1); sew(HW, 'right', 1);
+    pushAt(HW, ...ur('lb', 5, 8), 'up', 2); pushAt(HW, ...ur('lb', 4, 5), 'right', 10);
+    HW.step(5);
+    ok(HW, HW.global('Signals').eval(HW.G.map, 'ufW&ufE'), 'both lamps lit');
+    go('ha', 9, 2); HW.step(10);
+    ok(HW, HW.G.map.find('ufStairs').open, 'the stairs up to the Gallery, open');
+}
+/* the Gallery: Mr Ives walks to his chair; each plank sewn from the walkway below as he reaches its gap */
+export function ivesWalk(HW) {
+    const go = (r, x, y) => walk(HW, ...ur(r, x, y), 4000);
+    go('ga', 9, 8);
+    const w = HW.G.map.find('ivesWalk');
+    for (const x of [3, 6, 9, 12, 15]) {
+        ok(HW, until(HW, () => w.tx === ur('ga', x - 1, 0)[0] && !w.mv, 900), `Mr Ives at the gap at ${x}`);
+        go('ga', x, 7); sew(HW, 'up');
+        ok(HW, until(HW, () => w.tx > ur('ga', x, 0)[0], 300), `Mr Ives over the plank at ${x}`);
+    }
+    ok(HW, until(HW, () => HW.Progress.flag('ives_done'), 400), 'Mr Ives at his chair');
+    for (let i = 0; i < 10; i++) { HW.skipTalk(); HW.step(20); }
+    ok(HW, HW.Inv.items.longhook, 'the Long Hook');
 }
 
 /* ---------------- the segments ---------------- */
