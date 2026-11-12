@@ -76,6 +76,9 @@ class Enemy extends Ent {
     }
     update() {
         if (!this.alive) return this.updateYarn();
+        /* (a creature holds still while a line is up or a scene runs: nobody is bitten while they read. The big foes keep
+           their own count of this, and their scenes move them themselves) */
+        if (Dialog.active || Script.blocking()) return;
         this.t++;
         if (this.flash > 0) this.flash--;
         if (this.kx || this.ky) {
