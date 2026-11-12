@@ -3952,6 +3952,8 @@ function wrapKeep(s, w) {
     return out;
 }
 
+/* how far the HUD steps back when something that matters is under it (or Wren is): faint, so what's under it reads */
+const HUD_BACK = 0.15;
 const UI = {
     fadeA: 0, fade: null, toasts: [], banner: null, menu: null,
     sceneHold: false, places: [], lean: { now: 0, want: 0, map: null, room: null },
@@ -4149,23 +4151,31 @@ const UI = {
         this.drawCurtain();
         if (G.hideHud) return;
         const p = G.player;
-        /* when Wren (or a doorway) is up under the HUD, it steps back */
+        /* when Wren, or anything that matters, is up under the HUD, it steps back: faded right down, so what's under it
+           reads as plainly as anywhere else */
         const under = (p && (p.y - Cam.y) < 46) || (Dialog.active && Dialog.top) || this.hudCovers();
-        this.hudA = approach(this.hudA === undefined ? 1 : this.hudA, under ? 0.35 : 1, 0.08);
+        this.hudA = approach(this.hudA === undefined ? 1 : this.hudA, under ? HUD_BACK : 1, 0.08);
         Gfx.alpha(this.hudA);
         this._hud(p);
         Gfx.alpha(1);
     },
-    /* is anything that matters (a chest, a door, a plate, a person, a creature, a thing's home cross) under the HUD's
-       corners? then the HUD steps back, as it does for Wren (looked at every few frames) */
+    /* the HUD's two corners, on screen: the hearts, and the tool in hand (with the keys and buttons by it) */
+    hudBoxes() {
+        const n = Math.ceil(Inv.maxHp / 2), rows = n > 10 ? 2 : 1;
+        return [[0, 0, 18 + 9 * Math.min(n, 10), 4 + 8 * rows], [W - 96, 0, W, Inv.equipped ? 32 : 16]];
+    },
+    /* is anything that matters under the HUD's corners? Anything on the grid (a block, a pot, a chest, a sleeper, a
+       person), drawn as tall as it stands; a gate or door, a plate, a thing's home cross; anything strung across the
+       floor (silk across a doorway); a creature; a set piece you can read; whatever a tool in use is showing on the
+       floor (the Needle's reach). Then the HUD steps back, as it does for Wren (looked at every few frames) */
     hudCovers() {
         if (G.t % 8 && this._hc !== undefined) return this._hc;
         let hit = false;
         const a = G.map;
         if (a && G.scene === 'play' && G.onScreen) {
-            const n = Math.ceil(Inv.maxHp / 2), rows = n > 10 ? 2 : 1;
-            const boxes = [[0, 0, 18 + 9 * Math.min(n, 10), 4 + 8 * rows], [W - 96, 0, W, Inv.equipped ? 32 : 16]];
+            const boxes = this.hudBoxes();
             const over = (x0, y0, x1, y1) => boxes.some(b => x1 > b[0] + 1 && x0 < b[2] - 1 && y1 > b[1] + 1 && y0 < b[3] - 1);
+            const tile = (tx, ty, up = 0) => { const x = tx * T - Cam.x, y = ty * T - Cam.y; return over(x, y - up, x + T, y + T); };
             for (const e of G.onScreen) {
                 if (e === G.player || e.hidden) continue;
                 /* (scenery never moves the HUD; a set piece you can walk up to and read does: the stove's pan of milk) */
@@ -4174,11 +4184,14 @@ const UI = {
                     if (e.interact && im && over(e.x - Cam.x, e.y - Cam.y, e.x - Cam.x + im.width, e.y - Cam.y + im.height)) { hit = true; break; }
                     continue;
                 }
-                if (e.isGrid || e instanceof Door || e instanceof FloorThing) {
-                    const x = (e.isGrid ? e.px : e.tx * T) - Cam.x, y = (e.isGrid ? e.py : e.ty * T) - Cam.y;
-                    if (over(x, y, x + 16, y + 16)) { hit = true; break; }
-                    if (e.ret && e.ret.area === a.id) { const mx = e.ret.mx * T - Cam.x, my = e.ret.my * T - Cam.y; if (over(mx, my, mx + 16, my + 16)) { hit = true; break; } }
-                }
+                if (e.isGrid) {
+                    const im = e.sprite && e.sprite(), h = im ? Math.max(T, im.height) : T, x = e.px - Cam.x, y = e.py - Cam.y;
+                    if (over(x, y + T - h, x + T, y + T)) { hit = true; break; }
+                } else if (e instanceof Door || e instanceof FloorThing) {
+                    /* (a door in a side wall stands up over the wall's face above it) */
+                    if (tile(e.tx, e.ty, e instanceof Door ? 8 : 0)) { hit = true; break; }
+                } else if (e.tiles && e.blocks && e.tiles().some(([x, y]) => tile(x, y))) { hit = true; break; }
+                if (e.ret && e.ret.area === a.id && tile(e.ret.mx, e.ret.my)) { hit = true; break; }
             }
             if (!hit) for (const e of a.walkers || []) { if (e.alive === false || e.hidden) continue; const x = e.x - Cam.x, y = e.y - Cam.y; if (over(x - 8, y - 18, x + 8, y)) { hit = true; break; } }
             /* (and what a tool in use is showing on the floor: the Needle's reach, say; world pixels, [x0, y0, x1, y1]) */

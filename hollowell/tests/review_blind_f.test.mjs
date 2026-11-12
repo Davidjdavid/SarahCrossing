@@ -62,6 +62,34 @@ test('the HUD steps back from the Needle\'s reach (the counterweight in the Seam
     noErrors(HW);
 });
 
+test('the HUD steps back, faded right down, from anything that matters under it, wherever it is: the Parlour\'s far gate, the Sun, Moon, Star gate, the Reach\'s top sleeper, the Bell Frame\'s gate (blind solver E)', () => {
+    const spots = [
+        ['afterD1', 'tidy', [40 + 2, 22 + 5], 'pN'],
+        ['afterD2', 'kiln', [40 + 0, 22 + 5], 'smsN'],
+        ['afterD3', 'belfry', [0 + 17, 22 + 5], 'reS1'],
+        ['afterD3', 'belfry', [40 + 2, 11 + 5], 'fbGate'],
+    ];
+    for (const [preset, house, [x, y], id] of spots) {
+        const HW = loadGame(); HW.preset(preset); HW.step(10); HW.skipTalk();
+        HW.warp(house, x, y); HW.step(30); HW.skipTalk(); HW.step(5);
+        const UI = HW.global('UI'), Game = HW.global('Game'), Cam = HW.global('Cam'), a = HW.G.map, e = a.find(id);
+        assert.ok(e && !e.hidden, `${house} ${id} there`);
+        Game.render();
+        /* (it is under the panel: the test means something) */
+        const [b0, , b2, b3] = UI.hudBoxes()[1], sx = e.tx * 16 - Cam.x, sy = e.ty * 16 - Cam.y;
+        assert.ok(sx + 16 > b0 && sx < b2 && sy < b3, `${house} ${id} under the top-right panel (${sx},${sy})`);
+        /* that thing alone steps it back */
+        HW.G.onScreen = [HW.player(), e]; UI._hc = undefined;
+        assert.ok(UI.hudCovers(), `${house} ${id}: the HUD steps back`);
+        HW.G.onScreen = [HW.player()]; UI._hc = undefined;
+        assert.ok(!UI.hudCovers(), `${house} ${id}: (nothing else here moves it)`);
+        /* and in play it fades right down */
+        for (let i = 0; i < 30; i++) { HW.step(1); Game.render(); }
+        assert.ok(UI.hudA <= HW.global('HUD_BACK') + 0.01, `${house} ${id}: faded to ${UI.hudA}`);
+        noErrors(HW);
+    }
+});
+
 test('the Larder: the Hookline thrown at a sleeper says it\'s asleep; with the Bell in hand, the sleepers a ring would reach show the way it would send them; the note says so', () => {
     const HW = afterR2();
     HW.Progress.set('north_gate'); HW.Progress.set('gundry_r2'); HW.Inv.giveTool('shears');
