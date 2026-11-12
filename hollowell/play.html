@@ -10880,14 +10880,15 @@ class Remains extends Ent {
        a frame), hop (pixels between hops, 0 for none) and lift (their height), rattle (jitters along), end: 'gone' (drawn
        till it gets there, and linger frames more), 'lie' (left lying there) or 'fade' (fades where it ends, over fade
        frames), look(x, y, bit, k) (draws it at that spot on the screen; k: how far along, 0 to 1), shadow }.
-       opts: x, y (where it is, for what's on screen), floor (lying on the floor, under everyone) */
+       opts: x, y (where it is, for what's on screen), floor (lying on the floor, under everyone), top (over everything
+       standing: a ball of yarn bobbing down a race among the crates) */
     constructor(bits, opts = {}) {
-        super('remains', { x: opts.x || 0, y: opts.y || 0, floor: !!opts.floor });
+        super('remains', { x: opts.x || 0, y: opts.y || 0, floor: !!opts.floor, top: !!opts.top });
         this.bits = bits.map(b => Object.assign({ delay: 0, speed: 1, hop: 0, lift: 0, end: 'gone', linger: 0, fade: 20 }, b));
         for (const b of this.bits) b.len = Math.hypot(b.to[0] - b.from[0], b.to[1] - b.from[1]);
         this.t = 0;
     }
-    get sortY() { return this.floor ? -1000 : this.y + 4; }
+    get sortY() { return this.floor ? -1000 : this.top ? 1e6 : this.y + 4; }
     /* how long a bit takes from the start to be done with (Infinity: left lying) */
     endOf(b) { return b.end === 'lie' ? Infinity : b.delay + b.len / b.speed + (b.end === 'fade' ? b.fade : b.linger); }
     get done() { return this.bits.every(b => this.t >= this.endOf(b)); }
@@ -16322,7 +16323,7 @@ class Snapjaw extends Enemy {
         this.remains = a.add(new Remains([
             { from: [x, y], to: [x, y], end: 'gone', linger: 40, look: (sx, sy) => { if (belly) Gfx.img(belly, sx - 12, sy - 14); Gfx.alpha(0.5); Gfx.rect(sx - 10, sy - 2, 20, 2, '#ffffff'); Gfx.alpha(1); } },
             { from: [x, y - 2], to: [x, ey * T + 6], delay: 40, speed: 0.3, hop: 5, lift: 1, end: 'fade', fade: 30, shadow: false, look: RemainsKit.yarn(THREAD.ambrose) },
-        ], { x, y }));
+        ], { x, y, top: true }));
         Script.run(MillFoes.snapDown(this));
     }
     draw(cx, cy) {

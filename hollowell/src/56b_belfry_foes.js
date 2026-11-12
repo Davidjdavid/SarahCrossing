@@ -102,7 +102,7 @@ class Clangor extends Enemy {
         const a = this.area, r = a.roomAt(this.hx, this.hy), im = spr('clangor'), x0 = this.x - 12, y0 = this.y - 30;
         const fx = x => clamp(x, (r.x + 1) * T + 6, (r.x + r.w - 1) * T - 6), fy = y => clamp(y, (r.y + 1) * T + 10, (r.y + r.h - 1) * T - 2);
         this.pieces = a.add(new Remains([[1, 0, 22, 15, 26, 10], [5, 14, 14, 12, -4, 8], [1, 14, 6, 11, -26, 2], [17, 14, 6, 11, 18, -12], [5, 25, 7, 7, -16, 20], [12, 25, 7, 7, 8, 24]].map(([sx, sy, w, h, dx, dy], i) => {
-            const from = [x0 + sx + w / 2, y0 + sy + h], to = [fx(this.x + dx), fy(this.y + dy)];
+            const from = [x0 + sx + w / 2, y0 + sy + h], to = RemainsKit.landing(a, fx(this.x + dx), fy(this.y + dy));
             return { from, to, delay: [0, 2, 1, 3, 4, 5][i], speed: 1.1, hop: Math.max(8, Math.hypot(to[0] - from[0], to[1] - from[1])), lift: 10, end: 'lie', tall: h, look: RemainsKit.part(im, sx, sy, w, h) };
         }), { x: this.x, y: this.y }));
         Script.run(BelfryFoes.clangorDown(this));

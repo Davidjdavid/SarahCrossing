@@ -79,6 +79,18 @@ const RemainsKit = {
             Gfx.rect(x - r + 1, y - r - 1 + s - 1, r * 2 - 1, 1, shade(col, 0.4)); Gfx.rect(x - r + 1, y - r + 1 + s - 1, r * 2 - 1, 1, shade(col, -0.3));
         };
     },
+    /* where a thing tossed toward x, y (world pixels, its foot) comes down: there, or on the nearest open floor round it
+       (not on a bust, a crate or a wall) */
+    landing(area, x, y) {
+        const open = (tx, ty) => { const k = area.kind(tx, ty); return !k.solid && !k.pit && !k.water && !area.at(tx, ty) && !area.staticSolid.has(ty * 4096 + tx) && !area.blockers.some(b => b.blocks && b.blocks(tx, ty)); };
+        const tx = tileOf(x), ty = tileOf(y - 1);
+        if (open(tx, ty)) return [x, y];
+        for (let r = 1; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !open(tx + dx, ty + dy)) continue;
+            return [(tx + dx) * T + 8 + clamp(x - tx * T - 8, -4, 4), (ty + dy) * T + 12];
+        }
+        return [x, y];
+    },
     /* a piece of a picture (sx, sy, w, h of it), stood on its foot, inked round where it broke off */
     part(im, sx, sy, w, h) {
         return (x, y) => {
