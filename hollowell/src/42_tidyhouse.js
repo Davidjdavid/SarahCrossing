@@ -846,7 +846,9 @@ const Tidy = {
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: TIDY_OUT.x, ty2: TIDY_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
-        yield* say(null, 'A door opens in the corner of the Grand Hall, letting in daylight and the smell of grass.', { focus: [r.x + 17, r.y + 9] });
+        /* (the doorway's whole picture: the light on the floor and the frame in the wall under it, which the box at the foot of
+           the screen hid with only the floor's glow left showing) */
+        yield* say(null, 'A door opens in the corner of the Grand Hall, letting in daylight and the smell of grass.', { focus: [r.x + 17, r.y + 10, 32] });
     },
 };
 

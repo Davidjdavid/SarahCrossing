@@ -883,7 +883,8 @@ const Kiln = {
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 17, r.y + 9, { to: 'hollow', tx2: KILN_OUT.x, ty2: KILN_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 17, r.y + 9, { im: ART.exitlight, solid: [] }));
-        yield* say(null, 'A door opens in the corner of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.', { focus: [r.x + 17, r.y + 9] });
+        /* (the doorway's whole picture: the floor's light and the frame in the wall under it) */
+        yield* say(null, 'A door opens in the corner of the chamber, onto a ledge high on the mesa and a long view over Kilnridge.', { focus: [r.x + 17, r.y + 10, 32] });
     },
 };
 SIGNATURE_TEXT.kiln = "Pressed into the clay floor, as if with a big thumb: an ochre B, and a little jug. Someone signed this House like you'd sign the bottom of a pot.";
