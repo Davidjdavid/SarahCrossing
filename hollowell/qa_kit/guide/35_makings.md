@@ -17,13 +17,13 @@
   do nothing in a Making (`review_m` 1/12); the Bell rung underneath does nothing above and says so, once
   (`review_blind_f`).
 - Gives: 5 buttons per Little House the first time (the catalogue: 1 → 21 after four, 41 after eight, 46 after nine),
-  Tuck's drawing (S30) for all three Ahas in all nine, `makings_done`, the Way Down.
+  Tuck's drawing (secret S30) for all three Ahas in all nine, `makings_done`, the Way Down.
 
 ### Save states
-- S39 (Gundry has asked; none done): the Guild Hall.
-- S40 (four of nine done): the Making Floor, by the fourth door.
-- S41 (eight done; the ninth next): the Making Floor; the empty Little House handed over (`cap_given`).
-- S42 (all done; the Way Down next): the Making Floor, by the ninth door.
+- T39 (Gundry has asked; none done): the Guild Hall.
+- T40 (four of nine done): the Making Floor, by the fourth door.
+- T41 (eight done; the ninth next): the Making Floor; the empty Little House handed over (`cap_given`).
+- T42 (all done; the Way Down next): the Making Floor, by the ninth door.
 
 ### The Making Floor (Underside 2,0)
 - A row of little doors along the north wall, one per Little House (map x 42, 44, ... 56 for 1-8, the ninth at 58),

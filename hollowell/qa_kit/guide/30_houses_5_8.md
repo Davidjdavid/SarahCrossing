@@ -16,7 +16,7 @@ Conventions in this part:
   gates and dreamt rooms are area flags and are kept. The boss's intro is not replayed (its `..._awake` flag).
 - Loading a save inside a House puts Wren at her mark (`Save.apply`): the doorway of the room she last entered by,
   or, if she lay in a bed or laid the Bedroll in this House, at that bed or Bedroll, which can be a different room
-  from the one the catalogue line names (S26, S27, S31, S32 below).
+  from the one the catalogue line names (T26, T27, T31, T32 below).
 - Leaving a House and coming back rebuilds it: everything marked is back on its mark, broken boards mend, sleepers
   sleep again, unless a flag says otherwise.
 - Every House has "Back to the House's door" in the pause menu while inside (`tests/review_d5`, "a House's door is
@@ -42,16 +42,17 @@ Conventions in this part:
   comes too. Tapped beside it, it rolls up. Rolled up, her mark is the room's doorway again, her thread drawn straight
   to it for a moment.
 - Gives: the Sleeping Knot (d5), the Bedroll, a Heartstitch, the Plan, a Heart Patch (Mallow's Study), 50 buttons
-  (the Dreaming Door), Mallow's Maker's mark (S06 signature).
+  (the Dreaming Door), Mallow's Maker's mark (secret S06, the signature room).
 
 ### Save states
-- S25 (the Night Porch, just inside).
-- S26 (the Bedroll just got). Catalogue line says the Landing, but it loads **by the bed in the Drying Loft** (2,3)
+- T25 (the Night Porch, just inside).
+- T26 (the Bedroll just got). Catalogue line says the Landing, but it loads **by the bed in the Drying Loft** (2,3)
   at (3,1), because Wren lay in that bed; keys 0, the Plan held. Walk: Loft N door → Laundry → Long Ward... (the ward's
   east and north locks are already open).
-- S27 (before the boss). Loads **beside the Bedroll in the Long Ward** at (17,6), where it was laid for the Long Way
-  Home. Pattern held, every door open, all three night-lights lit; walk N through the Landing's big door (already open).
-- S28 (outside, after the Knot). Note: the Bedroll is still laid in Mother Sloth's room (15,5). Homeward from
+- T27 (before the boss). Loads **beside the Bedroll in the Long Ward** at (17,6), where it was laid for the Long Way
+  Home. Pattern held, every locked door on the way open, all three night-lights lit; walk N through the Landing to its
+  big door, which opens as she walks into it with the Pattern (not opened yet in this save).
+- T28 (outside, after the Knot). Note: the Bedroll is still laid in Mother Sloth's room (15,5). Homeward from
   outside flies Wren straight back into the House.
 
 ### Map
@@ -73,9 +74,9 @@ Conventions in this part:
   the chute from the Moonwalk (its lever). Key C can skip the Nursery and the Fort (then optional). The Milk Kitchen's
   jug and the Dreaming Door are optional since the Long Way Home exists, but the Long Way Home goes through the Milk
   Kitchen, so lock D (the Moonwalk's north door) must be opened for it.
-- Scripted route (S26/S27 flags): Night Porch, Linen (key A) → Ward east, Laundry (Plan), Drying Loft (key B) →
+- Scripted route (T26/T27 flags): Night Porch, Linen (key A) → Ward east, Laundry (Plan), Drying Loft (key B) →
   Ward north, Matron (Bedroll), Moonwalk (key C, chute lever), Nursery (C used) → Fort (key D) → Moonwalk north,
-  Milk Kitchen (bell gate), Long Way Home, Pattern, big door.
+  Milk Kitchen (bell gate), Long Way Home, Pattern (T27 is saved here), then the big door.
 
 ### Rooms
 
@@ -148,7 +149,7 @@ Conventions in this part:
   Wren over the drop onto (13,8); take key B; walk off into the drop: home to the bed, unhurt.
 - Wrong idea: rung awake, the boulder goes home over the drop and fills its mark; the hook then lands Wren in front of
   it, in the drop. Leave and come back and it lies down again at (6,2) (test "rung awake").
-- Note: S26 loads here (by the bed).
+- Note: T26 loads here (by the bed).
 
 #### The Landing (1,1), mini-boss: Matron Hush
 - Elements: crumbling boards over the middle (x 5-14, rows 3-7); Matron asleep standing by her bed (1,8)/(3,9); big
@@ -333,16 +334,17 @@ Conventions in this part:
   after its patience. Puppets weigh on plates, fit through little holes in walls (tile kind `crawl`), don't mind spikes,
   won't walk off an edge. A rack works several puppets together, the leading ones first, each that can. Rack puppets
   are worked only from their rack; walls block sight (`review_d6` 4).
-- Gives: the Dancing Knot (d6), the Crossbar, a Heartstitch, Reveal 1, the Plan, a Heart Patch (S13), Jory's mark and
+- Gives: the Dancing Knot (d6), the Crossbar, a Heartstitch, Reveal 1, the Plan, a Heart Patch (secret S13), Jory's mark and
   50 buttons.
 
 ### Save states
-- S30 (the Foyer). The Bedroll is still laid on the high mesa in Kilnridge (from the leap).
-- S31 (the Crossbar just got). Loads **beside the Bedroll in the Rehearsal Room** at (5,4), not in the Wings; keys 0.
-- S32 (before the Great Stage). Also loads **in the Rehearsal Room** by the Bedroll; Pattern held, big door already
-  open, one spare key. Walk: Rehearsal Room west → Auditorium → north lock (open) → Wings → north.
-- S33 (outside, after the Knot and the reveal). The Bedroll stays in the Rehearsal Room in every later catalogue save
-  (S33-S58): Homeward from anywhere flies Wren straight back to it.
+- T30 (the Foyer). The Bedroll is still laid on the high mesa in Kilnridge (from the leap).
+- T31 (the Crossbar just got). Loads **beside the Bedroll in the Rehearsal Room** at (5,4), not in the Wings; keys 0.
+- T32 (before the Great Stage). Also loads **in the Rehearsal Room** by the Bedroll; Pattern held, one spare key; the
+  Wings' big door isn't opened yet in this save (it opens as she walks into it with the Pattern). Walk: Rehearsal Room
+  west → Auditorium → north lock (open) → Wings → north.
+- T33 (outside, after the Knot and the reveal). The Bedroll stays in the Rehearsal Room in every later test save up to
+  T56 (T57 and T58 have it laid in the Great Spool): Homeward from anywhere flies Wren straight back to it.
 
 ### Map
 ```
@@ -393,7 +395,7 @@ Conventions in this part:
   chest (17,6) that appears with `s13`; the east gate (19,8) to the Trap Room.
 - Solution (test "the rehearsal room"): lay the Bedroll at (5,4); drop through the trapdoor row to (5,7); take key B;
   Homeward back up. (Or the hole in the under-stage floor, which hurts.)
-- S13 (optional secret): take the rack from (15,8) facing down and walk the little Wren `UUURRR` onto the set's mark:
+- Secret S13 (optional): take the rack from (15,8) facing down and walk the little Wren `UUURRR` onto the set's mark:
   a bow, `s13`, and the Heart Patch chest. Wren standing on the mark does nothing (`review_d6` 5).
 
 #### The Wings (1,1), mini-boss: Captain Tin
@@ -523,11 +525,12 @@ Conventions in this part:
 - Gives: the Needle, the Pattern, the Plan, a Heartstitch, Gundry's mark and a Heart Patch, the apprenticeship (`d7`).
 
 ### Save states
-- S35 (the Gatehouse).
-- S36 (the Needle just got): loads at (9,7), beside the Kennel's trapdoor: the last way she came into the Kennel was up
+- T35 (the Gatehouse).
+- T36 (the Needle just got): loads at (9,7), beside the Kennel's trapdoor: the last way she came into the Kennel was up
   through it (the catalogue's "doorway" is that hatch); keys 0; the Plan held.
-- S37 (before the boss): the Winding Hall, west doorway (1,5); Pattern held, the big door already open.
-- S38 (after): the Guild Hall, Gundry has a job.
+- T37 (before the boss): the Winding Hall, west doorway (1,5); Pattern held; the Heart's big door isn't opened yet
+  in this save (it opens as she walks into it with the Pattern).
+- T38 (after): the Guild Hall, Gundry has a job.
 
 ### Map
 ```
@@ -706,7 +709,7 @@ Works floor (up top)                                    Under-works (33 rows bel
   `tests/shears_kit.test.mjs`, `tests/review_m.test.mjs` (2, 3, 8), `tests/review_blind_f.test.mjs`,
   `tests/review_blind_d.test.mjs`, `tests/review_opt.test.mjs` (new 5/6/7).
 - Getting in: the Loom's doors (Loomwood 95,9) want the Guild's key, which Gundry gives after Reveal 2 (`gundry_r2`);
-  the north gate opened early (S32) only opens the Loomwood (`review_m` 2). The warp of silk across the door must be
+  the north gate opened early (secret S32) only opens the Loomwood (`review_m` 2). The warp of silk across the door must be
   lifted first (regions part).
 - Grammar: permanence. Nothing has a thread but the Loom's own old weights and its silk. Blocks lying about are offcuts
   (strays, middling weight: silk holds them, the iron plate ignores them, a Hookline brings them over): pushed, they
@@ -721,10 +724,11 @@ Works floor (up top)                                    Under-works (33 rows bel
   "Inside the Loom: the First Spinner's Shears are somewhere in here", then the Shears line.
 
 ### Save states
-- S46 (the Threshold).
-- S47 (the Shears just got): the Shuttle Run, south doorway (9,9).
-- S48 (before the boss): the Shuttle Run, south doorway; Pattern held, the big door north already open.
-- S49 (outside, the Weaver's Heartstitch taken: 11 hearts). A Heartstitch left on the Web's floor stays there, at
+- T46 (the Threshold).
+- T47 (the Shears just got): the Shuttle Run, south doorway (9,9).
+- T48 (before the boss): the Shuttle Run, south doorway; Pattern held; the big door north isn't opened yet in this
+  save (it opens as she walks into it with the Pattern).
+- T49 (outside, the Weaver's Heartstitch taken: 11 hearts). A Heartstitch left on the Web's floor stays there, at
   (10,9), until it's walked over, even after leaving the House (checked headless).
 
 ### Map

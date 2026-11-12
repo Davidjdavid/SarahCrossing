@@ -15,7 +15,8 @@ Guild's key, the north gate's counterweight → the Loomwood → the Loom (House
 ---
 
 ### The Knotting Festival (after Knot 4; `src/57_festival.js`)
-- Save states: S23 (Hollowell, the festival about to start), S24 (after it and the giant: the east road open).
+- Save states: T23 (outside the Belfry just after Knot 4, the goal line saying home for the festival: walk home to the
+  town square and it plays), T24 (after the festival and the giant: on the east road, the way open).
 - Trigger: with `d4` set, the first time Wren stands in the town square (map x 85-106, y 53-66) the scene plays
   (`festival`). No puzzle.
 - What happens: Gran meets her ("Four Knots! Only two to go, love."); Bram, Dad (Ambrose), Mum (Tess) and Ives arrive
@@ -23,7 +24,7 @@ Guild's key, the north gate's counterweight → the Loomwood → the Loom (House
   dances; Gran points her at the east road and the sleeping giant. Goal: "The east road out of town: the sleeping giant.
   Ring the Recall Bell at it." Pip mentions Returnball by the bakery.
 - QA: the four latecomers stand still and turn to Wren when they speak, even one held up on the way (`scenes`).
-- Optional, passed here: Returnball by the bakery (S29: five rings in one throw, a Heart Patch from Pip).
+- Optional, passed here: Returnball by the bakery (secret S29: five rings in one throw, a Heart Patch from Pip).
 
 ### The giant on the east road (Old Hummock)
 - Idea: the Recall Bell wakes sleepers.
@@ -35,14 +36,14 @@ Guild's key, the north gate's counterweight → the Loomwood → the Loom (House
   "Hushwood: find the Slumberhouse, over the stream." A deep hollow is left in the middle of where he lay (131,59).
 - State: permanent; he stays in his bed (a talking spot) for the rest of the game.
 - QA: his shadow is flat once he's up (finding 81, `live5`).
-- Optional: the Giant's Hollow (S16), the hole where he lay: only with the Bedroll laid up top ("You'd want your
+- Optional: the Giant's Hollow (secret S16), the hole where he lay: only with the Bedroll laid up top ("You'd want your
   Bedroll laid somewhere up here first"); down there, one of Linnet's notes; Homeward brings Wren back up (or the roots
   can be climbed the hard way). Details in the optional-content part.
 
 ### Hushwood
 Regions: the Sleeping Road (south-west, in from town), the Slumberhouse (north), the Slumberhouse Garden (the strip
 along the stream, y 54-57), Puffball Hollow (south-west), Lantern Pond (south-east), the Far Bank (east), the Cliff
-Stair (walled off from Hushwood). Music `hush`. Save states: S24 (arrival), S28 (outside the Slumberhouse after its
+Stair (walled off from Hushwood). Music `hush`. Save states: T24 (arrival), T28 (outside the Slumberhouse after its
 Knot).
 
 #### The Sleeping Road: the rule shown before it matters
@@ -90,10 +91,10 @@ Knot).
   Needle) give the isle's Heart Patch (158,68); an old loom weight lies on the isle (159,69) and later fits a Loomwood
   socket for good.
 - The Far Bank: over the log bridge, moss up onto the plateau (Heart Patch (164,44)), a ledge back down.
-- The Giant's Hollow (S16): see above.
+- The Giant's Hollow (secret S16): see above.
 
 ### Kilnridge's high mesa and the leap into Larkspur Fair
-- Save states: S29 (just after the leap: the Straw). In S29 the Bedroll is laid on the mesa beside the edge (15,83).
+- Save states: T29 (just after the leap: the Straw). In T29 the Bedroll is laid on the mesa beside the edge (15,83).
 - Idea: falls as travel, outdoors: the Bedroll as the way back.
 - Elements: the edge of the high mesa in Kilnridge's north-west (12,83), the fairground far below, straw bales under the
   cliff.
@@ -110,7 +111,7 @@ Knot).
 ### Larkspur Fair
 Regions: the Straw (south, where the leap lands), the Edge (the fog close on the west; no further), the Midway (the
 middle: carousel, tents, Madame Rook, the big wheel), the Marionette Hall (north: the parade forecourt). Music `fair`.
-Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6).
+Save states: T29 (the Straw), T30 (inside the Hall), T33 (outside after House 6).
 
 #### The parade forecourt and the portcullis: the door to House 6
 - Idea: Marionette grammar outdoors: shape a soldier's march.
@@ -144,14 +145,14 @@ Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6)
 - The fakir's pen: with the Crossbar, walk the puppet fakir (56,51) through the hole and over the nails onto the plate
   (54,44): Heart Patch (52,51).
 - The carousel's wooden horse (31,62): walked off its spot with the Crossbar, Linnet's seventh note under it.
-- The Edge (S11): lay the Bedroll by the fog and walk in: the fog pulls Wren home to it, holding a Drift-bloom seed (kept
-  from the moment the fog lets go: `review_d6` S11).
+- The Edge (secret S11): lay the Bedroll by the fog and walk in: the fog pulls Wren home to it, holding a Drift-bloom seed (kept
+  from the moment the fog lets go: `review_d6`, test "S11: the seed is kept...").
 - Madame Rook's wheel of fortune (14-17, 50-53; the Needle) and the balloon by the fog (5,70; the Shears): see the
   optional-content part.
 
 ### The Inn's Staff door and the Underside (after Reveal 1)
-- Save states: S33 (outside the Marionette Hall; goal "Hollowell: the Inn, and the door marked STAFF ONLY."), S34 (the
-  Staff Stairs, first time down), S38/S39 (the Guild Hall after the Spoolworks), S44 (the Guild Hall after Reveal 2).
+- Save states: T33 (outside the Marionette Hall; goal "Hollowell: the Inn, and the door marked STAFF ONLY."), T34 (the
+  Staff Stairs, first time down), T38/T39 (the Guild Hall after the Spoolworks), T44 (the Guild Hall after Reveal 2).
 - The door: at the back of the Inn (interior `inn`: stand at (13,3) and face north). Before Reveal 1: "A narrow door: STAFF ONLY. Locked.
   Something hums on the other side." After: "STAFF ONLY. The door is open for you now." The first time Wren walks into
   the Inn after the reveal, a notice points it out, standing ajar (`inn_staffSeen`). Through it: the Staff Stairs,
@@ -161,8 +162,8 @@ Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6)
   - The Guild Hall (1,0): Gundry at his table; the big door north to the Spoolworks (open, no key); east, the gate to
     the Making Floor, open once the Spoolworks is done (`d7`); after the Spoolworks, an apprentice cot (1,1) in the
     corner, a bed: lie in it and it is Wren's mark down here.
-  - The Workshops (0,0): each Maker at their bench with their logbook (S22: read all six).
-  - The Seams (0,1) and (2,1): tunnels under the town with peepholes in the walls (S23: all eight, then a lid clicks
+  - The Workshops (0,0): each Maker at their bench with their logbook (secret S22: read all six).
+  - The Seams (0,1) and (2,1): tunnels under the town with peepholes in the walls (secret S23: all eight, then a lid clicks
     open at the east end: Heart Patch, Action from (58,13) facing north); at the east end the north gate's
     counterweight (57,16).
   - The Making Floor (2,0): Tuck's Little Wander (the Makings part); later, the Way Down off it.
@@ -172,7 +173,7 @@ Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6)
 - QA: Gundry has a touch of grey at the temples (`told_seen`); townsfolk below won't take the Needle (`review_d7` 7).
 
 ### The Way Down, the deep store and Reveal 2 (after the Makings; `src/69_reveal2.js`)
-- Save states: S42 (the Making Floor, all Makings done), S43 (the deep store, first time), S44 (after: the Guild Hall).
+- Save states: T42 (the Making Floor, all Makings done), T43 (the deep store, first time), T44 (after: the Guild Hall).
 - The errand: Gundry's goal "The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store." The Way
   Down is a warp off the Making Floor (the test walks to (57,8) and steps south) into the deep store (`deep`).
 - The Deep Store (0,0): racks of spare spools ("FOR NEXT YEAR"); Tuck's fresh spool on a little stand (9,6), bright
@@ -200,13 +201,13 @@ Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6)
   for a bow"; it opens the Loom), and the north gate's counterweight in the Seams; goal "The north gate: its
   counterweight is in the Seams (east), under the town. Give it a new place." (or the road goal if the gate is already
   open).
-- Optional (S33): a faint after Reveal 2 wakes Wren in bed knowing who pulled ("There you are, love.").
+- Optional (secret S33): a faint after Reveal 2 wakes Wren in bed knowing who pulled ("There you are, love.").
 - QA: the reveal's morning line says the cellar door is "locked from the inside" (fixed, finding 78); Gran's count
   (`Tally.home()`) is said once at the Spool's top later; a save from before the tally (or a preset) gets the same words
   without numbers.
 
 ### The north gate and its counterweight
-- Save states: S44 (before), S45 (after: the north gate open, the Loomwood ahead).
+- Save states: T44 (before), T45 (after: the north gate open, Wren standing in it at (96,36), the Loomwood ahead).
 - Idea: the Needle on a thing nobody can shift.
 - Elements: the counterweight at the east end of the Seams, Underside (57,16): heavy, not pushable ("The north gate's
   counterweight. Far too heavy to shift. TAGGED: DO NOT TOUCH. BY ORDER OF THE WARDEN."); a sign beside it; the stone
@@ -215,7 +216,7 @@ Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6)
   the counterweight has a new place: `north_gate`; "Far away north, something huge and stone grinds, and stops, and
   stays open." The first time Wren comes near the gate afterwards, the camera looks (`north_gate_seen`); Burr: "Go on,
   then." Goal "Through the north gate, up the Loomwood road to the Loom."
-- Early (S32, optional): the same done before Reveal 2 (any time after the Spoolworks) also opens the gate and sets
+- Early (secret S32, optional): the same done before Reveal 2 (any time after the Spoolworks) also opens the gate and sets
   `s32`, but the Loom's doors still want the Guild's key, so it only opens the Loomwood (`review_m` 2).
 - State: the gate's flag is permanent. A later fourth stitch elsewhere lets go of the counterweight's stitch (the notice
   names "the iron weight in the Seams"), and the gate stays open (`review_blind_f` "the Needle's let-go notice").
@@ -225,7 +226,7 @@ Save states: S29 (the Straw), S30 (inside the Hall), S33 (outside after House 6)
 ### The Loomwood
 Regions: the North Gate (south, x 90-101, y 34-39), the Loom (north, its door at (95,9)), the Frayed Edge (west, x
 67-78). Silver birches with silk between them, moths that go for movement, frayed thread-ends by the fog. Music
-`loomwood`. A rest spot by the gate (92,33). Save states: S45 (the gate open), S46 (inside the Loom), S49 (outside after).
+`loomwood`. A rest spot by the gate (92,33). Save states: T45 (the gate open), T46 (inside the Loom), T49 (outside after).
 
 #### The warp across the Loom's door
 - Idea: the Return's patience plus the Needle's three stitches.
@@ -247,7 +248,7 @@ Regions: the North Gate (south, x 90-101, y 34-39), the Loom (north, its door at
 
 #### The Loom's doors
 - The warp leads to the doors (95,9), which want the Guild's key: before `gundry_r2`: "The great doors are locked: an
-  old lock, older than the Houses, with a keyhole as big as your hand..." With the key, in (S46). Goal lines move on as
+  old lock, older than the Houses, with a keyhole as big as your hand..." With the key, in (T46). Goal lines move on as
   the gate opens, as Wren goes in, and as she finds the Shears (`LOOM_GOALS`).
 
 #### Optional in the Loomwood (one line each)
