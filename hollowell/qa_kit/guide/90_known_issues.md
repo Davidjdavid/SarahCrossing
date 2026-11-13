@@ -1,5 +1,8 @@
 ## Known open issues (found while this package was being prepared)
 
+*(Fixed since, on 13 November in fix round I, after the outside QA's report: items 1-8 and the debug Noclip; items 9 and 10
+were decided and kept. This list is kept as the package delivered it.)*
+
 The game was left exactly as it is while this package was prepared, so that what you test is what will ship. These
 issues turned up along the way and have **not** been fixed yet. Please confirm each (or say it doesn't reproduce), and
 include them in the developer report with your severity: they will be fixed together with what you find. They are not

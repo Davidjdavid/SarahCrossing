@@ -226,3 +226,14 @@
   loading it and playing on from it), a confidential reference guide, instructions on what to test and how to report it,
   and a copy of the game with the test saves built in. The game itself is unchanged; a few issues found while preparing
   it (one a place a player can get stuck) are listed for the tester and will be fixed after its report.
+
+## 2026-11-13 (an outside tester's findings)
+- An outside tester's report: six findings, all fixed, together with the issues found while preparing its package:
+  - loading a save or starting a new game no longer carries anything over from the game before;
+  - changing the controls can no longer leave a button stuck down (keyboard or controller);
+  - a place where you could be stranded now lets you back out the way it suggests;
+  - the goal line always points onward, after the fifth House and after the optional places, and the map's pins sit on
+    the places they name;
+  - a few notes are described in words that fit where they're found, and one appears as soon as it should; a reward can
+    no longer land out of reach; an item's description says exactly what it does.
+- Debug only: walking through walls works.
