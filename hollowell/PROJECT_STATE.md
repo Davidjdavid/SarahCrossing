@@ -20,7 +20,8 @@ outside tester works and listed for it. The tester's report came back (13 Novemb
 82-95; QA_REPORT.md). David's page and the tester's link carry the fixed version.
 
 **Version 1.0.0 (13 November):** the release David plays: his main page and a download (`hollowell-1.0.0.zip`; CLAUDE.md
-says how it's made). David has called testing done; next is his own play (fixes on request, spoiler-free). David has frozen copies of the 12 November version (commit b217800) to compare
+says how it's made). David has called testing done; next is his own play (fixes on request, spoiler-free). 1.0.1 (13 November): the
+first two things he found (POLISH.md 96-97). David has frozen copies of the 12 November version (commit b217800) to compare
 with later ones: the artifact https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV and a Linux folder (CLAUDE.md).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328

@@ -322,6 +322,8 @@ const Vents = {
     },
     update(a) {
         for (const f of this.flights) {
+            /* (a flight's sounds are its own: heard only in sight) */
+            Sfx.src = f;
             if (f.a !== a || f.o.area !== a) { f.done = true; this.drop(f, true); continue; }
             f.t++;
             const n = f.path.length, dur = Math.max(10, n * 6), k = Math.min(1, f.t / dur);
@@ -341,6 +343,7 @@ const Vents = {
             }
             if (!f.done && f.t >= dur) { f.done = true; this.drop(f); }
         }
+        Sfx.src = null;
         this.flights = this.flights.filter(f => !f.done);
     },
     /* down it comes: into clay (whole), a pit or water, or onto the ground (a pot breaks) */

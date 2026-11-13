@@ -91,6 +91,9 @@ defBlock({
         { k: 'npc', who: 'tuck', x: 7, y: 32, face: 'right' },
         { k: 'npc', who: 'arlo', x: 27, y: 23, face: 'left' },
         { k: 'npc', who: 'bram', x: 34, y: 24, face: 'down' },
+        /* Bram's own pots, by his stall: the first thing he says is "Here, smash one of my pots. Go on! It comes back." (with
+           none in town to smash, it was a promise the square couldn't keep: David, playing 1.0.0) */
+        { k: 'pot', x: 33, y: 24, id: 'bramPotA' }, { k: 'pot', x: 32, y: 24, id: 'bramPotB' },
         /* Hob walks the bank, until the third Knot; then he only stands */
         { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', route: [[48, 22, 120], [48, 28, 120]], if: '!d3' },
         { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', if: 'd3' },

@@ -1,4 +1,4 @@
-HOLLOWELL 1.0.0
+HOLLOWELL 1.0.1
 ===============
 
 The whole game is in Hollowell.html. It works without the internet.

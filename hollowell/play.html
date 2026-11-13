@@ -20,7 +20,7 @@ canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display:
    headless in the tests (HEADLESS: no document). */
 
 const HEADLESS = typeof document === 'undefined';
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const W = 320, H = 180, T = 16;          /* the screen in pixels, the tile size */
 const FPS = 60;
 
@@ -2364,8 +2364,20 @@ const Sfx = {
     last: {},
     /* the sounds of a step solved: music resting through a long stay comes back for them */
     stirs: { door: 1, unlock: 1, appear: 1, chest: 1, item: 1, smallitem: 1, knot: 1, button: 1, save: 1 },
+    /* whatever in the world is taking its turn (Game.step sets it while each thing updates; a system moving things of
+       its own, its thing): a sound it makes is heard only if it's in sight, or just past the screen's edge. The valley is
+       one great place, and a contraption at its far side clicking away was heard all over it; Wren's own sounds and a
+       scene's always play */
+    src: null,
+    heard(s) {
+        const x = s.x !== undefined ? s.x : s.tx !== undefined ? s.tx * T : null, y = s.y !== undefined ? s.y : s.ty !== undefined ? s.ty * T : null;
+        if (x === null || y === null) return true;
+        const m = 40;
+        return x > Cam.x - m && x < Cam.x + W + m && y > Cam.y - m && y < Cam.y + H + m;
+    },
     /* vol: a caller's own say (0.4 for a quieter repeat), on top of the effect's level */
     play(name, vol = 1) {
+        if (this.src && !this.heard(this.src)) return;
         if (this.stirs[name]) Music.stir();
         if (!Audio.ok || !SFX[name]) return;
         const now = Audio.ctx.currentTime;
@@ -9035,6 +9047,9 @@ defBlock({
         { k: 'npc', who: 'tuck', x: 7, y: 32, face: 'right' },
         { k: 'npc', who: 'arlo', x: 27, y: 23, face: 'left' },
         { k: 'npc', who: 'bram', x: 34, y: 24, face: 'down' },
+        /* Bram's own pots, by his stall: the first thing he says is "Here, smash one of my pots. Go on! It comes back." (with
+           none in town to smash, it was a promise the square couldn't keep: David, playing 1.0.0) */
+        { k: 'pot', x: 33, y: 24, id: 'bramPotA' }, { k: 'pot', x: 32, y: 24, id: 'bramPotB' },
         /* Hob walks the bank, until the third Knot; then he only stands */
         { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', route: [[48, 22, 120], [48, 28, 120]], if: '!d3' },
         { k: 'npc', who: 'hob', x: 48, y: 24, face: 'right', if: 'd3' },
@@ -15023,6 +15038,8 @@ const Vents = {
     },
     update(a) {
         for (const f of this.flights) {
+            /* (a flight's sounds are its own: heard only in sight) */
+            Sfx.src = f;
             if (f.a !== a || f.o.area !== a) { f.done = true; this.drop(f, true); continue; }
             f.t++;
             const n = f.path.length, dur = Math.max(10, n * 6), k = Math.min(1, f.t / dur);
@@ -15042,6 +15059,7 @@ const Vents = {
             }
             if (!f.done && f.t >= dur) { f.done = true; this.drop(f); }
         }
+        Sfx.src = null;
         this.flights = this.flights.filter(f => !f.done);
     },
     /* down it comes: into clay (whole), a pit or water, or onto the ground (a pot breaks) */
@@ -37044,6 +37062,7 @@ const Game = {
     fresh() { UI.banner = null; UI.toasts = []; G.pendingToast = null; G.regionName = null; },
     step() {
         G.t++;
+        Sfx.src = null;
         TileDraw.frame = G.t;
         Input.update();
         try {
@@ -37076,9 +37095,12 @@ const Game = {
             if (!a) return;
             if (Cam.busy) { Cam.update(p); return; }
             Signals.begin(a);
-            for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) e.update();
+            /* (each thing's sounds are its own: heard only in sight, Sfx.src) */
+            for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) { Sfx.src = e; e.update(); }
+            Sfx.src = null;
             if (p) p.update();
-            for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
+            for (const e of a.ents.slice()) if (e.floor && !e.removed) { Sfx.src = e; e.update(); }
+            Sfx.src = null;
             Thrown.update(a); Shards.update(a); Tools.update(a); GlazerShots.update(a);
             Fx.update();
             /* (if Wren went through a door this frame, the place she left doesn't get its say with her new position) */

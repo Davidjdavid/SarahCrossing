@@ -46,8 +46,9 @@ build, copy `dist/hollowell_page.html` with the title and the version line under
 `tools/linux/*` with the date changed (2026-11-12, 12 November) in every file; publish the page as a new artifact. His
 main page (https://claude.ai/artifact/4cwxT315Taw5N4ewmxertc) is the one that's kept up to date.
 
-## Version 1.0.0 (13 November)
-The game's version (title screen, saves) is `version.json`; 1.0.0 is the release David plays, after fix round I. His
+## Version 1.0.0 (13 November), now 1.0.1
+The game's version (title screen, saves) is `version.json`; 1.0.0 is the release David plays, after fix round I; 1.0.1
+fixes what he found in his first minutes (POLISH.md 96-97). His
 download is `hollowell-1.0.0.zip`: `dist/hollowell_page.html` as `Hollowell.html` plus `tools/release/*` (its launcher
 keeps saves in one fixed Chromium profile, ~/.local/share/hollowell, so a later version started the same way carries
 on with them). A later release: bump `version.json`, build, test, republish his main page, zip the same way.

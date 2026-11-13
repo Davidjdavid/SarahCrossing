@@ -33,6 +33,7 @@ const Game = {
     fresh() { UI.banner = null; UI.toasts = []; G.pendingToast = null; G.regionName = null; },
     step() {
         G.t++;
+        Sfx.src = null;
         TileDraw.frame = G.t;
         Input.update();
         try {
@@ -65,9 +66,12 @@ const Game = {
             if (!a) return;
             if (Cam.busy) { Cam.update(p); return; }
             Signals.begin(a);
-            for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) e.update();
+            /* (each thing's sounds are its own: heard only in sight, Sfx.src) */
+            for (const e of a.ents.slice()) if (!e.floor && !e.removed && !e.inert) { Sfx.src = e; e.update(); }
+            Sfx.src = null;
             if (p) p.update();
-            for (const e of a.ents.slice()) if (e.floor && !e.removed) e.update();
+            for (const e of a.ents.slice()) if (e.floor && !e.removed) { Sfx.src = e; e.update(); }
+            Sfx.src = null;
             Thrown.update(a); Shards.update(a); Tools.update(a); GlazerShots.update(a);
             Fx.update();
             /* (if Wren went through a door this frame, the place she left doesn't get its say with her new position) */

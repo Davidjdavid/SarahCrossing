@@ -240,3 +240,7 @@
 
 ## 2026-11-13 (version 1.0.0)
 - Version 1.0.0: the release to play, with every finding so far fixed; a download to play offline as well as the page.
+
+## 2026-11-13 (version 1.0.1)
+- Sounds come only from what you can see: far-off contraptions no longer click away wherever you are.
+- Bram has pots to smash, as he says he does.

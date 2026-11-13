@@ -160,8 +160,20 @@ const Sfx = {
     last: {},
     /* the sounds of a step solved: music resting through a long stay comes back for them */
     stirs: { door: 1, unlock: 1, appear: 1, chest: 1, item: 1, smallitem: 1, knot: 1, button: 1, save: 1 },
+    /* whatever in the world is taking its turn (Game.step sets it while each thing updates; a system moving things of
+       its own, its thing): a sound it makes is heard only if it's in sight, or just past the screen's edge. The valley is
+       one great place, and a contraption at its far side clicking away was heard all over it; Wren's own sounds and a
+       scene's always play */
+    src: null,
+    heard(s) {
+        const x = s.x !== undefined ? s.x : s.tx !== undefined ? s.tx * T : null, y = s.y !== undefined ? s.y : s.ty !== undefined ? s.ty * T : null;
+        if (x === null || y === null) return true;
+        const m = 40;
+        return x > Cam.x - m && x < Cam.x + W + m && y > Cam.y - m && y < Cam.y + H + m;
+    },
     /* vol: a caller's own say (0.4 for a quieter repeat), on top of the effect's level */
     play(name, vol = 1) {
+        if (this.src && !this.heard(this.src)) return;
         if (this.stirs[name]) Music.stir();
         if (!Audio.ok || !SFX[name]) return;
         const now = Audio.ctx.currentTime;
