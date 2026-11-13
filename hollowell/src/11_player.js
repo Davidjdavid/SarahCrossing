@@ -411,8 +411,18 @@ class Player extends Ent {
     dropCarry() {
         const o = this.carry; if (!o) return;
         this.carry = null; o.carried = false; o.heldBy = null;
-        if (o.ret) { Return.sendHome(o); }
-        else { o.tx = this.tx; o.ty = this.ty; o.x = o.tx * T; o.y = o.ty * T; this.area.place(o, o.tx, o.ty); o.landed(false); }
+        if (o.ret) { Return.sendHome(o); return; }
+        const a = this.area;
+        let tx = this.tx, ty = this.ty;
+        /* going down a little hole, what she carries is too big for it (it can't be set down or pushed in either) and stays
+           up beside it: the Nursery's toy block used to go down with her and fill the hole in for good, the playpen's only
+           way out gone with it (David, playing 1.0.3) */
+        if (a.kind(tx, ty).pit && a.cell(tx, ty).narrow && !o.small) {
+            const open = (x, y) => { if (!a.inside(x, y) || a.at(x, y)) return false; const k = a.kind(x, y); return !k.solid && !k.ledge && !k.pit && !k.deep && !k.fog && !a.blockers.some(b => b.blocks(x, y, o)); };
+            const back = OPP[this.dir], d = [back, ...[DOWN, LEFT, RIGHT, UP].filter(q => q !== back)].find(q => open(tx + DX[q], ty + DY[q]));
+            if (d !== undefined) { tx += DX[d]; ty += DY[d]; }
+        }
+        o.tx = tx; o.ty = ty; o.x = tx * T; o.y = ty * T; a.place(o, tx, ty); o.landed(false);
     }
 
     /* ----- the stick ----- */

@@ -20,7 +20,7 @@ canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display:
    headless in the tests (HEADLESS: no document). */
 
 const HEADLESS = typeof document === 'undefined';
-const VERSION = '1.0.3';
+const VERSION = '1.0.4';
 const W = 320, H = 180, T = 16;          /* the screen in pixels, the tile size */
 const FPS = 60;
 
@@ -3088,8 +3088,18 @@ class Player extends Ent {
     dropCarry() {
         const o = this.carry; if (!o) return;
         this.carry = null; o.carried = false; o.heldBy = null;
-        if (o.ret) { Return.sendHome(o); }
-        else { o.tx = this.tx; o.ty = this.ty; o.x = o.tx * T; o.y = o.ty * T; this.area.place(o, o.tx, o.ty); o.landed(false); }
+        if (o.ret) { Return.sendHome(o); return; }
+        const a = this.area;
+        let tx = this.tx, ty = this.ty;
+        /* going down a little hole, what she carries is too big for it (it can't be set down or pushed in either) and stays
+           up beside it: the Nursery's toy block used to go down with her and fill the hole in for good, the playpen's only
+           way out gone with it (David, playing 1.0.3) */
+        if (a.kind(tx, ty).pit && a.cell(tx, ty).narrow && !o.small) {
+            const open = (x, y) => { if (!a.inside(x, y) || a.at(x, y)) return false; const k = a.kind(x, y); return !k.solid && !k.ledge && !k.pit && !k.deep && !k.fog && !a.blockers.some(b => b.blocks(x, y, o)); };
+            const back = OPP[this.dir], d = [back, ...[DOWN, LEFT, RIGHT, UP].filter(q => q !== back)].find(q => open(tx + DX[q], ty + DY[q]));
+            if (d !== undefined) { tx += DX[d]; ty += DY[d]; }
+        }
+        o.tx = tx; o.ty = ty; o.x = tx * T; o.y = ty * T; a.place(o, tx, ty); o.landed(false);
     }
 
     /* ----- the stick ----- */
@@ -5049,6 +5059,11 @@ const Save = {
         /* (the Guild's thread was lightened to read on its floors: a Needle stitch remembers a thing's old colour) */
         for (const st of s.inv.stitches || []) if (st && st.color0 === '#a8784a') st.color0 = THREAD.guild;
         this.dropForeignCuts(s);
+        /* (1.0.3 and before: falling down the Nursery playpen's little hole with the toy block in hand took the block down
+           too and filled the hole for good, the room's toy and the playpen's way out both lost; nothing too big goes down it
+           now, so a game that lost them has them back: the block in its playpen, the hole open) */
+        const sl = s.progress.areaFlags.slumber;
+        if (sl && sl['fill:8,20']) { delete sl['fill:8,20']; delete sl['gone:nuToy']; }
         s.v = SAVE_V;
         return s;
     },

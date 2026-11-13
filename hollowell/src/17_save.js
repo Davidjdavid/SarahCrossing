@@ -38,6 +38,11 @@ const Save = {
         /* (the Guild's thread was lightened to read on its floors: a Needle stitch remembers a thing's old colour) */
         for (const st of s.inv.stitches || []) if (st && st.color0 === '#a8784a') st.color0 = THREAD.guild;
         this.dropForeignCuts(s);
+        /* (1.0.3 and before: falling down the Nursery playpen's little hole with the toy block in hand took the block down
+           too and filled the hole for good, the room's toy and the playpen's way out both lost; nothing too big goes down it
+           now, so a game that lost them has them back: the block in its playpen, the hole open) */
+        const sl = s.progress.areaFlags.slumber;
+        if (sl && sl['fill:8,20']) { delete sl['fill:8,20']; delete sl['gone:nuToy']; }
         s.v = SAVE_V;
         return s;
     },

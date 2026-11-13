@@ -255,3 +255,7 @@
 - A sign no longer stands in the only way through one of the Houses' rooms (the rest of that room, and two rooms beyond it,
   couldn't be reached), nor in front of an empty corner of another.
 - A chest in one House can no longer be opened from the wrong side, without solving its puzzle.
+
+## 2026-11-13 (version 1.0.4)
+- Something too big for a little hole no longer goes down it with you when you fall through: it stays up beside it.
+  A game where it had (and the hole was filled in for good) has the thing and the hole back.

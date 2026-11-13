@@ -1,5 +1,5 @@
 #!/bin/sh
-# Hollowell 1.0.3: opens the game in a window of its own.
+# Hollowell 1.0.4: opens the game in a window of its own.
 # With Chromium or Chrome it gets its own little browser profile (~/.local/share/hollowell), so your saves are kept
 # there, apart from your everyday browsing, and a later version started the same way carries on with them.
 # Otherwise it opens in Firefox, or in your default browser.
