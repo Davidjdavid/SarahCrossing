@@ -282,7 +282,7 @@ const StrayHouse = {
         const r = pile.arena, p = G.player;
         const ok = ([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r && !!findPath(a, p.tx, p.ty, x, y, p);
         const ring = d => { const out = []; for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === d) out.push([pile.tx + dx, pile.ty + dy]); return out; };
-        const spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(ok) || [2, 3, 4, 5].map(ring).flat().find(ok) || [r.x + 9, r.y + 3];
+        const spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(ok) || [1, 2, 3, 4, 5].map(ring).flat().find(ok) || [r.x + 9, r.y + 3];
         if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup(spot[0] * T, spot[1] * T, { what: 'heartstitch', id: 'pileHeart' }));
         StrayHouse.lend(SH_GOALS.room);
         Save.autosave();
