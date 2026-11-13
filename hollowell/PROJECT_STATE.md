@@ -17,7 +17,10 @@ confidential guide (about 61,000 words); spoiler-free instructions and how to ru
 tester's link). Preparing it found POLISH.md findings 82-89 (one softlock below the falls), left unfixed while the
 outside tester works and listed for it. The tester's report came back (13 November: 6 findings, 0 Blocker, 2 Critical,
 1 Major, 2 Minor, 1 Cosmetic, four of them already listed) and **fix round I fixed all of them and 82-89** (POLISH.md
-82-95; QA_REPORT.md). David's page and the tester's link carry the fixed version. David has frozen copies of the 12 November version (commit b217800) to compare
+82-95; QA_REPORT.md). David's page and the tester's link carry the fixed version.
+
+**Version 1.0.0 (13 November):** the release David plays: his main page and a download (`hollowell-1.0.0.zip`; CLAUDE.md
+says how it's made). David has called testing done; next is his own play (fixes on request, spoiler-free). David has frozen copies of the 12 November version (commit b217800) to compare
 with later ones: the artifact https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV and a Linux folder (CLAUDE.md).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328

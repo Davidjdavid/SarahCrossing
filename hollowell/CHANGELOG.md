@@ -237,3 +237,6 @@
   - a few notes are described in words that fit where they're found, and one appears as soon as it should; a reward can
     no longer land out of reach; an item's description says exactly what it does.
 - Debug only: walking through walls works.
+
+## 2026-11-13 (version 1.0.0)
+- Version 1.0.0: the release to play, with every finding so far fixed; a download to play offline as well as the page.

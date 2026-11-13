@@ -46,6 +46,12 @@ build, copy `dist/hollowell_page.html` with the title and the version line under
 `tools/linux/*` with the date changed (2026-11-12, 12 November) in every file; publish the page as a new artifact. His
 main page (https://claude.ai/artifact/4cwxT315Taw5N4ewmxertc) is the one that's kept up to date.
 
+## Version 1.0.0 (13 November)
+The game's version (title screen, saves) is `version.json`; 1.0.0 is the release David plays, after fix round I. His
+download is `hollowell-1.0.0.zip`: `dist/hollowell_page.html` as `Hollowell.html` plus `tools/release/*` (its launcher
+keeps saves in one fixed Chromium profile, ~/.local/share/hollowell, so a later version started the same way carries
+on with them). A later release: bump `version.json`, build, test, republish his main page, zip the same way.
+
 ## The code (src/)
 - One script, joined in file-name order by `tools/build.mjs`; `00_core.js` has `'use strict'`. Everything
   is global. A new file's name decides its place (data files 30–79, story 80–89, `90_main.js` last: it boots).
