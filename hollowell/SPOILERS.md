@@ -96,7 +96,7 @@ the Unwinding
 to a road; Gran and Linnet in the garden; the Drift-bloom by the gate if S11's seed was planted); credits (the Makers,
 the Loom and the First Spinner, "Wanderer: <name>", Linnet, Hesper, Biscuit); then the free valley: everyone on a
 round of their own with new lines (`AFTER_LINES`), Gran and Linnet by Gran's house, the goal "The valley is yours.
-Carry on." The title (localStorage `hollowell-ended`): no mist, a road out over the hills with people walking it,
+Carry on." The title (once any save slot holds a finished game, `unwound`: `Title.ended()`): no mist, a road out over the hills with people walking it,
 birds, "a Wander (and after)", Continue becomes "Carry on". The Loom itself is opened by the Guild's key, which Gundry
 gives after Reveal 2.
 

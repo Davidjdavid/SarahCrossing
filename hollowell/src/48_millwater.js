@@ -122,6 +122,9 @@ defBlock({
         { name: "The Gulls' Rock", x: 55, y: 3, w: 6, h: 9 },
         { name: 'The Old Mill Pond', x: 31, y: 19, w: 7, h: 5 },
         { name: "Wick's Duck Pond", x: 4, y: 17, w: 9, h: 7 },
+        /* the beach below the falls, shut in: only ever reached by riding over them, so it's never Wren's mark (a fall in
+           takes her home to where she was before the ride); arriving any other way (a load), home is the end of the road */
+        { name: 'The Reaches', x: 42, y: 33, w: 4, h: 3, mark: false, home: [37, 26] },
     ],
 });
 
@@ -176,6 +179,20 @@ class Falls extends Ent {
     }
 }
 SPAWN.falls = (x, y, p) => new Falls(x, y, p);
+
+/* a load on the beach below the falls keeps the mark she saved with, where she was before the ride (a save from before
+   the beach stopped being a mark has the beach itself, and keeps the end of the road World.enter gave her) */
+{
+    const apply0 = Save.apply;
+    Save.apply = function (s) {
+        apply0.call(this, s);
+        const p = G.player, a = G.map, m = s && s.pos && s.pos.mark;
+        if (!p || !a || !m || m.bed || m.area !== a.id || (p.mark && p.mark.bed)) return;
+        const r = a.regionAt(p.tx, p.ty), q = a.regionAt(m.tx, m.ty);
+        if (!r || r.mark !== false || !r.home || (q && q.mark === false)) return;
+        p.setMark(m.tx, m.ty); p.traceStep();
+    };
+}
 
 function initMillwaterArt() {
     ART.millwheel = paintSprite(24, 24, x => {

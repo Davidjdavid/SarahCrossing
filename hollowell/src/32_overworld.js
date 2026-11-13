@@ -45,7 +45,7 @@ function buildOverworld() {
             ents.push(o);
         }
         regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });
-        for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }));
+        for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }, r.home ? { home: [r.home[0] + ox, r.home[1] + oy] } : {}));
     }
     /* trees on the forest */
     for (let y = 0; y < H2 - 1; y += 2) for (let x = (y / 2) % 2; x < W2 - 1; x += 2) {

@@ -11,27 +11,37 @@ const KEYS_FIXED = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowR
 
 Input.padmap = JSON.parse(JSON.stringify(PAD_DEFAULT));
 Input.padRaw = [];
+Input.padMute = [];      /* buttons that were down when the buttons were bound afresh: nothing, till they're let go */
 Input.padName = '';
 Input.padBlocked = false;
+/* the controllers plugged in (none without a page) */
+Input.pads = function () { return HEADLESS || !navigator.getGamepads ? null : navigator.getGamepads(); };
 Input.pollPad = function () {
     this.pad = {}; this.padRaw = [];
-    if (HEADLESS || !navigator.getGamepads) return;
     let pads;
-    try { pads = navigator.getGamepads(); } catch (e) { this.padBlocked = true; return; }   /* (a page that may not read controllers) */
+    try { pads = this.pads(); } catch (e) { this.padBlocked = true; return; }   /* (a page that may not read controllers) */
+    if (!pads) return;
     let name = '';
     for (const p of pads) {
         if (!p || !p.connected) continue;
         name = name || p.id;
-        const bt = i => p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > 0.5);
+        const down = i => p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > 0.5), bt = i => down(i) && !this.padMute.includes(i);
         const ax = p.axes || [];
-        p.buttons.forEach((b, i) => { if (bt(i)) this.padRaw.push(i); });
+        p.buttons.forEach((b, i) => { if (down(i)) this.padRaw.push(i); });
         const set = (b, v) => { if (v) { this.pad[b] = 1; this.lastKind = 'pad'; } };
         set('up', bt(12) || ax[1] < -0.5); set('down', bt(13) || ax[1] > 0.5);
         set('left', bt(14) || ax[0] < -0.5); set('right', bt(15) || ax[0] > 0.5);
         for (const [b, list] of Object.entries(this.padmap)) set(b, list.some(bt));
     }
+    if (this.padMute.length) this.padMute = this.padMute.filter(i => this.padRaw.includes(i));
     this.padName = name;
 };
+/* (bound afresh, a controller's button that's down doesn't go on as what it was, or come on at once as what it is now:
+   its press was for the old binding) */
+{
+    const rebound0 = Input.rebound;
+    Input.rebound = function () { rebound0.call(this); this.padMute = this.padRaw.slice(); };
+}
 /* what a key is called, short */
 function keyName(code) {
     if (!code) return '?';
@@ -81,17 +91,20 @@ const Controls = {
         delete Input.keymap[code];
         Input.keymap[code] = b;
         for (const [c, v] of Object.entries(KEYS_FIXED)) Input.keymap[c] = v;
+        Input.rebound();
         this.msg = ACTION_NAMES[b] + ': ' + keyName(code) + '.';
         return true;
     },
     bindPad(b, i) {
         for (const k of Object.keys(Input.padmap)) Input.padmap[k] = Input.padmap[k].filter(x => x !== i);
         Input.padmap[b] = [i];
+        Input.rebound();
         this.msg = ACTION_NAMES[b] + ': ' + (PAD_NAMES[i] || 'Button ' + i) + '.';
     },
     reset() {
         Input.keymap = Object.assign({}, KEYMAP_DEFAULT);
         Input.padmap = JSON.parse(JSON.stringify(PAD_DEFAULT));
+        Input.rebound();
         this.msg = 'Back to how they started.';
     },
     update(back) {
@@ -122,6 +135,7 @@ const Controls = {
             /* the next key pressed is the new one (a controller button too, for anything but moving) */
             Input.textHandler = e => {
                 if (e.type && e.type !== 'keydown') return false;
+                if (e.repeat) return true;          /* (the key that picked the row, still held and repeating, isn't the new one) */
                 if (e.code === 'Escape') { this.wait = null; this.msg = 'Left as it was.'; Input.textHandler = null; return true; }
                 if (this.bindKey(b, e.code)) Sfx.play('select');
                 this.wait = null; Input.textHandler = null;

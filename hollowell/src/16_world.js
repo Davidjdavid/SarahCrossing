@@ -100,7 +100,9 @@ const World = {
         p.dir = opts.dir !== undefined ? (typeof opts.dir === 'string' ? dirByName(opts.dir) : opts.dir) : p.dir;
         p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0; p.pinned = null;
         p.unstick();
-        p.setMark();
+        /* (arriving somewhere that's never home, the beach below the falls, home is where that place says) */
+        const nh = a.regionAt(p.tx, p.ty), home = nh && nh.mark === false && nh.home;
+        if (home) p.setMark(home[0], home[1]); else p.setMark();
         Cam.snap(p);
         Stats.enterRoom(a, Cam.room);
         Progress.set('visited:' + id);

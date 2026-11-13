@@ -457,13 +457,25 @@ const Slumber = {
     },
     *afterKnot() {
         Progress.set('d5');
-        Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
+        Progress.setGoal(d5Goal(Progress.flags, D5_GOALS.home));
         yield* say(null, 'All through the House, very softly, every bed creaks at once, as if everyone in them had turned over in their sleep.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: SLUMBER_OUT.x, ty2: SLUMBER_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
     },
 };
+/* after the fifth Knot the goal sends Wren home, to the clinic; once she's been (or has gone straight on, and jumped down
+   into the fair) it says where next, in Gran's words. A save from before it did is put right as it loads */
+const D5_GOALS = { home: 'Home to Hollowell. (Somebody at the clinic will want to hear all about it.)', fair: 'Next, Larkspur Fair: down below the high mesa in Kilnridge.' };
+function d5Goal(flags, goal) { return goal === D5_GOALS.home && (flags.mallow_d5 || flags.leapt) ? D5_GOALS.fair : goal; }
+{
+    const mig0 = Save.migrate;
+    Save.migrate = function (s) {
+        s = mig0.call(this, s);
+        if (s) s.progress.goal = d5Goal(s.progress.flags, s.progress.goal);
+        return s;
+    };
+}
 SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd only see it lying down: a crescent moon and the letters D.M. Someone signed this House where they'd see it last thing at night.";
 
 ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap [tool] to lay it down anywhere: that spot is home now. Hold [tool] to go Homeward, flying back along your trace to it. What you carry comes too.';

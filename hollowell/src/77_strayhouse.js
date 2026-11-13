@@ -266,20 +266,66 @@ const StrayHouse = {
         yield 20;
         yield* say(null, "In the middle of the room, a heap of things: a pram wheel, a kettle, a coat stand, a scarecrow's hat, a hundred odd shoes. Two eyes open in it.");
         yield* say(null, "Everything nobody missed. It shuffles towards you, the whole heap of it, as if it wanted very badly to be somebody's.");
-        Progress.setGoal('The Pile can\'t be pushed, and it\'s too wide for narrow places. Box it in, all four sides.');
+        StrayHouse.lend(SH_GOALS.pile);
     },
+    /* the goal line is lent while the House is played (the Pile, then Linnet's room): the story's own is kept aside the
+       first time, and given back once it's done (the bracelet taken), unless the story has set one of its own meanwhile */
+    lend(g) { if (!Object.values(SH_GOALS).includes(Progress.goal)) Progress.set('sh_goal', Progress.goal || ''); Progress.setGoal(g); },
+    giveBack() { if (Object.values(SH_GOALS).includes(Progress.goal)) Progress.setGoal(Progress.get('sh_goal') || storyGoal(Progress.flags, Inv) || ''); },
     *pileDown(pile) {
         yield 30;
         yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them.");
         const a = pile.area;
         for (const [dx, dy] of [[0, 0], [1, 1]]) { const x = pile.tx + dx, y = pile.ty + dy; if (!a.at(x, y)) { const b = a.add(new Block(x, y, { stray: true })); b.skey = 'pile:' + dx; Fx.poof(x * T + 8, y * T + 8); } }
-        /* the Heartstitch on a free floor tile where it came apart (never in a wall) */
-        const r = pile.arena, spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r) || [r.x + 9, r.y + 3];
+        /* the Heartstitch on a free floor tile where it came apart, one Wren can walk to (never in a wall, nor shut in a
+           corner nook by the walls and the two strays it leaves): the nearest such tile, else the middle of the room */
+        const r = pile.arena, p = G.player;
+        const ok = ([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r && !!findPath(a, p.tx, p.ty, x, y, p);
+        const ring = d => { const out = []; for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === d) out.push([pile.tx + dx, pile.ty + dy]); return out; };
+        const spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(ok) || [2, 3, 4, 5].map(ring).flat().find(ok) || [r.x + 9, r.y + 3];
         if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup(spot[0] * T, spot[1] * T, { what: 'heartstitch', id: 'pileHeart' }));
-        Progress.setGoal("West of the Pile's room: Linnet's own room.");
+        StrayHouse.lend(SH_GOALS.room);
         Save.autosave();
     },
 };
+const SH_GOALS = { pile: "The Pile can't be pushed, and it's too wide for narrow places. Box it in, all four sides.", room: "West of the Pile's room: Linnet's own room." };
+ITEM_AFTER.bracelet = function* () { StrayHouse.giveBack(); };
+
+/* the story's own goal line, worked out from how far it has got: for a game whose goal line an optional House kept (or
+   emptied) from before they gave it back. Neither can be finished before the Needle, down in the Spoolworks */
+function storyGoal(f, inv) {
+    const it = (inv && inv.items) || {}, n = k => KNOT_HOUSES.filter(h => f[k + h]).length;
+    if (f.unwound) return 'The valley is yours. Carry on.';
+    if (f.spool_met) return `Cut the Spool's great threads, at their posts round the walls (${n('great:')} of 6). Too taut to cut, unless something knocks one slack.`;
+    if (f.spool_all) return 'Up the Climb to the top of the Spool. Gran is there.';
+    if (f.gs_entered) return `Untie the Knots of the Wander, in the rooms round the Spool's foot (${n('untie:')} of 6).`;
+    if (f.pull_seen) return 'Down the Well, to the Great Spool.';
+    if (f.great_pull) return 'Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.';
+    if (f.drift_first) return 'Somewhere out here, west across the stream, a cottage with a garden, and someone in it.';
+    if (f.cut_self) return 'Into the fog, at the Frayed Edge. Nothing will pull you back now.';
+    if (f.d8) return 'The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.';
+    if (((inv && inv.tools) || []).includes('shears')) return LOOM_GOALS.shears;
+    if (f.gundry_r2) return f['visited:loom'] ? LOOM_GOALS.inside : f.north_gate ? LOOM_GOALS.road : LOOM_GOALS.gate;
+    if (f.reveal2) return "Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.";
+    if (it.tuckspool) return "Tuck's spool is in your satchel. (And there's a door east, into the old hall...)";
+    if (f.makings_done) return "The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.";
+    if (f.cap_given) return "The Making Floor's last little door: set out a Little House of your own, hide the button, then let Tuck in.";
+    if (f.making5) return 'The Making Floor: the sixth Little House is open. Otto is coming too, as the Housekeeper.';
+    if (f.gundry_job) return "The Making Floor, east of the Guild Hall: run Tuck's Little Wander from underneath.";
+    if (f.d7) return 'Up to the Guild Hall, under the Inn: Gundry has a job for you.';
+    if (f.met_gundry_below) return 'The Spoolworks: through the big door in the Guild Hall, under the Inn.';
+    return null;
+}
+/* a save from before the Stray House gave the goal line back, done (the bracelet taken) and still on its line */
+{
+    const mig0 = Save.migrate;
+    Save.migrate = function (s) {
+        s = mig0.call(this, s);
+        const af = s && s.progress.areaFlags.strayhouse;
+        if (s && af && af['chest:lrBracelet'] && Object.values(SH_GOALS).includes(s.progress.goal)) s.progress.goal = storyGoal(s.progress.flags, s.inv) || s.progress.goal;
+        return s;
+    };
+}
 /* after the Pile, the Heartstitch waits if it wasn't picked up */
 {
     const build0 = World.build;
@@ -299,11 +345,16 @@ LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to 
 LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. Then tell me it's mist. -L." };
 LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. -L." };
 for (const k of [4, 5, 8]) NOTES['linnet' + k] = { title: LINNET_NOTES[k].title, text: LINNET_NOTES[k].text };
+/* (each told as it's found where it is: a tower room's boards, a bottle by the water, the porch's floor) */
+LINNET_NOTES[4].found = 'Someone has scratched a little "L." into the floorboards here, very small. Pinned beside it, a folded note, yellow with age.';
+LINNET_NOTES[5].found = 'Someone has carved a little "L." into the ground here. Beside it stands a bottle, and in it a folded note, yellow with age.';
+LINNET_NOTES[8].found = 'Someone has carved a little "L." into a floorboard here. Tucked into the crack beside it, a folded note, yellow with age.';
 {
+    /* (the Echo Room's is there from the moment the lullaby's sung, not only once the Belfry's built again) */
     const belfry = AREAS.belfry.ents.find(e => e.look === 'note_paper' && e.if === 'belfry_echo');
-    if (belfry) { delete belfry.look; delete belfry.text; delete belfry.solid; belfry.k = 'linnetnote'; belfry.note = 4; }
+    if (belfry) { delete belfry.look; delete belfry.text; delete belfry.solid; belfry.show = belfry.if; delete belfry.if; belfry.k = 'linnetnote'; belfry.note = 4; }
     const mill = OW.blocks['2,2'].ents.find(e => e.look === 'note_bottle');
-    if (mill) { delete mill.look; delete mill.text; delete mill.solid; mill.k = 'linnetnote'; mill.note = 5; }
+    if (mill) { delete mill.text; delete mill.solid; mill.k = 'linnetnote'; mill.note = 5; }
 }
 
 function initStrayHouse() {

@@ -173,7 +173,7 @@ the north shore, each going home to its own side (the Paddle).
   wheel (15,62).
 - **The Loomwood** (block 1,0; +64, +0): birch wood with silk between the trees, frayed thread-ends by the fog. The warp
   across the Loom's door (94-96,10) lifts while all four sockets (90,12; 100,11; 88,17; 121,17) hold a weight, its four
-  cords strung over the birches to them; the weights (90,14; 102,11; 88,19; 119,17) are strays. The old weight from Lantern Pond fits any socket for good.
+  cords strung over the birches to them; the weights (90,14; 102,11; 88,19; 119,17) are marked things (they go home). The old weight from Lantern Pond fits any socket for good.
 ### By the lake, and at the fair (the revisits owed)
 - **Wick's Duck Pond** (Millwater, 132–140, 97–103; the Crossbar): walled round with dry-stone; three duck houses in its north
   wall (133/136/139, 97), each watching the water below it; three wooden ducks on their stands (134/136/138, 102) and their

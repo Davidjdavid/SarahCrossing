@@ -509,7 +509,7 @@ const MAP_HOUSES = [['tidy', 108, 92, THREAD.ives], ['kiln', 22, 93, THREAD.bram
 const MAP_SPOTS = [[/\bTidyhouse\b/, 108, 92], [/\bKiln\b/, 22, 93], [/\bMillrace\b/, 175, 105], [/\bBelfry\b/, 158, 7], [/\bSlumberhouse\b/, 147, 48],
     [/\bMarionette Hall\b/, 31, 49], [/\bLoom\b/, 95, 9], [/\bInn\b|\bGuild Hall\b|\bSpoolworks\b|\bMaking Floor\b|\bWay Down\b|\bUnderside\b/, 108, 52],
     [/\bWell\b|\bGreat Spool\b/, 95, 58], [/\bclinic\b/, 121, 52], [/\bgiant\b|\beast road\b/, 129, 58], [/\bFrayed Edge\b|\bfog\b/, 73, 13], [/\bcliff stair\b/, 171, 60],
-    [/\bbroken bridge\b/, 126, 96], [/\bcanyon road\b/, 66, 102]];
+    [/\bbroken bridge\b/, 115, 106], [/\bcanyon road\b/, 66, 102]];
 function mapPin(a) {
     const g = Progress.goal; if (!g) return null;
     let best = null;

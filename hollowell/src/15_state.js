@@ -131,6 +131,7 @@ const Settings = {
         /* the buttons as the player set them (the arrows and Escape always kept) */
         if (this.keys && typeof this.keys === 'object') Input.keymap = Object.assign({}, this.keys, typeof KEYS_FIXED !== 'undefined' ? KEYS_FIXED : {});
         if (this.pads && typeof this.pads === 'object') Input.padmap = Object.assign({}, typeof PAD_DEFAULT !== 'undefined' ? JSON.parse(JSON.stringify(PAD_DEFAULT)) : {}, this.pads);
+        Input.rebound();      /* (a page can read them again in play, from another device: nothing held stays held as it was) */
         this.crt = this.crt | 0;
         if (this.grip !== 'toggle') this.grip = 'hold';
         Audio.vol.music = this.music !== undefined ? this.music : 0.6;

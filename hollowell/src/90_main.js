@@ -2,16 +2,17 @@
 
 const Game = {
     newGame(name, opts = {}) {
+        this.leave();
         G.wanderer = name;
         G.seed = opts.seed || 20261109;
         G.rng = mulberry(G.seed);
         Inv.reset(); Progress.reset(); Stats.reset();
-        G.player = null;
         Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
         Story.begin(opts);
     },
     load(s) {
+        this.leave();
         Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
         /* (dark first: the place's name waits to come up with it, not over the black) */
@@ -19,8 +20,17 @@ const Game = {
         Save.apply(s);
         if (Story.afterLoad) Story.afterLoad();
     },
+    /* (the game before is left behind before anything of the new one is set up: its place and Wren go first, so nothing
+       that happens as she leaves a place, a stray's spot kept or a key's tug at a House's door, is written into the new
+       game; and whatever its scenes had up goes with it, the scenes being stopped: a load can come in the middle of one,
+       and the attic's trial clock runs on to the title) */
+    leave() {
+        G.map = null; G.player = null;
+        G.hideHud = G.benchCat = G.keepHearts = G.pendingSeed = false; G.knotFx = G.heartsLeaving = G.hitstop = G.shake = 0;
+        G.trial = G.boss = G.waiting = G.holdUp = G.card = G.credits = G.slack = G.mist = G.winch = G.selfThread = G.ringFx = null;
+    },
     /* (nothing on the screen from the game before: its notices, its place's name, the name it was last in) */
-    fresh() { UI.banner = null; UI.toasts = []; G.regionName = null; },
+    fresh() { UI.banner = null; UI.toasts = []; G.pendingToast = null; G.regionName = null; },
     step() {
         G.t++;
         TileDraw.frame = G.t;

@@ -59,7 +59,7 @@ The shortcut lever by the Ballroom's east door opens the Linen Closets' west doo
 | Room | Cell | Teaches / puzzle | Solution | Reward |
 |---|---|---|---|---|
 | Kiln Door | 1,3 | Shards strike what they pass | Throw a pot through the charm over the pit (key nook); a thrown pot breaks the clay seal north | key 1, way on |
-| Long Way Round | 0,3 | Carried path = shard path | Carry the pot under the pulse charm, through the door, to the gate; throw it there | optional, pots |
+| Long Way Round | 0,3 | Carried path = shard path | Carry the pot under the pulse charm, through the door, to the gate; throw it there | optional: Heart Patch |
 | Charm Hall | 1,2 | One flight rings many | Walk a pot under all three charms, smash it at the far end | way north |
 | Crock Pen | 2,3 | Crocks (enemies) | - | - |
 | Sun, Moon, Star | 2,2 | Order: the last walked rings first | They must ring sun, moon, star (the mural), and each only rings a moment, so one at a time they die away before the next: one flight. Walk under them star-moon-sun and smash the pot | way on |
@@ -69,7 +69,7 @@ The shortcut lever by the Ballroom's east door opens the Linen Closets' west doo
 | Bridge of Cords | 3,2 | Shards follow reels | Carry a pot while reeling over the drop | way on |
 | Furnace Hall | 1,1 | Hook empty marks | Knock the crate off its mark, hook the empty mark, reel over. The west strip's way back east: a step down through the floor's edge at (2,10) into the Charm Hall below (it only goes down; fix round E) | way on |
 | Drying Racks | 0,1 | Combination: four charms, a reel in the middle | One flight with a reel over the pit; the way back east is the Furnace Hall west strip's step down into the Charm Hall | Pattern; cracked wall to the Potting Shed |
-| Potting Shed | 0,0 | Signature (S06) | Bram's thumbprint B | Heart Patch |
+| Potting Shed | 0,0 | Signature (S06) | Bram's thumbprint B | - |
 | Glaze Vats | 2,0 | Antechamber | - | - |
 | Kiln's Heart | 1,0 | Boss: the Kilnwyrm (follows Wren's footsteps; only shards crack it) | Lay a path through its circuit carrying an urn and smash it so the shards come back along it. Moves (tells 36/32/29): beat 1 it rears and darts along her footprints (a heart); beat 2 a glaze glob where she stood (shadow first), its puddle burning a few seconds; beat 3 it sheds pieces round the pit (shadows first) that lie on their threads and fly home (half a heart each); a heart each beat. Tests: kiln.test.mjs | Knot, Heartstitch |
 

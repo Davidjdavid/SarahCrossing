@@ -116,6 +116,8 @@ class Player extends Ent {
     canSwim() { return false; }
     boxFree(x, y) {
         const x0 = tileOf(x - PBOX.hw), x1 = tileOf(x + PBOX.hw - 0.01), y0 = tileOf(y - PBOX.hh), y1 = tileOf(y + PBOX.hh - 0.01);
+        /* (noclip, from the debug panel: nothing's in the way but the edge of the place) */
+        if (G.cheats.noclip) return this.area.inside(x0, y0) && this.area.inside(x1, y1);
         for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (this.solidAt(tx, ty)) return false;
         return true;
     }
@@ -252,13 +254,13 @@ class Player extends Ent {
     afterMove() {
         if (this.state !== 'normal') return;
         this.traceStep();
-        const k = this.area.kind(tileOf(this.x), tileOf(this.y));
+        const k = this.area.kind(tileOf(this.x), tileOf(this.y)), clip = !G.cheats.noclip;     /* (noclip: nothing underfoot to go down into, or turn her back, either) */
         /* standing over a pit: fall */
-        if (k.pit && this.overPit()) this.startFall('pit');
-        else if (k.deep && !this.onRaft() && this.overDeep()) { this.diving = false; this.startFall('water'); }
+        if (clip && k.pit && this.overPit()) this.startFall('pit');
+        else if (clip && k.deep && !this.onRaft() && this.overDeep()) { this.diving = false; this.startFall('water'); }
         if (k.hurt && this.inv <= 0) this.hurt(1, this.x - DX[this.dir] * 8, this.y - DY[this.dir] * 8);
         /* the fog at the edge of the valley */
-        if (k.fog && !Progress.flag('cut_self')) {
+        if (clip && k.fog && !Progress.flag('cut_self')) {
             this.fogT++;
             if (this.fogT === 1) Sfx.play('tug');
             if (this.fogT > 40) { this.fogT = 0; Story.fogPull(this); }

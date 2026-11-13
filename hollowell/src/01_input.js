@@ -15,7 +15,8 @@ const KEYMAP_DEFAULT = {
 };
 
 const Input = {
-    keys: {},            /* physical keys held (by button) */
+    keys: {},            /* buttons held on the keyboard (how many keys are holding each) */
+    held: {},            /* the keys down, each with the button it went down as */
     pad: {},             /* gamepad buttons held */
     virt: {},            /* virtual buttons held (tests, autopilot) */
     cur: {}, prev: {},
@@ -26,21 +27,30 @@ const Input = {
 
     init() {
         if (HEADLESS) return;
-        addEventListener('keydown', e => {
-            if (e.code === 'F11') return;
-            if (this.textHandler && this.textHandler(e)) { e.preventDefault(); return; }
-            const b = this.keymap[e.code];
-            if (b) { this.keys[b] = (this.keys[b] || 0) + (this.keys['_' + e.code] ? 0 : 1); this.keys['_' + e.code] = 1; e.preventDefault(); }
-            if (e.code === 'F1' && G.debug) { Debug.toggle(); e.preventDefault(); }
-            this.lastKind = 'key';
-            Audio.unlock();
-        });
-        addEventListener('keyup', e => {
-            const b = this.keymap[e.code];
-            if (b && this.keys['_' + e.code]) { this.keys[b] = Math.max(0, (this.keys[b] || 1) - 1); this.keys['_' + e.code] = 0; e.preventDefault(); }
-        });
-        addEventListener('blur', () => { this.keys = {}; });
+        addEventListener('keydown', e => this.keyDown(e));
+        addEventListener('keyup', e => this.keyUp(e));
+        addEventListener('blur', () => { this.keys = {}; this.held = {}; });
         addEventListener('mousedown', () => Audio.unlock());
+    },
+    /* a key goes down as the button it's bound to then, and its own release lets go of that, whatever it's bound to by
+       then (a key still repeating that isn't held as anything, after the buttons were changed under it, presses nothing) */
+    keyDown(e) {
+        if (e.code === 'F11') return;
+        if (this.textHandler && this.textHandler(e)) { e.preventDefault(); return; }
+        const b = this.keymap[e.code];
+        if (b) { if (!this.held[e.code] && !e.repeat) { this.held[e.code] = b; this.keys[b] = (this.keys[b] || 0) + 1; } e.preventDefault(); }
+        if (e.code === 'F1' && G.debug) { Debug.toggle(); e.preventDefault(); }
+        this.lastKind = 'key';
+        Audio.unlock();
+    },
+    keyUp(e) {
+        const b = this.held[e.code];
+        if (b) { this.keys[b] = Math.max(0, (this.keys[b] || 1) - 1); delete this.held[e.code]; e.preventDefault(); }
+    },
+    /* the buttons were bound afresh: a key held down as a button it isn't bound to now lets go of it, and does nothing
+       more till it's let go and pressed again (so nothing's left held, and nothing's pressed as what it's become) */
+    rebound() {
+        for (const [c, b] of Object.entries(this.held)) if (this.keymap[c] !== b) { this.keys[b] = Math.max(0, (this.keys[b] || 1) - 1); delete this.held[c]; }
     },
 
     pollPad() {

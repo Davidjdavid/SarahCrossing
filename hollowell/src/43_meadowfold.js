@@ -156,9 +156,10 @@ const LINNET_NOTES = {
     2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. -L." },
 };
 SPAWN.linnetnote = (tx, ty, p) => {
-    const pr = new Prop(tx, ty, { im: ART.note, solid: [], oy: 2 });
+    const pr = new Prop(tx, ty, { im: ART[p.look] || ART.note, solid: [], oy: 2 });
     pr.baseY = -60; pr.inert = false;
-    pr.update = () => { if (pr.under) { const b = pr.area.find(pr.under); pr.hiddenNow = b && b.tx === tx && b.ty === ty; } };
+    /* hidden while a thing stands on it, or until what shows it has happened (the Echo Room's: the lullaby sung) */
+    pr.update = () => { const b = pr.under && pr.area.find(pr.under); pr.hiddenNow = !!(b && b.tx === tx && b.ty === ty) || !!(p.show && !Story.cond(p.show)); };
     pr.under = p.under;
     pr.draw = function (cx, cy) { if (!this.hiddenNow && !Progress.flag('linnet' + p.note)) { Gfx.img(ART.carvedL, this.x - cx, this.y - cy - 2); Gfx.img(this.im, this.x - cx + 4, this.y - cy + 2); } };
     pr.interact = () => {
@@ -166,7 +167,7 @@ SPAWN.linnetnote = (tx, ty, p) => {
         Script.run(function* () {
             Progress.set('linnet' + p.note); Progress.addNote('linnet' + p.note);
             Stats.count('secret:linnet');
-            yield* say(null, 'Someone has carved a little "L." into the ground here. Tucked into the grass beside it, a folded note, yellow with age.');
+            yield* say(null, LINNET_NOTES[p.note].found || 'Someone has carved a little "L." into the ground here. Tucked into the grass beside it, a folded note, yellow with age.');
             yield* say(null, '"' + LINNET_NOTES[p.note].text + '"');
             const n = Object.keys(LINNET_NOTES).filter(k => Progress.flag('linnet' + k)).length;
             yield* say(null, `(Notes found: ${n}.)`);

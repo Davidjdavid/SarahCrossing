@@ -85,7 +85,7 @@ TALK.mallow = function* () {
         Progress.set('mallow_d5');
         yield* say('mallow', "Ah, the Wanderer. You've been out to the Slumberhouse, I hear. All the way through? Yaaawn. Good, good. Did you sleep? You should always sleep there. Beds are made to be used.");
         yield* say('mallow', "How do I know it's... comfy? Ha. Well. One hears things. A doctor hears everything. Here, let me look at you. Not a scratch. Splendid. Off you go.");
-        Inv.hp = Inv.maxHp; return;
+        Inv.hp = Inv.maxHp; Progress.setGoal(d5Goal(Progress.flags, Progress.goal)); return;
     }
     if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', cycle('mallow_heal', ["Yaaawn. Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can.", "Hold still. ...There. Good as new. Splendid.", "You again? Yaaawn. All mended. Do try to fall over less."])); return; }
     if (yield* Town.news('mallow')) return;

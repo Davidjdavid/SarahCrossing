@@ -422,4 +422,4 @@ CONTENT_INIT.push(initReveal2);
     };
 }
 
-ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: 'Iron, as long as your forearm, with a spool for a bow. It opens the Loom.' };
+ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: "Iron, as long as your forearm, with a spool for a bow. It opens the Loom's great doors." };

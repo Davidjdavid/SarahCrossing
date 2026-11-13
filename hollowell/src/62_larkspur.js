@@ -291,7 +291,7 @@ const Larkspur = {
         Sfx.play('land');
         yield* fadeIn(30);
         Fx.dust(p.x, p.y);
-        if (!Progress.flag('leapt')) { Progress.set('leapt'); const pl = G.player; pl.state = 'sleep'; yield* say(null, 'You land by the haystacks with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); pl.state = 'normal'; }
+        if (!Progress.flag('leapt')) { Progress.set('leapt'); Progress.setGoal(d5Goal(Progress.flags, Progress.goal)); const pl = G.player; pl.state = 'sleep'; yield* say(null, 'You land by the haystacks with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); pl.state = 'normal'; }
     },
 };
 

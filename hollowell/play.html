@@ -105,7 +105,8 @@ const KEYMAP_DEFAULT = {
 };
 
 const Input = {
-    keys: {},            /* physical keys held (by button) */
+    keys: {},            /* buttons held on the keyboard (how many keys are holding each) */
+    held: {},            /* the keys down, each with the button it went down as */
     pad: {},             /* gamepad buttons held */
     virt: {},            /* virtual buttons held (tests, autopilot) */
     cur: {}, prev: {},
@@ -116,21 +117,30 @@ const Input = {
 
     init() {
         if (HEADLESS) return;
-        addEventListener('keydown', e => {
-            if (e.code === 'F11') return;
-            if (this.textHandler && this.textHandler(e)) { e.preventDefault(); return; }
-            const b = this.keymap[e.code];
-            if (b) { this.keys[b] = (this.keys[b] || 0) + (this.keys['_' + e.code] ? 0 : 1); this.keys['_' + e.code] = 1; e.preventDefault(); }
-            if (e.code === 'F1' && G.debug) { Debug.toggle(); e.preventDefault(); }
-            this.lastKind = 'key';
-            Audio.unlock();
-        });
-        addEventListener('keyup', e => {
-            const b = this.keymap[e.code];
-            if (b && this.keys['_' + e.code]) { this.keys[b] = Math.max(0, (this.keys[b] || 1) - 1); this.keys['_' + e.code] = 0; e.preventDefault(); }
-        });
-        addEventListener('blur', () => { this.keys = {}; });
+        addEventListener('keydown', e => this.keyDown(e));
+        addEventListener('keyup', e => this.keyUp(e));
+        addEventListener('blur', () => { this.keys = {}; this.held = {}; });
         addEventListener('mousedown', () => Audio.unlock());
+    },
+    /* a key goes down as the button it's bound to then, and its own release lets go of that, whatever it's bound to by
+       then (a key still repeating that isn't held as anything, after the buttons were changed under it, presses nothing) */
+    keyDown(e) {
+        if (e.code === 'F11') return;
+        if (this.textHandler && this.textHandler(e)) { e.preventDefault(); return; }
+        const b = this.keymap[e.code];
+        if (b) { if (!this.held[e.code] && !e.repeat) { this.held[e.code] = b; this.keys[b] = (this.keys[b] || 0) + 1; } e.preventDefault(); }
+        if (e.code === 'F1' && G.debug) { Debug.toggle(); e.preventDefault(); }
+        this.lastKind = 'key';
+        Audio.unlock();
+    },
+    keyUp(e) {
+        const b = this.held[e.code];
+        if (b) { this.keys[b] = Math.max(0, (this.keys[b] || 1) - 1); delete this.held[e.code]; e.preventDefault(); }
+    },
+    /* the buttons were bound afresh: a key held down as a button it isn't bound to now lets go of it, and does nothing
+       more till it's let go and pressed again (so nothing's left held, and nothing's pressed as what it's become) */
+    rebound() {
+        for (const [c, b] of Object.entries(this.held)) if (this.keymap[c] !== b) { this.keys[b] = Math.max(0, (this.keys[b] || 1) - 1); delete this.held[c]; }
     },
 
     pollPad() {
@@ -2771,6 +2781,8 @@ class Player extends Ent {
     canSwim() { return false; }
     boxFree(x, y) {
         const x0 = tileOf(x - PBOX.hw), x1 = tileOf(x + PBOX.hw - 0.01), y0 = tileOf(y - PBOX.hh), y1 = tileOf(y + PBOX.hh - 0.01);
+        /* (noclip, from the debug panel: nothing's in the way but the edge of the place) */
+        if (G.cheats.noclip) return this.area.inside(x0, y0) && this.area.inside(x1, y1);
         for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (this.solidAt(tx, ty)) return false;
         return true;
     }
@@ -2907,13 +2919,13 @@ class Player extends Ent {
     afterMove() {
         if (this.state !== 'normal') return;
         this.traceStep();
-        const k = this.area.kind(tileOf(this.x), tileOf(this.y));
+        const k = this.area.kind(tileOf(this.x), tileOf(this.y)), clip = !G.cheats.noclip;     /* (noclip: nothing underfoot to go down into, or turn her back, either) */
         /* standing over a pit: fall */
-        if (k.pit && this.overPit()) this.startFall('pit');
-        else if (k.deep && !this.onRaft() && this.overDeep()) { this.diving = false; this.startFall('water'); }
+        if (clip && k.pit && this.overPit()) this.startFall('pit');
+        else if (clip && k.deep && !this.onRaft() && this.overDeep()) { this.diving = false; this.startFall('water'); }
         if (k.hurt && this.inv <= 0) this.hurt(1, this.x - DX[this.dir] * 8, this.y - DY[this.dir] * 8);
         /* the fog at the edge of the valley */
-        if (k.fog && !Progress.flag('cut_self')) {
+        if (clip && k.fog && !Progress.flag('cut_self')) {
             this.fogT++;
             if (this.fogT === 1) Sfx.play('tug');
             if (this.fogT > 40) { this.fogT = 0; Story.fogPull(this); }
@@ -4778,6 +4790,7 @@ const Settings = {
         /* the buttons as the player set them (the arrows and Escape always kept) */
         if (this.keys && typeof this.keys === 'object') Input.keymap = Object.assign({}, this.keys, typeof KEYS_FIXED !== 'undefined' ? KEYS_FIXED : {});
         if (this.pads && typeof this.pads === 'object') Input.padmap = Object.assign({}, typeof PAD_DEFAULT !== 'undefined' ? JSON.parse(JSON.stringify(PAD_DEFAULT)) : {}, this.pads);
+        Input.rebound();      /* (a page can read them again in play, from another device: nothing held stays held as it was) */
         this.crt = this.crt | 0;
         if (this.grip !== 'toggle') this.grip = 'hold';
         Audio.vol.music = this.music !== undefined ? this.music : 0.6;
@@ -4895,7 +4908,9 @@ const World = {
         p.dir = opts.dir !== undefined ? (typeof opts.dir === 'string' ? dirByName(opts.dir) : opts.dir) : p.dir;
         p.state = 'normal'; p.kx = p.ky = 0; p.shove = null; p.z = 0; p.pinned = null;
         p.unstick();
-        p.setMark();
+        /* (arriving somewhere that's never home, the beach below the falls, home is where that place says) */
+        const nh = a.regionAt(p.tx, p.ty), home = nh && nh.mark === false && nh.home;
+        if (home) p.setMark(home[0], home[1]); else p.setMark();
         Cam.snap(p);
         Stats.enterRoom(a, Cam.room);
         Progress.set('visited:' + id);
@@ -4993,17 +5008,41 @@ const Save = {
         if (!s.progress.notes.includes('granTune')) s.progress.notes.unshift('granTune');
         /* (the Guild's thread was lightened to read on its floors: a Needle stitch remembers a thing's old colour) */
         for (const st of s.inv.stitches || []) if (st && st.color0 === '#a8784a') st.color0 = THREAD.guild;
+        this.dropForeignCuts(s);
         s.v = SAVE_V;
         return s;
     },
+    /* (a load, or a new Wander, once took in where things had been left in the place the game before was in: what can't be
+       this game's own goes. Without the Shears nothing was ever cut; and before the end nobody walks free but someone Wren
+       cut loose herself, who's flagged so (Gran and Linnet on their bench are only there after it). A place that held
+       nothing else is forgotten again, so it isn't a place she's been) */
+    dropForeignCuts(s) {
+        const af = s.progress.areaFlags, f = s.progress.flags || {};
+        if (!af || typeof af !== 'object') return;
+        const shears = Array.isArray(s.inv.tools) && s.inv.tools.includes('shears');
+        for (const id of Object.keys(af)) {
+            const o = af[id]; if (!o || typeof o !== 'object') continue;
+            let n = 0;
+            for (const k of Object.keys(o)) if (k.startsWith('cut:') && (!shears || (!f.unwound && this.uncutSpot(id, k.slice(4), f)))) { delete o[k]; n++; }
+            if (n && !Object.keys(o).length) delete af[id];
+        }
+    },
+    /* someone's spot in a place (where a person stands, by the key a cut thing is kept by), nobody standing there cut loose */
+    uncutSpot(id, key, f) {
+        const def = typeof AREAS !== 'undefined' && AREAS[id];
+        const at = def ? (def.ents || []).filter(e => e.k === 'npc' && (e.id || '@' + e.x + ',' + e.y) === key) : [];
+        return at.length > 0 && !at.some(e => f['cut:' + e.who]);
+    },
     /* put a save into the running game */
     apply(s) {
+        /* (the place the game before was in goes first, Wren with it: nothing that happens as she leaves a place writes
+           that one into this save) */
+        G.map = null; G.player = null;
         Inv.reset(); Object.assign(Inv, s.inv);
         Progress.reset(); Object.assign(Progress, s.progress);
         Stats.reset(); Object.assign(Stats, s.stats);
         G.wanderer = s.name || 'Wren';
         G.seed = s.seed || 1; G.rng = mulberry(G.seed + Stats.playFrames);
-        G.player = null;
         const pos = s.pos;
         if (pos && AREAS[pos.area]) {
             World.enter(pos.area, 0, 0, { px: pos.x, py: pos.y, dir: pos.dir, noSave: true });
@@ -6409,7 +6448,7 @@ const MAP_HOUSES = [['tidy', 108, 92, THREAD.ives], ['kiln', 22, 93, THREAD.bram
 const MAP_SPOTS = [[/\bTidyhouse\b/, 108, 92], [/\bKiln\b/, 22, 93], [/\bMillrace\b/, 175, 105], [/\bBelfry\b/, 158, 7], [/\bSlumberhouse\b/, 147, 48],
     [/\bMarionette Hall\b/, 31, 49], [/\bLoom\b/, 95, 9], [/\bInn\b|\bGuild Hall\b|\bSpoolworks\b|\bMaking Floor\b|\bWay Down\b|\bUnderside\b/, 108, 52],
     [/\bWell\b|\bGreat Spool\b/, 95, 58], [/\bclinic\b/, 121, 52], [/\bgiant\b|\beast road\b/, 129, 58], [/\bFrayed Edge\b|\bfog\b/, 73, 13], [/\bcliff stair\b/, 171, 60],
-    [/\bbroken bridge\b/, 126, 96], [/\bcanyon road\b/, 66, 102]];
+    [/\bbroken bridge\b/, 115, 106], [/\bcanyon road\b/, 66, 102]];
 function mapPin(a) {
     const g = Progress.goal; if (!g) return null;
     let best = null;
@@ -6435,27 +6474,37 @@ const KEYS_FIXED = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowR
 
 Input.padmap = JSON.parse(JSON.stringify(PAD_DEFAULT));
 Input.padRaw = [];
+Input.padMute = [];      /* buttons that were down when the buttons were bound afresh: nothing, till they're let go */
 Input.padName = '';
 Input.padBlocked = false;
+/* the controllers plugged in (none without a page) */
+Input.pads = function () { return HEADLESS || !navigator.getGamepads ? null : navigator.getGamepads(); };
 Input.pollPad = function () {
     this.pad = {}; this.padRaw = [];
-    if (HEADLESS || !navigator.getGamepads) return;
     let pads;
-    try { pads = navigator.getGamepads(); } catch (e) { this.padBlocked = true; return; }   /* (a page that may not read controllers) */
+    try { pads = this.pads(); } catch (e) { this.padBlocked = true; return; }   /* (a page that may not read controllers) */
+    if (!pads) return;
     let name = '';
     for (const p of pads) {
         if (!p || !p.connected) continue;
         name = name || p.id;
-        const bt = i => p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > 0.5);
+        const down = i => p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > 0.5), bt = i => down(i) && !this.padMute.includes(i);
         const ax = p.axes || [];
-        p.buttons.forEach((b, i) => { if (bt(i)) this.padRaw.push(i); });
+        p.buttons.forEach((b, i) => { if (down(i)) this.padRaw.push(i); });
         const set = (b, v) => { if (v) { this.pad[b] = 1; this.lastKind = 'pad'; } };
         set('up', bt(12) || ax[1] < -0.5); set('down', bt(13) || ax[1] > 0.5);
         set('left', bt(14) || ax[0] < -0.5); set('right', bt(15) || ax[0] > 0.5);
         for (const [b, list] of Object.entries(this.padmap)) set(b, list.some(bt));
     }
+    if (this.padMute.length) this.padMute = this.padMute.filter(i => this.padRaw.includes(i));
     this.padName = name;
 };
+/* (bound afresh, a controller's button that's down doesn't go on as what it was, or come on at once as what it is now:
+   its press was for the old binding) */
+{
+    const rebound0 = Input.rebound;
+    Input.rebound = function () { rebound0.call(this); this.padMute = this.padRaw.slice(); };
+}
 /* what a key is called, short */
 function keyName(code) {
     if (!code) return '?';
@@ -6505,17 +6554,20 @@ const Controls = {
         delete Input.keymap[code];
         Input.keymap[code] = b;
         for (const [c, v] of Object.entries(KEYS_FIXED)) Input.keymap[c] = v;
+        Input.rebound();
         this.msg = ACTION_NAMES[b] + ': ' + keyName(code) + '.';
         return true;
     },
     bindPad(b, i) {
         for (const k of Object.keys(Input.padmap)) Input.padmap[k] = Input.padmap[k].filter(x => x !== i);
         Input.padmap[b] = [i];
+        Input.rebound();
         this.msg = ACTION_NAMES[b] + ': ' + (PAD_NAMES[i] || 'Button ' + i) + '.';
     },
     reset() {
         Input.keymap = Object.assign({}, KEYMAP_DEFAULT);
         Input.padmap = JSON.parse(JSON.stringify(PAD_DEFAULT));
+        Input.rebound();
         this.msg = 'Back to how they started.';
     },
     update(back) {
@@ -6546,6 +6598,7 @@ const Controls = {
             /* the next key pressed is the new one (a controller button too, for anything but moving) */
             Input.textHandler = e => {
                 if (e.type && e.type !== 'keydown') return false;
+                if (e.repeat) return true;          /* (the key that picked the row, still held and repeating, isn't the new one) */
                 if (e.code === 'Escape') { this.wait = null; this.msg = 'Left as it was.'; Input.textHandler = null; return true; }
                 if (this.bindKey(b, e.code)) Sfx.play('select');
                 this.wait = null; Input.textHandler = null;
@@ -7700,7 +7753,7 @@ function buildOverworld() {
             ents.push(o);
         }
         regions.push({ name: b.name, sub: b.sub, x: ox, y: oy, w: OW.bw, h: OW.bh, music: b.music, mark: true, id: b.id });
-        for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }));
+        for (const r of b.regions || []) regions.unshift(Object.assign({}, r, { x: r.x + ox, y: r.y + oy, music: r.music || b.music }, r.home ? { home: [r.home[0] + ox, r.home[1] + oy] } : {}));
     }
     /* trees on the forest */
     for (let y = 0; y < H2 - 1; y += 2) for (let x = (y / 2) % 2; x < W2 - 1; x += 2) {
@@ -12772,9 +12825,10 @@ const LINNET_NOTES = {
     2: { title: 'A note under a hay bale', text: "Day three. This bale was in the way so I pushed it, and it DIDN'T GO BACK. A stray! Mabel says they're terribly rare. Someone cut its thread, she says, but who cuts a hay bale? I'm hiding this under it. -L." },
 };
 SPAWN.linnetnote = (tx, ty, p) => {
-    const pr = new Prop(tx, ty, { im: ART.note, solid: [], oy: 2 });
+    const pr = new Prop(tx, ty, { im: ART[p.look] || ART.note, solid: [], oy: 2 });
     pr.baseY = -60; pr.inert = false;
-    pr.update = () => { if (pr.under) { const b = pr.area.find(pr.under); pr.hiddenNow = b && b.tx === tx && b.ty === ty; } };
+    /* hidden while a thing stands on it, or until what shows it has happened (the Echo Room's: the lullaby sung) */
+    pr.update = () => { const b = pr.under && pr.area.find(pr.under); pr.hiddenNow = !!(b && b.tx === tx && b.ty === ty) || !!(p.show && !Story.cond(p.show)); };
     pr.under = p.under;
     pr.draw = function (cx, cy) { if (!this.hiddenNow && !Progress.flag('linnet' + p.note)) { Gfx.img(ART.carvedL, this.x - cx, this.y - cy - 2); Gfx.img(this.im, this.x - cx + 4, this.y - cy + 2); } };
     pr.interact = () => {
@@ -12782,7 +12836,7 @@ SPAWN.linnetnote = (tx, ty, p) => {
         Script.run(function* () {
             Progress.set('linnet' + p.note); Progress.addNote('linnet' + p.note);
             Stats.count('secret:linnet');
-            yield* say(null, 'Someone has carved a little "L." into the ground here. Tucked into the grass beside it, a folded note, yellow with age.');
+            yield* say(null, LINNET_NOTES[p.note].found || 'Someone has carved a little "L." into the ground here. Tucked into the grass beside it, a folded note, yellow with age.');
             yield* say(null, '"' + LINNET_NOTES[p.note].text + '"');
             const n = Object.keys(LINNET_NOTES).filter(k => Progress.flag('linnet' + k)).length;
             yield* say(null, `(Notes found: ${n}.)`);
@@ -15500,6 +15554,9 @@ defBlock({
         { name: "The Gulls' Rock", x: 55, y: 3, w: 6, h: 9 },
         { name: 'The Old Mill Pond', x: 31, y: 19, w: 7, h: 5 },
         { name: "Wick's Duck Pond", x: 4, y: 17, w: 9, h: 7 },
+        /* the beach below the falls, shut in: only ever reached by riding over them, so it's never Wren's mark (a fall in
+           takes her home to where she was before the ride); arriving any other way (a load), home is the end of the road */
+        { name: 'The Reaches', x: 42, y: 33, w: 4, h: 3, mark: false, home: [37, 26] },
     ],
 });
 
@@ -15554,6 +15611,20 @@ class Falls extends Ent {
     }
 }
 SPAWN.falls = (x, y, p) => new Falls(x, y, p);
+
+/* a load on the beach below the falls keeps the mark she saved with, where she was before the ride (a save from before
+   the beach stopped being a mark has the beach itself, and keeps the end of the road World.enter gave her) */
+{
+    const apply0 = Save.apply;
+    Save.apply = function (s) {
+        apply0.call(this, s);
+        const p = G.player, a = G.map, m = s && s.pos && s.pos.mark;
+        if (!p || !a || !m || m.bed || m.area !== a.id || (p.mark && p.mark.bed)) return;
+        const r = a.regionAt(p.tx, p.ty), q = a.regionAt(m.tx, m.ty);
+        if (!r || r.mark !== false || !r.home || (q && q.mark === false)) return;
+        p.setMark(m.tx, m.ty); p.traceStep();
+    };
+}
 
 function initMillwaterArt() {
     ART.millwheel = paintSprite(24, 24, x => {
@@ -17211,7 +17282,7 @@ TALK.mallow = function* () {
         Progress.set('mallow_d5');
         yield* say('mallow', "Ah, the Wanderer. You've been out to the Slumberhouse, I hear. All the way through? Yaaawn. Good, good. Did you sleep? You should always sleep there. Beds are made to be used.");
         yield* say('mallow', "How do I know it's... comfy? Ha. Well. One hears things. A doctor hears everything. Here, let me look at you. Not a scratch. Splendid. Off you go.");
-        Inv.hp = Inv.maxHp; return;
+        Inv.hp = Inv.maxHp; Progress.setGoal(d5Goal(Progress.flags, Progress.goal)); return;
     }
     if (Inv.hp < Inv.maxHp) { Inv.hp = Inv.maxHp; Sfx.play('heart'); yield* say('mallow', cycle('mallow_heal', ["Yaaawn. Let's have a look... all better. Off you go. Doctor's orders: a nap, soon as you can.", "Hold still. ...There. Good as new. Splendid.", "You again? Yaaawn. All mended. Do try to fall over less."])); return; }
     if (yield* Town.news('mallow')) return;
@@ -22358,13 +22429,25 @@ const Slumber = {
     },
     *afterKnot() {
         Progress.set('d5');
-        Progress.setGoal('Home to Hollowell. (Somebody at the clinic will want to hear all about it.)');
+        Progress.setGoal(d5Goal(Progress.flags, D5_GOALS.home));
         yield* say(null, 'All through the House, very softly, every bed creaks at once, as if everyone in them had turned over in their sleep.');
         const a = G.map, r = a.rooms.find(r => r.key === '1,0');
         a.add(new Warp(r.x + 3, r.y + 9, { to: 'hollow', tx2: SLUMBER_OUT.x, ty2: SLUMBER_OUT.y, face: 'down' }));
         a.add(new Prop(r.x + 3, r.y + 9, { im: ART.exitlight, solid: [] }));
     },
 };
+/* after the fifth Knot the goal sends Wren home, to the clinic; once she's been (or has gone straight on, and jumped down
+   into the fair) it says where next, in Gran's words. A save from before it did is put right as it loads */
+const D5_GOALS = { home: 'Home to Hollowell. (Somebody at the clinic will want to hear all about it.)', fair: 'Next, Larkspur Fair: down below the high mesa in Kilnridge.' };
+function d5Goal(flags, goal) { return goal === D5_GOALS.home && (flags.mallow_d5 || flags.leapt) ? D5_GOALS.fair : goal; }
+{
+    const mig0 = Save.migrate;
+    Save.migrate = function (s) {
+        s = mig0.call(this, s);
+        if (s) s.progress.goal = d5Goal(s.progress.flags, s.progress.goal);
+        return s;
+    };
+}
 SIGNATURE_TEXT.slumber = "Stitched into the rug, lavender on lavender, so you'd only see it lying down: a crescent moon and the letters D.M. Someone signed this House where they'd see it last thing at night.";
 
 ITEM_LINES.bedroll = () => 'You found the {red}Bedroll{/}! Tap [tool] to lay it down anywhere: that spot is home now. Hold [tool] to go Homeward, flying back along your trace to it. What you carry comes too.';
@@ -23829,7 +23912,7 @@ const Larkspur = {
         Sfx.play('land');
         yield* fadeIn(30);
         Fx.dust(p.x, p.y);
-        if (!Progress.flag('leapt')) { Progress.set('leapt'); const pl = G.player; pl.state = 'sleep'; yield* say(null, 'You land by the haystacks with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); pl.state = 'normal'; }
+        if (!Progress.flag('leapt')) { Progress.set('leapt'); Progress.setGoal(d5Goal(Progress.flags, Progress.goal)); const pl = G.player; pl.state = 'sleep'; yield* say(null, 'You land by the haystacks with a whump, and lie there a moment, looking up at the mesa. It is a very long way up.'); pl.state = 'normal'; }
     },
 };
 
@@ -30176,7 +30259,7 @@ CONTENT_INIT.push(initReveal2);
     };
 }
 
-ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: 'Iron, as long as your forearm, with a spool for a bow. It opens the Loom.' };
+ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: "Iron, as long as your forearm, with a spool for a bow. It opens the Loom's great doors." };
 
 // ---- 70_shears_kit.js ----
 /* The Shears: the First Spinner's own blades, the only ones that cut a thread for good. Face something with a thread
@@ -35477,20 +35560,66 @@ const StrayHouse = {
         yield 20;
         yield* say(null, "In the middle of the room, a heap of things: a pram wheel, a kettle, a coat stand, a scarecrow's hat, a hundred odd shoes. Two eyes open in it.");
         yield* say(null, "Everything nobody missed. It shuffles towards you, the whole heap of it, as if it wanted very badly to be somebody's.");
-        Progress.setGoal('The Pile can\'t be pushed, and it\'s too wide for narrow places. Box it in, all four sides.');
+        StrayHouse.lend(SH_GOALS.pile);
     },
+    /* the goal line is lent while the House is played (the Pile, then Linnet's room): the story's own is kept aside the
+       first time, and given back once it's done (the bracelet taken), unless the story has set one of its own meanwhile */
+    lend(g) { if (!Object.values(SH_GOALS).includes(Progress.goal)) Progress.set('sh_goal', Progress.goal || ''); Progress.setGoal(g); },
+    giveBack() { if (Object.values(SH_GOALS).includes(Progress.goal)) Progress.setGoal(Progress.get('sh_goal') || storyGoal(Progress.flags, Inv) || ''); },
     *pileDown(pile) {
         yield 30;
         yield* say(null, "The Pile heaves one last time and comes apart: a kettle, a coat stand, a pram wheel, a hundred odd shoes, lying about the floor. Just things. Nothing's holding them.");
         const a = pile.area;
         for (const [dx, dy] of [[0, 0], [1, 1]]) { const x = pile.tx + dx, y = pile.ty + dy; if (!a.at(x, y)) { const b = a.add(new Block(x, y, { stray: true })); b.skey = 'pile:' + dx; Fx.poof(x * T + 8, y * T + 8); } }
-        /* the Heartstitch on a free floor tile where it came apart (never in a wall) */
-        const r = pile.arena, spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r) || [r.x + 9, r.y + 3];
+        /* the Heartstitch on a free floor tile where it came apart, one Wren can walk to (never in a wall, nor shut in a
+           corner nook by the walls and the two strays it leaves): the nearest such tile, else the middle of the room */
+        const r = pile.arena, p = G.player;
+        const ok = ([x, y]) => !a.at(x, y) && !a.kind(x, y).solid && !a.kind(x, y).pit && a.roomAt(x, y) === r && !!findPath(a, p.tx, p.ty, x, y, p);
+        const ring = d => { const out = []; for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === d) out.push([pile.tx + dx, pile.ty + dy]); return out; };
+        const spot = [[1, 0], [0, 1], [0, -1], [2, 0], [-1, 0]].map(([dx, dy]) => [pile.tx + dx, pile.ty + dy]).find(ok) || [2, 3, 4, 5].map(ring).flat().find(ok) || [r.x + 9, r.y + 3];
         if (!a.ents.some(e => e.id === 'pileHeart')) a.add(new Pickup(spot[0] * T, spot[1] * T, { what: 'heartstitch', id: 'pileHeart' }));
-        Progress.setGoal("West of the Pile's room: Linnet's own room.");
+        StrayHouse.lend(SH_GOALS.room);
         Save.autosave();
     },
 };
+const SH_GOALS = { pile: "The Pile can't be pushed, and it's too wide for narrow places. Box it in, all four sides.", room: "West of the Pile's room: Linnet's own room." };
+ITEM_AFTER.bracelet = function* () { StrayHouse.giveBack(); };
+
+/* the story's own goal line, worked out from how far it has got: for a game whose goal line an optional House kept (or
+   emptied) from before they gave it back. Neither can be finished before the Needle, down in the Spoolworks */
+function storyGoal(f, inv) {
+    const it = (inv && inv.items) || {}, n = k => KNOT_HOUSES.filter(h => f[k + h]).length;
+    if (f.unwound) return 'The valley is yours. Carry on.';
+    if (f.spool_met) return `Cut the Spool's great threads, at their posts round the walls (${n('great:')} of 6). Too taut to cut, unless something knocks one slack.`;
+    if (f.spool_all) return 'Up the Climb to the top of the Spool. Gran is there.';
+    if (f.gs_entered) return `Untie the Knots of the Wander, in the rooms round the Spool's foot (${n('untie:')} of 6).`;
+    if (f.pull_seen) return 'Down the Well, to the Great Spool.';
+    if (f.great_pull) return 'Back to Hollowell, on foot. Gran is pulling the whole valley down the Well.';
+    if (f.drift_first) return 'Somewhere out here, west across the stream, a cottage with a garden, and someone in it.';
+    if (f.cut_self) return 'Into the fog, at the Frayed Edge. Nothing will pull you back now.';
+    if (f.d8) return 'The Shears can cut anyone free. The town, first? And then the fog at the Frayed Edge, and your own thread.';
+    if (((inv && inv.tools) || []).includes('shears')) return LOOM_GOALS.shears;
+    if (f.gundry_r2) return f['visited:loom'] ? LOOM_GOALS.inside : f.north_gate ? LOOM_GOALS.road : LOOM_GOALS.gate;
+    if (f.reveal2) return "Linnet cut herself loose with the First Spinner's Shears, from the old Loom. Gundry, under the Inn, may know where that is.";
+    if (it.tuckspool) return "Tuck's spool is in your satchel. (And there's a door east, into the old hall...)";
+    if (f.makings_done) return "The Way Down, off the Making Floor: fetch Tuck's fresh spool from the deep store.";
+    if (f.cap_given) return "The Making Floor's last little door: set out a Little House of your own, hide the button, then let Tuck in.";
+    if (f.making5) return 'The Making Floor: the sixth Little House is open. Otto is coming too, as the Housekeeper.';
+    if (f.gundry_job) return "The Making Floor, east of the Guild Hall: run Tuck's Little Wander from underneath.";
+    if (f.d7) return 'Up to the Guild Hall, under the Inn: Gundry has a job for you.';
+    if (f.met_gundry_below) return 'The Spoolworks: through the big door in the Guild Hall, under the Inn.';
+    return null;
+}
+/* a save from before the Stray House gave the goal line back, done (the bracelet taken) and still on its line */
+{
+    const mig0 = Save.migrate;
+    Save.migrate = function (s) {
+        s = mig0.call(this, s);
+        const af = s && s.progress.areaFlags.strayhouse;
+        if (s && af && af['chest:lrBracelet'] && Object.values(SH_GOALS).includes(s.progress.goal)) s.progress.goal = storyGoal(s.progress.flags, s.inv) || s.progress.goal;
+        return s;
+    };
+}
 /* after the Pile, the Heartstitch waits if it wasn't picked up */
 {
     const build0 = World.build;
@@ -35510,11 +35639,16 @@ LINNET_NOTES[4] = { title: 'A note pinned in the Echo Room', text: "Sang her to 
 LINNET_NOTES[5] = { title: 'A note in a bottle below the falls', text: "If you're reading this, you rode over the falls too. Go to where the river runs into the fog and put your hand in it. Then tell me it's mist. -L." };
 LINNET_NOTES[8] = { title: 'A note inside the Stray House', text: "If you're reading this, you're a Wanderer too. The Stray House is for you. Nothing in it comes back. Don't be frightened of that. I'm out past the fog, cutting a little at a time from the outside, until she can let go. -L." };
 for (const k of [4, 5, 8]) NOTES['linnet' + k] = { title: LINNET_NOTES[k].title, text: LINNET_NOTES[k].text };
+/* (each told as it's found where it is: a tower room's boards, a bottle by the water, the porch's floor) */
+LINNET_NOTES[4].found = 'Someone has scratched a little "L." into the floorboards here, very small. Pinned beside it, a folded note, yellow with age.';
+LINNET_NOTES[5].found = 'Someone has carved a little "L." into the ground here. Beside it stands a bottle, and in it a folded note, yellow with age.';
+LINNET_NOTES[8].found = 'Someone has carved a little "L." into a floorboard here. Tucked into the crack beside it, a folded note, yellow with age.';
 {
+    /* (the Echo Room's is there from the moment the lullaby's sung, not only once the Belfry's built again) */
     const belfry = AREAS.belfry.ents.find(e => e.look === 'note_paper' && e.if === 'belfry_echo');
-    if (belfry) { delete belfry.look; delete belfry.text; delete belfry.solid; belfry.k = 'linnetnote'; belfry.note = 4; }
+    if (belfry) { delete belfry.look; delete belfry.text; delete belfry.solid; belfry.show = belfry.if; delete belfry.if; belfry.k = 'linnetnote'; belfry.note = 4; }
     const mill = OW.blocks['2,2'].ents.find(e => e.look === 'note_bottle');
-    if (mill) { delete mill.look; delete mill.text; delete mill.solid; mill.k = 'linnetnote'; mill.note = 5; }
+    if (mill) { delete mill.text; delete mill.solid; mill.k = 'linnetnote'; mill.note = 5; }
 }
 
 function initStrayHouse() {
@@ -35852,10 +35986,18 @@ const Unfinished = {
         yield* say('mrives', "Oh. Oh, there it is. My chair. I drew this chair when I had all my own teeth.");
         yield* say('mrives', "Here. My old hook. Longer line than they make now; I made it for this House, and never had a House to use it in.");
         yield* Story.getItem('longhook')();
-        Progress.setGoal('');
         Save.autosave();
     },
 };
+/* (his chair used to empty the goal line, so the menu said only "Wander.": a save from then gets the story's own back) */
+{
+    const mig0 = Save.migrate;
+    Save.migrate = function (s) {
+        s = mig0.call(this, s);
+        if (s && !s.progress.goal && s.progress.flags.ives_done) s.progress.goal = storyGoal(s.progress.flags, s.inv) || '';
+        return s;
+    };
+}
 SPAWN.ivesdoor = (tx, ty) => {
     const pr = new Prop(tx, ty, { im: null, solid: [[0, 0]] });
     pr.interact = () => { Script.run(Unfinished.door()); return true; };
@@ -36871,16 +37013,17 @@ HW.afterword = function () { return HEADLESS || G.debug ? After.explain() : null
 
 const Game = {
     newGame(name, opts = {}) {
+        this.leave();
         G.wanderer = name;
         G.seed = opts.seed || 20261109;
         G.rng = mulberry(G.seed);
         Inv.reset(); Progress.reset(); Stats.reset();
-        G.player = null;
         Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
         Story.begin(opts);
     },
     load(s) {
+        this.leave();
         Script.clear(); Dialog.active = false; UI.menu = null; this.fresh();
         G.scene = 'play';
         /* (dark first: the place's name waits to come up with it, not over the black) */
@@ -36888,8 +37031,17 @@ const Game = {
         Save.apply(s);
         if (Story.afterLoad) Story.afterLoad();
     },
+    /* (the game before is left behind before anything of the new one is set up: its place and Wren go first, so nothing
+       that happens as she leaves a place, a stray's spot kept or a key's tug at a House's door, is written into the new
+       game; and whatever its scenes had up goes with it, the scenes being stopped: a load can come in the middle of one,
+       and the attic's trial clock runs on to the title) */
+    leave() {
+        G.map = null; G.player = null;
+        G.hideHud = G.benchCat = G.keepHearts = G.pendingSeed = false; G.knotFx = G.heartsLeaving = G.hitstop = G.shake = 0;
+        G.trial = G.boss = G.waiting = G.holdUp = G.card = G.credits = G.slack = G.mist = G.winch = G.selfThread = G.ringFx = null;
+    },
     /* (nothing on the screen from the game before: its notices, its place's name, the name it was last in) */
-    fresh() { UI.banner = null; UI.toasts = []; G.regionName = null; },
+    fresh() { UI.banner = null; UI.toasts = []; G.pendingToast = null; G.regionName = null; },
     step() {
         G.t++;
         TileDraw.frame = G.t;

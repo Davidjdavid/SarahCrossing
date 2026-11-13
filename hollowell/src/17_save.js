@@ -37,17 +37,41 @@ const Save = {
         if (!s.progress.notes.includes('granTune')) s.progress.notes.unshift('granTune');
         /* (the Guild's thread was lightened to read on its floors: a Needle stitch remembers a thing's old colour) */
         for (const st of s.inv.stitches || []) if (st && st.color0 === '#a8784a') st.color0 = THREAD.guild;
+        this.dropForeignCuts(s);
         s.v = SAVE_V;
         return s;
     },
+    /* (a load, or a new Wander, once took in where things had been left in the place the game before was in: what can't be
+       this game's own goes. Without the Shears nothing was ever cut; and before the end nobody walks free but someone Wren
+       cut loose herself, who's flagged so (Gran and Linnet on their bench are only there after it). A place that held
+       nothing else is forgotten again, so it isn't a place she's been) */
+    dropForeignCuts(s) {
+        const af = s.progress.areaFlags, f = s.progress.flags || {};
+        if (!af || typeof af !== 'object') return;
+        const shears = Array.isArray(s.inv.tools) && s.inv.tools.includes('shears');
+        for (const id of Object.keys(af)) {
+            const o = af[id]; if (!o || typeof o !== 'object') continue;
+            let n = 0;
+            for (const k of Object.keys(o)) if (k.startsWith('cut:') && (!shears || (!f.unwound && this.uncutSpot(id, k.slice(4), f)))) { delete o[k]; n++; }
+            if (n && !Object.keys(o).length) delete af[id];
+        }
+    },
+    /* someone's spot in a place (where a person stands, by the key a cut thing is kept by), nobody standing there cut loose */
+    uncutSpot(id, key, f) {
+        const def = typeof AREAS !== 'undefined' && AREAS[id];
+        const at = def ? (def.ents || []).filter(e => e.k === 'npc' && (e.id || '@' + e.x + ',' + e.y) === key) : [];
+        return at.length > 0 && !at.some(e => f['cut:' + e.who]);
+    },
     /* put a save into the running game */
     apply(s) {
+        /* (the place the game before was in goes first, Wren with it: nothing that happens as she leaves a place writes
+           that one into this save) */
+        G.map = null; G.player = null;
         Inv.reset(); Object.assign(Inv, s.inv);
         Progress.reset(); Object.assign(Progress, s.progress);
         Stats.reset(); Object.assign(Stats, s.stats);
         G.wanderer = s.name || 'Wren';
         G.seed = s.seed || 1; G.rng = mulberry(G.seed + Stats.playFrames);
-        G.player = null;
         const pos = s.pos;
         if (pos && AREAS[pos.area]) {
             World.enter(pos.area, 0, 0, { px: pos.x, py: pos.y, dir: pos.dir, noSave: true });

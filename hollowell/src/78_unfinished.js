@@ -298,10 +298,18 @@ const Unfinished = {
         yield* say('mrives', "Oh. Oh, there it is. My chair. I drew this chair when I had all my own teeth.");
         yield* say('mrives', "Here. My old hook. Longer line than they make now; I made it for this House, and never had a House to use it in.");
         yield* Story.getItem('longhook')();
-        Progress.setGoal('');
         Save.autosave();
     },
 };
+/* (his chair used to empty the goal line, so the menu said only "Wander.": a save from then gets the story's own back) */
+{
+    const mig0 = Save.migrate;
+    Save.migrate = function (s) {
+        s = mig0.call(this, s);
+        if (s && !s.progress.goal && s.progress.flags.ives_done) s.progress.goal = storyGoal(s.progress.flags, s.inv) || '';
+        return s;
+    };
+}
 SPAWN.ivesdoor = (tx, ty) => {
     const pr = new Prop(tx, ty, { im: null, solid: [[0, 0]] });
     pr.interact = () => { Script.run(Unfinished.door()); return true; };
