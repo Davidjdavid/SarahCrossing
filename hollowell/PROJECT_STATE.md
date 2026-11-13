@@ -15,8 +15,9 @@ Final state: 851 headless tests, the browser checks, the placement audit (0 find
 **Outside QA package ready (12 November, qa_kit/; CLAUDE.md says how it's built).** 74 test saves, every one tested; a
 confidential guide (about 61,000 words); spoiler-free instructions and how to run it; the QA copy of the page (the
 tester's link). Preparing it found POLISH.md findings 82-89 (one softlock below the falls), left unfixed while the
-outside tester works and listed for it. Next: the tester's report (David passes on `developer-report.md`), then one fix
-round for its findings and 82-89. David has frozen copies of the 12 November version (commit b217800) to compare
+outside tester works and listed for it. The tester's report came back (13 November: 6 findings, 0 Blocker, 2 Critical,
+1 Major, 2 Minor, 1 Cosmetic, four of them already listed) and **fix round I fixed all of them and 82-89** (POLISH.md
+82-95; QA_REPORT.md). David's page and the tester's link carry the fixed version. David has frozen copies of the 12 November version (commit b217800) to compare
 with later ones: the artifact https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV and a Linux folder (CLAUDE.md).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
