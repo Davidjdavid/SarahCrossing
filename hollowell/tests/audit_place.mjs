@@ -1,7 +1,9 @@
 // Polish tool (POLISH.md): every area, at every story stage, built and checked for things placed where they can't be:
 // people, creatures and things standing in walls, holes or deep water; two things on one tile; things you need to
-// face (signs, chests, levers, people...) with no floor beside them to stand on. Prints what it finds, once each.
+// face (signs, chests, levers, people...) with no floor beside them to stand on; a fixed thing on the only floor between
+// two stretches of floor (reach_check.mjs). Prints what it finds, once each.
 import { loadGame } from './harness.mjs';
+import { fixedCuts } from './reach_check.mjs';
 
 const STAGES = [null, 'afterD1', 'afterD2', 'afterD3', 'afterD4', 'afterD5', 'afterD6', 'afterD7', 'afterMakings', 'afterReveal2', 'afterD8', 'afterDrift', 'afterEnding'];
 const found = new Map();
@@ -58,6 +60,8 @@ for (const stage of STAGES) {
             const tx = Math.floor(m.x / 16), ty = Math.floor(m.y / 16);
             if (!open(tx, ty) && !m.flies && !(m.D && (m.D.flies || m.D.swims))) note(`${id}|walker|${m.type}|${tx},${ty}`, `${id}: ${m.type} starts on ${a.kindName(tx, ty)} at ${tx},${ty}`, stage);
         }
+        /* a sign, a chest or another fixed thing on the only floor between two stretches of floor (tests/reach_check.mjs) */
+        for (const c of fixedCuts(HW, a)) note(c.key, c.msg, stage);
     }
     process.stdout.write(`${stage || 'new game'} `);
 }

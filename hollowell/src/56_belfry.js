@@ -313,7 +313,7 @@ defHouse({
                 /* the stair up to the great bell is barred from above (it opens once Tollgrim's beaten); the way up now is
                    east, through the Bell Frame and the Cistern, opened by the same plates as the Pattern */
                 { k: 'door', x: 9, y: 0, type: 'gate', when: 'flag:belfry_boss', id: 'brStair' },
-                { k: 'sign', x: 10, y: 1, text: 'THE BELL STAIR. Barred from above.' },
+                { k: 'sign', x: 8, y: 1, text: 'THE BELL STAIR. Barred from above.' },
                 { k: 'door', x: 19, y: 5, type: 'gate', when: 'flag:belfry_ropes|flag:belfry_boss', dir: 'v', id: 'brEast' },
                 { k: 'plate', x: 5, y: 3, sig: 'p1' }, { k: 'plate', x: 17, y: 3, sig: 'p2' },
                 { k: 'crate', x: 5, y: 3, id: 'brC1', sleeper: true, tiedOff: true, resetSleep: 'belfry_ropes', onHome() { Belfry.ropesHome(this); }, startAt: [15, 6], trace: [[5, 3], [5, 4], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5], [15, 6]] },

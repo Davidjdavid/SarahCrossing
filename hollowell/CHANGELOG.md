@@ -250,3 +250,8 @@
   into a room with something just inside its door; and should anything ever end up over you, you're eased out onto
   open floor at once.
 - The maps of the Houses show every room you've been in whole.
+
+## 2026-11-13 (version 1.0.3)
+- A sign no longer stands in the only way through one of the Houses' rooms (the rest of that room, and two rooms beyond it,
+  couldn't be reached), nor in front of an empty corner of another.
+- A chest in one House can no longer be opened from the wrong side, without solving its puzzle.
