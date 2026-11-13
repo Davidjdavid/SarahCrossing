@@ -52,6 +52,10 @@ const Cam = {
             let px1 = p.x, py1 = p.y;
             if (p.tx >= r.x && p.tx < r.x + r.w && (tileOf(p.x - DX[p.dir] * T) < r.x || tileOf(p.x - DX[p.dir] * T) >= r.x + r.w)) px1 = p.x + DX[p.dir] * 14;
             if (p.ty >= r.y && p.ty < r.y + r.h && (tileOf(p.y - DY[p.dir] * T) < r.y || tileOf(p.y - DY[p.dir] * T) >= r.y + r.h)) py1 = p.y + DY[p.dir] * 14;
+            /* (only as far in as she could walk: a thing standing just inside the doorway stops her short of it, instead of
+               her ending up half inside it, unable to move) */
+            const ux = sign(px1 - p.x), uy = sign(py1 - p.y);
+            if (ux || uy) { let n = 14; while (n > 0 && !p.boxFree(p.x + ux * n, p.y + uy * n)) n--; px1 = p.x + ux * n; py1 = p.y + uy * n; }
             this.trans = { fx: this.x, fy: this.y, tx: t.x, ty: t.y, t: 0, dur: 34, px0: p.x, py0: p.y, px1, py1 };
             if (p.grip) p.release();
             return;

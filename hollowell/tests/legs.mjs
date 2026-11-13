@@ -609,7 +609,8 @@ export const LEG4 = (HW, chain) => {
     walk(...b('ropes', 16, 3)); HW.face('right'); talk(); ok(p().carry, 'holding the crate');
     walk(...b('ropes', 14, 3)); HW.Inv.equipped = 'bell'; HW.press('tool', 1); HW.step(80);
     ok(HW.Progress.flag('belfry_ropes'), 'the ropes');
-    HW.face('right'); HW.press('act', 1); HW.step(30);
+    /* (thrown off, the crate can come down behind her in the passage: wait for it to go home) */
+    HW.face('right'); HW.press('act', 1); HW.step(30); until(() => thing('brC2').ret.state === 'home', 1500);
     walk(...b('ropes', 9, 8)); HW.face('up'); talk(); ok(HW.Inv.hasPattern('belfry'), 'Pattern');
     /* the Bell Frame (east, through the gate the Pattern's plates opened): the crate the long way round, up the east side,
        thrown down the gap from above onto the plate; ring: the boulder is home first and holds it there */

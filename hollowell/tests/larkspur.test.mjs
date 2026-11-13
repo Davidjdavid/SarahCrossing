@@ -149,19 +149,28 @@ test('the forecourt: a pale crate boxes each soldier onto its pad; the portculli
 test('the forecourt: one soldier boxed in is not enough (the other only touches its pad in passing), and the fair\'s own crates go home', () => {
     const HW = afterD5();
     HW.warp('hollow', ...lk(26, 13)); HW.step(10);
-    const a = HW.G.map, gate = a.find('pgGate');
+    const a = HW.G.map, gate = a.find('pgGate'), S = HW.global('Signals'), sol = a.find('pgSolA');
+    /* into the west pen's open end just after its soldier has marched up onto its pad (thrown as it comes back down, the
+       crate hits it and drops at Wren's feet: that used to put it on top of her, and this test passed without the pen) */
+    const intoPen = what => {
+        go(HW, ...lk(28, 13)); HW.face('right');
+        assert.ok(until(HW, () => sol.ty === lk(0, 12)[1] && sol.march === HW.global('UP') && sol.y < lk(0, 12)[1] * 16 + 12.5, 600), 'its soldier coming up onto its pad');
+        HW.press('act', 1); HW.step(20);
+        assert.deepEqual([what.tx, what.ty], lk(29, 13), what.id + ' in the west pen');
+    };
     /* a prop crate set in the west pen: it goes home, and its soldier is free again */
     const prop = a.find('lkProp1');
     go(HW, ...lk(26, 12)); HW.face('left'); HW.press('act', 1); HW.step(10);
-    go(HW, ...lk(28, 13)); HW.face('right');
-    until(HW, () => a.find('pgSolA').ty === lk(0, 12)[1], 300); HW.press('act', 1); HW.step(10);
+    intoPen(prop);
+    assert.ok(S.get(a, 'pgA'), 'the west pad held');
+    go(HW, ...lk(28, 15));                                   /* (out of its way home) */
     HW.step(400);
     assert.ok(prop.ret.state === 'home', 'the prop crate went home');
+    assert.ok(until(HW, () => sol.ty === lk(0, 13)[1], 300), 'its soldier free again');
     /* one pale crate: the west pad held, the east one only in passing: the portcullis never winds right up */
     const c = a.find('lkStray1');
     go(HW, c.tx + 1, c.ty); HW.face('left'); HW.press('act', 1); HW.step(10);
-    go(HW, ...lk(28, 13)); HW.face('right');
-    until(HW, () => a.find('pgSolA').ty === lk(0, 12)[1], 300); HW.press('act', 1); HW.step(10);
+    intoPen(c);
     let opened = false; for (let i = 0; i < 600; i++) { HW.step(1); if (gate.open) opened = true; }
     assert.ok(!opened, 'never open');
     noErrors(HW);

@@ -244,3 +244,9 @@
 ## 2026-11-13 (version 1.0.1)
 - Sounds come only from what you can see: far-off contraptions no longer click away wherever you are.
 - Bram has pots to smash, as he says he does.
+
+## 2026-11-13 (version 1.0.2)
+- Never stuck inside a wall or a thing: shoved by something heavy, a throw stopped right in front of you, or stepping
+  into a room with something just inside its door; and should anything ever end up over you, you're eased out onto
+  open floor at once.
+- The maps of the Houses show every room you've been in whole.

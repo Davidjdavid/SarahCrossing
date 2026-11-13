@@ -79,6 +79,13 @@ class Player extends Ent {
         else this.setMark(this.tx, this.ty, a, true);
     }
     /* never left standing inside something (a block back at home after the place was built again, a closed gate) */
+    /* out of something solid she's somehow inside: the middle of her own tile if that's clear, else the nearest floor */
+    easeOut() {
+        const cx = this.tx * T + 8, cy = this.ty * T + 10;
+        if (this.boxFree(cx, cy)) { this.x = cx; this.y = cy; }
+        else { const [lx, ly] = this.landingSpot(this.tx, this.ty); this.x = lx * T + 8; this.y = ly * T + 10; }
+        Stats.count('easedOut');
+    }
     unstick() {
         const [lx, ly] = this.landingSpot(this.tx, this.ty);
         if (lx !== this.tx || ly !== this.ty) { this.x = lx * T + 8; this.y = ly * T + 10; }
@@ -160,6 +167,13 @@ class Player extends Ent {
             case 'reel': return this.updateReel();
             case 'faint': return;
         }
+        /* never left inside something solid: should a door, a thing or a creature's bulk ever end up over part of her (it
+           shouldn't), she's eased onto open floor after a moment instead of being left unable to move (David, playing
+           1.0.1: stuck in a wall in the Grand Housekeeper's hall). Boxed in by things isn't this: she isn't inside them */
+        if (this.state === 'normal' && !this.ride && !this.pinned && !G.cheats.noclip && !Script.blocking() && !this.boxFree(this.x, this.y)) {
+            this.inSolid = (this.inSolid || 0) + 1;
+            if (this.inSolid >= 45) { this.inSolid = 0; this.easeOut(); }
+        } else this.inSolid = 0;
         /* on a float that's moving: carried along */
         if (this.ride && Water.rider(this)) return;
         if (this.shove) return this.updateShove();
@@ -592,7 +606,11 @@ class Player extends Ent {
         return true;
     }
     shoved(d, dur) {
-        this.shove = { fx: this.x, fy: this.y, tx: this.x + DX[d] * T, ty: this.y + DY[d] * T, t: 0, dur };
+        /* onto the middle of the tile she's shoved into (the one canBeShoved found clear): a tile along from where she
+           stood, off its middle, left her half inside the wall beside it, unable to step out (David, playing 1.0.1: stuck
+           in a wall in the Grand Hall, a bust coming home having shoved her) */
+        const gx = tileOf(this.x + DX[d] * T), gy = tileOf(this.y + DY[d] * T);
+        this.shove = { fx: this.x, fy: this.y, tx: gx * T + 8, ty: gy * T + 10, t: 0, dur };
         if (this.grip) this.release();
         Sfx.play('hurt');
     }
@@ -749,6 +767,12 @@ const Thrown = {
         if (area.at(tx, ty) && area.at(tx, ty) !== o) {
             /* fall back to a free tile next to it */
             for (let d = 0; d < 4; d++) if (area.freeForThing(tx + DX[d], ty + DY[d], o)) { o.tx += DX[d]; o.ty += DY[d]; break; }
+        } else if (Return.wrenOn(area, tx, ty)) {
+            /* never on top of Wren (it used to be, and she couldn't move till it went home): a throw stopped before it was
+               clear of her, by a wall or a creature right in front of her, comes down in front of her if there's room, else
+               beside her, else behind her */
+            for (const d of [t.d, ...[DOWN, LEFT, RIGHT, UP].filter(d => d !== t.d && d !== OPP[t.d]), OPP[t.d]])
+                if (area.freeForThing(tx + DX[d], ty + DY[d], o)) { o.tx += DX[d]; o.ty += DY[d]; break; }
         }
         area.place(o, o.tx, o.ty);
         Sfx.play('land');

@@ -189,6 +189,16 @@ const NameEntry = {
 };
 
 /* the pause menu */
+/* what the map shows as been: outdoors, the stretches Wren has walked near (4x4 blocks: Stats.stepped); in a House, every
+   room she's been in, whole (David, playing: "can the whole room show up on the map and not the parts you walk around
+   at?"), and the blocks walked as before for anything between rooms */
+function mapSeen(a) {
+    const seen = Stats.visited[a.id] || {};
+    const block = (tx, ty) => !!seen[(tx >> 2) + ',' + (ty >> 2)];
+    if (!a.def.house || !a.rooms || a.rooms.length < 2) return block;
+    const been = new Set(a.rooms.filter(r => Stats.rooms[a.id + ':' + r.i]).map(r => r.i));
+    return (tx, ty) => { const r = a.roomAt(tx, ty); return r ? been.has(r.i) : block(tx, ty); };
+}
 const PauseMenu = {
     tabs: ['Satchel', 'Map', 'Journal', 'Options', 'Save'],
     tab: 0, sel: 0, t: 0,
@@ -459,10 +469,10 @@ const MapView = {
         /* the area drawn small: every tile a dot of its colour */
         const sc = Math.max(1, Math.min(Math.floor((w - 8) / a.w), Math.floor((h - 16) / a.h)));
         const ox = x + Math.floor((w - a.w * sc) / 2), oy = y + 14 + Math.floor((h - 16 - a.h * sc) / 2);
-        const seen = Stats.visited[a.id] || {};
+        const isSeen = mapSeen(a);
         const known = def.house ? (Inv.plans.includes(def.house)) : true;
         for (let ty = 0; ty < a.h; ty++) for (let tx = 0; tx < a.w; tx++) {
-            const vis = seen[(tx >> 2) + ',' + (ty >> 2)];
+            const vis = isSeen(tx, ty);
             if (!vis && !known) continue;
             const k = a.cell(tx, ty).k;
             const col = MAP_COL[k] || '#c8e0a0';
