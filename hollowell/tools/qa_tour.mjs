@@ -108,8 +108,9 @@ export function linnetTrail(HW) {
     walk(HW, 55, 30, 6000); act(HW, 'right'); note(4);
     leave(HW, 29, 53, 'down');
     /* 5: below the falls: the ferry ridden down over the falls into the pool below, stepped off onto the beach. The beach
-       is shut in (stepping ashore makes it Wren's mark, so a fall into the river only brings her back to it), so first the
-       Bedroll laid at the landing, and Homeward to it after */
+       is shut in; a fall into the river takes Wren home to where she was before the ride (until fix round I it brought her
+       back to the beach: finding 82). The tour lays the Bedroll at the landing first and goes Homeward to it after, as it
+       did when the saves were made */
     HW.warp('hollow', 165, 106); HW.step(10); HW.skipTalk(); walk(HW, 166, 106);
     HW.Inv.equipped = 'bedroll'; HW.press('tool', 1); HW.step(5); HW.skipTalk();
     ok(HW, HW.Inv.bedroll && HW.Inv.bedroll.tx === 166 && HW.Inv.bedroll.ty === 106, 'the Bedroll laid at the ferry landing');
