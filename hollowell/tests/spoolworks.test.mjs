@@ -607,3 +607,62 @@ test('old saves: one saved under the Spool Store with a stitch for the weight th
     assert.ok(H2.walkTo(...at('ustore', 2, 3)), 'and about');
     noErrors(H2);
 });
+
+// David, playing 1.0.4: "the bell dosent reach the entire room so each spool was in the corner... the one spool was still
+// following its trail back to the monster since the bell dosent reach it while im holding the spool". With the three
+// stitched bobbins sewn into the hall's far corners, a bell rung by the fourth (held out) reached none of them: the last
+// beat could never be won from there, and it shot at him the whole time he tried. A ring in its hall now runs along its
+// threads to every bobbin, and while she holds one of its threads it throws nothing.
+test("the Tangle's last beat with its stitched bobbins sewn out towards the corners, beyond a bell's reach: the fourth held out, a ring brings every one home at once", () => {
+    const [HW, t] = tangleGame();
+    until(HW, () => ['tbN', 'tbW', 'tbE', 'tbS'].every(id => HW.Return.isHome(B(HW, id)) && !B(HW, id).mv), 300);
+    /* each as far as the Needle's thread reaches (four tiles), out towards the corners */
+    HW.walkTo(...at('heart', 8, 2)); HW.face('right'); stitch(HW, 'ULLL'); until(HW, () => HW.Return.isHome(B(HW, 'tbN')), 200);
+    go(HW, 'heart', 6, 4); HW.face('down'); stitch(HW, 'LLLL'); until(HW, () => HW.Return.isHome(B(HW, 'tbW')), 200);
+    go(HW, 'heart', 12, 4); HW.face('down'); stitch(HW, 'RRRR'); until(HW, () => HW.Return.isHome(B(HW, 'tbE')), 200);
+    assert.deepEqual([where(HW, 'tbN'), where(HW, 'tbW'), where(HW, 'tbE')], [at('heart', 6, 1), at('heart', 2, 5), at('heart', 16, 5)], 'sewn out towards the corners');
+    /* the rest of the first beat as ever: the fourth pushed off and tied below */
+    go(HW, 'heart', 8, 8); HW.push('right', 2); HW.step(25);
+    hatch(HW, 'heart', 2, 7, 'down');
+    go(HW, 'uheart', 9, 7); HW.face('down'); knot(HW);
+    hatch(HW, 'uheart', 2, 7, 'down');
+    assert.ok(until(HW, () => t.state === 'open', 300), 'it comes apart');
+    go(HW, 'heart', 9, 6); knockCore(HW); HW.skipTalk(); HW.step(5);
+    phase2(HW, t);
+    /* the last beat: it hauls the stitched ones in off their corners; the fourth gripped and held out, a ring from beside
+       the Tangle (every corner further than a bell reaches) */
+    assert.equal(t.state, 'haul');
+    until(HW, () => t.haulT === 0 && B(HW, 'tbN').ret.state !== 'home', 400);
+    go(HW, 'heart', 10, 8); HW.face('left');
+    HW.hold('act'); HW.step(3);
+    HW.hold(['act', 'right']); until(HW, () => HW.player().tx === at('heart', 11, 8)[0] && !B(HW, 'tbS').mv, 60); HW.hold('act'); HW.step(2);
+    assert.deepEqual(where(HW, 'tbS'), at('heart', 10, 8), 'the fourth held out');
+    const p = HW.player(), far = ['tbN', 'tbW', 'tbE'].filter(id => Math.hypot(B(HW, id).first[0] - p.tx, B(HW, id).first[1] - p.ty) > 0 && Math.hypot(...where(HW, id).map((v, i) => v - [p.tx, p.ty][i])) > 7);
+    assert.ok(far.length >= 2, 'two of them out of a bell\'s reach of her: ' + far.join(','));
+    HW.Inv.equipped = 'bell'; HW.hold(['act', 'tool']); HW.step(1); HW.hold('act');
+    assert.ok(until(HW, () => t.state === 'open', 120), 'every thread out at once: it comes apart');
+    HW.release(); HW.step(2);
+    go(HW, 'heart', 9, 6); knockCore(HW);
+    assert.ok(!t.alive, 'undone');
+    noErrors(HW);
+});
+
+test('the Tangle in its last beat throws nothing while Wren has a hand on one of its threads', () => {
+    const [HW, t] = tangleGame();
+    phase1(HW, t); phase2(HW, t);
+    assert.equal(t.state, 'haul');
+    until(HW, () => t.haulT === 0, 400);
+    go(HW, 'heart', 10, 8); HW.face('left');
+    const busy = () => (t.balls && t.balls.length) || tgBlows(HW, t).length;
+    let free = 0; for (let i = 0; i < 400; i++) { HW.step(1); if (busy()) free++; }
+    assert.ok(free > 0, 'not holding anything, it throws at her');
+    HW.hold('act'); HW.step(3);
+    assert.equal(HW.player().grip, B(HW, 'tbS'), 'a hand on the south bobbin');
+    HW.step(150);                                                  /* (what was already in the air lands) */
+    let held = 0; for (let i = 0; i < 600; i++) { HW.step(1); if (busy()) held++; }
+    assert.equal(held, 0, 'nothing thrown while she holds it');
+    HW.release(); HW.step(2);
+    let after = 0; for (let i = 0; i < 400; i++) { HW.step(1); if (busy()) after++; }
+    assert.ok(after > 0, 'let go, it throws again');
+    noErrors(HW);
+});

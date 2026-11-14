@@ -20,7 +20,7 @@ canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display:
    headless in the tests (HEADLESS: no document). */
 
 const HEADLESS = typeof document === 'undefined';
-const VERSION = '1.0.4';
+const VERSION = '1.0.5';
 const W = 320, H = 180, T = 16;          /* the screen in pixels, the tile size */
 const FPS = 60;
 
@@ -27905,6 +27905,13 @@ class Tangle extends Ent {
         const bs = this.bobbins();
         this.pulled = bs.filter(b => this.out(b)).length;
         const here = p.area === a && Cam.room === r && p.state === 'normal';
+        /* its last beat: a hand on one of its threads and it strains against that, throwing nothing till it's let go (the
+           one moment that beat asks for both hands, holding one out and ringing with the other, was the one it never let
+           up; David, playing 1.0.4) */
+        const strained = here && this.state === 'haul' && !!(p.grip && p.grip.tbobbin);
+        if (strained && !Progress.flag('tangle_strain')) {
+            Progress.set('tangle_strain'); UI.toast('A hand on one of its threads, and the Tangle strains against it, throwing nothing.', 180);
+        }
         this.cleanMites();
         if (this.tight > 0) this.tight--;
         /* a ring sent everything not held home: once it's all settled, if a thread's home is in it (a bobbin at its first
@@ -27920,11 +27927,11 @@ class Tangle extends Ent {
                 this.reel(bs);
                 if (this.allOut(bs)) { if (++this.outT > 30) this.apart(); } else this.outT = 0;
                 if (this.state === 'whole') this.watchNear(bs);
-                if (here) { this.balls1(p, 1.4); this.lash(p); this.cordSweep(p); }
+                if (here && !strained) { this.balls1(p, 1.4); this.lash(p); this.cordSweep(p); }
                 break;
             case 'up':
                 if (!this.hoisted() && this.lift > 30) this.drop();
-                else if (here && this.lift > 30) { this.balls1(p, 1.7); this.mites(p); }
+                else if (here && !strained && this.lift > 30) { this.balls1(p, 1.7); this.mites(p); }
                 break;
             case 'down':
                 /* let down, it lies loose; hauled up again once the weight's been back on its plate a moment */
@@ -27935,7 +27942,7 @@ class Tangle extends Ent {
                 else if (this.haulT === this.HAUL - 30) Sfx.play('tug', 0.4);
                 if (this.allOut(bs)) { if (++this.outT > 20) this.apart(); } else this.outT = 0;
                 /* (gathering its threads to haul, it throws nothing: a breath of peace, every beat) */
-                if (here && this.haulT < this.HAUL - 30) { this.lash(p); this.balls1(p, 1.9); this.cordSweep(p); }
+                if (here && !strained && this.haulT < this.HAUL - 30) { this.lash(p); this.balls1(p, 1.9); this.cordSweep(p); }
                 break;
             case 'open':
                 /* pulled apart, it lies dazed while every thread's held out, and a moment after one comes back */
@@ -28001,6 +28008,12 @@ class Tangle extends Ent {
        once they're settled (above) */
     hear(x, y) {
         if (!this.alive || (this.state !== 'whole' && this.state !== 'haul')) return;
+        /* in its last beat, wound round the trapdoor and hauling every thread at once, a ring in its hall runs along its
+           threads to every bobbin of it, wherever it's been sewn: a bell reaches seven tiles, and bobbins stitched out
+           towards the hall's corners used to be left out of the ring, so that beat could never be won from there (David,
+           playing 1.0.4). (Before that, a bell reaches as far as a bell does) */
+        if (this.state === 'haul' && this.area.roomAt(tileOf(x), tileOf(y)) === this.hall)
+            for (const b of this.bobbins()) if (b.ret && b.ret.state !== 'home' && !b.carried && !b.shattered && !b.ret.snap && !Return.held(b)) Return.snap(b);
         if (this.bobbins().some(b => b.ret && b.ret.snap)) { this.rungT = 1; this.near = false; }
     }
     /* everything went home, and home for one of them is in the Tangle: it winds tight again (the wrong idea, told as the

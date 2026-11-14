@@ -24,7 +24,8 @@ says how it's made). David has called testing done; next is his own play (fixes 
 first two things he found (POLISH.md 96-97); 1.0.2 (13 November): stuck in a wall at the first House's boss, two more
 ways in found by a whole-game check, and the Houses' maps showing whole rooms (POLISH.md 98-101); 1.0.3 (13 November): a sign standing in the only way
 into part of the Millrace, and two more found by checking every place for it (POLISH.md 102-103); 1.0.4 (13 November):
-the Nursery's toy block carried down the playpen's little hole filled it for good (POLISH.md 104). David has frozen copies of the 12 November version (commit b217800) to compare
+the Nursery's toy block carried down the playpen's little hole filled it for good (POLISH.md 104); 1.0.5 (14 November):
+the Spoolworks boss's last beat couldn't be won with its bobbins sewn far out, and never let up (POLISH.md 106). David has frozen copies of the 12 November version (commit b217800) to compare
 with later ones: the artifact https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV and a Linux folder (CLAUDE.md).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328

@@ -259,3 +259,7 @@
 ## 2026-11-13 (version 1.0.4)
 - Something too big for a little hole no longer goes down it with you when you fall through: it stays up beside it.
   A game where it had (and the hole was filled in for good) has the thing and the hole back.
+
+## 2026-11-14 (version 1.0.5)
+- The seventh House's boss: in its last round, a ring of the bell in its hall reaches every one of its spools wherever
+  they were sewn (it couldn't be beaten with them sewn far out), and while you hold one of its spools it stops attacking.
