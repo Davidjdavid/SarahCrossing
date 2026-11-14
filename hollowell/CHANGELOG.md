@@ -263,3 +263,7 @@
 ## 2026-11-14 (version 1.0.5)
 - The seventh House's boss: in its last round, a ring of the bell in its hall reaches every one of its spools wherever
   they were sewn (it couldn't be beaten with them sewn far out), and while you hold one of its spools it stops attacking.
+
+## 2026-11-14 (version 1.0.6)
+- A sleeping thing a room resets when you leave it is wrapped up and laid down again even if you cut it free, instead
+  of being lost where it lay (in the last House this could leave a gap that could never be crossed).

@@ -613,3 +613,52 @@ test('old saves: one that spent its key on the Bridge Room\'s old lock keeps tha
     assert.ok(!N.st, 'put away');
     noErrors(HW);
 });
+
+// David, playing 1.0.5: "now im stuck and i do think i messed something up the sand bags arent moving when I leave". The
+// Shears cut the Larder's sleeping weight where it lay, across the gap: a stray there for good, it could never fill the gap,
+// and the room's rule (leave, and it lies down again) didn't hold for it. A puzzle sleeper cut free and left lying is now
+// wrapped up again on its thread and laid down where it slept: when Wren leaves its room, and when the place is built again
+// (a game that cut it so has it back).
+test('the Larder: its sleeper cut where it lay (across the gap) is wrapped up again and laid down when Wren leaves, on its thread; the gap can still be filled', () => {
+    const HW = game(true);
+    HW.Inv.keyCount.loom = 1;
+    enter(HW, 'wr', 16, 5);
+    go(HW, 'wr', 18, 5); HW.hold('right'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    const a = HW.G.map, W1 = thing(HW, 'lrW1');
+    /* its thread cut where it lies, across the gap (as a ring wakes it and its thread is cut along this side before it's
+       moved): a stray over there */
+    HW.global('Shears').cut(W1); HW.step(10);
+    assert.ok(W1.cutFree && !W1.ret, 'cut free where it lay');
+    assert.deepEqual([W1.tx, W1.ty], at('lr', 14, 7), 'still across the gap');
+    /* out of the room and back */
+    go(HW, 'lr', 1, 5); HW.hold('left'); HW.step(40); HW.release(); HW.step(30);
+    go(HW, 'wr', 17, 5); HW.hold('right'); HW.step(40); HW.release(); HW.step(30); HW.skipTalk();
+    assert.ok(W1.sleeper && W1.tiedOff && W1.ret && !W1.cutFree, 'wrapped up again, asleep, on its thread');
+    assert.deepEqual([W1.tx, W1.ty], at('lr', 14, 7));
+    assert.deepEqual([W1.ret.mx, W1.ret.my], at('lr', 15, 1), 'its old place still its home');
+    assert.ok(!HW.Progress.areaFlag('loom', 'cut:lrW1'), 'the cut forgotten');
+    /* and the room's own way still works */
+    go(HW, 'lr', 10, 7); tool(HW, 'bell', 'right'); HW.step(40);
+    assert.deepEqual([W1.tx, W1.ty], at('lr', 11, 7), 'waiting over the gap');
+    tool(HW, 'shears', 'right');
+    assert.ok(W1.removed && !a.kind(...at('lr', 11, 7)).pit, 'cut over the gap, it fills it');
+    noErrors(HW);
+});
+
+test('a game whose Larder sleeper was cut free where it lay loads with it wrapped up again; one dropped into the gap stays gone', () => {
+    const load = flags => {
+        const H0 = game(true);
+        for (const [k, v] of flags) H0.Progress.setAreaFlag('loom', k, v);
+        const s = JSON.parse(JSON.stringify(H0.Save.snapshot()));
+        const HW = loadGame(); HW.global('Game').load(HW.Save.migrate(s)); HW.step(5); HW.skipTalk();
+        enter(HW, 'lr', 2, 5);
+        return HW;
+    };
+    let HW = load([['cut:lrW1', at('lr', 14, 7).join(',')]]);
+    let W1 = thing(HW, 'lrW1');
+    assert.ok(W1 && W1.sleeper && W1.tiedOff && W1.ret && !W1.cutFree, 'wrapped up again, asleep, on its thread');
+    assert.deepEqual([W1.tx, W1.ty], at('lr', 14, 7));
+    HW = load([['cut:lrW1', at('lr', 11, 7).join(',')], ['gone:lrW1', true], ['fill:' + at('lr', 11, 7).join(','), true]]);
+    assert.ok(!thing(HW, 'lrW1'), 'used: gone');
+    noErrors(HW);
+});

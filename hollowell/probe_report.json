@@ -3,129 +3,129 @@
  "issues": [],
  "slowest": [
   [
-   153,
-   "tidy / Foyer @29,35",
-   3841
+   149,
+   "tidy / Gallery @56,36",
+   6384
   ],
   [
-   145,
-   "tidy / Hall of Busts @29,28",
-   7110
+   126,
+   "tidy / Gallery @50,40",
+   6553
   ],
   [
-   111,
-   "tidy / Hall of Busts @29,28",
-   7109
+   110,
+   "gran_house @8,4",
+   827
   ],
   [
-   94,
-   "tidy / Gallery @44,39",
-   5542
-  ],
-  [
-   93,
-   "gran_room @7,2",
-   1
-  ],
-  [
-   88,
-   "hollow @94,61",
-   2559
+   91,
+   "tidy / Hall of Busts @27,29",
+   7250
   ],
   [
    86,
-   "tidy / Foyer @24,38",
-   3949
+   "hollow @94,61",
+   1733
   ],
   [
-   74,
-   "tidy / Foyer @29,42",
-   3334
+   84,
+   "tidy / Gallery @41,39",
+   6686
   ],
   [
-   71,
-   "hollow @95,61",
-   198649
+   80,
+   "tidy / Gallery @56,36",
+   6380
   ],
   [
-   68,
-   "tidy / Foyer @29,34",
-   3823
+   75,
+   "hollow @94,61",
+   1634
   ],
   [
-   63,
-   "tidy / Kitchen @3,39",
-   4745
+   73,
+   "hollow @94,92",
+   2987
+  ],
+  [
+   69,
+   "hollow @94,74",
+   2744
+  ],
+  [
+   65,
+   "tidy / Laundry @68,17",
+   10629
   ],
   [
    61,
-   "tidy / Gallery @49,39",
-   5655
+   "tidy / Foyer @37,38",
+   6787
   ],
   [
    56,
-   "hollow @94,91",
-   2965
+   "hollow @81,59",
+   1261
   ],
   [
-   52,
-   "tidy / Foyer @23,39",
-   3470
+   54,
+   "tidy / Kitchen @13,37",
+   4539
   ],
   [
    50,
-   "tidy / Gallery @40,38",
-   5445
-  ],
-  [
-   49,
-   "hollow @94,61",
-   2188
+   "hollow @94,94",
+   3014
   ],
   [
    48,
+   "tidy / The Grand Hall @29,6",
+   15575
+  ],
+  [
+   47,
+   "hollow @107,102",
+   16497
+  ],
+  [
+   46,
+   "tidy / Parlour @56,26",
+   9534
+  ],
+  [
+   46,
    "tidy / Linen Closets @55,18",
-   9855
+   11504
   ],
   [
-   48,
-   "marionette / The Rehearsal Room @44,27",
-   101546
+   46,
+   "tidy / Hall of Busts @38,24",
+   12149
   ],
   [
    45,
-   "tidy / Gallery @40,38",
-   5450
+   "gran_house @8,4",
+   1000
   ],
   [
    44,
-   "tidy / Kitchen @13,39",
-   4597
+   "tidy / Linen Closets @55,18",
+   10031
   ],
   [
-   44,
-   "tidy / Gallery @49,38",
-   5698
+   43,
+   "hollow @94,74",
+   2743
   ],
   [
-   44,
-   "tidy / Gallery @47,38",
-   5786
+   42,
+   "tidy / Linen Closets @53,17",
+   10083
   ],
   [
    41,
-   "tidy / Linen Closets @55,18",
-   10009
-  ],
-  [
-   39,
-   "hollow @94,61",
-   1604
-  ],
-  [
-   39,
-   "hollow @94,61",
-   2408
+   "hollow @108,98",
+   3245
   ]
  ],
  "errors": [],

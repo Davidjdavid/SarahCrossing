@@ -7,6 +7,8 @@
 const Shears = {
     /* things that have been cut keep the place they were cut at (or wherever they were pushed to after) */
     key(e) { return e.skey || e.id || null; },
+    /* a puzzle sleeper (one that lies down again when Wren leaves its room) isn't lost to the Shears till its puzzle's done */
+    rewraps(e) { return !!(e && e.resetSleep && e._sleep0 && e._sleep0.home && !(typeof e.resetSleep === 'string' && Progress.flag(e.resetSleep))); },
     target(p) {
         const a = p.area, f = p.front();
         const cord = a.ents.find(e => e.kind === 'cord' && e.talkBox(p, f));
@@ -131,6 +133,11 @@ const Shears = {
         for (const e of a.ents.slice()) {
             const k = this.key(e); if (!k) continue;
             if (af['gone:' + k]) { a.remove(e); continue; }
+            /* a puzzle sleeper cut free and left lying (not down a hole) is wrapped up again and laid down where it slept,
+               on its thread, when its place is built afresh, as when Wren leaves its room (Bells.keepSleeping): cut where it
+               lay, the Larder's weight was a stray across the gap for good, and the gap could never be filled (David,
+               playing 1.0.5) */
+            if (af['cut:' + k] && this.rewraps(e)) { delete af['cut:' + k]; continue; }
             const v = af['cut:' + k]; if (!v) continue;
             if (e.onCut) { e.onCut(true); continue; }
             e.ret = null; e.cutFree = true; e.stitched = false;

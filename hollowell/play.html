@@ -20,7 +20,7 @@ canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display:
    headless in the tests (HEADLESS: no document). */
 
 const HEADLESS = typeof document === 'undefined';
-const VERSION = '1.0.5';
+const VERSION = '1.0.6';
 const W = 320, H = 180, T = 16;          /* the screen in pixels, the tile size */
 const FPS = 60;
 
@@ -1547,7 +1547,7 @@ class GridThing extends Ent {
     onAdd(area) {
         /* a sleeper woken once stays awake (at home) when the place is built again; puzzle sleepers (resetSleep) don't */
         if (this.sleeper && this.id && !this.resetSleep && Progress.areaFlag(area.id, 'woke:' + this.id)) { this.sleeper = false; this.tiedOff = false; this.startAt = null; }
-        if (this.sleeper && this.startAt) this._sleep0 = { at: this.startAt.slice(), trace: this.trace ? this.trace.map(q => q.slice()) : null };
+        if (this.sleeper && this.startAt) this._sleep0 = { at: this.startAt.slice(), trace: this.trace ? this.trace.map(q => q.slice()) : null, home: [this.tx, this.ty] };
         area.place(this, this.tx, this.ty);
         if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread, patience: this.patience });
         /* things that start away from home (already displaced along a given trace) */
@@ -18474,6 +18474,14 @@ const Bells = {
             if (Return.asleep(e)) continue;
             const [sx, sy] = e._sleep0.at;
             if (area.at(sx, sy) && area.at(sx, sy) !== e) continue;
+            /* cut free and left lying, it's wrapped up again on a new thread to its old place (Shears.rewraps) */
+            if (e.cutFree) {
+                if (!Shears.rewraps(e)) continue;
+                e.cutFree = false; e.marked = true; e.stitched = false;
+                Return.mark(e, { color: e.thread, patience: e.patience });
+                e.ret.mx = e._sleep0.home[0]; e.ret.my = e._sleep0.home[1];
+                const k = Shears.key(e), af = Progress.areaFlags[area.id]; if (k && af) delete af['cut:' + k];
+            }
             area.unplace(e, e.tx, e.ty);
             e.tx = sx; e.ty = sy; e.x = sx * T; e.y = sy * T;
             area.place(e, sx, sy);
@@ -30359,6 +30367,8 @@ ITEMS.guildkey = { name: "The Guild's key", kind: 'quest', desc: "Iron, as long 
 const Shears = {
     /* things that have been cut keep the place they were cut at (or wherever they were pushed to after) */
     key(e) { return e.skey || e.id || null; },
+    /* a puzzle sleeper (one that lies down again when Wren leaves its room) isn't lost to the Shears till its puzzle's done */
+    rewraps(e) { return !!(e && e.resetSleep && e._sleep0 && e._sleep0.home && !(typeof e.resetSleep === 'string' && Progress.flag(e.resetSleep))); },
     target(p) {
         const a = p.area, f = p.front();
         const cord = a.ents.find(e => e.kind === 'cord' && e.talkBox(p, f));
@@ -30483,6 +30493,11 @@ const Shears = {
         for (const e of a.ents.slice()) {
             const k = this.key(e); if (!k) continue;
             if (af['gone:' + k]) { a.remove(e); continue; }
+            /* a puzzle sleeper cut free and left lying (not down a hole) is wrapped up again and laid down where it slept,
+               on its thread, when its place is built afresh, as when Wren leaves its room (Bells.keepSleeping): cut where it
+               lay, the Larder's weight was a stray across the gap for good, and the gap could never be filled (David,
+               playing 1.0.5) */
+            if (af['cut:' + k] && this.rewraps(e)) { delete af['cut:' + k]; continue; }
             const v = af['cut:' + k]; if (!v) continue;
             if (e.onCut) { e.onCut(true); continue; }
             e.ret = null; e.cutFree = true; e.stitched = false;

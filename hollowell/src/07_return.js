@@ -200,7 +200,7 @@ class GridThing extends Ent {
     onAdd(area) {
         /* a sleeper woken once stays awake (at home) when the place is built again; puzzle sleepers (resetSleep) don't */
         if (this.sleeper && this.id && !this.resetSleep && Progress.areaFlag(area.id, 'woke:' + this.id)) { this.sleeper = false; this.tiedOff = false; this.startAt = null; }
-        if (this.sleeper && this.startAt) this._sleep0 = { at: this.startAt.slice(), trace: this.trace ? this.trace.map(q => q.slice()) : null };
+        if (this.sleeper && this.startAt) this._sleep0 = { at: this.startAt.slice(), trace: this.trace ? this.trace.map(q => q.slice()) : null, home: [this.tx, this.ty] };
         area.place(this, this.tx, this.ty);
         if (this.marked !== false && !this.ret) Return.mark(this, { color: this.thread, patience: this.patience });
         /* things that start away from home (already displaced along a given trace) */

@@ -75,6 +75,14 @@ const Bells = {
             if (Return.asleep(e)) continue;
             const [sx, sy] = e._sleep0.at;
             if (area.at(sx, sy) && area.at(sx, sy) !== e) continue;
+            /* cut free and left lying, it's wrapped up again on a new thread to its old place (Shears.rewraps) */
+            if (e.cutFree) {
+                if (!Shears.rewraps(e)) continue;
+                e.cutFree = false; e.marked = true; e.stitched = false;
+                Return.mark(e, { color: e.thread, patience: e.patience });
+                e.ret.mx = e._sleep0.home[0]; e.ret.my = e._sleep0.home[1];
+                const k = Shears.key(e), af = Progress.areaFlags[area.id]; if (k && af) delete af['cut:' + k];
+            }
             area.unplace(e, e.tx, e.ty);
             e.tx = sx; e.ty = sy; e.x = sx * T; e.y = sy * T;
             area.place(e, sx, sy);

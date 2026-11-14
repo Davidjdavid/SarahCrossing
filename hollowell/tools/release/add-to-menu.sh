@@ -7,7 +7,7 @@ cat > "$APPS/hollowell.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=Hollowell
-Comment=Version 1.0.5
+Comment=Version 1.0.6
 Exec=sh "$DIR/play-hollowell.sh"
 Icon=applications-games
 Terminal=false
