@@ -26,7 +26,12 @@ ways in found by a whole-game check, and the Houses' maps showing whole rooms (P
 into part of the Millrace, and two more found by checking every place for it (POLISH.md 102-103); 1.0.4 (13 November):
 the Nursery's toy block carried down the playpen's little hole filled it for good (POLISH.md 104); 1.0.5 (14 November):
 the Spoolworks boss's last beat couldn't be won with its bobbins sewn far out, and never let up (POLISH.md 106); 1.0.6
-(14 November): the Larder's sleeper cut free where it lay was lost for good (POLISH.md 107). David has frozen copies of the 12 November version (commit b217800) to compare
+(14 November): the Larder's sleeper cut free where it lay was lost for good (POLISH.md 107).
+
+**David finished the game (15 November, about 7 hours on 1.0.6).** His verdict (POLISH.md 108): "overall pretty okay";
+liked the hard Zelda-like puzzles, the one logic of things going back where they belong with the story matching it, and
+cutting the townsfolk free; weak: the bugs fixed during his play, the art, navigation, a generic feel, money not
+mattering, the gameplay, boss damage. No further work is planned unless he asks. David has frozen copies of the 12 November version (commit b217800) to compare
 with later ones: the artifact https://claude.ai/artifact/CQ43nkNPyugBTyQbXsmDKV and a Linux folder (CLAUDE.md).
 
 **COMPLETE (2026-11-10).** Every item of GAME_BRIEF.md §13 is met (checklist below); final verification passed: 328
